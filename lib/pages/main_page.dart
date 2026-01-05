@@ -12,7 +12,6 @@ class MainPage extends StatelessWidget {
       body: Column(
         children: [
           Expanded(
-            flex: 88, 
             child: Row(
               children: [
                 Expanded(
@@ -23,21 +22,16 @@ class MainPage extends StatelessWidget {
                 // Main Content
                 Expanded(
                   flex: 8, 
-                  child: Container(
-                    color: Colors.white,
-                    child: Center(child: Text("Main Library Area")),
-                  ),
+                  child: Center(child: Text("Main Library Area")),
                 ),
               ],
             ),
           ),
 
-          Expanded(
-            flex: 12,
-            child: Container(
-              color: Colors.grey[100],
-              child: const PlayerBar(),
-            ),
+          SizedBox(
+            height: 90,
+            width: double.infinity,
+            child: const PlayerBar(),
           ),
         ],
       ),
