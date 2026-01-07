@@ -33,13 +33,11 @@ class _SuaraAppState extends State<SuaraApp> with WindowListener {
   @override
   void initState() {
     super.initState();
-    // Listen to window events
     windowManager.addListener(this);
   }
 
   @override
   void dispose() {
-    // Clean up listener when app closes
     windowManager.removeListener(this);
     super.dispose();
   }

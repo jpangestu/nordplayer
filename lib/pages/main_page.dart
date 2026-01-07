@@ -3,8 +3,23 @@ import 'package:flutter/material.dart';
 import 'package:suara/widgets/player_bar.dart'; 
 import 'package:suara/widgets/sidebar.dart';
 
-class MainPage extends StatelessWidget {
+class MainPage extends StatefulWidget {
   const MainPage({super.key});
+
+  @override
+  State<MainPage> createState() => _MainPageState();
+}
+
+class _MainPageState extends State<MainPage> {
+  // bool wideScreen = false;
+
+  // @override
+  // void didChangeDependencies() {
+  //   super.didChangeDependencies();
+
+  //   final double width = MediaQuery.of(context).size.width;
+  //   wideScreen = width > 840;
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -14,11 +29,8 @@ class MainPage extends StatelessWidget {
           Expanded(
             child: Row(
               children: [
-                Expanded(
-                  flex: 2, 
-                  child: Sidebar(), 
-                ),
-                
+                Sidebar(),
+                // VerticalDivider(thickness: 1,),
                 // Main Content
                 Expanded(
                   flex: 8, 
@@ -27,12 +39,9 @@ class MainPage extends StatelessWidget {
               ],
             ),
           ),
-
-          SizedBox(
-            height: 90,
-            width: double.infinity,
-            child: const PlayerBar(),
-          ),
+          
+          // Divider(thickness: 1,),
+          const PlayerBar(),
         ],
       ),
     );
