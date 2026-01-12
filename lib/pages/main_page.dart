@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:suara/pages/library.dart';
+import 'package:suara/pages/settings_page.dart';
 
-import 'package:suara/widgets/player_bar.dart'; 
+import 'package:suara/widgets/player_bar.dart';
 import 'package:suara/widgets/sidebar.dart';
 
 class MainPage extends StatefulWidget {
@@ -11,15 +13,14 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  // bool wideScreen = false;
+  int _selectedIndex = 0;
+  String? _main_path;
 
-  // @override
-  // void didChangeDependencies() {
-  //   super.didChangeDependencies();
-
-  //   final double width = MediaQuery.of(context).size.width;
-  //   wideScreen = width > 840;
-  // }
+  final List<Widget> _pages = [
+    const Library(),
+    const Center(child: Text("Playlist Page")), // Placeholder for now
+    const SettingsPage(), // Your actual settings page
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -29,18 +30,20 @@ class _MainPageState extends State<MainPage> {
           Expanded(
             child: Row(
               children: [
-                Sidebar(),
-                // VerticalDivider(thickness: 1,),
-                // Main Content
-                Expanded(
-                  flex: 8, 
-                  child: Center(child: Text("Main Library Area")),
+                Sidebar(
+                  selectedIndex: _selectedIndex,
+                  onDestinationSelected: (int index) {
+                    setState(() {
+                      _selectedIndex = index;
+                    });
+                  },
                 ),
+                // Main Content
+                Expanded(child: _pages[_selectedIndex]),
               ],
             ),
           ),
-          
-          // Divider(thickness: 1,),
+
           const PlayerBar(),
         ],
       ),

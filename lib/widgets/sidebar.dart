@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
 
 class Sidebar extends StatelessWidget {
-  const Sidebar({super.key});
+  final int selectedIndex;
+  final ValueChanged<int> onDestinationSelected; // The "Callback" function
+
+  const Sidebar({
+    super.key, 
+    required this.selectedIndex,
+    required this.onDestinationSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
     return NavigationRail(
-      selectedIndex: 0,
-      // minWidth: 250,
+      selectedIndex: selectedIndex,
       labelType: NavigationRailLabelType.all,
       backgroundColor: Colors.grey,
+      onDestinationSelected: onDestinationSelected,
       destinations: const <NavigationRailDestination>[
         NavigationRailDestination(
           icon: Icon(Icons.library_music_outlined),
