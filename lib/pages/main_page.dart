@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+
 import 'package:suara/pages/library.dart';
 import 'package:suara/pages/settings_page.dart';
-
 import 'package:suara/widgets/player_bar.dart';
 import 'package:suara/widgets/sidebar.dart';
 
@@ -14,7 +14,6 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
-  String? _main_path;
 
   final List<Widget> _pages = [
     const Library(),
