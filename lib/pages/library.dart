@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:suara/models/song.dart';
+import 'package:suara/services/audio_file_scanner.dart';
 
 class Library extends StatefulWidget {
   const Library({super.key});
@@ -10,35 +12,53 @@ class Library extends StatefulWidget {
 }
 
 class _LibraryState extends State<Library> {
-  List<Song> songs = [
-    Song(
-      title: 'Afterlife',
-      artist: 'Avenged Sevenfold',
-      filePath: '/home/est/Music/Avenged Sevenfold - Afterlife.mp3',
-    ),
-    Song(
-      title: 'Waiting For Love',
-      artist: 'Avicii',
-      filePath: '/home/est/Music/Avicii - Waiting For Love.mp3',
-    ),
-    Song(
-      title: 'Warbringer',
-      artist: 'TheFatRat',
-      filePath: '/home/est/Music/TheFatRat - Warbringer.mp3',
-    ),
-  ];
+  List<File> songs = [];
+  bool _isLoading = true;
+
+  Future<void> loadMusic() async {
+    String musicPath = '';
+
+    final prefs = await SharedPreferences.getInstance();
+    musicPath = prefs.getString('music_path') ?? '';
+
+    List<File> foundSongs = [];
+
+    if (musicPath.isNotEmpty) {
+      foundSongs = await scanAudio(musicPath, ['.mp3']);
+    }
+
+    if (mounted) {
+      setState(() {
+        songs = foundSongs;
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    loadMusic();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: ListView.builder(
-        itemCount: songs.length,
-        itemBuilder: (context, index) {
-            return ListTile(
-              title: Text(songs[index].title),
-            );
-          },
-      ),
+    if (_isLoading == true) {
+      return Center(child: CircularProgressIndicator());
+    }
+
+    if (songs.isEmpty) {
+      return const Center(
+        child: Text("No songs found.\nMake sure you've added your music directory path in the settings"),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: songs.length,
+      itemBuilder: (context, index) {
+        final file = songs[index];
+        return ListTile(title: Text(file.path));
+      },
     );
   }
 }
