@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:metadata_god/metadata_god.dart';
 
 import 'package:suara/pages/main_page.dart';
 
@@ -18,6 +19,8 @@ void main() async {
     await windowManager.show();
     await windowManager.focus();
   });
+
+  await MetadataGod.initialize();
 
   runApp(const SuaraApp());
 }

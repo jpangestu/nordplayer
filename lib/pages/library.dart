@@ -2,7 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:suara/models/song.dart';
 import 'package:suara/services/audio_file_scanner.dart';
+import 'package:suara/services/metadata_service.dart';
 
 class Library extends StatefulWidget {
   const Library({super.key});
@@ -12,7 +14,7 @@ class Library extends StatefulWidget {
 }
 
 class _LibraryState extends State<Library> {
-  List<File> songs = [];
+  List<Song> songs = [];
   bool _isLoading = true;
 
   Future<void> loadMusic() async {
@@ -21,15 +23,30 @@ class _LibraryState extends State<Library> {
     final prefs = await SharedPreferences.getInstance();
     musicPath = prefs.getString('music_path') ?? '';
 
-    List<File> foundSongs = [];
+    List<File> tempFiles = [];
+    List<Song> tempSongs = [];
 
     if (musicPath.isNotEmpty) {
-      foundSongs = await scanAudio(musicPath, ['.mp3']);
+      tempFiles = await scanAudio(musicPath, ['.mp3']);
+
+      // Sequential parse
+      // for (File song in tempFiles) {
+      //   tempSongs.add(await parseMetadata(song));
+      // }
+
+      // Concurrent parse
+      tempSongs = await Future.wait(
+        tempFiles.map((file) => parseMetadata(file)),
+      );
+
+      tempSongs.sort(
+        (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+      );
     }
 
     if (mounted) {
       setState(() {
-        songs = foundSongs;
+        songs = tempSongs;
         _isLoading = false;
       });
     }
@@ -49,15 +66,27 @@ class _LibraryState extends State<Library> {
 
     if (songs.isEmpty) {
       return const Center(
-        child: Text("No songs found.\nMake sure you've added your music directory path in the settings"),
+        child: Text(
+          "No songs found.\nMake sure you've added your music directory path in the settings",
+        ),
       );
     }
 
     return ListView.builder(
       itemCount: songs.length,
       itemBuilder: (context, index) {
-        final file = songs[index];
-        return ListTile(title: Text(file.path));
+        return ListTile(
+          leading: Icon(Icons.music_note),
+          title: Text(
+            songs[index].title,
+            maxLines: 1,
+            overflow: .ellipsis,
+          ),
+          subtitle: Text(songs[index].artist, maxLines: 1, overflow: .ellipsis),
+          onTap: () {
+            
+          },
+        );
       },
     );
   }

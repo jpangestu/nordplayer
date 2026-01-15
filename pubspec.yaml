@@ -38,6 +38,7 @@ dependencies:
   path: ^1.9.1
   file_picker: ^10.3.8
   shared_preferences: ^2.5.4
+  metadata_god: ^1.1.0
 
 dev_dependencies:
   flutter_test:

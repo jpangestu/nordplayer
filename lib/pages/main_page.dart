@@ -17,8 +17,8 @@ class _MainPageState extends State<MainPage> {
 
   final List<Widget> _pages = [
     const Library(),
-    const Center(child: Text("Playlist Page")), // Placeholder for now
-    const SettingsPage(), // Your actual settings page
+    const Center(child: Text("Playlist Page")),
+    const SettingsPage(),
   ];
 
   @override

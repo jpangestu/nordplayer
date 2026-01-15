@@ -1,13 +1,26 @@
+import 'dart:io';
+import 'package:path/path.dart' as p;
 
 class Song {
   final String title;
   final String artist;
-  final String filePath;
+  final String path;
+  final double? duration;
 
-  Song({required this.title, required this.artist, required this.filePath});
+  Song({
+    required this.title,
+    required this.artist,
+    required this.path,
+    this.duration,
+  });
 
-  factory Song.fromMap(Map<String, dynamic> rawData) {
-    assert(rawData['filePath'].isNotEmpty, 'Path cannot be empty');
-    return Song(title: rawData['title'], artist: rawData['artist'], filePath: rawData['filePath']);
+  // Create a song object from audio file with no metadata
+  factory Song.fromFile(File file) {
+    return Song(
+      title: p.basenameWithoutExtension(file.path),
+      artist: 'unknown artist',
+      path: file.path,
+      duration: null,
+    );
   }
 }
