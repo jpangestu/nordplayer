@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:suara/models/song.dart';
 import 'package:suara/services/audio_manager.dart';
 
@@ -21,7 +22,7 @@ class PlayerBar extends StatelessWidget {
             child: StreamBuilder<Song?>(
               stream: AudioManager().currentSongStream,
               builder: (context, snapshot) {
-                if(!snapshot.hasData) {
+                if (!snapshot.hasData) {
                   return SizedBox();
                 }
 
@@ -31,13 +32,24 @@ class PlayerBar extends StatelessWidget {
                   children: [
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 30),
-                      child: Text(snapshot.data!.title, maxLines: 1, overflow: .ellipsis, style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18),)
+                      child: Text(
+                        snapshot.data!.title,
+                        maxLines: 1,
+                        overflow: .ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 18,
+                        ),
+                      ),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 30),
-                      child: Text(snapshot.data!.artist, maxLines: 1, overflow: .ellipsis,),
-                    )
-                
+                      child: Text(
+                        snapshot.data!.artist,
+                        maxLines: 1,
+                        overflow: .ellipsis,
+                      ),
+                    ),
                   ],
                 );
               },
@@ -52,21 +64,33 @@ class PlayerBar extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      IconButton(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        onPressed: () {},
-                        icon: Icon(Icons.repeat),
+                      StreamBuilder(
+                        stream: AudioManager().loopModeStream,
+                        builder: (context, snapshot) {
+                          final loopMode = snapshot.data ?? LoopMode.off;
+                          return IconButton(
+                            onPressed: () {
+                              AudioManager().cycleLoopMode();
+                            },
+                            icon: Icon(switch (loopMode) {
+                              LoopMode.off => Icons.repeat,
+                              LoopMode.all => Icons.repeat_on,
+                              LoopMode.one => Icons.repeat_one_on_outlined,
+                            }),
+                          );
+                        },
                       ),
                       IconButton(
                         padding: const EdgeInsets.symmetric(horizontal: 10),
-                        onPressed: () {},
                         icon: Icon(Icons.skip_previous),
+                        onPressed: () {
+                          AudioManager().previous();
+                        },
                       ),
                       StreamBuilder<bool>(
                         stream: AudioManager().playingStream,
                         builder: (context, snapshot) {
                           final isPlaying = snapshot.data ?? false;
-
                           return IconButton(
                             iconSize: 40,
                             padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -87,13 +111,27 @@ class PlayerBar extends StatelessWidget {
                       ),
                       IconButton(
                         padding: const EdgeInsets.symmetric(horizontal: 10),
-                        onPressed: () {},
                         icon: Icon(Icons.skip_next),
+                        onPressed: () {
+                          AudioManager().next();
+                        },
                       ),
-                      IconButton(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        onPressed: () {},
-                        icon: Icon(Icons.shuffle),
+                      StreamBuilder(
+                        stream: AudioManager().shuffleModeStream,
+                        initialData: AudioManager().isShuffleEnabled,
+                        builder: (context, snapshot) {
+                          bool isShuffle = snapshot.data ?? false;
+                          return IconButton(
+                            onPressed: () {
+                              AudioManager().toggleShuffle();
+                            },
+                            icon: Icon(
+                              isShuffle
+                                  ? Icons.shuffle_on_outlined
+                                  : Icons.shuffle,
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),

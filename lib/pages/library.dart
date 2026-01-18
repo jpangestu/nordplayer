@@ -82,7 +82,7 @@ class _LibraryState extends State<Library> {
           subtitle: Text(songs[index].artist, maxLines: 1, overflow: .ellipsis),
           onTap: () {
             final audioManager = AudioManager();
-            audioManager.play(songs[index]);
+            audioManager.setQueueAndPlay(songs, index);
           },
         );
       },
