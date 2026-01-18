@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:suara/models/song.dart';
 import 'package:suara/services/audio_manager.dart';
 
 import 'package:suara/widgets/position_data.dart';
@@ -15,7 +16,33 @@ class PlayerBar extends StatelessWidget {
       color: Colors.blueGrey,
       child: Row(
         children: [
-          Expanded(flex: 3, child: Placeholder()),
+          Expanded(
+            flex: 3,
+            child: StreamBuilder<Song?>(
+              stream: AudioManager().currentSongStream,
+              builder: (context, snapshot) {
+                if(!snapshot.hasData) {
+                  return SizedBox();
+                }
+
+                return Column(
+                  mainAxisAlignment: .center,
+                  crossAxisAlignment: .start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 30),
+                      child: Text(snapshot.data!.title, maxLines: 1, overflow: .ellipsis, style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18),)
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 30),
+                      child: Text(snapshot.data!.artist, maxLines: 1, overflow: .ellipsis,),
+                    )
+                
+                  ],
+                );
+              },
+            ),
+          ),
           Expanded(
             flex: 7,
             child: Column(

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:just_audio/just_audio.dart';
+import 'package:suara/models/song.dart';
 import 'package:suara/widgets/position_data.dart';
 
 class AudioManager {
@@ -60,22 +61,42 @@ class AudioManager {
     return controller.stream;
   }
 
-  Future<void> play(String path) async {
-    try {
-      print("AUDIO_DEBUG: Trying to set file path: $path");
+  // 1. The Switchboard: Holds the current 'Song' (or null if nothing is playing)
+  final StreamController<Song?> _songController =
+      StreamController<Song?>.broadcast();
 
-      // This is usually where it hangs on Linux if GStreamer is unhappy
-      await _player.setFilePath(path);
-      print(
-        "AUDIO_DEBUG: File loaded successfully. Duration: ${_player.duration}",
-      );
+  // 2. The Public Line: The UI listens to this
+  Stream<Song?> get currentSongStream => _songController.stream;
+
+  // 3. Update the play method
+  Future<void> play(Song song) async {
+    _songController.add(song);
+
+    try {
+      await _player.setFilePath(song.path);
 
       await _player.play();
-      print("AUDIO_DEBUG: Playing!");
     } catch (e) {
       print("AUDIO_DEBUG: Error playing audio: $e");
     }
   }
+
+  // Future<void> play(String path) async {
+  //   try {
+  //     print("AUDIO_DEBUG: Trying to set file path: $path");
+
+  //     // This is usually where it hangs on Linux if GStreamer is unhappy
+  //     await _player.setFilePath(path);
+  //     print(
+  //       "AUDIO_DEBUG: File loaded successfully. Duration: ${_player.duration}",
+  //     );
+
+  //     await _player.play();
+  //     print("AUDIO_DEBUG: Playing!");
+  //   } catch (e) {
+  //     print("AUDIO_DEBUG: Error playing audio: $e");
+  //   }
+  // }
 
   Future<void> resume() async {
     await _player.play();
