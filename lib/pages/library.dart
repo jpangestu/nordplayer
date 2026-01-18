@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:suara/models/song.dart';
 import 'package:suara/services/audio_file_scanner.dart';
+import 'package:suara/services/audio_manager.dart';
 import 'package:suara/services/metadata_service.dart';
 
 class Library extends StatefulWidget {
@@ -77,14 +78,11 @@ class _LibraryState extends State<Library> {
       itemBuilder: (context, index) {
         return ListTile(
           leading: Icon(Icons.music_note),
-          title: Text(
-            songs[index].title,
-            maxLines: 1,
-            overflow: .ellipsis,
-          ),
+          title: Text(songs[index].title, maxLines: 1, overflow: .ellipsis),
           subtitle: Text(songs[index].artist, maxLines: 1, overflow: .ellipsis),
           onTap: () {
-            
+            final audioManager = AudioManager();
+            audioManager.play(songs[index].path);
           },
         );
       },

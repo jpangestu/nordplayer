@@ -5,7 +5,7 @@ class Song {
   final String title;
   final String artist;
   final String path;
-  final double? duration;
+  final Duration? duration;
 
   Song({
     required this.title,

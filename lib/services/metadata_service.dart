@@ -12,7 +12,7 @@ Future<Song> parseMetadata(File file) async {
       title: metadata.title ?? p.basenameWithoutExtension(file.path),
       artist: metadata.artist ?? 'unknown artist',
       path: file.path,
-      duration: metadata.durationMs,
+      duration: Duration(milliseconds: metadata.durationMs?.toInt() ?? 0),
     );
   } catch (e) {
     print("Error parsing ${file.path}: $e");

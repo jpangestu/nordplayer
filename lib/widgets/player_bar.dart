@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:suara/services/audio_manager.dart';
 
+import 'package:suara/widgets/position_data.dart';
 import 'package:suara/widgets/progress_bar.dart';
 
 class PlayerBar extends StatelessWidget {
@@ -8,7 +10,7 @@ class PlayerBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 90,
+      height: 90 + 10,
       width: double.infinity,
       color: Colors.blueGrey,
       child: Row(
@@ -33,11 +35,28 @@ class PlayerBar extends StatelessWidget {
                         onPressed: () {},
                         icon: Icon(Icons.skip_previous),
                       ),
-                      IconButton(
-                        iconSize: 40,
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        onPressed: () {},
-                        icon: Icon(Icons.play_circle),
+                      StreamBuilder<bool>(
+                        stream: AudioManager().playingStream,
+                        builder: (context, snapshot) {
+                          final isPlaying = snapshot.data ?? false;
+
+                          return IconButton(
+                            iconSize: 40,
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            icon: Icon(
+                              isPlaying
+                                  ? Icons.pause_circle
+                                  : Icons.play_circle,
+                            ),
+                            onPressed: () {
+                              if (isPlaying) {
+                                AudioManager().pause();
+                              } else {
+                                AudioManager().resume();
+                              }
+                            },
+                          );
+                        },
                       ),
                       IconButton(
                         padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -52,11 +71,24 @@ class PlayerBar extends StatelessWidget {
                     ],
                   ),
                 ),
-                ProgressBar(
-                  position: const Duration(minutes: 1, seconds: 15), // Mock data
-                  duration: const Duration(minutes: 3, seconds: 45), // Mock data
-                  onSeek: (newPosition) {
-                    print("User seeked to: $newPosition");
+                StreamBuilder(
+                  stream: AudioManager().positionDataStream,
+                  builder: (context, snapshot) {
+                    final positionData =
+                        snapshot.data ??
+                        PositionData(
+                          Duration.zero,
+                          Duration.zero,
+                          Duration.zero,
+                        );
+
+                    return ProgressBar(
+                      position: positionData.position,
+                      duration: positionData.duration,
+                      onSeek: (newPosition) {
+                        AudioManager().seek(newPosition);
+                      },
+                    );
                   },
                 ),
               ],

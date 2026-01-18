@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:metadata_god/metadata_god.dart';
+import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 
 import 'package:suara/pages/main_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Handle app window size
   await windowManager.ensureInitialized();
 
   WindowOptions windowOptions = const WindowOptions(
+    // Default (not expanded) size at app first launch
     size: Size(1200, 800),
     minimumSize: Size(800, 600),
     center: true,
@@ -20,7 +24,11 @@ void main() async {
     await windowManager.focus();
   });
 
+  // Initalize metadata parser
   await MetadataGod.initialize();
+
+  // Initialize just_audio
+  JustAudioMediaKit.ensureInitialized();
 
   runApp(const SuaraApp());
 }
