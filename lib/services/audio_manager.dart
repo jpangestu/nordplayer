@@ -7,15 +7,23 @@ import 'package:suara/widgets/position_data.dart';
 class AudioManager {
   static final AudioManager _instance = AudioManager._internal();
   List<Song> _queue = []; // The active queue
-  bool _isShuffle = false;
   List<Song> _originalQueue = []; // Backup of the clean order
+  bool _isShuffle = false;
   int _currentIndex = -1;
 
   factory AudioManager() {
     return _instance;
   }
 
-  AudioManager._internal();
+  AudioManager._internal() {
+    // Listen to player state for autoplay next song
+    _player.playerStateStream.listen((playerState) {
+      // Check if the engine finished the song naturally
+      if (playerState.processingState == ProcessingState.completed) {
+        next();
+      }
+    });
+  }
 
   final AudioPlayer _player = AudioPlayer();
 
@@ -90,22 +98,52 @@ class AudioManager {
     }
   }
 
-  // Expose loop mode as astream
-  Stream<LoopMode> get loopModeStream => _player.loopModeStream;
+  // LOOP MODE ARCHITECTURE
+  // 
+  // We decouple the UI's LoopMode from the AudioPlayer's LoopMode.
+  // 
+  // PROBLEM: `just_audio` calculates loops based on the current audio source.
+  // Since we feed it one song at a time, `LoopMode.all` would infinitely loop 
+  // the CURRENT song, never triggering the 'completed' event we need for auto-advance.
+  // 
+  // SOLUTION: 
+  // 1. UI: Shows the user's intent (Off, All, One).
+  // 2. Engine: 
+  //    - If UI is 'One': Engine is set to 'One' (Native looping).
+  //    - If UI is 'All': Engine is set to 'OFF'. This forces the song to "finish"
+  //      naturally, triggering the listener to call our custom next() logic
+  //      which handles the queue wrapping.
+  LoopMode _loopMode = LoopMode.off;
+  final StreamController<LoopMode> _loopModeController = StreamController<LoopMode>.broadcast();
+  
+  // Public API
+  Stream<LoopMode> get loopModeStream => _loopModeController.stream;
+  LoopMode get loopMode => _loopMode;
 
   // Cycle Logic (Off -> All -> One -> Off)
   Future<void> cycleLoopMode() async {
-    final current = _player.loopMode;
-    final next = switch (current) {
+    _loopMode = switch (_loopMode) {
       LoopMode.off => LoopMode.all,
       LoopMode.all => LoopMode.one,
       LoopMode.one => LoopMode.off,
     };
-    await _player.setLoopMode(next);
+
+    // Broadcast change to UI
+    _loopModeController.add(_loopMode);
+
+    // SYNCHRONIZATION LOGIC:
+    // If the user wants to loop the entire queue ('All'), we must lie to the engine.
+    // We tell it 'Off' so it finishes the track and lets our next() method handle the loop.
+    if (_loopMode == LoopMode.one) {
+      await _player.setLoopMode(LoopMode.one);
+    } else {
+      await _player.setLoopMode(LoopMode.off);
+    }
   }
 
   // Shuffle State & Stream
-  final StreamController<bool> _shuffleSubject = StreamController<bool>.broadcast();
+  final StreamController<bool> _shuffleSubject =
+      StreamController<bool>.broadcast();
   Stream<bool> get shuffleModeStream => _shuffleSubject.stream;
   // Helper for UI to know state IMMEDIATELY (before stream emits)
   bool get isShuffleEnabled => _isShuffle;
@@ -114,7 +152,7 @@ class AudioManager {
     if (!_isShuffle) {
       final newQueue = List.of(_originalQueue);
       newQueue.shuffle();
-      
+
       // Keep current song playing?
       if (_currentIndex >= 0 && _currentIndex < _queue.length) {
         final currentSong = _queue[_currentIndex];
@@ -122,7 +160,7 @@ class AudioManager {
         newQueue.insert(0, currentSong);
         _currentIndex = 0;
       }
-      
+
       _queue = newQueue;
       _isShuffle = true;
     } else {
@@ -159,7 +197,7 @@ class AudioManager {
 
   Future<void> next() async {
     if (_currentIndex == _queue.length - 1) {
-      if (_player.loopMode == LoopMode.all) {
+      if (_loopMode == LoopMode.all) {
         _currentIndex = 0;
         await _play(_queue[_currentIndex]);
       }
@@ -171,7 +209,7 @@ class AudioManager {
 
   Future<void> previous() async {
     if (_currentIndex == 0) {
-      if (_player.loopMode == LoopMode.all) {
+      if (_loopMode == LoopMode.all) {
         _currentIndex = _queue.length - 1;
         await _play(_queue[_currentIndex]);
       }

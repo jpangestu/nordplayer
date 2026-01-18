@@ -66,6 +66,7 @@ class PlayerBar extends StatelessWidget {
                     children: [
                       StreamBuilder(
                         stream: AudioManager().loopModeStream,
+                        initialData: AudioManager().loopMode,
                         builder: (context, snapshot) {
                           final loopMode = snapshot.data ?? LoopMode.off;
                           return IconButton(
