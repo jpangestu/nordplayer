@@ -99,23 +99,24 @@ class AudioManager {
   }
 
   // LOOP MODE ARCHITECTURE
-  // 
+  //
   // We decouple the UI's LoopMode from the AudioPlayer's LoopMode.
-  // 
+  //
   // PROBLEM: `just_audio` calculates loops based on the current audio source.
-  // Since we feed it one song at a time, `LoopMode.all` would infinitely loop 
+  // Since we feed it one song at a time, `LoopMode.all` would infinitely loop
   // the CURRENT song, never triggering the 'completed' event we need for auto-advance.
-  // 
-  // SOLUTION: 
+  //
+  // SOLUTION:
   // 1. UI: Shows the user's intent (Off, All, One).
-  // 2. Engine: 
+  // 2. Engine:
   //    - If UI is 'One': Engine is set to 'One' (Native looping).
   //    - If UI is 'All': Engine is set to 'OFF'. This forces the song to "finish"
   //      naturally, triggering the listener to call our custom next() logic
   //      which handles the queue wrapping.
   LoopMode _loopMode = LoopMode.off;
-  final StreamController<LoopMode> _loopModeController = StreamController<LoopMode>.broadcast();
-  
+  final StreamController<LoopMode> _loopModeController =
+      StreamController<LoopMode>.broadcast();
+
   // Public API
   Stream<LoopMode> get loopModeStream => _loopModeController.stream;
   LoopMode get loopMode => _loopMode;
@@ -188,7 +189,9 @@ class AudioManager {
   }
 
   Future<void> resume() async {
-    await _player.play();
+    if (_currentIndex != -1) {
+      await _player.play();
+    }
   }
 
   Future<void> pause() async {

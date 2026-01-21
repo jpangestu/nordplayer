@@ -19,21 +19,18 @@ class _LibraryState extends State<Library> {
   bool _isLoading = true;
 
   Future<void> loadMusic() async {
-    String musicPath = '';
+    List<String> musicPath = [];
 
     final prefs = await SharedPreferences.getInstance();
-    musicPath = prefs.getString('music_path') ?? '';
+    musicPath = prefs.getStringList('music_path') ?? [];
 
     List<File> tempFiles = [];
     List<Song> tempSongs = [];
 
     if (musicPath.isNotEmpty) {
-      tempFiles = await scanAudio(musicPath, ['.mp3']);
-
-      // Sequential parse
-      // for (File song in tempFiles) {
-      //   tempSongs.add(await parseMetadata(song));
-      // }
+      for (String? path in musicPath) {
+        tempFiles += await scanAudio(path!, ['.mp3']);
+      }
 
       // Concurrent parse
       tempSongs = await Future.wait(
