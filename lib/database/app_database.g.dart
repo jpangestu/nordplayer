@@ -3,7 +3,7 @@
 part of 'app_database.dart';
 
 // ignore_for_file: type=lint
-class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
+class $SongsTable extends Songs with TableInfo<$SongsTable, SongEntity> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
@@ -30,6 +30,15 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _artistMeta = const VerificationMeta('artist');
+  @override
+  late final GeneratedColumn<String> artist = GeneratedColumn<String>(
+    'artist',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _pathMeta = const VerificationMeta('path');
   @override
   late final GeneratedColumn<String> path = GeneratedColumn<String>(
@@ -38,9 +47,22 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _durationMeta = const VerificationMeta(
+    'duration',
   );
   @override
-  List<GeneratedColumn> get $columns => [songId, title, path];
+  late final GeneratedColumn<int> duration = GeneratedColumn<int>(
+    'duration',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [songId, title, artist, path, duration];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -48,7 +70,7 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
   static const String $name = 'songs';
   @override
   VerificationContext validateIntegrity(
-    Insertable<Song> instance, {
+    Insertable<SongEntity> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -67,6 +89,14 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
     } else if (isInserting) {
       context.missing(_titleMeta);
     }
+    if (data.containsKey('artist')) {
+      context.handle(
+        _artistMeta,
+        artist.isAcceptableOrUnknown(data['artist']!, _artistMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_artistMeta);
+    }
     if (data.containsKey('path')) {
       context.handle(
         _pathMeta,
@@ -75,15 +105,21 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
     } else if (isInserting) {
       context.missing(_pathMeta);
     }
+    if (data.containsKey('duration')) {
+      context.handle(
+        _durationMeta,
+        duration.isAcceptableOrUnknown(data['duration']!, _durationMeta),
+      );
+    }
     return context;
   }
 
   @override
   Set<GeneratedColumn> get $primaryKey => {songId};
   @override
-  Song map(Map<String, dynamic> data, {String? tablePrefix}) {
+  SongEntity map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return Song(
+    return SongEntity(
       songId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}song_id'],
@@ -92,9 +128,17 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
         DriftSqlType.string,
         data['${effectivePrefix}title'],
       )!,
+      artist: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}artist'],
+      )!,
       path: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}path'],
+      )!,
+      duration: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration'],
       )!,
     );
   }
@@ -105,17 +149,27 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
   }
 }
 
-class Song extends DataClass implements Insertable<Song> {
+class SongEntity extends DataClass implements Insertable<SongEntity> {
   final int songId;
   final String title;
+  final String artist;
   final String path;
-  const Song({required this.songId, required this.title, required this.path});
+  final int duration;
+  const SongEntity({
+    required this.songId,
+    required this.title,
+    required this.artist,
+    required this.path,
+    required this.duration,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['song_id'] = Variable<int>(songId);
     map['title'] = Variable<String>(title);
+    map['artist'] = Variable<String>(artist);
     map['path'] = Variable<String>(path);
+    map['duration'] = Variable<int>(duration);
     return map;
   }
 
@@ -123,19 +177,23 @@ class Song extends DataClass implements Insertable<Song> {
     return SongsCompanion(
       songId: Value(songId),
       title: Value(title),
+      artist: Value(artist),
       path: Value(path),
+      duration: Value(duration),
     );
   }
 
-  factory Song.fromJson(
+  factory SongEntity.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return Song(
+    return SongEntity(
       songId: serializer.fromJson<int>(json['songId']),
       title: serializer.fromJson<String>(json['title']),
+      artist: serializer.fromJson<String>(json['artist']),
       path: serializer.fromJson<String>(json['path']),
+      duration: serializer.fromJson<int>(json['duration']),
     );
   }
   @override
@@ -144,80 +202,111 @@ class Song extends DataClass implements Insertable<Song> {
     return <String, dynamic>{
       'songId': serializer.toJson<int>(songId),
       'title': serializer.toJson<String>(title),
+      'artist': serializer.toJson<String>(artist),
       'path': serializer.toJson<String>(path),
+      'duration': serializer.toJson<int>(duration),
     };
   }
 
-  Song copyWith({int? songId, String? title, String? path}) => Song(
+  SongEntity copyWith({
+    int? songId,
+    String? title,
+    String? artist,
+    String? path,
+    int? duration,
+  }) => SongEntity(
     songId: songId ?? this.songId,
     title: title ?? this.title,
+    artist: artist ?? this.artist,
     path: path ?? this.path,
+    duration: duration ?? this.duration,
   );
-  Song copyWithCompanion(SongsCompanion data) {
-    return Song(
+  SongEntity copyWithCompanion(SongsCompanion data) {
+    return SongEntity(
       songId: data.songId.present ? data.songId.value : this.songId,
       title: data.title.present ? data.title.value : this.title,
+      artist: data.artist.present ? data.artist.value : this.artist,
       path: data.path.present ? data.path.value : this.path,
+      duration: data.duration.present ? data.duration.value : this.duration,
     );
   }
 
   @override
   String toString() {
-    return (StringBuffer('Song(')
+    return (StringBuffer('SongEntity(')
           ..write('songId: $songId, ')
           ..write('title: $title, ')
-          ..write('path: $path')
+          ..write('artist: $artist, ')
+          ..write('path: $path, ')
+          ..write('duration: $duration')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(songId, title, path);
+  int get hashCode => Object.hash(songId, title, artist, path, duration);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is Song &&
+      (other is SongEntity &&
           other.songId == this.songId &&
           other.title == this.title &&
-          other.path == this.path);
+          other.artist == this.artist &&
+          other.path == this.path &&
+          other.duration == this.duration);
 }
 
-class SongsCompanion extends UpdateCompanion<Song> {
+class SongsCompanion extends UpdateCompanion<SongEntity> {
   final Value<int> songId;
   final Value<String> title;
+  final Value<String> artist;
   final Value<String> path;
+  final Value<int> duration;
   const SongsCompanion({
     this.songId = const Value.absent(),
     this.title = const Value.absent(),
+    this.artist = const Value.absent(),
     this.path = const Value.absent(),
+    this.duration = const Value.absent(),
   });
   SongsCompanion.insert({
     this.songId = const Value.absent(),
     required String title,
+    required String artist,
     required String path,
+    this.duration = const Value.absent(),
   }) : title = Value(title),
+       artist = Value(artist),
        path = Value(path);
-  static Insertable<Song> custom({
+  static Insertable<SongEntity> custom({
     Expression<int>? songId,
     Expression<String>? title,
+    Expression<String>? artist,
     Expression<String>? path,
+    Expression<int>? duration,
   }) {
     return RawValuesInsertable({
       if (songId != null) 'song_id': songId,
       if (title != null) 'title': title,
+      if (artist != null) 'artist': artist,
       if (path != null) 'path': path,
+      if (duration != null) 'duration': duration,
     });
   }
 
   SongsCompanion copyWith({
     Value<int>? songId,
     Value<String>? title,
+    Value<String>? artist,
     Value<String>? path,
+    Value<int>? duration,
   }) {
     return SongsCompanion(
       songId: songId ?? this.songId,
       title: title ?? this.title,
+      artist: artist ?? this.artist,
       path: path ?? this.path,
+      duration: duration ?? this.duration,
     );
   }
 
@@ -230,8 +319,14 @@ class SongsCompanion extends UpdateCompanion<Song> {
     if (title.present) {
       map['title'] = Variable<String>(title.value);
     }
+    if (artist.present) {
+      map['artist'] = Variable<String>(artist.value);
+    }
     if (path.present) {
       map['path'] = Variable<String>(path.value);
+    }
+    if (duration.present) {
+      map['duration'] = Variable<int>(duration.value);
     }
     return map;
   }
@@ -241,7 +336,9 @@ class SongsCompanion extends UpdateCompanion<Song> {
     return (StringBuffer('SongsCompanion(')
           ..write('songId: $songId, ')
           ..write('title: $title, ')
-          ..write('path: $path')
+          ..write('artist: $artist, ')
+          ..write('path: $path, ')
+          ..write('duration: $duration')
           ..write(')'))
         .toString();
   }
@@ -262,13 +359,17 @@ typedef $$SongsTableCreateCompanionBuilder =
     SongsCompanion Function({
       Value<int> songId,
       required String title,
+      required String artist,
       required String path,
+      Value<int> duration,
     });
 typedef $$SongsTableUpdateCompanionBuilder =
     SongsCompanion Function({
       Value<int> songId,
       Value<String> title,
+      Value<String> artist,
       Value<String> path,
+      Value<int> duration,
     });
 
 class $$SongsTableFilterComposer extends Composer<_$Database, $SongsTable> {
@@ -289,8 +390,18 @@ class $$SongsTableFilterComposer extends Composer<_$Database, $SongsTable> {
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get artist => $composableBuilder(
+    column: $table.artist,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get path => $composableBuilder(
     column: $table.path,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get duration => $composableBuilder(
+    column: $table.duration,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -313,8 +424,18 @@ class $$SongsTableOrderingComposer extends Composer<_$Database, $SongsTable> {
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get artist => $composableBuilder(
+    column: $table.artist,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get path => $composableBuilder(
     column: $table.path,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get duration => $composableBuilder(
+    column: $table.duration,
     builder: (column) => ColumnOrderings(column),
   );
 }
@@ -333,8 +454,14 @@ class $$SongsTableAnnotationComposer extends Composer<_$Database, $SongsTable> {
   GeneratedColumn<String> get title =>
       $composableBuilder(column: $table.title, builder: (column) => column);
 
+  GeneratedColumn<String> get artist =>
+      $composableBuilder(column: $table.artist, builder: (column) => column);
+
   GeneratedColumn<String> get path =>
       $composableBuilder(column: $table.path, builder: (column) => column);
+
+  GeneratedColumn<int> get duration =>
+      $composableBuilder(column: $table.duration, builder: (column) => column);
 }
 
 class $$SongsTableTableManager
@@ -342,14 +469,14 @@ class $$SongsTableTableManager
         RootTableManager<
           _$Database,
           $SongsTable,
-          Song,
+          SongEntity,
           $$SongsTableFilterComposer,
           $$SongsTableOrderingComposer,
           $$SongsTableAnnotationComposer,
           $$SongsTableCreateCompanionBuilder,
           $$SongsTableUpdateCompanionBuilder,
-          (Song, BaseReferences<_$Database, $SongsTable, Song>),
-          Song,
+          (SongEntity, BaseReferences<_$Database, $SongsTable, SongEntity>),
+          SongEntity,
           PrefetchHooks Function()
         > {
   $$SongsTableTableManager(_$Database db, $SongsTable table)
@@ -367,17 +494,29 @@ class $$SongsTableTableManager
               ({
                 Value<int> songId = const Value.absent(),
                 Value<String> title = const Value.absent(),
+                Value<String> artist = const Value.absent(),
                 Value<String> path = const Value.absent(),
-              }) => SongsCompanion(songId: songId, title: title, path: path),
+                Value<int> duration = const Value.absent(),
+              }) => SongsCompanion(
+                songId: songId,
+                title: title,
+                artist: artist,
+                path: path,
+                duration: duration,
+              ),
           createCompanionCallback:
               ({
                 Value<int> songId = const Value.absent(),
                 required String title,
+                required String artist,
                 required String path,
+                Value<int> duration = const Value.absent(),
               }) => SongsCompanion.insert(
                 songId: songId,
                 title: title,
+                artist: artist,
                 path: path,
+                duration: duration,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -391,14 +530,14 @@ typedef $$SongsTableProcessedTableManager =
     ProcessedTableManager<
       _$Database,
       $SongsTable,
-      Song,
+      SongEntity,
       $$SongsTableFilterComposer,
       $$SongsTableOrderingComposer,
       $$SongsTableAnnotationComposer,
       $$SongsTableCreateCompanionBuilder,
       $$SongsTableUpdateCompanionBuilder,
-      (Song, BaseReferences<_$Database, $SongsTable, Song>),
-      Song,
+      (SongEntity, BaseReferences<_$Database, $SongsTable, SongEntity>),
+      SongEntity,
       PrefetchHooks Function()
     >;
 

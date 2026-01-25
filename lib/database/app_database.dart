@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 
 import 'package:suara/database/entities.dart';
+import 'package:suara/models/song.dart';
 
 part 'app_database.g.dart';
 
@@ -24,17 +25,41 @@ class Database extends _$Database {
   factory Database() {
     return _instance;
   }
-  
+
   Database._internal() : super(_openConnection());
 
   @override
   int get schemaVersion => 2;
 
-  Future<List<Song>> getSongs() async {
-    return await select(songs).get();
+  Stream<List<Song>> watchAllSongs() {
+    // Sort by title as default
+    return (select(songs)..orderBy([(t) => OrderingTerm(expression: t.title)]))
+        .watch()
+        .map((entities) {
+          // Convert List<SongEntity> to List<Song>
+          return entities.map((entity) {
+            return Song(
+              title: entity.title,
+              artist: entity.artist,
+              path: entity.path,
+              duration: Duration(milliseconds: entity.duration),
+            );
+          }).toList();
+        });
   }
 
-  Future<int> insertSong(SongsCompanion entity) async {
-    return into(songs).insert(entity);
+  Future<void> insertSongs(List<Song> allMusic) async {
+    List<SongsCompanion> companions = allMusic.map((music) {
+      return SongsCompanion(
+        title: Value(music.title),
+        artist: Value(music.artist),
+        path: Value(music.path),
+        duration: Value(music.duration?.inMilliseconds ?? 0),
+      );
+    }).toList();
+
+    await batch((batch) {
+      batch.insertAll(songs, companions, mode: InsertMode.insertOrReplace);
+    });
   }
 }
