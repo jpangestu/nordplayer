@@ -2,8 +2,12 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 class Song {
+  final int id;        // To play this specific song
+  final int artistId;  // To go to Artist Page
+  final int albumId;   // To go to Album Page
+
   final String title;
-  final String artist;
+  final String artist; // The "Primary" artist name (for display)
   final String album;
   final String genre;
   final int year;
@@ -15,9 +19,12 @@ class Song {
   final int timestamp;
 
   const Song({
+    this.id = -1,       // Default to -1 for temporary objects
+    this.artistId = -1,
+    this.albumId = -1,
     required this.title,
     required this.artist,
-    this.album = '', // Default to empty string
+    this.album = '',
     this.genre = '',
     this.year = 0,
     this.trackNumber = 0,
@@ -30,6 +37,9 @@ class Song {
 
   // Helper to copy object
   Song copyWith({
+    int? id,
+    int? artistId,
+    int? albumId,
     String? title,
     String? artist,
     String? album,
@@ -43,6 +53,9 @@ class Song {
     int? timestamp,
   }) {
     return Song(
+      id: id ?? this.id,
+      artistId: artistId ?? this.artistId,
+      albumId: albumId ?? this.albumId,
       title: title ?? this.title,
       artist: artist ?? this.artist,
       album: album ?? this.album,

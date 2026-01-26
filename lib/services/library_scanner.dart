@@ -4,41 +4,61 @@ import 'dart:isolate';
 
 import 'package:crypto/crypto.dart';
 import 'package:metadata_god/metadata_god.dart';
+import 'package:suara/models/scanned_metadata.dart';
 
-import 'package:suara/models/song.dart';
+// =============================================================================
+// CONFIGURATION & DTOs (Data Transfer Object)
+// =============================================================================
 
-// Input Configuration for the Isolate
+/// Configuration payload passed to the background Isolate.
 class ScanConfiguration {
   final List<String> folderPaths;
-  // A snapshot of what the DB already knows: {Path: Timestamp}
-  final Map<String, int> knownFiles;
+  final Map<String, int> knownFiles; // Snapshot of DB {Path: Timestamp}
   final String cachePath;
+  final bool splitArtistsEnabled;
 
-  ScanConfiguration(this.folderPaths, this.knownFiles, this.cachePath);
+  ScanConfiguration(
+    this.folderPaths,
+    this.knownFiles,
+    this.cachePath,
+    this.splitArtistsEnabled,
+  );
 }
 
-// The output returning ONLY changes
+/// The result payload returned from the background Isolate.
 class ScanResult {
-  final List<Song> newOrUpdatedSongs; // Files that were added or edited
-  final List<String> deletedPaths; // Files that no longer exist on disk
+  final List<ScannedMetadata> newOrUpdatedSongs;
+  final List<String> deletedPaths;
 
   ScanResult(this.newOrUpdatedSongs, this.deletedPaths);
 }
 
+// =============================================================================
+// PUBLIC API
+// =============================================================================
+
+/// Spawns a background thread (Isolate) to scan the library.
+///
+/// This prevents UI jank while processing thousands of files.
 Future<ScanResult> scanLibrary(ScanConfiguration config) async {
   return await Isolate.run(() => _internalScanTask(config));
 }
 
+// =============================================================================
+// INTERNAL BACKGROUND TASK
+// =============================================================================
+
+// Regex for splitting artists. Avoids '/' to protect bands like AC/DC.
+final _separatorRegex = RegExp(r'[;&]|//');
+
 Future<ScanResult> _internalScanTask(ScanConfiguration config) async {
-  await MetadataGod.initialize();
+  await MetadataGod.initialize(); // Initialize native libraries in this Isolate
 
-  List<Song> songsToUpsert = [];
-  Set<String> foundPaths =
-      {}; // Keep track of every file we actually see on disk
+  List<ScannedMetadata> songsToUpsert = [];
+  Set<String> foundPaths = {}; // Track files on disk to detect deletions
 
-  // Create the art directory if it doesn't exist
-  final artDir = Directory('${config.cachePath}/album_art'); 
-
+  // --- SETUP: CACHE DIRECTORIES ---
+  final artDir = Directory('${config.cachePath}/album_art');
   if (!artDir.existsSync()) {
     artDir.createSync(recursive: true);
   }
@@ -47,72 +67,82 @@ Future<ScanResult> _internalScanTask(ScanConfiguration config) async {
     final dir = Directory(directoryPath);
     if (!dir.existsSync()) continue;
 
-    // Recursive list of all files
+    // --- STEP 1: RECURSIVE FILE LISTING ---
     final entities = dir.listSync(recursive: true, followLinks: false);
 
     for (var entity in entities) {
-      // Filter for MP3s (add other extensions here if needed)
-      if (entity is File && entity.path.toLowerCase().endsWith('.mp3')) {
-        foundPaths.add(entity.path);
+      if (entity is! File || !entity.path.toLowerCase().endsWith('.mp3')) {
+        continue;
+      }
 
-        // --- THE OPTIMIZATION CORE ---
-        final lastMod = entity.lastModifiedSync().millisecondsSinceEpoch;
-        final dbLastMod = config.knownFiles[entity.path];
+      foundPaths.add(entity.path);
 
-        // Logic: Parse ONLY if it's new (dbLastMod == null)
-        // OR if the file is newer than the DB record (lastMod > dbLastMod)
-        if (dbLastMod == null || lastMod > dbLastMod) {
-          try {
-            final metadata = await MetadataGod.readMetadata(file: entity.path);
-            String? localArtPath;
+      // --- STEP 2: CHANGE DETECTION ---
+      // We only parse the file if it's new OR strictly newer than our DB record.
+      final lastMod = entity.lastModifiedSync().millisecondsSinceEpoch;
+      final dbLastMod = config.knownFiles[entity.path];
 
-            // Only try to save if metadata has a picture
-            if (metadata.picture != null) {
-              final picture = metadata.picture!;
-              
-              // Generate a Unique Filename
-              // We use Hash(AlbumName + AlbumArtist) to handle duplicates
-              final uniqueString = '${metadata.album ?? ""}_${metadata.artist ?? ""}';
-              final hash = md5.convert(utf8.encode(uniqueString)).toString();
-              final fileName = '$hash.jpg'; // Assuming JPEG or generic image
-              
-              final file = File('${artDir.path}/$fileName');
+      if (dbLastMod == null || lastMod > dbLastMod) {
+        try {
+          // --- STEP 3: METADATA PARSING ---
+          final metadata = await MetadataGod.readMetadata(file: entity.path);
+          
+          // A. Handle Album Art
+          String? localArtPath;
+          if (metadata.picture != null) {
+            // Optimization: Hash the artist+album to avoid saving duplicates
+            final uniqueString = '${metadata.album}_${metadata.artist}';
+            final hash = md5.convert(utf8.encode(uniqueString)).toString();
+            final artFile = File('${artDir.path}/$hash.jpg');
 
-              // 2. Write to disk ONLY if it doesn't exist (Optimization)
-              if (!file.existsSync()) {
-                file.writeAsBytesSync(picture.data);
-              }
-              
-              localArtPath = file.path;
+            if (!artFile.existsSync()) {
+              artFile.writeAsBytesSync(metadata.picture!.data);
             }
-
-            final song = Song(
-              title: metadata.title ?? entity.uri.pathSegments.last,
-              artist: metadata.artist ?? 'Unknown Artist',
-              album: metadata.album ?? '',
-              genre: metadata.genre ?? '',
-              year: metadata.year ?? 0,
-              trackNumber: metadata.trackNumber ?? 0,
-              discNumber: metadata.discNumber ?? 0,
-              duration: Duration(
-                milliseconds: metadata.durationMs?.toInt() ?? 0,
-              ),
-              path: entity.path,
-              artPath: localArtPath,
-              timestamp: lastMod,
-            );
-
-            songsToUpsert.add(song);
-          } catch (e) {
-            print("Error parsing ${entity.path}: $e");
+            localArtPath = artFile.path;
           }
+
+          // B. Handle Artist Splitting
+          final rawArtistString = metadata.artist ?? 'Unknown Artist';
+          List<String> artistNames = [];
+
+          if (config.splitArtistsEnabled) {
+             // Logic: Split by semicolon or double-slash
+            artistNames = rawArtistString
+                .split(_separatorRegex)
+                .map((e) => e.trim())
+                .where((e) => e.isNotEmpty)
+                .toList();
+          }
+
+          // Fallback if splitting was disabled or returned nothing
+          if (artistNames.isEmpty) {
+            artistNames = [rawArtistString];
+          }
+
+          // --- STEP 4: DTO CREATION ---
+          songsToUpsert.add(ScannedMetadata(
+            title: metadata.title ?? entity.uri.pathSegments.last,
+            artist: artistNames.first, // Primary Artist (for Sorting)
+            allArtists: artistNames,   // All Artists (for Links)
+            album: metadata.album ?? 'Unknown Album',
+            genre: metadata.genre ?? '',
+            year: metadata.year ?? 0,
+            trackNumber: metadata.trackNumber ?? 0,
+            discNumber: metadata.discNumber ?? 0,
+            duration: Duration(milliseconds: metadata.durationMs?.toInt() ?? 0),
+            path: entity.path,
+            artPath: localArtPath,
+            timestamp: lastMod,
+          ));
+        } catch (e) {
+          print("Error parsing ${entity.path}: $e");
         }
       }
     }
   }
 
-  // If a path is in 'knownFiles' (DB) but was NOT in 'foundPaths' (Disk),
-  // it means the user deleted the file. Remove it from DB.
+  // --- STEP 5: DETECT DELETIONS ---
+  // If it was in the DB but we didn't see it on disk, it's gone.
   final deletedPaths = config.knownFiles.keys
       .where((path) => !foundPaths.contains(path))
       .toList();
