@@ -1,10 +1,10 @@
+import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:suara/models/song.dart';
 import 'package:suara/services/audio_manager.dart';
-
 import 'package:suara/widgets/position_data.dart';
-import 'package:suara/widgets/progress_bar.dart';
+// import 'package:suara/widgets/progress_bar.dart';
 
 class PlayerBar extends StatelessWidget {
   const PlayerBar({super.key});
@@ -30,9 +30,9 @@ class PlayerBar extends StatelessWidget {
                   mainAxisAlignment: .center,
                   crossAxisAlignment: .start,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 30),
-                      child: Text(
+                    ListTile(
+                      contentPadding: EdgeInsets.only(left: 30),
+                      title: Text(
                         snapshot.data!.title,
                         maxLines: 1,
                         overflow: .ellipsis,
@@ -41,14 +41,12 @@ class PlayerBar extends StatelessWidget {
                           fontSize: 18,
                         ),
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 30),
-                      child: Text(
+                      subtitle: Text(
                         snapshot.data!.artist,
                         maxLines: 1,
                         overflow: .ellipsis,
                       ),
+                      onTap: () {},
                     ),
                   ],
                 );
@@ -58,6 +56,7 @@ class PlayerBar extends StatelessWidget {
           Expanded(
             flex: 7,
             child: Column(
+              mainAxisAlignment: .center,
               children: [
                 Padding(
                   padding: const EdgeInsets.only(top: 10),
@@ -148,12 +147,18 @@ class PlayerBar extends StatelessWidget {
                           Duration.zero,
                         );
 
-                    return ProgressBar(
-                      position: positionData.position,
-                      duration: positionData.duration,
-                      onSeek: (newPosition) {
-                        AudioManager().seek(newPosition);
-                      },
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 30),
+                      child: ProgressBar(
+                        progress: positionData.position,
+                        buffered: positionData.duration,
+                        total: positionData.duration,
+                        timeLabelLocation: TimeLabelLocation.sides,
+                        // timeLabelPadding: 20,
+                        onSeek: (newPosition) {
+                          AudioManager().seek(newPosition);
+                        },
+                      ),
                     );
                   },
                 ),
