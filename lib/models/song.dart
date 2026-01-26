@@ -4,31 +4,55 @@ import 'package:path/path.dart' as p;
 class Song {
   final String title;
   final String artist;
+  final String album;
+  final String genre;
+  final int year;
+  final int trackNumber;
+  final int discNumber;
+  final Duration duration;
   final String path;
-  final Duration? duration;
+  final String? artPath;
   final int timestamp;
 
-  Song({
+  const Song({
     required this.title,
     required this.artist,
+    this.album = '', // Default to empty string
+    this.genre = '',
+    this.year = 0,
+    this.trackNumber = 0,
+    this.discNumber = 0,
+    required this.duration,
     required this.path,
-    this.duration,
+    this.artPath,
     this.timestamp = 0,
   });
 
-  /// Helper to quickly create a copy with a new timestamp
+  // Helper to copy object
   Song copyWith({
     String? title,
     String? artist,
-    String? path,
+    String? album,
+    String? genre,
+    int? year,
+    int? trackNumber,
+    int? discNumber,
     Duration? duration,
+    String? path,
+    String? artPath,
     int? timestamp,
   }) {
     return Song(
       title: title ?? this.title,
       artist: artist ?? this.artist,
-      path: path ?? this.path,
+      album: album ?? this.album,
+      genre: genre ?? this.genre,
+      year: year ?? this.year,
+      trackNumber: trackNumber ?? this.trackNumber,
+      discNumber: discNumber ?? this.discNumber,
       duration: duration ?? this.duration,
+      path: path ?? this.path,
+      artPath: artPath ?? this.artPath,
       timestamp: timestamp ?? this.timestamp,
     );
   }
@@ -39,7 +63,7 @@ class Song {
       title: p.basenameWithoutExtension(file.path),
       artist: 'unknown artist',
       path: file.path,
-      duration: null,
+      duration: Duration(milliseconds: 0),
     );
   }
 }

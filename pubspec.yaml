@@ -46,6 +46,7 @@ dependencies:
   drift_flutter: ^0.2.8
   path_provider: ^2.1.5
   audio_video_progress_bar: ^2.0.3
+  crypto: ^3.0.7
 
 dev_dependencies:
   flutter_test:

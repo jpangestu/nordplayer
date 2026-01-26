@@ -5,14 +5,14 @@ import 'package:suara/pages/settings_page.dart';
 import 'package:suara/widgets/player_bar.dart';
 import 'package:suara/widgets/sidebar.dart';
 
-class MainPage extends StatefulWidget {
-  const MainPage({super.key});
+class MainLayout extends StatefulWidget {
+  const MainLayout({super.key});
 
   @override
-  State<MainPage> createState() => _MainPageState();
+  State<MainLayout> createState() => _MainLayoutState();
 }
 
-class _MainPageState extends State<MainPage> {
+class _MainLayoutState extends State<MainLayout> {
   int _selectedIndex = 0;
 
   final List<Widget> _pages = [

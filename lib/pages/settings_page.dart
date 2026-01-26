@@ -1,6 +1,6 @@
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
-import 'package:suara/services/library_manager.dart';
+import 'package:suara/services/library_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -64,7 +64,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _loadPaths() async {
-    final paths = await getMusicPaths();
+    final paths = await LibraryService().getMusicPaths();
     setState(() {
       musicPath = paths;
     });
@@ -81,7 +81,7 @@ class _SettingsPageState extends State<SettingsPage> {
         // Prevent duplicates
         if (path != null && !updatedPaths.contains(path)) {
           updatedPaths.add(path);
-          addPath(path);
+          LibraryService().addPath(path);
         }
       }
 
@@ -95,7 +95,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final List<String> updatedPaths = List.from(musicPath);
     updatedPaths.remove(pathToRemove);
 
-    removePath(pathToRemove);
+    LibraryService().removePath(pathToRemove);
     setState(() {
       musicPath = updatedPaths;
     });

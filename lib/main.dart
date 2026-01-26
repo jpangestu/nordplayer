@@ -3,7 +3,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:metadata_god/metadata_god.dart';
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 
-import 'package:suara/pages/main_page.dart';
+import 'package:suara/main_layout.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -75,7 +75,7 @@ class _SuaraAppState extends State<SuaraApp> with WindowListener {
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueGrey),
       ),
-      home: const MainPage(),
+      home: const MainLayout(),
     );
   }
 }

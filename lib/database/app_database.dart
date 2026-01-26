@@ -59,8 +59,14 @@ class Database extends _$Database {
             return Song(
               title: entity.title,
               artist: entity.artist,
-              path: entity.path,
+              album: entity.album,
+              genre: entity.genre,
+              year: entity.year,
+              trackNumber: entity.trackNumber,
+              discNumber: entity.discNumber,
               duration: Duration(milliseconds: entity.duration),
+              path: entity.path,
+              artPath: entity.artPath,
               timestamp: entity.lastModified,
             );
           }).toList();
@@ -72,8 +78,14 @@ class Database extends _$Database {
       return SongsCompanion(
         title: Value(music.title),
         artist: Value(music.artist),
+        album: Value(music.album), // <--- Map these
+        genre: Value(music.genre),
+        year: Value(music.year),
+        trackNumber: Value(music.trackNumber),
+        discNumber: Value(music.discNumber),
+        duration: Value(music.duration.inMilliseconds),
         path: Value(music.path),
-        duration: Value(music.duration?.inMilliseconds ?? 0),
+        artPath: Value(music.artPath),
         lastModified: Value(music.timestamp),
       );
     }).toList();

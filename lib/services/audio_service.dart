@@ -4,18 +4,18 @@ import 'package:just_audio/just_audio.dart';
 import 'package:suara/models/song.dart';
 import 'package:suara/widgets/position_data.dart';
 
-class AudioManager {
-  static final AudioManager _instance = AudioManager._internal();
+class AudioService {
+  static final AudioService _instance = AudioService._internal();
   List<Song> _queue = []; // The active queue
   List<Song> _originalQueue = []; // Backup of the clean order
   bool _isShuffle = false;
   int _currentIndex = -1;
 
-  factory AudioManager() {
+  factory AudioService() {
     return _instance;
   }
 
-  AudioManager._internal() {
+  AudioService._internal() {
     // Listen to player state for autoplay next song
     _player.playerStateStream.listen((playerState) {
       // Check if the engine finished the song naturally

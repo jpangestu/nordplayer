@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 
+import 'package:crypto/crypto.dart';
 import 'package:metadata_god/metadata_god.dart';
 
 import 'package:suara/models/song.dart';
@@ -10,8 +12,9 @@ class ScanConfiguration {
   final List<String> folderPaths;
   // A snapshot of what the DB already knows: {Path: Timestamp}
   final Map<String, int> knownFiles;
+  final String cachePath;
 
-  ScanConfiguration(this.folderPaths, this.knownFiles);
+  ScanConfiguration(this.folderPaths, this.knownFiles, this.cachePath);
 }
 
 // The output returning ONLY changes
@@ -32,6 +35,13 @@ Future<ScanResult> _internalScanTask(ScanConfiguration config) async {
   List<Song> songsToUpsert = [];
   Set<String> foundPaths =
       {}; // Keep track of every file we actually see on disk
+
+  // Create the art directory if it doesn't exist
+  final artDir = Directory('${config.cachePath}/album_art'); 
+
+  if (!artDir.existsSync()) {
+    artDir.createSync(recursive: true);
+  }
 
   for (String directoryPath in config.folderPaths) {
     final dir = Directory(directoryPath);
@@ -54,14 +64,41 @@ Future<ScanResult> _internalScanTask(ScanConfiguration config) async {
         if (dbLastMod == null || lastMod > dbLastMod) {
           try {
             final metadata = await MetadataGod.readMetadata(file: entity.path);
+            String? localArtPath;
+
+            // Only try to save if metadata has a picture
+            if (metadata.picture != null) {
+              final picture = metadata.picture!;
+              
+              // Generate a Unique Filename
+              // We use Hash(AlbumName + AlbumArtist) to handle duplicates
+              final uniqueString = '${metadata.album ?? ""}_${metadata.artist ?? ""}';
+              final hash = md5.convert(utf8.encode(uniqueString)).toString();
+              final fileName = '$hash.jpg'; // Assuming JPEG or generic image
+              
+              final file = File('${artDir.path}/$fileName');
+
+              // 2. Write to disk ONLY if it doesn't exist (Optimization)
+              if (!file.existsSync()) {
+                file.writeAsBytesSync(picture.data);
+              }
+              
+              localArtPath = file.path;
+            }
 
             final song = Song(
               title: metadata.title ?? entity.uri.pathSegments.last,
               artist: metadata.artist ?? 'Unknown Artist',
-              path: entity.path,
+              album: metadata.album ?? '',
+              genre: metadata.genre ?? '',
+              year: metadata.year ?? 0,
+              trackNumber: metadata.trackNumber ?? 0,
+              discNumber: metadata.discNumber ?? 0,
               duration: Duration(
                 milliseconds: metadata.durationMs?.toInt() ?? 0,
               ),
+              path: entity.path,
+              artPath: localArtPath,
               timestamp: lastMod,
             );
 

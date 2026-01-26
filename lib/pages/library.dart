@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:suara/database/app_database.dart';
 import 'package:suara/models/song.dart';
-import 'package:suara/services/audio_manager.dart';
-import 'package:suara/services/library_manager.dart';
+import 'package:suara/services/audio_service.dart';
+import 'package:suara/services/library_service.dart';
+import 'package:suara/widgets/album_art.dart';
 
 class Library extends StatefulWidget {
   const Library({super.key});
@@ -15,7 +16,7 @@ class _LibraryState extends State<Library> {
   @override
   void initState() {
     super.initState();
-    syncLibrary();
+    LibraryService().syncLibrary();
   }
 
   @override
@@ -39,9 +40,12 @@ class _LibraryState extends State<Library> {
 
         return ListView.builder(
           itemCount: songs.length,
+          // Force every item to be exactly 72 pixels high (Standard ListTile height)
+          // This allows Flutter to "jump" calculation during fast scrolls.
+          itemExtent: 72.0,
           itemBuilder: (context, index) {
             return ListTile(
-              leading: Icon(Icons.music_note),
+              leading: AlbumArt(artPath: songs[index].artPath),
               title: Text(songs[index].title, maxLines: 1, overflow: .ellipsis),
               subtitle: Text(
                 songs[index].artist,
@@ -49,8 +53,8 @@ class _LibraryState extends State<Library> {
                 overflow: .ellipsis,
               ),
               onTap: () {
-                final audioManager = AudioManager();
-                audioManager.setQueueAndPlay(songs, index);
+                final audioService = AudioService();
+                audioService.setQueueAndPlay(songs, index);
               },
             );
           },
