@@ -1,6 +1,6 @@
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:suara/services/library_manager.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -64,15 +64,10 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _loadPaths() async {
-    final prefs = await SharedPreferences.getInstance();
+    final paths = await getMusicPaths();
     setState(() {
-      musicPath = prefs.getStringList('music_path') ?? [];
+      musicPath = paths;
     });
-  }
-
-  Future<void> _savePaths(List<String> paths) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('music_path', paths);
   }
 
   Future<void> _addFolder() async {
@@ -86,10 +81,10 @@ class _SettingsPageState extends State<SettingsPage> {
         // Prevent duplicates
         if (path != null && !updatedPaths.contains(path)) {
           updatedPaths.add(path);
+          addPath(path);
         }
       }
 
-      await _savePaths(updatedPaths);
       setState(() {
         musicPath = updatedPaths;
       });
@@ -100,7 +95,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final List<String> updatedPaths = List.from(musicPath);
     updatedPaths.remove(pathToRemove);
 
-    await _savePaths(updatedPaths);
+    removePath(pathToRemove);
     setState(() {
       musicPath = updatedPaths;
     });

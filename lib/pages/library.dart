@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:suara/database/app_database.dart';
 import 'package:suara/models/song.dart';
 import 'package:suara/services/audio_manager.dart';
-import 'package:suara/services/library_scanner_task.dart';
+import 'package:suara/services/library_manager.dart';
 
 class Library extends StatefulWidget {
   const Library({super.key});
@@ -13,21 +12,10 @@ class Library extends StatefulWidget {
 }
 
 class _LibraryState extends State<Library> {
-  Future<void> loadMusic() async {
-    List<String> musicPath = [];
-
-    final prefs = await SharedPreferences.getInstance();
-    musicPath = prefs.getStringList('music_path') ?? [];
-
-    List<Song> tempSongs = await scanLibrary(musicPath);
-
-    Database().insertSongs(tempSongs);
-  }
-
   @override
   void initState() {
     super.initState();
-    loadMusic();
+    syncLibrary();
   }
 
   @override

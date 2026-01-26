@@ -1,6 +1,12 @@
 import 'package:drift/drift.dart';
 
-// Avoid naming conflict between song entity and song domain (from model)
+@DataClassName('MusicFolder')
+class Folders extends Table {
+  TextColumn get path => text().unique()();
+  IntColumn get lastScanned => integer().withDefault(const Constant(0))();
+  BoolColumn get isEnabled => boolean().withDefault(const Constant(true))();
+}
+
 @DataClassName('SongEntity')
 class Songs extends Table {
   IntColumn get songId => integer().autoIncrement().named('song_id')();
@@ -8,4 +14,5 @@ class Songs extends Table {
   TextColumn get artist => text()();
   TextColumn get path => text().unique()();
   IntColumn get duration => integer().withDefault(const Constant(0))();
+  IntColumn get lastModified => integer().withDefault(const Constant(0))();
 }

@@ -18,7 +18,7 @@ LazyDatabase _openConnection() {
   });
 }
 
-@DriftDatabase(tables: [Songs])
+@DriftDatabase(tables: [Songs, Folders])
 class Database extends _$Database {
   static final Database _instance = Database._internal();
 
@@ -29,7 +29,25 @@ class Database extends _$Database {
   Database._internal() : super(_openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 1;
+
+  // Get database state
+  /// Returns a Map of {Path: LastModifiedTime} for the entire library.
+  Future<Map<String, int>> getPathTimestampMap() async {
+    final query = select(songs).map((row) {
+      return MapEntry(row.path, row.lastModified);
+    });
+
+    final result = await query.get();
+    return Map.fromEntries(result);
+  }
+
+  /// Batch Delete
+  Future<void> deleteSpecificSongs(List<String> pathsToDelete) async {
+    await batch((batch) {
+      batch.deleteWhere(songs, (row) => row.path.isIn(pathsToDelete));
+    });
+  }
 
   Stream<List<Song>> watchAllSongs() {
     // Sort by title as default
@@ -43,6 +61,7 @@ class Database extends _$Database {
               artist: entity.artist,
               path: entity.path,
               duration: Duration(milliseconds: entity.duration),
+              timestamp: entity.lastModified,
             );
           }).toList();
         });
@@ -55,6 +74,7 @@ class Database extends _$Database {
         artist: Value(music.artist),
         path: Value(music.path),
         duration: Value(music.duration?.inMilliseconds ?? 0),
+        lastModified: Value(music.timestamp),
       );
     }).toList();
 
