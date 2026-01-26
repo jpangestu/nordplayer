@@ -54,7 +54,7 @@ class _LibraryState extends State<Library> {
               ),
               onTap: () {
                 final audioService = AudioService();
-                audioService.setQueueAndPlay(songs, index);
+                audioService.setQueueAndPlay(songs, songs[index].id);
               },
             );
           },
