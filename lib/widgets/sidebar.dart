@@ -15,7 +15,7 @@ class Sidebar extends StatelessWidget {
     return NavigationRail(
       selectedIndex: selectedIndex,
       labelType: NavigationRailLabelType.all,
-      backgroundColor: Colors.grey,
+      backgroundColor: Color.fromRGBO(0,0,0,0.25),
       onDestinationSelected: onDestinationSelected,
       destinations: const <NavigationRailDestination>[
         NavigationRailDestination(

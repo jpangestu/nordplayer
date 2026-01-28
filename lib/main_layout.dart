@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'package:suara/pages/library.dart';
 import 'package:suara/pages/settings_page.dart';
+import 'package:suara/services/theme_service.dart';
+import 'package:suara/widgets/dynamic_background.dart';
 import 'package:suara/widgets/player_bar.dart';
 import 'package:suara/widgets/sidebar.dart';
 
@@ -23,29 +25,38 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          Expanded(
-            child: Row(
-              children: [
-                Sidebar(
-                  selectedIndex: _selectedIndex,
-                  onDestinationSelected: (int index) {
-                    setState(() {
-                      _selectedIndex = index;
-                    });
-                  },
-                ),
-                // Main Content
-                Expanded(child: _pages[_selectedIndex]),
-              ],
-            ),
-          ),
+    final Widget appBody = Row(
+      children: [
+        Sidebar(
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: (int index) {
+            setState(() {
+              _selectedIndex = index;
+            });
+          },
+        ),
+        const VerticalDivider(width: 1),
+        Expanded(child: Expanded(child: _pages[_selectedIndex])), // Main Page
+      ],
+    );
 
-          const PlayerBar(),
-        ],
-      ),
+    final Widget playerBar = const PlayerBar();
+
+    return StreamBuilder<bool>(
+      stream: ThemeService().immersiveStream,
+      initialData: ThemeService().isImmersive,
+      builder: (context, snapshot) {
+        final isImmersive = snapshot.data ?? false;
+
+        if (isImmersive) {
+          return DynamicBackgroundScaffold(
+            body: appBody,
+            bottomNavigationBar: playerBar,
+          );
+        } else {
+          return Scaffold(body: appBody, bottomNavigationBar: playerBar);
+        }
+      },
     );
   }
 }

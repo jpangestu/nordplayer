@@ -14,7 +14,7 @@ class PlayerBar extends StatelessWidget {
     return Container(
       height: 90,
       width: double.infinity,
-      color: Colors.blueGrey,
+      color: Color.fromRGBO(0, 0, 0, 0.25),
       child: Row(
         children: [
           Expanded(

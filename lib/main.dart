@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:suara/services/theme_service.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:metadata_god/metadata_god.dart';
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
@@ -69,13 +70,19 @@ class _SuaraAppState extends State<SuaraApp> with WindowListener {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Suara',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueGrey),
-      ),
-      home: const MainLayout(),
+    return StreamBuilder<ThemeMode>(
+      stream: ThemeService().themeStream,
+      initialData: ThemeService().currentTheme,
+      builder: (context, snapshot) {
+        return MaterialApp(
+          title: 'Suara',
+          // The Magic:
+          themeMode: snapshot.data,
+          theme: ThemeData.light(), // Customize these later
+          darkTheme: ThemeData.dark(),
+          home: const MainLayout(),
+        );
+      },
     );
   }
 }
