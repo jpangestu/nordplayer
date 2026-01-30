@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:suara/pages/library.dart';
 import 'package:suara/pages/settings/settings_layout.dart';
-import 'package:suara/services/theme_service.dart';
-import 'package:suara/widgets/dynamic_background.dart';
+import 'package:suara/widgets/dynamic_background_scaffold.dart';
 import 'package:suara/widgets/player_bar.dart';
 import 'package:suara/widgets/sidebar.dart';
 
@@ -42,21 +41,9 @@ class _MainLayoutState extends State<MainLayout> {
 
     final Widget playerBar = const PlayerBar();
 
-    return StreamBuilder<bool>(
-      stream: ThemeService().immersiveStream,
-      initialData: ThemeService().isImmersive,
-      builder: (context, snapshot) {
-        final isImmersive = snapshot.data ?? false;
-
-        if (isImmersive) {
-          return DynamicBackgroundScaffold(
-            body: appBody,
-            bottomNavigationBar: playerBar,
-          );
-        } else {
-          return Scaffold(body: appBody, bottomNavigationBar: playerBar);
-        }
-      },
+    return DynamicBackgroundScaffold(
+      body: appBody,
+      bottomNavigationBar: playerBar,
     );
   }
 }

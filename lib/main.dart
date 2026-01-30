@@ -14,7 +14,7 @@ void main() async {
 
   WindowOptions windowOptions = const WindowOptions(
     // Default (not expanded) size at app first launch
-    size: Size(1200, 800),
+    size: Size(1200, 720),
     minimumSize: Size(800, 600),
     center: true,
     titleBarStyle: TitleBarStyle.normal,
@@ -30,6 +30,9 @@ void main() async {
 
   // Initialize just_audio
   JustAudioMediaKit.ensureInitialized();
+
+  // Load current theme
+  await ThemeService().loadTheme();
 
   runApp(const SuaraApp());
 }

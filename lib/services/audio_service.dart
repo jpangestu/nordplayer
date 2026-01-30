@@ -77,7 +77,12 @@ class AudioService {
     return controller.stream;
   }
 
-  // Stream for the currently playing Song object
+
+  // Internal variable to remember the last value
+  Song? _currentSong; 
+  Song? get currentSong => _currentSong;
+
+  /// Stream for the currently playing Song object
   final StreamController<Song?> _songController =
       StreamController<Song?>.broadcast();
   Stream<Song?> get currentSongStream => _songController.stream;
@@ -176,6 +181,7 @@ class AudioService {
   // ===========================================================================
 
   Future<void> _play(Song song) async {
+    _currentSong = song;
     _songController.add(song);
 
     try {

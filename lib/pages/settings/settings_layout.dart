@@ -15,43 +15,56 @@ class _SettingsLayoutState extends State<SettingsLayout> {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        NavigationRail(
-          extended: true,
-          backgroundColor: Color.fromRGBO(0, 0, 0, 0.2),
-          selectedIndex: _selectedIndex,
-          destinations: const <NavigationRailDestination>[
-            NavigationRailDestination(
-              icon: Icon(Icons.settings_applications_outlined),
-              selectedIcon: Icon(Icons.settings_applications),
-              label: Text('General'),
-            ),
-            NavigationRailDestination(
-              icon: Icon(Icons.settings_display_outlined),
-              selectedIcon: Icon(Icons.settings_display),
-              label: Text("Theme & Style"),
-            ),
-            NavigationRailDestination(icon: Icon(Icons.info_outline), label: Text('About'))
-          ],
-          onDestinationSelected: (index) {
-            setState(() {
-              _selectedIndex = index;
-            });
-          },
-        ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // If the width is greater than 900, we show the full sidebar.
+        final bool showExtended = constraints.maxWidth >= 800;
 
-        const VerticalDivider(thickness: 1, width: 1),
-        
-        Expanded(
-          child: switch (_selectedIndex) {
-            0 => General(),
-            1 => Styling(),
-            2 => About(),
-            _ => General(),
-          },
-        ),
-      ],
+        return Row(
+          children: [
+            NavigationRail(
+              extended: showExtended,
+              minWidth: 72,
+              backgroundColor: const Color.fromRGBO(0, 0, 0, 0.2),
+              selectedIndex: _selectedIndex,
+              destinations: const <NavigationRailDestination>[
+                NavigationRailDestination(
+                  icon: Icon(Icons.settings_applications_outlined),
+                  selectedIcon: Icon(Icons.settings_applications),
+                  label: Text('General'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.palette_outlined),
+                  selectedIcon: Icon(Icons.palette),
+                  label: Text("Styling"),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.info_outline),
+                  selectedIcon: Icon(Icons.info),
+                  label: Text('About'),
+                ),
+              ],
+              onDestinationSelected: (index) {
+                setState(() {
+                  _selectedIndex = index;
+                });
+              },
+            ),
+
+            const VerticalDivider(thickness: 1, width: 1),
+
+            Expanded(
+              child: switch (_selectedIndex) {
+                // Ideally, use const constructors if your widgets are stateless
+                0 => const General(),
+                1 => const Styling(),
+                2 => const About(),
+                _ => const General(),
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }
