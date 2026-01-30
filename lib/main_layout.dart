@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:suara/pages/library.dart';
-import 'package:suara/pages/settings_page.dart';
+import 'package:suara/pages/settings/settings_layout.dart';
 import 'package:suara/services/theme_service.dart';
 import 'package:suara/widgets/dynamic_background.dart';
 import 'package:suara/widgets/player_bar.dart';
@@ -20,7 +20,7 @@ class _MainLayoutState extends State<MainLayout> {
   final List<Widget> _pages = [
     const Library(),
     const Center(child: Text("Playlist Page")),
-    const SettingsPage(),
+    const SettingsLayout(),
   ];
 
   @override
@@ -36,7 +36,7 @@ class _MainLayoutState extends State<MainLayout> {
           },
         ),
         const VerticalDivider(width: 1),
-        Expanded(child: Expanded(child: _pages[_selectedIndex])), // Main Page
+        Expanded(child: _pages[_selectedIndex]), // Main Page
       ],
     );
 
