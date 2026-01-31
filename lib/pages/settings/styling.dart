@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:suara/models/texture_profile';
 import 'package:suara/services/theme_service.dart';
 
 class Styling extends StatefulWidget {
@@ -10,7 +11,8 @@ class Styling extends StatefulWidget {
 
 class _StylingState extends State<Styling> {
   double? _tempBlur;
-  double? _tempOpactiy;
+  double? _tempTextureOpacity;
+  double? _tempDim;
 
   @override
   Widget build(BuildContext context) {
@@ -22,179 +24,234 @@ class _StylingState extends State<Styling> {
           stream: ThemeService().adaptiveBackgroundStream,
           initialData: ThemeService().adaptiveBackground,
           builder: (context, snapshot) {
-            // Grab current values from Service
-            final currentTheme = ThemeService().currentTheme;
-            final adaptiveBackground = ThemeService().adaptiveBackground;
-            // Fallback to defaults if service doesn't have these getters yet
-            final double currentBlur = _tempBlur ?? adaptiveBackground.blur;
-            final double currentOpacity =
-                _tempOpactiy ?? adaptiveBackground.opacity;
+            return StreamBuilder(
+              stream: ThemeService().texturedLayeredStream,
+              builder: (context, snapshot) {
+                return StreamBuilder(
+                  stream: ThemeService().dimmerStream,
+                  builder: (context, snapshot) {
+                    final currentTheme = ThemeService().currentTheme;
 
-            return ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _buildSectionHeader('Appearance'),
-                ListTile(
-                  leading: const Icon(Icons.settings_display_outlined),
-                  title: const Text('App Theme'),
-                  trailing: DropdownMenu<ThemeMode>(
-                    initialSelection: currentTheme,
-                    dropdownMenuEntries: const [
-                      DropdownMenuEntry(
-                        value: ThemeMode.system,
-                        label: 'System Default',
-                      ),
-                      DropdownMenuEntry(value: ThemeMode.dark, label: 'Dark'),
-                      DropdownMenuEntry(value: ThemeMode.light, label: 'Light'),
-                    ],
-                    onSelected: (value) {
-                      setState(() {
-                        if (value != null) {
-                          ThemeService().setTheme(value);
-                        }
-                      });
-                    },
-                  ),
-                ),
+                    // Adaptive Background
+                    final adaptiveBackground =
+                        ThemeService().adaptiveBackground;
+                    final currentBlur = _tempBlur ?? adaptiveBackground.blur;
 
-                const SizedBox(height: 16),
-                const Divider(),
-                _buildSectionHeader('Immersive Background'),
+                    // Texture
+                    final texturedLayer = ThemeService().texturedLayer;
+                    final currentTextrueOpacity =
+                        _tempTextureOpacity ?? texturedLayer.opacity;
+                    List<TextureProfile> allTextures =
+                        ThemeService().allTextures;
 
-                SwitchListTile(
-                  value: adaptiveBackground.isEnabled,
-                  title: const Text('Adaptive Background'),
-                  subtitle: const Text('Use album art as background'),
-                  onChanged: (value) {
-                    setState(() {
-                      ThemeService().setAdaptiveBackgroundMode(value);
-                    });
-                  },
-                ),
+                    final currentDim = _tempBlur ?? snapshot.data ?? ThemeService().dimmerLevel;
 
-                if (adaptiveBackground.isEnabled) ...[
-                  const SizedBox(height: 8),
-
-                  ListTile(
-                    title: const Text('Album Art Placement (Fit)'),
-                    trailing: DropdownMenu<BoxFit>(
-                      initialSelection: adaptiveBackground.fit,
-                      dropdownMenuEntries: const [
-                        DropdownMenuEntry(
-                          value: BoxFit.cover,
-                          label: 'Cover (Crop to fill)',
-                        ),
-                        DropdownMenuEntry(
-                          value: BoxFit.fill,
-                          label: 'Fill (Stretch)',
-                        ),
-                        DropdownMenuEntry(
-                          value: BoxFit.contain,
-                          label: 'Contain (Fit inside)',
-                        ),
-                        DropdownMenuEntry(
-                          value: BoxFit.fitHeight,
-                          label: 'Fit Height',
-                        ),
-                        DropdownMenuEntry(
-                          value: BoxFit.fitWidth,
-                          label: 'Fit Width',
-                        ),
-                      ],
-                      onSelected: (BoxFit? value) {
-                        if (value != null) {
-                          ThemeService().setAdaptiveBackgroundFit(value);
-                        }
-                      },
-                    ),
-                  ),
-
-                  _buildSliderRow(
-                    label: 'Blur',
-                    value: currentBlur,
-                    min: 0,
-                    max: 100,
-                    valueText: '${currentBlur.round()}px',
-                    onChanged: (val) => setState(() => _tempBlur = val),
-                    onChangeEnd: (val) =>
-                        ThemeService().setAdaptiveBackgroundBlur(val),
-                  ),
-
-                  _buildSliderRow(
-                    label: 'Opacity',
-                    value: currentOpacity,
-                    min: 0,
-                    max: 1,
-                    valueText: '${(currentOpacity * 100).round()}%',
-                    onChanged: (val) => setState(() => _tempOpactiy = val),
-                    onChangeEnd: (val) =>
-                        ThemeService().setAdaptiveBackgroundOpacity(val),
-                  ),
-
-                  // FIT DROPDOWN (New!)
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
+                    return ListView(
+                      padding: const EdgeInsets.all(16),
                       children: [
-                        // Reuse the same width logic for alignment
-                        const SizedBox(
-                          width: 70,
-                          child: Text(
-                            'Fit',
-                            style: TextStyle(fontWeight: FontWeight.w500),
+                        _buildSectionHeader('Appearance'),
+                        ListTile(
+                          leading: const Icon(Icons.settings_display_outlined),
+                          title: const Text('App Theme'),
+                          trailing: DropdownMenu<ThemeMode>(
+                            initialSelection: currentTheme,
+                            dropdownMenuEntries: const [
+                              DropdownMenuEntry(
+                                value: ThemeMode.system,
+                                label: 'System Default',
+                              ),
+                              DropdownMenuEntry(
+                                value: ThemeMode.dark,
+                                label: 'Dark',
+                              ),
+                              DropdownMenuEntry(
+                                value: ThemeMode.light,
+                                label: 'Light',
+                              ),
+                            ],
+                            onSelected: (value) {
+                              if (value != null) {
+                                ThemeService().setTheme(value);
+                              }
+                            },
                           ),
                         ),
-                        Expanded(
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<BoxFit>(
-                              value: adaptiveBackground.fit,
-                              isExpanded: true,
-                              icon: const Icon(Icons.arrow_drop_down),
-                              items: const [
-                                DropdownMenuItem(
+
+                        const SizedBox(height: 16),
+                        const Divider(),
+                        _buildSectionHeader('Immersive Background'),
+
+                        SwitchListTile(
+                          value: adaptiveBackground.isEnabled,
+                          title: const Text('Adaptive Background'),
+                          subtitle: const Text('Use album art as background'),
+                          onChanged: (value) {
+                            setState(() {
+                              ThemeService().setAdaptiveBackgroundMode(value);
+                            });
+                          },
+                        ),
+
+                        if (adaptiveBackground.isEnabled) ...[
+                          const SizedBox(height: 8),
+
+                          ListTile(
+                            title: const Text('Album Art Placement (Fit)'),
+                            trailing: DropdownMenu<BoxFit>(
+                              initialSelection: adaptiveBackground.fit,
+                              dropdownMenuEntries: const [
+                                DropdownMenuEntry(
                                   value: BoxFit.cover,
-                                  child: Text('Cover (Crop to fill)'),
+                                  label: 'Cover (Crop to fill)',
                                 ),
-                                DropdownMenuItem(
+                                DropdownMenuEntry(
                                   value: BoxFit.fill,
-                                  child: Text('Fill (Stretch)'),
+                                  label: 'Fill (Stretch)',
                                 ),
-                                DropdownMenuItem(
+                                DropdownMenuEntry(
                                   value: BoxFit.contain,
-                                  child: Text('Contain (Fit inside)'),
+                                  label: 'Contain (Fit inside)',
                                 ),
-                                DropdownMenuItem(
+                                DropdownMenuEntry(
                                   value: BoxFit.fitHeight,
-                                  child: Text('Fit Height'),
+                                  label: 'Fit Height',
                                 ),
-                                DropdownMenuItem(
+                                DropdownMenuEntry(
                                   value: BoxFit.fitWidth,
-                                  child: Text('Fit Width'),
+                                  label: 'Fit Width',
                                 ),
                               ],
-                              onChanged: (BoxFit? newValue) {
-                                if (newValue != null) {
+                              onSelected: (BoxFit? value) {
+                                if (value != null) {
                                   ThemeService().setAdaptiveBackgroundFit(
-                                    newValue,
+                                    value,
                                   );
                                 }
                               },
                             ),
                           ),
-                        ),
-                        // Add dummy spacer to balance the "Value" column of sliders
-                        // so the dropdown arrow aligns nicely with slider track end?
-                        // Or just let it expand naturally.
-                        const SizedBox(width: 50),
-                      ],
-                    ),
-                  ),
 
-                  const SizedBox(height: 16),
-                  const Divider(),
-                ],
-              ],
+                          _buildSliderRow(
+                            label: 'Blur',
+                            value: currentBlur,
+                            min: 0,
+                            max: 100,
+                            valueText: '${currentBlur.round()}px',
+                            onChanged: (val) => setState(() => _tempBlur = val),
+                            onChangeEnd: (val) =>
+                                ThemeService().setAdaptiveBackgroundBlur(val),
+                          ),
+
+                          const SizedBox(height: 16),
+                        ],
+
+                        const Divider(),
+
+                        SwitchListTile(
+                          value: texturedLayer.isEnabled,
+                          title: const Text('Textured Layer'),
+                          subtitle: const Text(
+                            'Add texture layer on top of the album art',
+                          ),
+                          onChanged: (value) {
+                            setState(() {
+                              ThemeService().setTexturedLayerMode(value);
+                            });
+                          },
+                        ),
+
+                        if (texturedLayer.isEnabled) ...[
+                          const SizedBox(height: 8),
+
+                          ListTile(
+                            title: const Text('Select Texture'),
+                            trailing: DropdownMenu<TextureProfile>(
+                              // Force redraw on change
+                              key: ValueKey(ThemeService().currentTexture),
+                              initialSelection: ThemeService().currentTexture,
+                              dropdownMenuEntries: allTextures
+                                  .map<DropdownMenuEntry<TextureProfile>>((
+                                    TextureProfile value,
+                                  ) {
+                                    return DropdownMenuEntry(
+                                      value: value,
+                                      label: value.name,
+                                    );
+                                  })
+                                  .toList(),
+                              onSelected: (TextureProfile? value) {
+                                if (value != null) {
+                                  ThemeService().setTexture(value);
+                                }
+                              },
+                            ),
+                          ),
+
+                          SizedBox(height: 16),
+
+                          ListTile(
+                            title: const Text('Textured Layer Placement (Fit)'),
+                            trailing: DropdownMenu<BoxFit>(
+                              initialSelection: texturedLayer.fit,
+                              dropdownMenuEntries: const [
+                                DropdownMenuEntry(
+                                  value: BoxFit.none,
+                                  label: 'Tile (Repeat patterns)',
+                                ),
+                                DropdownMenuEntry(
+                                  value: BoxFit.fill,
+                                  label: 'Fill (Stretch)',
+                                ),
+                                DropdownMenuEntry(
+                                  value: BoxFit.cover,
+                                  label: 'Cover (Crop to fill)',
+                                ),
+                                DropdownMenuEntry(
+                                  value: BoxFit.contain,
+                                  label: 'Contain (Fit inside)',
+                                ),
+                              ],
+                              onSelected: (BoxFit? value) {
+                                if (value != null) {
+                                  ThemeService().setTexturedLayerFit(value);
+                                }
+                              },
+                            ),
+                          ),
+
+                          _buildSliderRow(
+                            label: 'Opacity',
+                            value: currentTextrueOpacity,
+                            min: 0,
+                            max: 1,
+                            valueText:
+                                '${(currentTextrueOpacity * 100).round()}%',
+                            onChanged: (val) =>
+                                setState(() => _tempTextureOpacity = val),
+                            onChangeEnd: (val) =>
+                                ThemeService().setTexturedLayerOpacity(val),
+                          ),
+
+                          const SizedBox(height: 16),
+                        ],
+
+                        const Divider(),
+
+                        _buildSliderRow(
+                          label: 'Dimmer',
+                          value: currentDim,
+                          min: 0,
+                          max: 1,
+                          valueText: '${(currentDim * 100).round()}%',
+                          onChanged: (val) => setState(() => _tempDim = val),
+                          onChangeEnd: (val) =>
+                              ThemeService().setDimmerLevel(val),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
             );
           },
         );

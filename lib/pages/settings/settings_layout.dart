@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:suara/pages/settings/about.dart';
 import 'package:suara/pages/settings/general.dart';
@@ -22,33 +24,38 @@ class _SettingsLayoutState extends State<SettingsLayout> {
 
         return Row(
           children: [
-            NavigationRail(
-              extended: showExtended,
-              minWidth: 72,
-              backgroundColor: const Color.fromRGBO(0, 0, 0, 0.2),
-              selectedIndex: _selectedIndex,
-              destinations: const <NavigationRailDestination>[
-                NavigationRailDestination(
-                  icon: Icon(Icons.settings_applications_outlined),
-                  selectedIcon: Icon(Icons.settings_applications),
-                  label: Text('General'),
+            ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 0, sigmaY: 0),
+                child: NavigationRail(
+                  extended: showExtended,
+                  minWidth: 72,
+                  backgroundColor: const Color.fromRGBO(0, 0, 0, 0.2),
+                  selectedIndex: _selectedIndex,
+                  destinations: const <NavigationRailDestination>[
+                    NavigationRailDestination(
+                      icon: Icon(Icons.settings_applications_outlined),
+                      selectedIcon: Icon(Icons.settings_applications),
+                      label: Text('General'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.palette_outlined),
+                      selectedIcon: Icon(Icons.palette),
+                      label: Text("Styling"),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.info_outline),
+                      selectedIcon: Icon(Icons.info),
+                      label: Text('About'),
+                    ),
+                  ],
+                  onDestinationSelected: (index) {
+                    setState(() {
+                      _selectedIndex = index;
+                    });
+                  },
                 ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.palette_outlined),
-                  selectedIcon: Icon(Icons.palette),
-                  label: Text("Styling"),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.info_outline),
-                  selectedIcon: Icon(Icons.info),
-                  label: Text('About'),
-                ),
-              ],
-              onDestinationSelected: (index) {
-                setState(() {
-                  _selectedIndex = index;
-                });
-              },
+              ),
             ),
 
             const VerticalDivider(thickness: 1, width: 1),
