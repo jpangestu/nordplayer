@@ -39,6 +39,7 @@ class _LibraryState extends State<Library> {
         }
 
         return ListView.builder(
+          padding: EdgeInsets.symmetric(vertical: 8),
           itemCount: songs.length,
           // Force every item to be exactly 72 pixels high (Standard ListTile height)
           // This allows Flutter to "jump" calculation during fast scrolls.

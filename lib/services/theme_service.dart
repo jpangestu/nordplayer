@@ -34,9 +34,9 @@ class ThemeService {
   }
 
   //
-  // ===================
+  // =============================================================================
   // ADAPTIVE BACKGROUND
-  // ===================
+  // =============================================================================
   //
 
   // Default adaptive background mode value
@@ -80,9 +80,9 @@ class ThemeService {
   }
 
   //
-  // ==============
+  // =============================================================================
   // TEXTURED LAYER
-  // ==============
+  // =============================================================================
   //
 
   // Textured layer
@@ -202,19 +202,19 @@ class ThemeService {
   }
 
   // 2. Load from Disk
-  Future<void> _loadUserTexturesFromDisk(SharedPreferences prefs) async {
-    final String? jsonString = prefs.getString(_customTexturesKey);
-    if (jsonString != null) {
-      try {
-        final List<dynamic> decoded = jsonDecode(jsonString);
-        _customTextures = decoded
-            .map((item) => TextureProfile.fromMap(item))
-            .toList();
-      } catch (e) {
-        print("Error loading textures: $e");
-      }
-    }
-  }
+  // Future<void> _loadUserTexturesFromDisk(SharedPreferences prefs) async {
+  //   final String? jsonString = prefs.getString(_customTexturesKey);
+  //   if (jsonString != null) {
+  //     try {
+  //       final List<dynamic> decoded = jsonDecode(jsonString);
+  //       _customTextures = decoded
+  //           .map((item) => TextureProfile.fromMap(item))
+  //           .toList();
+  //     } catch (e) {
+  //       print("Error loading textures: $e");
+  //     }
+  //   }
+  // }
 
   /// Preset + User's custom texture
   List<TextureProfile> get allTextures => [..._presets, ..._customTextures];
@@ -235,9 +235,9 @@ class ThemeService {
     prefs.setString('texture_selected_id', profile.id);
   }
 
-  // =============
+  // =============================================================================
   // GLOBAL DIMMER
-  // =============
+  // =============================================================================
 
   double _dimmerLevel = 0.5; 
   double get dimmerLevel => _dimmerLevel;
@@ -254,9 +254,9 @@ class ThemeService {
   }
 
   //
-  // ===================================================
+  // =============================================================================
   // LOAD THEME, ADAPTIVE BACKGROUND, AND TEXTURED LAYER
-  // ===================================================
+  // =============================================================================
   //
 
   /// Loads the saved theme, adaptive background, and textured layer from disk.

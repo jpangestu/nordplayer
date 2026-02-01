@@ -12,7 +12,7 @@ class Styling extends StatefulWidget {
 class _StylingState extends State<Styling> {
   double? _tempBlur;
   double? _tempTextureOpacity;
-  double? _tempDim;
+  double? _tempDimm;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +44,7 @@ class _StylingState extends State<Styling> {
                     List<TextureProfile> allTextures =
                         ThemeService().allTextures;
 
-                    final currentDim = _tempBlur ?? snapshot.data ?? ThemeService().dimmerLevel;
+                    final currentDim = _tempDimm ?? snapshot.data ?? ThemeService().dimmerLevel;
 
                     return ListView(
                       padding: const EdgeInsets.all(16),
@@ -243,7 +243,7 @@ class _StylingState extends State<Styling> {
                           min: 0,
                           max: 1,
                           valueText: '${(currentDim * 100).round()}%',
-                          onChanged: (val) => setState(() => _tempDim = val),
+                          onChanged: (val) => setState(() => _tempDimm = val),
                           onChangeEnd: (val) =>
                               ThemeService().setDimmerLevel(val),
                         ),

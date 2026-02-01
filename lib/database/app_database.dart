@@ -18,7 +18,15 @@ LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbPath = await getApplicationSupportDirectory();
     final file = File(path.join(dbPath.path, 'database.sqlite'));
-    return NativeDatabase(file);
+    return NativeDatabase.createInBackground(
+      file,
+      setup: (rawDb) {
+        // Enable WAL (Write-Ahead Logging) Mode (Higher concurrency, less locking)
+        rawDb.execute('PRAGMA journal_mode=WAL;');
+        // Synchronous Normal (Faster writes, slightly less safe on power loss)
+        rawDb.execute('PRAGMA synchronous=NORMAL;');
+      },
+    );
   });
 }
 
@@ -46,8 +54,9 @@ class Database extends _$Database {
   /// Returns a Map of {Path: LastModifiedTime} for the entire library.
   /// Used by the Scanner to determine which files have changed.
   Future<Map<String, int>> getPathTimestampMap() async {
-    final query =
-        select(songs).map((row) => MapEntry(row.path, row.lastModified));
+    final query = select(
+      songs,
+    ).map((row) => MapEntry(row.path, row.lastModified));
     final result = await query.get();
     return Map.fromEntries(result);
   }
@@ -78,7 +87,7 @@ class Database extends _$Database {
           id: songEntry.id,
           artistId: artistEntry.id,
           albumId: albumEntry.id,
-          
+
           title: songEntry.title,
           artist: artistEntry.name,
           album: albumEntry.title,
@@ -111,7 +120,6 @@ class Database extends _$Database {
     // Transaction ensures all-or-nothing (no half-saved songs)
     await transaction(() async {
       for (final meta in metadataList) {
-        
         // --- STEP 1: Handle Album Identity ---
         // We find the album owner first to ensure the album is created correctly.
         final artistId = await _getOrCreateArtistId(meta.artist);
@@ -126,8 +134,9 @@ class Database extends _$Database {
         // --- STEP 2: Determine Primary Artist ---
         // This is used for sorting the main song list (e.g. "Drake").
         List<String> allArtists = meta.allArtists;
-        String primaryArtistName =
-            allArtists.isNotEmpty ? allArtists.first : "Unknown";
+        String primaryArtistName = allArtists.isNotEmpty
+            ? allArtists.first
+            : "Unknown";
         int primaryArtistId = await _getOrCreateArtistId(primaryArtistName);
 
         // --- STEP 3: Insert the Song ---
@@ -146,10 +155,7 @@ class Database extends _$Database {
         final songId = await into(songs).insert(
           songCompanion,
           // Conflict Strategy: Update existing row if Path matches
-          onConflict: DoUpdate(
-            (old) => songCompanion,
-            target: [songs.path],
-          ),
+          onConflict: DoUpdate((old) => songCompanion, target: [songs.path]),
         );
 
         // --- STEP 4: Link Multiple Artists ---
@@ -165,8 +171,9 @@ class Database extends _$Database {
 
   /// Finds an Artist by name. If missing, creates it. Returns the ID.
   Future<int> _getOrCreateArtistId(String name) async {
-    final existing = await (select(artists)..where((t) => t.name.equals(name)))
-        .getSingleOrNull();
+    final existing = await (select(
+      artists,
+    )..where((t) => t.name.equals(name))).getSingleOrNull();
 
     if (existing != null) return existing.id;
 
@@ -180,9 +187,11 @@ class Database extends _$Database {
     String? artPath,
     int year,
   ) async {
-    final existing = await (select(albums)
-          ..where((t) => t.title.equals(title) & t.artistId.equals(artistId)))
-        .getSingleOrNull();
+    final existing =
+        await (select(albums)..where(
+              (t) => t.title.equals(title) & t.artistId.equals(artistId),
+            ))
+            .getSingleOrNull();
 
     if (existing != null) {
       // NOTE: We could update artPath here if needed in the future
@@ -214,10 +223,7 @@ class Database extends _$Database {
       final artistId = await _getOrCreateArtistId(trimmedName);
 
       await into(songArtists).insert(
-        SongArtistsCompanion(
-          songId: Value(songId),
-          artistId: Value(artistId),
-        ),
+        SongArtistsCompanion(songId: Value(songId), artistId: Value(artistId)),
         mode: InsertMode.insertOrIgnore,
       );
     }
