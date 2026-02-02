@@ -2,54 +2,44 @@ import 'package:flutter/material.dart';
 import 'package:suara/models/texture_profile';
 import 'package:suara/services/theme_service.dart';
 
-class Styling extends StatefulWidget {
+class Styling extends StatelessWidget {
   const Styling({super.key});
-
-  @override
-  State<Styling> createState() => _StylingState();
-}
-
-class _StylingState extends State<Styling> {
-  double? _tempBlur;
-  double? _tempTextureOpacity;
-  double? _tempDimm;
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
       stream: ThemeService().themeStream,
       initialData: ThemeService().currentTheme,
-      builder: (context, snapshot) {
+      builder: (context, themeSnap) {
         return StreamBuilder(
           stream: ThemeService().adaptiveBackgroundStream,
           initialData: ThemeService().adaptiveBackground,
-          builder: (context, snapshot) {
+          builder: (context, bgSnap) {
             return StreamBuilder(
               stream: ThemeService().texturedLayeredStream,
-              builder: (context, snapshot) {
+              initialData: ThemeService().texturedLayer,
+              builder: (context, textureSnap) {
                 return StreamBuilder(
                   stream: ThemeService().dimmerStream,
-                  builder: (context, snapshot) {
-                    final currentTheme = ThemeService().currentTheme;
+                  initialData: ThemeService().dimmerLevel,
+                  builder: (context, dimmerSnap) {
+                    final currentTheme =
+                        themeSnap.data ?? ThemeService().currentTheme;
+                    final adaptiveBg =
+                        bgSnap.data ?? ThemeService().adaptiveBackground;
+                    final textureLayer =
+                        textureSnap.data ?? ThemeService().texturedLayer;
+                    final dimmerLevel =
+                        dimmerSnap.data ?? ThemeService().dimmerLevel;
 
-                    // Adaptive Background
-                    final adaptiveBackground =
-                        ThemeService().adaptiveBackground;
-                    final currentBlur = _tempBlur ?? adaptiveBackground.blur;
-
-                    // Texture
-                    final texturedLayer = ThemeService().texturedLayer;
-                    final currentTextrueOpacity =
-                        _tempTextureOpacity ?? texturedLayer.opacity;
                     List<TextureProfile> allTextures =
                         ThemeService().allTextures;
-
-                    final currentDim = _tempDimm ?? snapshot.data ?? ThemeService().dimmerLevel;
 
                     return ListView(
                       padding: const EdgeInsets.all(16),
                       children: [
-                        _buildSectionHeader('Appearance'),
+                        const SectionHeader(title: 'Appearance'),
+
                         ListTile(
                           leading: const Icon(Icons.settings_display_outlined),
                           title: const Text('App Theme'),
@@ -69,36 +59,30 @@ class _StylingState extends State<Styling> {
                                 label: 'Light',
                               ),
                             ],
-                            onSelected: (value) {
-                              if (value != null) {
-                                ThemeService().setTheme(value);
-                              }
+                            onSelected: (val) {
+                              if (val != null) ThemeService().setTheme(val);
                             },
                           ),
                         ),
 
                         const SizedBox(height: 16),
                         const Divider(),
-                        _buildSectionHeader('Immersive Background'),
+
+                        const SectionHeader(title: 'Immersive Background'),
 
                         SwitchListTile(
-                          value: adaptiveBackground.isEnabled,
+                          value: adaptiveBg.isEnabled,
                           title: const Text('Adaptive Background'),
                           subtitle: const Text('Use album art as background'),
-                          onChanged: (value) {
-                            setState(() {
-                              ThemeService().setAdaptiveBackgroundMode(value);
-                            });
-                          },
+                          onChanged: ThemeService().setAdaptiveBackgroundMode,
                         ),
 
-                        if (adaptiveBackground.isEnabled) ...[
+                        if (adaptiveBg.isEnabled) ...[
                           const SizedBox(height: 8),
-
                           ListTile(
                             title: const Text('Album Art Placement (Fit)'),
                             trailing: DropdownMenu<BoxFit>(
-                              initialSelection: adaptiveBackground.fit,
+                              initialSelection: adaptiveBg.fit,
                               dropdownMenuEntries: const [
                                 DropdownMenuEntry(
                                   value: BoxFit.cover,
@@ -130,37 +114,31 @@ class _StylingState extends State<Styling> {
                               },
                             ),
                           ),
-
-                          _buildSliderRow(
+                          InteractiveSliderTile(
                             label: 'Blur',
-                            value: currentBlur,
+                            value: adaptiveBg.blur,
                             min: 0,
                             max: 100,
-                            valueText: '${currentBlur.round()}px',
-                            onChanged: (val) => setState(() => _tempBlur = val),
-                            onChangeEnd: (val) =>
-                                ThemeService().setAdaptiveBackgroundBlur(val),
+                            labelBuilder: (val) => '${val.round()}px',
+                            onChanged: ThemeService().setAdaptiveBackgroundBlur,
+                            onChangeEnd:
+                                ThemeService().saveAdaptiveBackgroundBlur,
                           ),
-
                           const SizedBox(height: 16),
                         ],
 
                         const Divider(),
 
                         SwitchListTile(
-                          value: texturedLayer.isEnabled,
+                          value: textureLayer.isEnabled,
                           title: const Text('Textured Layer'),
                           subtitle: const Text(
-                            'Add texture layer on top of the album art',
+                            'Add texture layer on top of album art',
                           ),
-                          onChanged: (value) {
-                            setState(() {
-                              ThemeService().setTexturedLayerMode(value);
-                            });
-                          },
+                          onChanged: ThemeService().setTexturedLayerMode,
                         ),
 
-                        if (texturedLayer.isEnabled) ...[
+                        if (textureLayer.isEnabled) ...[
                           const SizedBox(height: 8),
 
                           ListTile(
@@ -192,7 +170,7 @@ class _StylingState extends State<Styling> {
                           ListTile(
                             title: const Text('Textured Layer Placement (Fit)'),
                             trailing: DropdownMenu<BoxFit>(
-                              initialSelection: texturedLayer.fit,
+                              initialSelection: textureLayer.fit,
                               dropdownMenuEntries: const [
                                 DropdownMenuEntry(
                                   value: BoxFit.none,
@@ -219,33 +197,29 @@ class _StylingState extends State<Styling> {
                             ),
                           ),
 
-                          _buildSliderRow(
+                          InteractiveSliderTile(
                             label: 'Opacity',
-                            value: currentTextrueOpacity,
+                            value: textureLayer.opacity,
                             min: 0,
                             max: 1,
-                            valueText:
-                                '${(currentTextrueOpacity * 100).round()}%',
-                            onChanged: (val) =>
-                                setState(() => _tempTextureOpacity = val),
-                            onChangeEnd: (val) =>
-                                ThemeService().setTexturedLayerOpacity(val),
+                            labelBuilder: (val) => '${(val * 100).round()}%',
+                            onChanged: ThemeService().setTexturedLayerOpacity,
+                            onChangeEnd:
+                                ThemeService().saveTexturedLayerOpacity,
                           ),
-
                           const SizedBox(height: 16),
                         ],
 
                         const Divider(),
 
-                        _buildSliderRow(
+                        InteractiveSliderTile(
                           label: 'Dimmer',
-                          value: currentDim,
+                          value: dimmerLevel,
                           min: 0,
                           max: 1,
-                          valueText: '${(currentDim * 100).round()}%',
-                          onChanged: (val) => setState(() => _tempDimm = val),
-                          onChangeEnd: (val) =>
-                              ThemeService().setDimmerLevel(val),
+                          labelBuilder: (val) => '${(val * 100).round()}%',
+                          onChanged: (val) => ThemeService().setDimmer(val),
+                          onChangeEnd: (_) => ThemeService().saveDimmerLevel(),
                         ),
                       ],
                     );
@@ -258,8 +232,15 @@ class _StylingState extends State<Styling> {
       },
     );
   }
+}
 
-  Widget _buildSectionHeader(String title) {
+class SectionHeader extends StatelessWidget {
+  final String title;
+
+  const SectionHeader({super.key, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16, top: 8),
       child: Text(
@@ -272,52 +253,91 @@ class _StylingState extends State<Styling> {
       ),
     );
   }
+}
 
-  Widget _buildSliderRow({
-    required String label,
-    required double value,
-    required double min,
-    required double max,
-    required String valueText,
-    required ValueChanged<double> onChanged,
-    required ValueChanged<double> onChangeEnd,
-  }) {
+class InteractiveSliderTile extends StatefulWidget {
+  final String label;
+  final double value;
+  final double min;
+  final double max;
+  final String Function(double)
+  labelBuilder; // Custom text format (e.g. "50px")
+  final ValueChanged<double>? onChanged; // Optional: for live preview
+  final ValueChanged<double> onChangeEnd; // Commit data (save to DB/Service)
+
+  const InteractiveSliderTile({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.labelBuilder,
+    this.onChanged,
+    required this.onChangeEnd,
+  });
+
+  @override
+  State<InteractiveSliderTile> createState() => _InteractiveSliderTileState();
+}
+
+class _InteractiveSliderTileState extends State<InteractiveSliderTile> {
+  late double _localValue;
+
+  @override
+  void initState() {
+    super.initState();
+    _localValue = widget.value;
+  }
+
+  @override
+  void didUpdateWidget(covariant InteractiveSliderTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If the service updates the value externally (e.g. reset to default),
+    if (oldWidget.value != widget.value) {
+      _localValue = widget.value;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          // The Label
           SizedBox(
             width: 70,
             child: Text(
-              label,
+              widget.label,
               style: const TextStyle(fontWeight: FontWeight.w500),
             ),
           ),
-
-          // The Slider
           Expanded(
             child: Slider(
-              value: value,
-              min: min,
-              max: max,
+              value: _localValue,
+              min: widget.min,
+              max: widget.max,
               divisions: 20,
-              label: valueText,
-              onChanged: onChanged,
-              onChangeEnd: onChangeEnd,
+              label: widget.labelBuilder(_localValue),
+              onChanged: (val) {
+                // Update LOCAL UI instantly (60fps)
+                setState(() => _localValue = val);
+                // Notify parent if they want "live" updates (optional)
+                widget.onChanged?.call(val);
+              },
+              onChangeEnd: (val) {
+                // Commit the heavy save operation only when user lets go
+                widget.onChangeEnd(val);
+              },
             ),
           ),
-
-          // The Value
           SizedBox(
             width: 50,
             child: Text(
-              valueText,
-              textAlign: TextAlign.end, // Align numbers to the right
+              widget.labelBuilder(_localValue),
+              textAlign: TextAlign.end,
               style: const TextStyle(
                 fontFeatures: [FontFeature.tabularFigures()],
               ),
-              // 'tabularFigures' prevents jitter by making all numbers the same width
             ),
           ),
         ],

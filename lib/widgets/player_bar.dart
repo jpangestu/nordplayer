@@ -6,7 +6,6 @@ import 'package:just_audio/just_audio.dart';
 import 'package:suara/models/song.dart';
 import 'package:suara/services/audio_service.dart';
 import 'package:suara/widgets/album_art.dart';
-import 'package:suara/widgets/position_data.dart';
 
 class PlayerBar extends StatelessWidget {
   const PlayerBar({super.key});

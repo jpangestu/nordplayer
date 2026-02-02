@@ -14,6 +14,8 @@ class ThemeService {
   static final _instance = ThemeService._internal();
   factory ThemeService() => _instance;
 
+  late final SharedPreferences _prefs;
+
   // Default to system to respect system settings immediately.
   ThemeMode _currentTheme = ThemeMode.system;
   ThemeMode get currentTheme => _currentTheme;
@@ -54,19 +56,17 @@ class ThemeService {
     _adaptiveBackground = _adaptiveBackground.copyWith(isEnabled: value);
     _adaptiveBackgroundController.add(_adaptiveBackground); // Update UI
 
-    SharedPreferences.getInstance().then((prefs) {
-      prefs.setBool('adaptive_background_mode', value);
-    });
+    await _prefs.setBool('adaptive_background_mode', value);
   }
 
   /// Set adaptive background blur
-  Future<void> setAdaptiveBackgroundBlur(double value) async {
+  void setAdaptiveBackgroundBlur(double value) async {
     _adaptiveBackground = _adaptiveBackground.copyWith(blur: value);
     _adaptiveBackgroundController.add(_adaptiveBackground); // Update UI
+  }
 
-    SharedPreferences.getInstance().then((prefs) {
-      prefs.setDouble('adaptive_background_blur', value);
-    });
+  Future<void> saveAdaptiveBackgroundBlur(double value) async {
+    await _prefs.setDouble('adaptive_background_blur', value);
   }
 
   /// Set adaptive background album art placement
@@ -74,9 +74,7 @@ class ThemeService {
     _adaptiveBackground = _adaptiveBackground.copyWith(fit: fit);
     _adaptiveBackgroundController.add(_adaptiveBackground);
 
-    SharedPreferences.getInstance().then((prefs) {
-      prefs.setInt('adaptive_background_fit', fit.index); // Save the enum index
-    });
+    await _prefs.setString('adaptive_background_fit', fit.name);
   }
 
   //
@@ -98,19 +96,17 @@ class ThemeService {
     _texturedLayer = _texturedLayer.copyWith(isEnabled: value);
     _texturedLayerController.add(_texturedLayer); // Update UI
 
-    SharedPreferences.getInstance().then((prefs) {
-      prefs.setBool('textured_layer_mode', value);
-    });
+    await _prefs.setBool('textured_layer_mode', value);
   }
 
   /// Set textured layer opacity
   Future<void> setTexturedLayerOpacity(double value) async {
     _texturedLayer = _texturedLayer.copyWith(opacity: value);
     _texturedLayerController.add(_texturedLayer); // Update UI
+  }
 
-    SharedPreferences.getInstance().then((prefs) {
-      prefs.setDouble('textured_layer_opacity', value);
-    });
+  Future<void> saveTexturedLayerOpacity(double value) async {
+    await _prefs.setDouble('textured_layer_opacity', value);
   }
 
   /// Set textured layer placement
@@ -118,9 +114,7 @@ class ThemeService {
     _texturedLayer = _texturedLayer.copyWith(fit: fit);
     _texturedLayerController.add(_texturedLayer);
 
-    SharedPreferences.getInstance().then((prefs) {
-      prefs.setInt('textured_layer_fit', fit.index); // Save the enum index
-    });
+    await _prefs.setInt('textured_layer_fit', fit.index); // Save the enum index
   }
 
   // Default preset
@@ -193,12 +187,11 @@ class ThemeService {
 
   // 1. Save to Disk
   Future<void> _saveUserTexturesToDisk() async {
-    final prefs = await SharedPreferences.getInstance();
     // Requires TextureProfile to have .toMap() implemented
     final String jsonString = jsonEncode(
       _customTextures.map((p) => p.toMap()).toList(),
     );
-    await prefs.setString(_customTexturesKey, jsonString);
+    await _prefs.setString(_customTexturesKey, jsonString);
   }
 
   // 2. Load from Disk
@@ -231,26 +224,26 @@ class ThemeService {
     _texturedLayerController.add(_texturedLayer);
 
     // Save only the ID to disk
-    final prefs = await SharedPreferences.getInstance();
-    prefs.setString('texture_selected_id', profile.id);
+    _prefs.setString('texture_selected_id', profile.id);
   }
 
   // =============================================================================
   // GLOBAL DIMMER
   // =============================================================================
 
-  double _dimmerLevel = 0.5; 
+  double _dimmerLevel = 0.5;
   double get dimmerLevel => _dimmerLevel;
 
   final _dimmerController = StreamController<double>.broadcast();
   Stream<double> get dimmerStream => _dimmerController.stream;
 
-  Future<void> setDimmerLevel(double value) async {
+  void setDimmer(double value) {
     _dimmerLevel = value;
-    _dimmerController.add(_dimmerLevel);
-    
-    final prefs = await SharedPreferences.getInstance();
-    prefs.setDouble('global_dimmer_level', value);
+    _dimmerController.add(_dimmerLevel); // Updates UI instantly (RAM only)
+  }
+
+  void saveDimmerLevel() {
+    _prefs.setDouble('global_dimmer_level', _dimmerLevel);
   }
 
   //
@@ -261,8 +254,8 @@ class ThemeService {
 
   /// Loads the saved theme, adaptive background, and textured layer from disk.
   Future<void> loadTheme() async {
-    final prefs = await SharedPreferences.getInstance();
-    final themeIndex = prefs.getInt('theme_mode');
+    _prefs = await SharedPreferences.getInstance();
+    final themeIndex = _prefs.getInt('theme_mode');
 
     if (themeIndex != null) {
       _currentTheme = ThemeMode.values[themeIndex];
@@ -270,13 +263,13 @@ class ThemeService {
     }
 
     // Load Adaptive Background
-    final mode = prefs.getBool('adaptive_background_mode');
-    final blur = prefs.getDouble('adaptive_background_blur');
-    final fitIndex = prefs.getInt('adaptive_background_fit');
-    // If index is valid, use it. Otherwise default.
-    final fit = fitIndex != null && fitIndex < BoxFit.values.length
-        ? BoxFit.values[fitIndex]
-        : AdaptiveBackground.defaultFit;
+    final mode = _prefs.getBool('adaptive_background_mode');
+    final blur = _prefs.getDouble('adaptive_background_blur');
+    final fitString = _prefs.getString('adaptive_background_fit');
+    final fit = BoxFit.values.firstWhere(
+      (e) => e.name == fitString,
+      orElse: () => BoxFit.cover,
+    );
 
     _adaptiveBackground = AdaptiveBackground(
       isEnabled: mode ?? true,
@@ -286,9 +279,9 @@ class ThemeService {
     _adaptiveBackgroundController.add(adaptiveBackground);
 
     // Load Texture Layer
-    final texturedMode = prefs.getBool('textured_layer_mode');
-    final texturedOpacity = prefs.getDouble('textured_layer_opacity');
-    final texturedFitIndex = prefs.getInt('textured2_layer_fit');
+    final texturedMode = _prefs.getBool('textured_layer_mode');
+    final texturedOpacity = _prefs.getDouble('textured_layer_opacity');
+    final texturedFitIndex = _prefs.getInt('textured2_layer_fit');
     // If index is valid, use it. Otherwise default.
     final texturedFit =
         texturedFitIndex != null && texturedFitIndex < BoxFit.values.length
@@ -302,8 +295,8 @@ class ThemeService {
     );
     _texturedLayerController.add(_texturedLayer);
 
-     _dimmerLevel = prefs.getDouble('global_dimmer_level') ?? 0.5;
-     _dimmerController.add(_dimmerLevel);
+    _dimmerLevel = _prefs.getDouble('global_dimmer_level') ?? 0.5;
+    _dimmerController.add(_dimmerLevel);
   }
 
   // Cleanup for when the app dies

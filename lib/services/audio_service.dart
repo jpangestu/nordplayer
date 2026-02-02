@@ -3,15 +3,10 @@ import 'dart:async';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart'; // REQUIRED for notifications
 import 'package:suara/models/song.dart';
-import 'package:suara/widgets/position_data.dart';
 
 /// Central service for music playback.
 /// Handles the Queue, Shuffle logic, Loop modes, and background audio notifications.
 class AudioService {
-  // ===========================================================================
-  // SINGLETON & INITIALIZATION
-  // ===========================================================================
-
   static final AudioService _instance = AudioService._internal();
 
   factory AudioService() {
@@ -289,4 +284,12 @@ class AudioService {
       await _player.setLoopMode(LoopMode.off);
     }
   }
+}
+
+class PositionData {
+  final Duration position;
+  final Duration bufferedPosition;
+  final Duration duration;
+
+  PositionData(this.position, this.bufferedPosition, this.duration);
 }
