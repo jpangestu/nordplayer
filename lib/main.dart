@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:suara/services/theme_service.dart';
+import 'package:suara/services/config_service.dart'; // The new engine
+// import 'package:suara/services/theme_service.dart'; // DELETE THIS LINE (if no longer used)
 import 'package:window_manager/window_manager.dart';
 import 'package:metadata_god/metadata_god.dart';
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
@@ -31,8 +32,8 @@ void main() async {
   // Initialize just_audio
   JustAudioMediaKit.ensureInitialized();
 
-  // Load current theme
-  await ThemeService().loadTheme();
+  // Initialize Config Service (Loads JSON before app starts)
+  await ConfigService().init();
 
   runApp(const SuaraApp());
 }
@@ -73,15 +74,13 @@ class _SuaraAppState extends State<SuaraApp> with WindowListener {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<ThemeMode>(
-      stream: ThemeService().themeStream,
-      initialData: ThemeService().currentTheme,
-      builder: (context, snapshot) {
+    return ListenableBuilder(
+      listenable: ConfigService(),
+      builder: (context, _) {
         return MaterialApp(
           title: 'Suara',
-          // The Magic:
-          themeMode: snapshot.data,
-          theme: ThemeData.light(), // Customize these later
+          themeMode: ConfigService().config.themeMode, 
+          theme: ThemeData.light(),
           darkTheme: ThemeData.dark(),
           home: const MainLayout(),
         );

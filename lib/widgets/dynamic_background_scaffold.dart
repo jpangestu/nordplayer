@@ -1,12 +1,10 @@
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:suara/models/adaptive_background.dart';
 import 'package:suara/models/song.dart';
-import 'package:suara/models/texture_profile';
-import 'package:suara/models/textured_layer.dart';
+import 'package:suara/models/texture_profile.dart';
 import 'package:suara/services/audio_service.dart';
-import 'package:suara/services/theme_service.dart';
+import 'package:suara/services/config_service.dart'; // Replaces ThemeService
 
 class DynamicBackgroundScaffold extends StatelessWidget {
   final Widget body;
@@ -20,126 +18,108 @@ class DynamicBackgroundScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder(
-      stream: ThemeService().adaptiveBackgroundStream,
-      initialData: ThemeService().adaptiveBackground,
-      builder: (context, snapshotAdaptive) {
-        return StreamBuilder(
-          stream: ThemeService().texturedLayeredStream,
-          builder: (context, snapshotTexture) {
-            return StreamBuilder<double>(
-              stream: ThemeService().dimmerStream,
-              initialData: ThemeService().dimmerLevel,
-              builder: (context, snapshot) {
-                final dimLevel = snapshot.data ?? ThemeService().dimmerLevel;
-                // Default values if data is missing
-                final adaptiveBackground =
-                    snapshotAdaptive.data ?? const AdaptiveBackground();
-                final texturedLayer =
-                    snapshotTexture.data ?? const TexturedLayer();
+    return ListenableBuilder(
+      listenable: ConfigService(),
+      builder: (context, _) {
+        final config = ConfigService().config;
+        final adaptiveBackground = config.adaptiveBackground;
+        final texturedLayer = config.texturedLayer;
+        
+        final TextureProfile activeTexture = config.activeTexture; 
+        final double dimLevel = config.globalDimmer;
 
-                final TextureProfile activeTexture =
-                    texturedLayer.activeTexture ??
-                    ThemeService().currentTexture;
+        // Calculate cache width once
+        final cacheW = _getCacheWidth(adaptiveBackground.blur);
 
-                // Calculate cache width once
-                final cacheW = _getCacheWidth(adaptiveBackground.blur);
+        return Stack(
+          children: [
+            // LAYER 1: The Album Artwork
+            // Use RepaintBoundary to separate this heavy layer from the UI updates.
+            if (adaptiveBackground.isEnabled)
+              RepaintBoundary(
+                child: StreamBuilder<Song?>(
+                  stream: AudioService().currentSongStream,
+                  initialData: AudioService().currentSong,
+                  builder: (context, snapshot) {
+                    final artPath = snapshot.data?.artPath;
 
-                return Stack(
-                  children: [
-                    // LAYER 1: The Album Artwork
-                    // Use RepaintBoundary to separate this heavy layer from the UI updates.
-                    if (adaptiveBackground.isEnabled)
-                      RepaintBoundary(
-                        child: StreamBuilder<Song?>(
-                          stream: AudioService().currentSongStream,
-                          initialData: AudioService().currentSong,
-                          builder: (context, snapshot) {
-                            final artPath = snapshot.data?.artPath;
-
-                            return AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 600),
-                              switchInCurve: Curves.easeOut,
-                              switchOutCurve: Curves.easeIn,
-                              child: artPath != null
-                                  ? SizedBox.expand(
-                                      key: ValueKey(artPath),
-                                      child: ImageFiltered(
-                                        imageFilter: ImageFilter.blur(
-                                          sigmaX: adaptiveBackground.blur,
-                                          sigmaY: adaptiveBackground.blur,
-                                        ),
-                                        child: Image.file(
-                                          File(artPath),
-                                          fit: adaptiveBackground.fit,
-                                          // Height will be automatically calculated (respecting the aspect ratio)
-                                          cacheWidth: cacheW,
-                                          colorBlendMode: BlendMode.darken,
-                                          errorBuilder: (_, _, _) =>
-                                              getFallbackBackground(context),
-                                        ),
-                                      ),
-                                    )
-                                  : getFallbackBackground(context),
-                            );
-                          },
-                        ),
-                      ),
-
-                    // LAYER 2: Textured Layer
-                    if (texturedLayer.isEnabled)
-                      Positioned.fill(
-                        child: IgnorePointer(
-                          // Let touches pass through
-                          child: Container(
-                            decoration: BoxDecoration(
-                              // Vignette (Darker corners = Depth)
-                              gradient: RadialGradient(
-                                center: Alignment.center,
-                                radius: 1.5,
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withValues(
-                                    alpha: 0.3,
-                                  ), // Dark corners
-                                ],
+                    return AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 600),
+                      switchInCurve: Curves.easeOut,
+                      switchOutCurve: Curves.easeIn,
+                      child: artPath != null
+                          ? SizedBox.expand(
+                              key: ValueKey(artPath),
+                              child: ImageFiltered(
+                                imageFilter: ImageFilter.blur(
+                                  sigmaX: adaptiveBackground.blur,
+                                  sigmaY: adaptiveBackground.blur,
+                                ),
+                                child: Image.file(
+                                  File(artPath),
+                                  fit: adaptiveBackground.fit,
+                                  // Height will be automatically calculated (respecting the aspect ratio)
+                                  cacheWidth: cacheW,
+                                  colorBlendMode: BlendMode.darken,
+                                  errorBuilder: (_, _, _) =>
+                                      getFallbackBackground(context),
+                                ),
                               ),
-                            ),
-                            // Noise Texture
-                            child: Opacity(
-                              opacity: texturedLayer
-                                  .opacity, // Keep it VERY subtle (3-5%)
-                              child: _buildTextureImage(
-                                activeTexture,
-                                texturedLayer.fit,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
+                            )
+                          : getFallbackBackground(context),
+                    );
+                  },
+                ),
+              ),
 
-                    // LAYER 3: The Dimmer (Extra Contrast)
-                    Positioned.fill(
-                      child: Container(
-                        color:
-                            (Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.black
-                                    : Colors.white)
-                                .withValues(alpha: dimLevel),
+            // LAYER 2: Textured Layer
+            if (texturedLayer.isEnabled)
+              Positioned.fill(
+                child: IgnorePointer(
+                  // Let touches pass through
+                  child: Container(
+                    decoration: BoxDecoration(
+                      // Vignette (Darker corners = Depth)
+                      gradient: RadialGradient(
+                        center: Alignment.center,
+                        radius: 1.5,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withValues(
+                            alpha: 0.3,
+                          ), // Dark corners
+                        ],
                       ),
                     ),
-                    // LAYER 4: The Actual App Content
-                    Scaffold(
-                      // Important: Transparent so we see the layers below
-                      backgroundColor: Colors.transparent,
-                      body: body,
-                      bottomNavigationBar: bottomNavigationBar,
+                    // Noise Texture
+                    child: Opacity(
+                      opacity: texturedLayer.opacity, // Keep it VERY subtle (3-5%)
+                      child: _buildTextureImage(
+                        activeTexture,
+                        texturedLayer.fit,
+                      ),
                     ),
-                  ],
-                );
-              },
-            );
-          },
+                  ),
+                ),
+              ),
+
+            // LAYER 3: The Dimmer (Extra Contrast)
+            Positioned.fill(
+              child: Container(
+                color: (Theme.of(context).brightness == Brightness.dark
+                        ? Colors.black
+                        : Colors.white)
+                    .withValues(alpha: dimLevel),
+              ),
+            ),
+            // LAYER 4: The Actual App Content
+            Scaffold(
+              // Important: Transparent so we see the layers below
+              backgroundColor: Colors.transparent,
+              body: body,
+              bottomNavigationBar: bottomNavigationBar,
+            ),
+          ],
         );
       },
     );

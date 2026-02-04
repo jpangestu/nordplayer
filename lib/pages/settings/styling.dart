@@ -1,239 +1,227 @@
+import 'dart:ui'; // Needed for FontFeature
 import 'package:flutter/material.dart';
-import 'package:suara/models/texture_profile';
-import 'package:suara/services/theme_service.dart';
+import 'package:suara/models/texture_profile.dart';
+import 'package:suara/services/config_service.dart'; // Replaces ThemeService
 
 class Styling extends StatelessWidget {
   const Styling({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder(
-      stream: ThemeService().themeStream,
-      initialData: ThemeService().currentTheme,
-      builder: (context, themeSnap) {
-        return StreamBuilder(
-          stream: ThemeService().adaptiveBackgroundStream,
-          initialData: ThemeService().adaptiveBackground,
-          builder: (context, bgSnap) {
-            return StreamBuilder(
-              stream: ThemeService().texturedLayeredStream,
-              initialData: ThemeService().texturedLayer,
-              builder: (context, textureSnap) {
-                return StreamBuilder(
-                  stream: ThemeService().dimmerStream,
-                  initialData: ThemeService().dimmerLevel,
-                  builder: (context, dimmerSnap) {
-                    final currentTheme =
-                        themeSnap.data ?? ThemeService().currentTheme;
-                    final adaptiveBg =
-                        bgSnap.data ?? ThemeService().adaptiveBackground;
-                    final textureLayer =
-                        textureSnap.data ?? ThemeService().texturedLayer;
-                    final dimmerLevel =
-                        dimmerSnap.data ?? ThemeService().dimmerLevel;
+    return ListenableBuilder(
+      listenable: ConfigService(),
+      builder: (context, _) {
+        final config = ConfigService().config;
+        final adaptiveBg = config.adaptiveBackground;
+        final texturedLayer = config.texturedLayer;
 
-                    List<TextureProfile> allTextures =
-                        ThemeService().allTextures;
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            const SectionHeader(title: 'Appearance'),
 
-                    return ListView(
-                      padding: const EdgeInsets.all(16),
-                      children: [
-                        const SectionHeader(title: 'Appearance'),
+            ListTile(
+              leading: const Icon(Icons.settings_display_outlined),
+              title: const Text('App Theme'),
+              trailing: DropdownMenu<ThemeMode>(
+                initialSelection: config.themeMode,
+                dropdownMenuEntries: const [
+                  DropdownMenuEntry(
+                    value: ThemeMode.system,
+                    label: 'System Default',
+                  ),
+                  DropdownMenuEntry(value: ThemeMode.dark, label: 'Dark'),
+                  DropdownMenuEntry(value: ThemeMode.light, label: 'Light'),
+                ],
+                onSelected: (val) {
+                  if (val != null) ConfigService().update(themeMode: val);
+                },
+              ),
+            ),
 
-                        ListTile(
-                          leading: const Icon(Icons.settings_display_outlined),
-                          title: const Text('App Theme'),
-                          trailing: DropdownMenu<ThemeMode>(
-                            initialSelection: currentTheme,
-                            dropdownMenuEntries: const [
-                              DropdownMenuEntry(
-                                value: ThemeMode.system,
-                                label: 'System Default',
-                              ),
-                              DropdownMenuEntry(
-                                value: ThemeMode.dark,
-                                label: 'Dark',
-                              ),
-                              DropdownMenuEntry(
-                                value: ThemeMode.light,
-                                label: 'Light',
-                              ),
-                            ],
-                            onSelected: (val) {
-                              if (val != null) ThemeService().setTheme(val);
-                            },
-                          ),
-                        ),
+            const SizedBox(height: 16),
+            const Divider(),
 
-                        const SizedBox(height: 16),
-                        const Divider(),
+            const SectionHeader(title: 'Immersive Background'),
 
-                        const SectionHeader(title: 'Immersive Background'),
-
-                        SwitchListTile(
-                          value: adaptiveBg.isEnabled,
-                          title: const Text('Adaptive Background'),
-                          subtitle: const Text('Use album art as background'),
-                          onChanged: ThemeService().setAdaptiveBackgroundMode,
-                        ),
-
-                        if (adaptiveBg.isEnabled) ...[
-                          const SizedBox(height: 8),
-                          ListTile(
-                            title: const Text('Album Art Placement (Fit)'),
-                            trailing: DropdownMenu<BoxFit>(
-                              initialSelection: adaptiveBg.fit,
-                              dropdownMenuEntries: const [
-                                DropdownMenuEntry(
-                                  value: BoxFit.cover,
-                                  label: 'Cover (Crop to fill)',
-                                ),
-                                DropdownMenuEntry(
-                                  value: BoxFit.fill,
-                                  label: 'Fill (Stretch)',
-                                ),
-                                DropdownMenuEntry(
-                                  value: BoxFit.contain,
-                                  label: 'Contain (Fit inside)',
-                                ),
-                                DropdownMenuEntry(
-                                  value: BoxFit.fitHeight,
-                                  label: 'Fit Height',
-                                ),
-                                DropdownMenuEntry(
-                                  value: BoxFit.fitWidth,
-                                  label: 'Fit Width',
-                                ),
-                              ],
-                              onSelected: (BoxFit? value) {
-                                if (value != null) {
-                                  ThemeService().setAdaptiveBackgroundFit(
-                                    value,
-                                  );
-                                }
-                              },
-                            ),
-                          ),
-                          InteractiveSliderTile(
-                            label: 'Blur',
-                            value: adaptiveBg.blur,
-                            min: 0,
-                            max: 100,
-                            labelBuilder: (val) => '${val.round()}px',
-                            onChanged: ThemeService().setAdaptiveBackgroundBlur,
-                            onChangeEnd:
-                                ThemeService().saveAdaptiveBackgroundBlur,
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-
-                        const Divider(),
-
-                        SwitchListTile(
-                          value: textureLayer.isEnabled,
-                          title: const Text('Textured Layer'),
-                          subtitle: const Text(
-                            'Add texture layer on top of album art',
-                          ),
-                          onChanged: ThemeService().setTexturedLayerMode,
-                        ),
-
-                        if (textureLayer.isEnabled) ...[
-                          const SizedBox(height: 8),
-
-                          ListTile(
-                            title: const Text('Select Texture'),
-                            trailing: DropdownMenu<TextureProfile>(
-                              // Force redraw on change
-                              key: ValueKey(ThemeService().currentTexture),
-                              initialSelection: ThemeService().currentTexture,
-                              dropdownMenuEntries: allTextures
-                                  .map<DropdownMenuEntry<TextureProfile>>((
-                                    TextureProfile value,
-                                  ) {
-                                    return DropdownMenuEntry(
-                                      value: value,
-                                      label: value.name,
-                                    );
-                                  })
-                                  .toList(),
-                              onSelected: (TextureProfile? value) {
-                                if (value != null) {
-                                  ThemeService().setTexture(value);
-                                }
-                              },
-                            ),
-                          ),
-
-                          SizedBox(height: 16),
-
-                          ListTile(
-                            title: const Text('Textured Layer Placement (Fit)'),
-                            trailing: DropdownMenu<BoxFit>(
-                              initialSelection: textureLayer.fit,
-                              dropdownMenuEntries: const [
-                                DropdownMenuEntry(
-                                  value: BoxFit.none,
-                                  label: 'Tile (Repeat patterns)',
-                                ),
-                                DropdownMenuEntry(
-                                  value: BoxFit.fill,
-                                  label: 'Fill (Stretch)',
-                                ),
-                                DropdownMenuEntry(
-                                  value: BoxFit.cover,
-                                  label: 'Cover (Crop to fill)',
-                                ),
-                                DropdownMenuEntry(
-                                  value: BoxFit.contain,
-                                  label: 'Contain (Fit inside)',
-                                ),
-                              ],
-                              onSelected: (BoxFit? value) {
-                                if (value != null) {
-                                  ThemeService().setTexturedLayerFit(value);
-                                }
-                              },
-                            ),
-                          ),
-
-                          InteractiveSliderTile(
-                            label: 'Opacity',
-                            value: textureLayer.opacity,
-                            min: 0,
-                            max: 1,
-                            labelBuilder: (val) => '${(val * 100).round()}%',
-                            onChanged: ThemeService().setTexturedLayerOpacity,
-                            onChangeEnd:
-                                ThemeService().saveTexturedLayerOpacity,
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-
-                        const Divider(),
-
-                        InteractiveSliderTile(
-                          label: 'Dimmer',
-                          value: dimmerLevel,
-                          min: 0,
-                          max: 1,
-                          labelBuilder: (val) => '${(val * 100).round()}%',
-                          onChanged: (val) => ThemeService().setDimmer(val),
-                          onChangeEnd: (_) => ThemeService().saveDimmerLevel(),
-                        ),
-                      ],
-                    );
-                  },
+            SwitchListTile(
+              value: adaptiveBg.isEnabled,
+              title: const Text('Adaptive Background'),
+              subtitle: const Text('Use album art as background'),
+              onChanged: (val) {
+                ConfigService().update(
+                  adaptiveBackground: adaptiveBg.copyWith(isEnabled: val),
                 );
               },
-            );
-          },
+            ),
+
+            if (adaptiveBg.isEnabled) ...[
+              const SizedBox(height: 8),
+              ListTile(
+                title: const Text('Album Art Placement (Fit)'),
+                trailing: DropdownMenu<BoxFit>(
+                  initialSelection: adaptiveBg.fit,
+                  dropdownMenuEntries: const [
+                    DropdownMenuEntry(
+                      value: BoxFit.cover,
+                      label: 'Cover (Crop to fill)',
+                    ),
+                    DropdownMenuEntry(
+                      value: BoxFit.fill,
+                      label: 'Fill (Stretch)',
+                    ),
+                    DropdownMenuEntry(
+                      value: BoxFit.contain,
+                      label: 'Contain (Fit inside)',
+                    ),
+                    DropdownMenuEntry(
+                      value: BoxFit.fitHeight,
+                      label: 'Fit Height',
+                    ),
+                    DropdownMenuEntry(
+                      value: BoxFit.fitWidth,
+                      label: 'Fit Width',
+                    ),
+                  ],
+                  onSelected: (BoxFit? value) {
+                    if (value != null) {
+                      ConfigService().update(
+                        adaptiveBackground: adaptiveBg.copyWith(fit: value),
+                      );
+                    }
+                  },
+                ),
+              ),
+              InteractiveSliderTile(
+                label: 'Blur',
+                value: adaptiveBg.blur,
+                min: 0,
+                max: 100,
+                labelBuilder: (val) => '${val.round()}px',
+                // We use onChanged for LIVE preview.
+                // ConfigService handles the debouncing (saving) internally.
+                onChanged: (val) {
+                  ConfigService().update(
+                    adaptiveBackground: adaptiveBg.copyWith(blur: val),
+                  );
+                },
+                // We pass an empty function because the widget requires it,
+                // but the service handles the saving automatically now.
+                onChangeEnd: (_) {},
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            const Divider(),
+
+            SwitchListTile(
+              value: texturedLayer.isEnabled,
+              title: const Text('Textured Layer'),
+              subtitle: const Text('Add texture layer on top of album art'),
+              onChanged: (val) {
+                ConfigService().update(
+                  texturedLayer: texturedLayer.copyWith(isEnabled: val),
+                );
+              },
+            ),
+
+            if (texturedLayer.isEnabled) ...[
+              const SizedBox(height: 8),
+
+              ListTile(
+                title: const Text('Select Texture'),
+                trailing: DropdownMenu<TextureProfile>(
+                  // Force redraw if ID changes
+                  key: ValueKey(config.activeTexture.id),
+                  initialSelection: config.activeTexture,
+                  // Use the helper from AppConfig
+                  dropdownMenuEntries: config.allTextures
+                      .map<DropdownMenuEntry<TextureProfile>>((
+                        TextureProfile value,
+                      ) {
+                        return DropdownMenuEntry(
+                          value: value,
+                          label: value.name,
+                        );
+                      })
+                      .toList(),
+                  onSelected: (TextureProfile? value) {
+                    if (value != null) {
+                      ConfigService().update(activeTexture: value);
+                    }
+                  },
+                ),
+              ),
+
+              SizedBox(height: 16),
+
+              ListTile(
+                title: const Text('Textured Layer Placement (Fit)'),
+                trailing: DropdownMenu<BoxFit>(
+                  initialSelection: texturedLayer.fit,
+                  dropdownMenuEntries: const [
+                    DropdownMenuEntry(
+                      value: BoxFit.none,
+                      label: 'Tile (Repeat patterns)',
+                    ),
+                    DropdownMenuEntry(
+                      value: BoxFit.fill,
+                      label: 'Fill (Stretch)',
+                    ),
+                    DropdownMenuEntry(
+                      value: BoxFit.cover,
+                      label: 'Cover (Crop to fill)',
+                    ),
+                    DropdownMenuEntry(
+                      value: BoxFit.contain,
+                      label: 'Contain (Fit inside)',
+                    ),
+                  ],
+                  onSelected: (BoxFit? value) {
+                    if (value != null) {
+                      ConfigService().update(
+                        texturedLayer: texturedLayer.copyWith(fit: value),
+                      );
+                    }
+                  },
+                ),
+              ),
+
+              InteractiveSliderTile(
+                label: 'Opacity',
+                value: texturedLayer.opacity,
+                min: 0,
+                max: 1,
+                labelBuilder: (val) => '${(val * 100).round()}%',
+                onChanged: (val) {
+                  ConfigService().update(
+                    texturedLayer: texturedLayer.copyWith(opacity: val),
+                  );
+                },
+                onChangeEnd: (_) {},
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            const Divider(),
+
+            InteractiveSliderTile(
+              label: 'Dimmer',
+              value: config.globalDimmer,
+              min: 0,
+              max: 1,
+              labelBuilder: (val) => '${(val * 100).round()}%',
+              onChanged: (val) => ConfigService().update(globalDimmer: val),
+              onChangeEnd: (_) {},
+            ),
+          ],
         );
       },
     );
   }
 }
 
+// ... Rest of your file (SectionHeader, InteractiveSliderTile) stays exactly the same ...
 class SectionHeader extends StatelessWidget {
   final String title;
 
