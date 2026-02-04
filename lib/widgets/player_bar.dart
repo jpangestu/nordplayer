@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:suara/models/song.dart';
 import 'package:suara/services/audio_service.dart';
 import 'package:suara/widgets/album_art.dart';
 
@@ -12,166 +11,164 @@ class PlayerBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-        child: Container(
-          height: 90,
-          width: double.infinity,
-          color: Color.fromRGBO(0, 0, 0, 0.25),
-          child: Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: StreamBuilder<Song?>(
-                  stream: AudioService().currentSongStream,
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return SizedBox();
-                    }
+    // 1. Listen for state changes (Play/Pause, Song Change, Shuffle, Loop)
+    return ListenableBuilder(
+      listenable: AudioService(),
+      builder: (context, _) {
+        final audio = AudioService();
+        final song = audio.currentSong;
 
-                    return ListTile(
-                      contentPadding: EdgeInsets.only(left: 20),
-                      leading: AlbumArt(artPath: snapshot.data!.artPath),
-                      title: Text(
-                        snapshot.data!.title,
-                        maxLines: 1,
-                        overflow: .ellipsis,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 18,
-                        ),
-                      ),
-                      subtitle: Text(
-                        snapshot.data!.artist,
-                        maxLines: 1,
-                        overflow: .ellipsis,
-                      ),
-                      onTap: () {},
-                    );
-                  },
-                ),
-              ),
-              Expanded(
-                flex: 7,
-                child: Column(
-                  mainAxisAlignment: .center,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 10),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          StreamBuilder(
-                            stream: AudioService().loopModeStream,
-                            initialData: AudioService().loopMode,
-                            builder: (context, snapshot) {
-                              final loopMode = snapshot.data ?? LoopMode.off;
-                              return IconButton(
+        return ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+            child: Container(
+              height: 90,
+              width: double.infinity,
+              color: const Color.fromRGBO(0, 0, 0, 0.25),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: song == null
+                        ? const SizedBox()
+                        : ListTile(
+                            contentPadding: const EdgeInsets.only(left: 20),
+                            leading: AlbumArt(artPath: song.artPath),
+                            title: Text(
+                              song.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 18,
+                              ),
+                            ),
+                            subtitle: Text(
+                              song.artist,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            onTap: () {},
+                          ),
+                  ),
+                  Expanded(
+                    flex: 7,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // LOOP BUTTON
+                              IconButton(
                                 onPressed: () {
-                                  AudioService().cycleLoopMode();
+                                  audio.cycleLoopMode();
                                 },
-                                icon: Icon(switch (loopMode) {
+                                icon: Icon(switch (audio.loopMode) {
                                   LoopMode.off => Icons.repeat,
                                   LoopMode.all => Icons.repeat_on,
                                   LoopMode.one => Icons.repeat_one_on_outlined,
                                 }),
-                              );
-                            },
-                          ),
-                          IconButton(
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            icon: Icon(Icons.skip_previous),
-                            onPressed: () {
-                              AudioService().previous();
-                            },
-                          ),
-                          StreamBuilder<bool>(
-                            stream: AudioService().playingStream,
-                            builder: (context, snapshot) {
-                              final isPlaying = snapshot.data ?? false;
-                              return IconButton(
+                              ),
+
+                              // PREVIOUS BUTTON
+                              IconButton(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                ),
+                                icon: const Icon(Icons.skip_previous),
+                                onPressed: () {
+                                  audio.previous();
+                                },
+                              ),
+
+                              // PLAY/PAUSE BUTTON
+                              IconButton(
                                 iconSize: 40,
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 10,
                                 ),
                                 icon: Icon(
-                                  isPlaying
+                                  audio.isPlaying
                                       ? Icons.pause_circle
                                       : Icons.play_circle,
                                 ),
                                 onPressed: () {
-                                  if (isPlaying) {
-                                    AudioService().pause();
+                                  if (audio.isPlaying) {
+                                    audio.pause();
                                   } else {
-                                    AudioService().resume();
+                                    audio.resume();
                                   }
                                 },
-                              );
-                            },
-                          ),
-                          IconButton(
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            icon: Icon(Icons.skip_next),
-                            onPressed: () {
-                              AudioService().next();
-                            },
-                          ),
-                          StreamBuilder(
-                            stream: AudioService().shuffleModeStream,
-                            initialData: AudioService().isShuffleEnabled,
-                            builder: (context, snapshot) {
-                              bool isShuffle = snapshot.data ?? false;
-                              return IconButton(
+                              ),
+
+                              // NEXT BUTTON
+                              IconButton(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                ),
+                                icon: const Icon(Icons.skip_next),
                                 onPressed: () {
-                                  AudioService().toggleShuffle();
+                                  audio.next();
+                                },
+                              ),
+
+                              // SHUFFLE BUTTON
+                              IconButton(
+                                onPressed: () {
+                                  audio.toggleShuffle();
                                 },
                                 icon: Icon(
-                                  isShuffle
+                                  audio.isShuffleEnabled
                                       ? Icons.shuffle_on_outlined
                                       : Icons.shuffle,
                                 ),
-                              );
-                            },
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                    StreamBuilder(
-                      stream: AudioService().positionDataStream,
-                      builder: (context, snapshot) {
-                        final positionData =
-                            snapshot.data ??
-                            PositionData(
-                              Duration.zero,
-                              Duration.zero,
-                              Duration.zero,
-                            );
+                        ),
 
-                        return Padding(
-                          padding: const EdgeInsets.fromLTRB(30, 5, 30, 5),
-                          child: ProgressBar(
-                            progress: positionData.position,
-                            total: positionData.duration,
-                            barHeight: 4,
-                            thumbRadius: 7,
-                            thumbGlowRadius: 14,
-                            timeLabelLocation: TimeLabelLocation.sides,
-                            timeLabelType: TimeLabelType.totalTime,
-                            onSeek: (newPosition) {
-                              AudioService().seek(newPosition);
-                            },
-                          ),
-                        );
-                      },
+                        // PROGRESS BAR (Kept as Stream for 60fps performance)
+                        StreamBuilder<PositionData>(
+                          stream: audio.positionDataStream,
+                          builder: (context, snapshot) {
+                            final positionData =
+                                snapshot.data ??
+                                PositionData(
+                                  Duration.zero,
+                                  Duration.zero,
+                                  Duration.zero,
+                                );
+
+                            return Padding(
+                              padding: const EdgeInsets.fromLTRB(30, 5, 30, 5),
+                              child: ProgressBar(
+                                progress: positionData.position,
+                                total: positionData.duration,
+                                buffered: positionData.bufferedPosition,
+                                barHeight: 4,
+                                thumbRadius: 7,
+                                thumbGlowRadius: 14,
+                                timeLabelLocation: TimeLabelLocation.sides,
+                                timeLabelType: TimeLabelType.totalTime,
+                                onSeek: (newPosition) {
+                                  audio.seek(newPosition);
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

@@ -1,43 +1,57 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart'; // REQUIRED for ChangeNotifier
 import 'package:just_audio/just_audio.dart';
-import 'package:just_audio_background/just_audio_background.dart'; // REQUIRED for notifications
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:suara/models/song.dart';
 
 /// Central service for music playback.
 /// Handles the Queue, Shuffle logic, Loop modes, and background audio notifications.
-class AudioService {
-  static final AudioService _instance = AudioService._internal();
-
-  factory AudioService() {
-    return _instance;
-  }
-
+class AudioService extends ChangeNotifier {
   AudioService._internal() {
     // Listen for natural song completion to trigger auto-advance
     _player.playerStateStream.listen((playerState) {
       if (playerState.processingState == ProcessingState.completed) {
         next();
       }
+      // Notify UI listeners when state changes (Buffering, Loading, Completed)
+      notifyListeners();
     });
+
+    // Listen for Play/Pause changes to update UI automatically
+    _player.playingStream.listen((_) {
+      notifyListeners();
+    });
+  }
+
+  static final AudioService _singleton = AudioService._internal();
+  factory AudioService() {
+    return _singleton;
   }
 
   final AudioPlayer _player = AudioPlayer();
 
   // Internal State
-  List<Song> _queue = []; // The currently active playlist (might be shuffled)
-  List<Song> _originalQueue = []; // Backup of the clean, ordered playlist
+  List<Song> _queue = [];
+  List<Song> _originalQueue = [];
   bool _isShuffle = false;
   int _currentIndex = -1;
 
   // ===========================================================================
-  // PUBLIC STREAMS (UI Listeners)
+  // PUBLIC ACCESSORS (Replaces Streams)
   // ===========================================================================
 
-  Stream<bool> get playingStream => _player.playingStream;
+  // Helper to check play state without a Stream
+  bool get isPlaying => _player.playing;
+
+  // Internal variable to remember the last value
+  Song? _currentSong;
+  Song? get currentSong => _currentSong;
+
+  // Queue Accessor
+  List<Song> get queue => _queue;
 
   /// Combines Position, Buffer, and Duration into a single stream for the Slider.
-  /// Acts as a "Switchboard" to prevent the UI from managing 3 separate subscriptions.
   Stream<PositionData> get positionDataStream {
     StreamController<PositionData>? controller;
     StreamSubscription? positionSub;
@@ -72,34 +86,19 @@ class AudioService {
     return controller.stream;
   }
 
-
-  // Internal variable to remember the last value
-  Song? _currentSong; 
-  Song? get currentSong => _currentSong;
-
-  /// Stream for the currently playing Song object
-  final StreamController<Song?> _songController =
-      StreamController<Song?>.broadcast();
-  Stream<Song?> get currentSongStream => _songController.stream;
-
   // ===========================================================================
   // QUEUE MANAGEMENT
   // ===========================================================================
 
   /// Sets the queue and plays the song with the given [initialSongId].
-  ///
-  /// We use [initialSongId] instead of an index because indices are unstable
-  /// if the list is sorted or filtered differently in the UI.
   void setQueueAndPlay(List<Song> songs, int initialSongId) {
     _originalQueue = List.of(songs);
     _queue = List.of(songs);
 
     // --- STEP 1: FIND TARGET ---
-    // Locate the exact song the user tapped, regardless of list order.
     int targetIndex = _queue.indexWhere((s) => s.id == initialSongId);
 
     if (targetIndex == -1) {
-      // Fallback: If ID not found (should never happen), play first song
       targetIndex = 0;
     }
 
@@ -107,8 +106,7 @@ class AudioService {
     if (_isShuffle) {
       _queue.shuffle();
 
-      // UX Rule: The song the user tapped MUST play first, even in shuffle mode.
-      // So we find it, pull it out, and jam it to the top of the list.
+      // Move selected song to the first index of the shuffled queue
       final targetSong = songs.firstWhere((s) => s.id == initialSongId);
       _queue.removeWhere((s) => s.id == initialSongId);
       _queue.insert(0, targetSong);
@@ -126,24 +124,17 @@ class AudioService {
   // SHUFFLE LOGIC
   // ===========================================================================
 
-  final StreamController<bool> _shuffleSubject =
-      StreamController<bool>.broadcast();
-  Stream<bool> get shuffleModeStream => _shuffleSubject.stream;
-
-  /// Synchronous getter for UI to know state before stream emits.
+  /// Synchronous getter for UI.
   bool get isShuffleEnabled => _isShuffle;
 
   /// Toggles shuffle on/off while preserving the currently playing song.
   void toggleShuffle() {
-    // Capture the ID of the song currently playing so we don't interrupt it.
     final currentSongId = _currentIndex >= 0 ? _queue[_currentIndex].id : -1;
 
     if (!_isShuffle) {
-      // --- ENABLING SHUFFLE ---
       final newQueue = List.of(_originalQueue);
       newQueue.shuffle();
 
-      // If playing, ensure current song stays at index 0 of the new shuffled list
       if (currentSongId != -1) {
         final currentSong = _originalQueue.firstWhere(
           (s) => s.id == currentSongId,
@@ -156,11 +147,8 @@ class AudioService {
       _queue = newQueue;
       _isShuffle = true;
     } else {
-      // --- DISABLING SHUFFLE ---
-      // Restore the clean, original order
       _queue = List.of(_originalQueue);
 
-      // Find where our current song lives in the original list so playback continues correctly
       if (currentSongId != -1) {
         _currentIndex = _queue.indexWhere((s) => s.id == currentSongId);
       }
@@ -168,7 +156,8 @@ class AudioService {
       _isShuffle = false;
     }
 
-    _shuffleSubject.add(_isShuffle);
+    // Notify UI that shuffle state (and potentially queue order) changed
+    notifyListeners();
   }
 
   // ===========================================================================
@@ -177,20 +166,17 @@ class AudioService {
 
   Future<void> _play(Song song) async {
     _currentSong = song;
-    _songController.add(song);
+    // Update UI immediately (Song Title, Art)
+    notifyListeners();
 
     try {
-      // We wrap the file path in an AudioSource with a 'MediaItem' tag.
-      // This 'MediaItem' is what 'just_audio_background' reads to generate
-      // the Android/iOS notification and lock screen controls.
       final audioSource = AudioSource.file(
         song.path,
         tag: MediaItem(
-          id: song.id.toString(), // Unique ID for the OS
+          id: song.id.toString(),
           title: song.title,
           artist: song.artist,
           album: song.album,
-          // Load art from local cache if available
           artUri: song.artPath != null ? Uri.file(song.artPath!) : null,
           duration: song.duration,
         ),
@@ -210,11 +196,13 @@ class AudioService {
   Future<void> resume() async {
     if (_currentIndex != -1) {
       await _player.play();
+      // notifyListeners() is handled by the listener in the constructor
     }
   }
 
   Future<void> pause() async {
     await _player.pause();
+    // notifyListeners() is handled by the listener in the constructor
   }
 
   Future<void> seek(Duration position) async {
@@ -224,9 +212,7 @@ class AudioService {
   Future<void> next() async {
     if (_queue.isEmpty) return;
 
-    // Check if we are at the end of the queue
     if (_currentIndex == _queue.length - 1) {
-      // Only wrap around if LoopMode is ALL
       if (_loopMode == LoopMode.all) {
         _currentIndex = 0;
         await _play(_queue[_currentIndex]);
@@ -240,7 +226,6 @@ class AudioService {
   Future<void> previous() async {
     if (_queue.isEmpty) return;
 
-    // Check if we are at the start of the queue
     if (_currentIndex == 0) {
       if (_loopMode == LoopMode.all) {
         _currentIndex = _queue.length - 1;
@@ -256,33 +241,28 @@ class AudioService {
   // LOOP MODE ARCHITECTURE
   // ===========================================================================
 
-  // NOTE: We decouple UI LoopMode from the Engine LoopMode.
-  // - UI 'All' -> Engine 'Off' (We handle the loop manually in next())
-  // - UI 'One' -> Engine 'One' (Native looping)
-
   LoopMode _loopMode = LoopMode.off;
-  final StreamController<LoopMode> _loopModeController =
-      StreamController<LoopMode>.broadcast();
 
-  Stream<LoopMode> get loopModeStream => _loopModeController.stream;
+  // Getter replaced Stream
   LoopMode get loopMode => _loopMode;
 
   Future<void> cycleLoopMode() async {
-    // 1. Cycle State (Off -> All -> One -> Off)
+    // Cycle State
     _loopMode = switch (_loopMode) {
       LoopMode.off => LoopMode.all,
       LoopMode.all => LoopMode.one,
       LoopMode.one => LoopMode.off,
     };
-    _loopModeController.add(_loopMode);
 
-    // 2. Synchronize with Engine
+    // Synchronize with Engine
     if (_loopMode == LoopMode.one) {
       await _player.setLoopMode(LoopMode.one);
     } else {
-      // For 'All' and 'Off', we set engine to Off so it stops at end of track
       await _player.setLoopMode(LoopMode.off);
     }
+
+    // Notify UI
+    notifyListeners();
   }
 }
 
