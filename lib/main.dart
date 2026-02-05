@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const NordplayerApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class NordplayerApp extends StatelessWidget {
+  const NordplayerApp({super.key});
 
   // This widget is the root of your application.
   @override
