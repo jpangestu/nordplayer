@@ -1,18 +1,18 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:suara/pages/settings/about.dart';
-import 'package:suara/pages/settings/general.dart';
-import 'package:suara/pages/settings/styling.dart';
+import 'package:suara/pages/settings/about_page.dart';
+import 'package:suara/pages/settings/general_page.dart';
+import 'package:suara/pages/settings/styling_page.dart';
 
-class SettingsLayout extends StatefulWidget {
-  const SettingsLayout({super.key});
+class SettingsPage extends StatefulWidget {
+  const SettingsPage({super.key});
 
   @override
-  State<SettingsLayout> createState() => _SettingsLayoutState();
+  State<SettingsPage> createState() => _SettingsPageState();
 }
 
-class _SettingsLayoutState extends State<SettingsLayout> {
+class _SettingsPageState extends State<SettingsPage> {
   int _selectedIndex = 0;
 
   @override
@@ -63,10 +63,10 @@ class _SettingsLayoutState extends State<SettingsLayout> {
             Expanded(
               child: switch (_selectedIndex) {
                 // Ideally, use const constructors if your widgets are stateless
-                0 => const General(),
-                1 => const Styling(),
-                2 => const About(),
-                _ => const General(),
+                0 => const GeneralPage(),
+                1 => const StylingPage(),
+                2 => const AboutPage(),
+                _ => const GeneralPage(),
               },
             ),
           ],

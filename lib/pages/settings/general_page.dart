@@ -2,14 +2,14 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:suara/services/library_service.dart';
 
-class General extends StatefulWidget {
-  const General({super.key});
+class GeneralPage extends StatefulWidget {
+  const GeneralPage({super.key});
 
   @override
-  State<General> createState() => _GeneralState();
+  State<GeneralPage> createState() => _GeneralPageState();
 }
 
-class _GeneralState extends State<General> {
+class _GeneralPageState extends State<GeneralPage> {
   List<String> _musicPaths = [];
 
   @override

@@ -93,7 +93,7 @@ Stream<ScanEvent> scanLibraryStream(
 // INTERNAL BACKGROUND TASK
 // =============================================================================
 
-final _separatorRegex = RegExp(r'[;&]|//');
+final _separatorRegex = RegExp(r'[;&,]|//');
 const int _batchSize = 50; // Process 50 song object at a time
 
 Future<void> _internalScanTask(ScanConfiguration config) async {
@@ -140,7 +140,7 @@ Future<void> _internalScanTask(ScanConfiguration config) async {
             // --- METADATA PARSING ---
             final metadata = await MetadataGod.readMetadata(file: entity.path);
 
-            // A. Album Art (Same logic as before)
+            // Album Art
             String? localArtPath;
             if (metadata.picture != null) {
               final uniqueString = '${metadata.album}_${metadata.artist}';
@@ -153,7 +153,7 @@ Future<void> _internalScanTask(ScanConfiguration config) async {
               localArtPath = artFile.path;
             }
 
-            // B. Artist Splitting
+            // Artist Splitting
             final rawArtistString = metadata.artist ?? 'Unknown Artist';
             List<String> artistNames = [];
             if (config.splitArtistsEnabled) {

@@ -1,12 +1,11 @@
-import 'dart:ui'; // Needed for FontFeature
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:suara/models/app_config.dart';
 import 'package:suara/models/texture_profile.dart';
 import 'package:suara/services/config_service.dart'; // Replaces ThemeService
 
-class Styling extends StatelessWidget {
-  const Styling({super.key});
+class StylingPage extends StatelessWidget {
+  const StylingPage({super.key});
 
   @override
   Widget build(BuildContext context) {

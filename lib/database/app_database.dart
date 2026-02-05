@@ -5,6 +5,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 
 import 'package:suara/database/entities.dart';
+import 'package:suara/models/album.dart';
+import 'package:suara/models/artist.dart';
 import 'package:suara/models/scanned_metadata.dart';
 import 'package:suara/models/song.dart';
 
@@ -101,6 +103,60 @@ class Database extends _$Database {
         );
       }).toList();
     });
+  }
+
+  Stream<List<Artist>> watchAllArtists() {
+    // 1. Define the custom columns you want to count
+    final trackCount = songs.id.count();
+    final albumCount = songs.albumId.count(distinct: true);
+
+    // 2. Create the query joining Artists with Songs
+    final query = select(artists).join([
+      // Use leftOuterJoin so artists with 0 songs still show up
+      leftOuterJoin(songs, songs.artistId.equalsExp(artists.id)),
+    ]);
+
+    // 3. Add columns, Grouping, and Ordering
+    query
+      ..addColumns([trackCount, albumCount])
+      ..groupBy([artists.id]) // Group by Artist so we get 1 row per artist
+      ..orderBy([
+        OrderingTerm(expression: artists.name, mode: OrderingMode.asc),
+      ]);
+
+    // 4. Map the results
+    return query.watch().map((rows) {
+      return rows.map((row) {
+        final artistEntity = row.readTable(artists);
+        final int totalTracks = row.read(trackCount) ?? 0;
+        final int totalAlbums = row.read(albumCount) ?? 0;
+
+        return Artist(
+          id: artistEntity.id,
+          name: artistEntity.name,
+          numberOfTracks: totalTracks,
+          numberOfAlbums: totalAlbums,
+        );
+      }).toList();
+    });
+  }
+
+  Stream<List<Album>> watchAllAlbums() {
+    return ((select(albums))..orderBy([
+          (t) => OrderingTerm(expression: t.title, mode: OrderingMode.asc),
+        ]))
+        .watch()
+        .map((dbRows) {
+          return dbRows.map((row) {
+            return Album(
+              id: row.id,
+              artistId: row.artistId,
+              title: row.title,
+              year: row.year,
+              artPath: row.artPath,
+            );
+          }).toList();
+        });
   }
 
   // ===========================================================================

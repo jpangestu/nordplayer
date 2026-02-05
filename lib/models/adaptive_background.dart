@@ -2,7 +2,7 @@ import 'package:flutter/rendering.dart';
 
 class AdaptiveBackground {
   static const bool defaultEnabled = true;
-  static const double defaultBlur = 0.4;
+  static const double defaultBlur = 40;
   static const BoxFit defaultFit = BoxFit.cover;
 
   final bool isEnabled;

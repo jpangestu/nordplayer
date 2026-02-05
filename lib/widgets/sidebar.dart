@@ -29,9 +29,14 @@ class Sidebar extends StatelessWidget {
               label: Text("Library"),
             ),
             NavigationRailDestination(
-              icon: Icon(Icons.playlist_play_outlined),
-              selectedIcon: Icon(Icons.playlist_play),
-              label: Text("Playlist"),
+              icon: Icon(Icons.album_outlined),
+              selectedIcon: Icon(Icons.album),
+              label: Text("Albums"),
+            ),
+            NavigationRailDestination(
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person),
+              label: Text("Artists"),
             ),
             NavigationRailDestination(
               icon: Icon(Icons.settings_outlined),

@@ -5,14 +5,14 @@ import 'package:suara/services/audio_service.dart';
 import 'package:suara/services/library_service.dart';
 import 'package:suara/widgets/album_art.dart';
 
-class Library extends StatefulWidget {
-  const Library({super.key});
+class LibraryPage extends StatefulWidget {
+  const LibraryPage({super.key});
 
   @override
-  State<Library> createState() => _LibraryState();
+  State<LibraryPage> createState() => _LibraryPageState();
 }
 
-class _LibraryState extends State<Library> {
+class _LibraryPageState extends State<LibraryPage> {
   @override
   void initState() {
     super.initState();
