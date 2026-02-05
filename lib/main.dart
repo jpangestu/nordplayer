@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nordplayer/theme/nord_theme.dart';
 import 'package:nordplayer/pages/main_page.dart';
 
 void main() {
@@ -12,7 +13,7 @@ class NordplayerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Nordplayer',
-      theme: ThemeData(colorScheme: .fromSeed(seedColor: Colors.teal)),
+      theme: nordTheme,
       home: const MainPage(),
     );
   }

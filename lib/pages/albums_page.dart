@@ -5,6 +5,12 @@ class AlbumsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(child: Text('Albums'));
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Albums'),
+        centerTitle: true,
+      ),
+      body: Center(child: Text('Albums')),
+    );
   }
 }

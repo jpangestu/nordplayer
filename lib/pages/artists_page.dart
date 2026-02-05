@@ -5,6 +5,12 @@ class ArtistsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(child: Text('Artists'));
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Artists'),
+        centerTitle: true,
+      ),
+      body: Center(child: Text('Artists')),
+    );
   }
 }

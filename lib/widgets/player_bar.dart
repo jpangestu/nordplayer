@@ -5,6 +5,6 @@ class PlayerBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(height: 90, color: Colors.teal,);
+    return Container(height: 90, color: Theme.of(context).colorScheme.surfaceContainer,);
   }
 }

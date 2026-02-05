@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
-class LibraryPage extends StatelessWidget {
-  const LibraryPage({super.key});
+class PlaylistsPage extends StatelessWidget {
+  const PlaylistsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Library'),
+        title: Text('Playlists'),
         centerTitle: true,
       ),
-      body: Center(child: Text('Library')),
+      body: Center(child: Text('Playlists')),
     );
   }
 }
