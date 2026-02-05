@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:suara/services/config_service.dart'; // The new engine
-// import 'package:suara/services/theme_service.dart'; // DELETE THIS LINE (if no longer used)
+import 'package:google_fonts/google_fonts.dart';
+import 'package:suara/services/config_service.dart';
+import 'package:suara/widgets/dynamic_background_scaffold.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:metadata_god/metadata_god.dart';
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
@@ -77,12 +78,49 @@ class _SuaraAppState extends State<SuaraApp> with WindowListener {
     return ListenableBuilder(
       listenable: ConfigService(),
       builder: (context, _) {
+        final config = ConfigService().config;
+
+        String? activeFontFamily;
+
+        if (config.fontFamily == 'Default') {
+          activeFontFamily = null;
+        } else {
+          try {
+            activeFontFamily = GoogleFonts.getFont(
+              config.fontFamily,
+            ).fontFamily;
+          } catch (e) {
+            print(
+              "Font Error: Could not load '${config.fontFamily}'. Using default.",
+            );
+            activeFontFamily = null;
+          }
+        }
         return MaterialApp(
           title: 'Suara',
-          themeMode: ConfigService().config.themeMode, 
-          theme: ThemeData.light(),
-          darkTheme: ThemeData.dark(),
-          home: const MainLayout(),
+          themeMode: config.themeMode,
+
+          theme: ThemeData(
+            brightness: Brightness.light,
+            useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.teal,
+              brightness: Brightness.light,
+            ),
+            fontFamily: activeFontFamily,
+          ),
+
+          darkTheme: ThemeData(
+            brightness: Brightness.dark,
+            useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.teal,
+              brightness: Brightness.dark,
+            ),
+            fontFamily: activeFontFamily,
+          ),
+
+          home: const DynamicBackgroundScaffold(body: MainLayout()),
         );
       },
     );

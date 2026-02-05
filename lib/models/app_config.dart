@@ -6,6 +6,7 @@ import 'package:suara/models/texture_profile.dart';
 class AppConfig {
   final List<String> musicPaths;
   final ThemeMode themeMode;
+  final String fontFamily;
   final double globalDimmer;
 
   final AdaptiveBackground adaptiveBackground;
@@ -16,11 +17,23 @@ class AppConfig {
   const AppConfig({
     this.musicPaths = const [],
     this.themeMode = ThemeMode.system,
+    this.fontFamily = 'Open Sans',
     this.globalDimmer = 0.5,
     this.adaptiveBackground = const AdaptiveBackground(),
     this.texturedLayer = const TexturedLayer(),
     this.customTextures = const [],
   });
+
+  static const List<String> availableFonts = [
+    'Default',
+    'Poppins',
+    'Roboto',
+    'Lato',
+    'Open Sans',
+    'Montserrat',
+    'Oswald',
+    'Merriweather',
+  ];
 
   /// Get the active texture
   TextureProfile get activeTexture {
@@ -35,6 +48,7 @@ class AppConfig {
   AppConfig copyWith({
     List<String>? musicPaths,
     ThemeMode? themeMode,
+    String? fontFamily,
     double? globalDimmer,
     AdaptiveBackground? adaptiveBackground,
     TexturedLayer? texturedLayer,
@@ -43,6 +57,7 @@ class AppConfig {
     return AppConfig(
       musicPaths: musicPaths ?? this.musicPaths,
       themeMode: themeMode ?? this.themeMode,
+      fontFamily: fontFamily ?? this.fontFamily,
       globalDimmer: globalDimmer ?? this.globalDimmer,
       adaptiveBackground: adaptiveBackground ?? this.adaptiveBackground,
       texturedLayer: texturedLayer ?? this.texturedLayer,
@@ -57,6 +72,7 @@ class AppConfig {
         (e) => e.name == json['themeMode'],
         orElse: () => ThemeMode.system,
       ),
+      fontFamily: json['fontFamily'] ?? 'Poppins',
       globalDimmer: (json['globalDimmer'] as num?)?.toDouble() ?? 0.5,
       adaptiveBackground: AdaptiveBackground.fromMap(
         json['adaptiveBackground'] ?? {},
@@ -74,6 +90,7 @@ class AppConfig {
     return {
       'musicPaths': musicPaths,
       'themeMode': themeMode.name,
+      'fontFamily': fontFamily,
       'globalDimmer': globalDimmer,
       'adaptiveBackground': adaptiveBackground.toMap(),
       'texturedLayer': texturedLayer.toMap(),

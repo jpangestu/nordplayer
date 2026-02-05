@@ -14,15 +14,12 @@ class ConfigService extends ChangeNotifier {
   static final ConfigService _singleton = ConfigService._internal();
   factory ConfigService() => _singleton;
 
-  // --- 2. STATE ---
-  // This is the source of truth for the entire app.
   AppConfig _config = const AppConfig();
   AppConfig get config => _config;
 
   File? _file; // The reference to config.json
   Timer? _debounce; // The timer to prevent writing too often
 
-  // --- 3. INITIALIZATION ---
   Future<void> init() async {
     final dir = await getApplicationSupportDirectory();
     _file = File(p.join(dir.path, 'config.json'));
@@ -47,11 +44,10 @@ class ConfigService extends ChangeNotifier {
     }
   }
 
-  // --- 4. THE UNIVERSAL UPDATE METHOD ---
-  // Instead of creating setBlur, setOpacity, setTheme...
-  // We use one method that takes optional parameters.
+  // Update
   void update({
     ThemeMode? themeMode,
+    String? fontFamily,
     double? globalDimmer,
     AdaptiveBackground? adaptiveBackground,
     TexturedLayer? texturedLayer,
@@ -70,6 +66,7 @@ class ConfigService extends ChangeNotifier {
     // 1. Update Memory (Instant UI feedback)
     _config = _config.copyWith(
       themeMode: themeMode,
+      fontFamily: fontFamily,
       globalDimmer: globalDimmer,
       adaptiveBackground: adaptiveBackground,
       texturedLayer: newTextureLayer,
@@ -82,7 +79,6 @@ class ConfigService extends ChangeNotifier {
     _debounce = Timer(const Duration(milliseconds: 500), _saveToDisk);
   }
 
-  // --- 5. CUSTOM TEXTURE LOGIC ---
   Future<void> addCustomTexture(String sourcePath) async {
     final appDir = await getApplicationDocumentsDirectory();
 
@@ -117,7 +113,6 @@ class ConfigService extends ChangeNotifier {
     _saveToDisk(); // Save immediately (no debounce needed for import)
   }
 
-  // --- 6. DISK WRITER ---
   Future<void> _saveToDisk() async {
     if (_file == null) return;
     try {

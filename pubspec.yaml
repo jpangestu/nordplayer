@@ -48,6 +48,7 @@ dependencies:
   audio_video_progress_bar: ^2.0.3
   crypto: ^3.0.7
   just_audio_background: ^0.0.1-beta.17
+  google_fonts: ^8.0.0
 
 dev_dependencies:
   flutter_test:

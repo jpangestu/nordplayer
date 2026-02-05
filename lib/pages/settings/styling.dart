@@ -1,5 +1,7 @@
 import 'dart:ui'; // Needed for FontFeature
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:suara/models/app_config.dart';
 import 'package:suara/models/texture_profile.dart';
 import 'package:suara/services/config_service.dart'; // Replaces ThemeService
 
@@ -40,6 +42,42 @@ class Styling extends StatelessWidget {
             ),
 
             const SizedBox(height: 16),
+            const Divider(),
+
+            const SectionHeader(title: 'Typography'),
+
+            ListTile(
+              leading: const Icon(Icons.font_download_outlined),
+              title: const Text('Font Family'),
+              trailing: DropdownMenu<String>(
+                initialSelection: config.fontFamily,
+                dropdownMenuEntries: AppConfig.availableFonts
+                    .map<DropdownMenuEntry<String>>((String font) {
+                      TextStyle? previewStyle;
+                      if (font != 'Default') {
+                        try {
+                          previewStyle = GoogleFonts.getFont(font);
+                        } catch (e) {
+                          previewStyle = null;
+                        }
+                      }
+                      return DropdownMenuEntry(
+                        value: font,
+                        label: font,
+                        style: ButtonStyle(
+                          textStyle: WidgetStatePropertyAll(
+                            previewStyle,
+                          ),
+                        ),
+                      );
+                    })
+                    .toList(),
+                onSelected: (val) {
+                  if (val != null) ConfigService().update(fontFamily: val);
+                },
+              ),
+            ),
+
             const Divider(),
 
             const SectionHeader(title: 'Immersive Background'),
