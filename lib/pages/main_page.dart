@@ -48,12 +48,16 @@ class _MainPageState extends State<MainPage> {
                     });
                   },
                 ),
+                VerticalDivider(width: 2, thickness: 2),
                 Expanded(
                   child: IndexedStack(index: _selectedIndex, children: _pages),
                 ),
               ],
             ),
           ),
+
+          Divider(height: 2, thickness: 2),
+
           PlayerBar(),
         ],
       ),

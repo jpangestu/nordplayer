@@ -9,12 +9,14 @@ void main() async {
   await windowManager.ensureInitialized();
 
   WindowOptions windowOptions = const WindowOptions(
-    size: Size(800, 600),
+    size: Size(1080, 720),
+    minimumSize: Size(800, 600),
     center: true,
     backgroundColor: Colors.transparent,
     skipTaskbar: false,
-    titleBarStyle: .normal,
     windowButtonVisibility: true,
+    title: 'Nordplayer',
+    titleBarStyle: .normal,
   );
 
   windowManager.waitUntilReadyToShow(windowOptions, () async {
@@ -25,9 +27,14 @@ void main() async {
   runApp(const NordplayerApp());
 }
 
-class NordplayerApp extends StatelessWidget {
+class NordplayerApp extends StatefulWidget {
   const NordplayerApp({super.key});
 
+  @override
+  State<NordplayerApp> createState() => _NordplayerAppState();
+}
+
+class _NordplayerAppState extends State<NordplayerApp> with WindowListener {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
