@@ -1,21 +1,39 @@
 import 'package:flutter/material.dart';
 
-class Sidebar extends StatelessWidget {
-  final bool isExpanded;
-  final int selectedIndex;
-  final Function(int) onIndexChanged;
-  final VoidCallback onToggle;
-
-  final double collapsedWidth = 64.0;
-  final double expandedWidth = 180.0;
+class Sidebar extends StatefulWidget {
+  final Widget? leading;
+  final int? selectedIndex;
+  final List<SidebarDestination> destinations;
+  final void Function(int)? onDestinationSelected;
+  final bool showExtendedToggle;
+  final bool? isExpanded;
+  final VoidCallback? onExtendedToggle;
+  final Widget? trailing;
+  final Widget? bottom;
 
   const Sidebar({
     super.key,
-    required this.isExpanded,
+    this.leading,
     required this.selectedIndex,
-    required this.onIndexChanged,
-    required this.onToggle,
-  });
+    required this.destinations,
+    this.onDestinationSelected,
+    this.showExtendedToggle = true,
+    this.isExpanded,
+    this.onExtendedToggle,
+    this.trailing,
+    this.bottom,
+  }) : assert(
+         selectedIndex == null ||
+             (0 <= selectedIndex && selectedIndex < destinations.length),
+       );
+
+  @override
+  State<Sidebar> createState() => _SidebarState();
+}
+
+class _SidebarState extends State<Sidebar> {
+  final double collapsedWidth = 64.0;
+  final double expandedWidth = 180.0;
 
   @override
   Widget build(BuildContext context) {
@@ -24,67 +42,60 @@ class Sidebar extends StatelessWidget {
 
     return AnimatedContainer(
       duration: Duration.zero,
-      width: isExpanded ? expandedWidth : collapsedWidth,
+      width: widget.isExpanded ?? true ? expandedWidth : collapsedWidth,
       color: navTheme.backgroundColor ?? theme.colorScheme.surfaceContainer,
 
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: onToggle,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              style: IconButton.styleFrom(
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                foregroundColor: navTheme.unselectedIconTheme?.color,
+          if (widget.showExtendedToggle)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: widget.onExtendedToggle,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                style: IconButton.styleFrom(
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  foregroundColor: navTheme.unselectedIconTheme?.color,
+                ),
               ),
             ),
-          ),
+
+          if (widget.leading != null) widget.leading!,
 
           Expanded(
             child: ListView(
               children: [
-                _buildItem(
-                  context,
-                  0,
-                  Icons.library_music_outlined,
-                  Icons.library_music,
-                  "Library",
-                ),
-                _buildItem(
-                  context,
-                  1,
-                  Icons.playlist_play_outlined,
-                  Icons.playlist_play,
-                  "Playlists",
-                ),
-                _buildItem(
-                  context,
-                  2,
-                  Icons.album_outlined,
-                  Icons.album,
-                  "Albums",
-                ),
-                _buildItem(
-                  context,
-                  3,
-                  Icons.person_outline,
-                  Icons.person,
-                  "Artists",
-                ),
-                _buildItem(
-                  context,
-                  4,
-                  Icons.settings_outlined,
-                  Icons.settings,
-                  "Settings",
-                ),
+                for (final (index, destination) in widget.destinations.indexed)
+                  if (index != widget.destinations.length) ...[
+                    _buildItem(
+                      context,
+                      index,
+                      destination.icon,
+                      destination.selectedIcon,
+                      destination.label,
+                    ),
+                  ] else ...[
+                    Align(
+                      alignment: .bottomLeft,
+                      child: _buildItem(
+                        context,
+                        index,
+                        destination.icon,
+                        destination.selectedIcon,
+                        destination.label,
+                      ),
+                    ),
+                  ],
               ],
             ),
           ),
+
+          if (widget.trailing != null) widget.trailing!,
+          if (widget.bottom != null)
+            Align(alignment: .bottomLeft, child: widget.bottom!),
         ],
       ),
     );
@@ -93,11 +104,11 @@ class Sidebar extends StatelessWidget {
   Widget _buildItem(
     BuildContext context,
     int index,
-    IconData icon,
-    IconData? selectedIcon,
-    String label,
+    Widget icon,
+    Widget? selectedIcon,
+    Widget label,
   ) {
-    final bool isSelected = selectedIndex == index;
+    final bool isSelected = widget.selectedIndex == index;
     final theme = Theme.of(context);
 
     final backgroundColor = isSelected
@@ -111,6 +122,20 @@ class Sidebar extends StatelessWidget {
         : theme.navigationRailTheme.unselectedIconTheme?.color ??
               theme.colorScheme.onSurfaceVariant;
 
+    final iconWidget = IconTheme(
+      data: IconThemeData(color: foregroundColor, size: 24),
+      child: isSelected ? selectedIcon ?? icon : icon,
+    );
+
+    final labelWidget = DefaultTextStyle(
+      style: TextStyle(
+        color: foregroundColor,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        overflow: TextOverflow.ellipsis,
+      ),
+      child: label,
+    );
+
     return Container(
       height: 48.0,
       margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
@@ -119,31 +144,20 @@ class Sidebar extends StatelessWidget {
         borderRadius: BorderRadius.circular(8.0),
       ),
       child: InkWell(
-        onTap: () => onIndexChanged(index),
+        onTap: () {
+          if (widget.onDestinationSelected != null) {
+            widget.onDestinationSelected!(index);
+          }
+        },
         borderRadius: BorderRadius.circular(10.0),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12.0),
           child: Row(
             children: [
-              Icon(
-                (isSelected && selectedIcon != null) ? selectedIcon : icon,
-                color: foregroundColor,
-                size: 24,
-              ),
-              if (isExpanded) ...[
-                const SizedBox(width: 24),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      color: foregroundColor,
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
+              iconWidget,
+              if (widget.isExpanded != null && widget.isExpanded == true) ...[
+                const SizedBox(width: 16),
+                Expanded(child: labelWidget),
               ],
             ],
           ),
@@ -151,4 +165,16 @@ class Sidebar extends StatelessWidget {
       ),
     );
   }
+}
+
+class SidebarDestination {
+  const SidebarDestination({
+    required this.icon,
+    Widget? selectedIcon,
+    required this.label,
+  }) : selectedIcon = selectedIcon ?? icon;
+
+  final Widget icon;
+  final Widget selectedIcon;
+  final Widget label;
 }

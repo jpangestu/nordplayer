@@ -26,6 +26,34 @@ class _MainPageState extends State<MainPage> {
     SettingsPage(),
   ];
 
+  List<SidebarDestination> destinations = <SidebarDestination>[
+    SidebarDestination(
+      icon: Icon(Icons.library_music_outlined),
+      selectedIcon: Icon(Icons.library_music),
+      label: Text('Library'),
+    ),
+    SidebarDestination(
+      icon: Icon(Icons.playlist_play_outlined),
+      selectedIcon: Icon(Icons.playlist_play),
+      label: Text('Playlists'),
+    ),
+    SidebarDestination(
+      icon: Icon(Icons.album_outlined),
+      selectedIcon: Icon(Icons.album),
+      label: Text('Albums'),
+    ),
+    SidebarDestination(
+      icon: Icon(Icons.person_outline),
+      selectedIcon: Icon(Icons.person),
+      label: Text('Artists'),
+    ),
+    SidebarDestination(
+      icon: Icon(Icons.settings_outlined),
+      selectedIcon: Icon(Icons.settings),
+      label: Text('Settings'),
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -35,14 +63,16 @@ class _MainPageState extends State<MainPage> {
             child: Row(
               children: [
                 Sidebar(
-                  isExpanded: isExpanded,
                   selectedIndex: _selectedIndex,
-                  onIndexChanged: (newIndex) {
+                  destinations: destinations,
+                  onDestinationSelected: (newIndex) {
                     setState(() {
                       _selectedIndex = newIndex;
                     });
                   },
-                  onToggle: () {
+                  showExtendedToggle: true,
+                  isExpanded: isExpanded,
+                  onExtendedToggle: () {
                     setState(() {
                       isExpanded = !isExpanded;
                     });
