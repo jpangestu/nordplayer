@@ -4,7 +4,7 @@ import 'package:nordplayer/pages/artists_page.dart';
 import 'package:nordplayer/pages/library_page.dart';
 import 'package:nordplayer/pages/playlists_page.dart';
 import 'package:nordplayer/pages/settings/settings_page.dart';
-import 'package:nordplayer/widgets/player_bar.dart';
+import 'package:nordplayer/widgets/player_bar/player_bar.dart';
 import 'package:nordplayer/widgets/sidebar.dart';
 
 class MainPage extends StatefulWidget {
@@ -48,7 +48,7 @@ class _MainPageState extends State<MainPage> {
                     });
                   },
                 ),
-                VerticalDivider(width: 2, thickness: 2),
+                VerticalDivider(),
                 Expanded(
                   child: IndexedStack(index: _selectedIndex, children: _pages),
                 ),
@@ -56,7 +56,7 @@ class _MainPageState extends State<MainPage> {
             ),
           ),
 
-          Divider(height: 2, thickness: 2),
+          Divider(),
 
           PlayerBar(),
         ],

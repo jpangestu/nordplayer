@@ -58,6 +58,7 @@ class ProgressBar extends LeafRenderObjectWidget {
   RenderObject createRenderObject(BuildContext context) {
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
+    final sliderTheme = SliderTheme.of(context);
     final textStyle = timeLabelTextStyle ?? theme.textTheme.bodyLarge;
     final textScaler = MediaQuery.textScalerOf(context);
     return _RenderProgressBar(
@@ -69,17 +70,16 @@ class ProgressBar extends LeafRenderObjectWidget {
       onDragUpdate: onDragUpdate,
       onDragEnd: onDragEnd,
       barHeight: barHeight,
-      baseBarColor: baseBarColor ?? primaryColor.withValues(alpha: 0.24),
-      progressBarColor: progressBarColor ?? primaryColor,
+      baseBarColor: baseBarColor ?? sliderTheme.inactiveTrackColor ?? primaryColor.withValues(alpha: 0.24),
+      progressBarColor: progressBarColor ?? sliderTheme.activeTrackColor ??  primaryColor,
       bufferedBarColor:
-          bufferedBarColor ?? primaryColor.withValues(alpha: 0.24),
+          bufferedBarColor ?? sliderTheme.secondaryActiveTrackColor ?? primaryColor.withValues(alpha: 0.38),
       thumbRadius: thumbRadius,
-      thumbColor: thumbColor ?? primaryColor,
+      thumbColor: thumbColor ?? sliderTheme.thumbColor ?? primaryColor,
       thumbGlowColor:
-          thumbGlowColor ?? (thumbColor ?? primaryColor).withAlpha(80),
+          thumbGlowColor ?? sliderTheme.overlayColor ?? (thumbColor ?? primaryColor).withValues(alpha: 0.54),
       thumbGlowRadius: thumbGlowRadius,
       thumbCanPaintOutsideBar: thumbCanPaintOutsideBar,
-      // Default to totalTime if null
       timeLabelType: timeLabelType ?? TimeLabelType.totalTime,
       timeLabelTextStyle: textStyle,
       timeLabelPadding: timeLabelPadding,
@@ -90,6 +90,7 @@ class ProgressBar extends LeafRenderObjectWidget {
   @override
   void updateRenderObject(BuildContext context, RenderObject renderObject) {
     final theme = Theme.of(context);
+    final sliderTheme = SliderTheme.of(context);
     final primaryColor = theme.colorScheme.primary;
     final textStyle = timeLabelTextStyle ?? theme.textTheme.bodyLarge;
     final textScaler = MediaQuery.textScalerOf(context);
@@ -104,14 +105,14 @@ class ProgressBar extends LeafRenderObjectWidget {
       ..onDragStart = onDragStart
       ..onDragUpdate = onDragUpdate
       ..onDragEnd = onDragEnd
-      ..baseBarColor = baseBarColor ?? primaryColor.withValues(alpha: 0.24)
-      ..progressBarColor = progressBarColor ?? primaryColor
+      ..baseBarColor = baseBarColor ?? sliderTheme.inactiveTrackColor ?? primaryColor.withValues(alpha: 0.24)
+      ..progressBarColor = progressBarColor ?? sliderTheme.activeTrackColor ??  primaryColor
       ..bufferedBarColor =
-          bufferedBarColor ?? primaryColor.withValues(alpha: 0.24)
+          bufferedBarColor ?? sliderTheme.secondaryActiveTrackColor ?? primaryColor.withValues(alpha: 38)
       ..thumbRadius = thumbRadius
-      ..thumbColor = thumbColor ?? primaryColor
+      ..thumbColor = thumbColor ?? sliderTheme.thumbColor ?? primaryColor
       ..thumbGlowColor =
-          thumbGlowColor ?? (thumbColor ?? primaryColor).withAlpha(80)
+          thumbGlowColor ?? sliderTheme.overlayColor ?? (thumbColor ?? primaryColor).withValues(alpha: 54)
       ..thumbGlowRadius = thumbGlowRadius
       ..thumbCanPaintOutsideBar = thumbCanPaintOutsideBar
       ..timeLabelTextStyle = textStyle
@@ -171,7 +172,7 @@ class _RenderProgressBar extends RenderBox {
     required Color baseBarColor,
     required Color progressBarColor,
     required Color bufferedBarColor,
-    double thumbRadius = 20.0,
+    double thumbRadius = 10.0,
     required Color thumbColor,
     required Color thumbGlowColor,
     double thumbGlowRadius = 30.0,
