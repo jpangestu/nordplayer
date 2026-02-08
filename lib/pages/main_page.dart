@@ -78,7 +78,7 @@ class _MainPageState extends State<MainPage> {
                     });
                   },
                 ),
-                VerticalDivider(),
+                VerticalDivider(width: 2,),
                 Expanded(
                   child: IndexedStack(index: _selectedIndex, children: _pages),
                 ),
@@ -86,7 +86,7 @@ class _MainPageState extends State<MainPage> {
             ),
           ),
 
-          Divider(),
+          Divider(height: 2,),
 
           PlayerBar(),
         ],

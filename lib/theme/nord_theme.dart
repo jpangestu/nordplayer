@@ -128,9 +128,7 @@ final ThemeData nordTheme = ThemeData(
     overlayColor: NordColors.nord8.withValues(alpha: 0.24),
 
     valueIndicatorColor: NordColors.nord3,
-    valueIndicatorTextStyle: const TextStyle(
-      color: NordColors.nord6,
-    ),
+    valueIndicatorTextStyle: const TextStyle(color: NordColors.nord6),
   ),
 
   iconButtonTheme: IconButtonThemeData(
@@ -162,6 +160,122 @@ final ThemeData nordTheme = ThemeData(
       color: NordColors.nord6,
       fontSize: 12,
       fontWeight: FontWeight.w500,
+    ),
+  ),
+
+  dropdownMenuTheme: DropdownMenuThemeData(
+    menuStyle: MenuStyle(
+      backgroundColor: WidgetStatePropertyAll(NordColors.nord3),
+      side: WidgetStatePropertyAll(
+        const BorderSide(color: NordColors.nord2, width: 2),
+      ),
+    ),
+
+    textStyle: const TextStyle(color: NordColors.nord6),
+
+    // The input box (not expanded)
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: NordColors.nord3,
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: NordColors.nord8, width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: NordColors.nord8, width: 2),
+      ),
+
+      iconColor: NordColors.nord6,
+      // The arrow
+      suffixIconColor: NordColors.nord6,
+    ),
+  ),
+
+  textTheme: const TextTheme(
+    // --- DISPLAY (Large, distinct numbers or hero text) ---
+    displayLarge: TextStyle(
+      fontSize: 57,
+      fontWeight: FontWeight.bold,
+      color: NordColors.nord6, // Brightest
+    ),
+    displayMedium: TextStyle(
+      fontSize: 45,
+      fontWeight: FontWeight.bold,
+      color: NordColors.nord6,
+    ),
+    displaySmall: TextStyle(
+      fontSize: 36,
+      fontWeight: FontWeight.bold,
+      color: NordColors.nord6,
+    ),
+
+    // --- HEADLINE (Section headers) ---
+    headlineLarge: TextStyle(
+      fontSize: 32,
+      fontWeight: FontWeight.w600,
+      color: NordColors.nord6,
+    ),
+    headlineMedium: TextStyle(
+      fontSize: 28,
+      fontWeight: FontWeight.w600,
+      color: NordColors.nord6,
+    ),
+    headlineSmall: TextStyle(
+      fontSize: 24,
+      fontWeight: FontWeight.w600,
+      color: NordColors.nord6,
+    ),
+
+    // --- TITLE (Card titles, ListTiles, AppBars) ---
+    titleLarge: TextStyle(
+      fontSize: 22,
+      fontWeight: FontWeight.w500,
+      color: NordColors.nord6,
+    ),
+    titleMedium: TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w500,
+      color: NordColors.nord5, // Slightly softer
+    ),
+    titleSmall: TextStyle(
+      fontSize: 14,
+      fontWeight: FontWeight.w500,
+      color: NordColors.nord5,
+    ),
+
+    // --- BODY (Standard reading text, descriptions) ---
+    bodyLarge: TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.normal,
+      color: NordColors.nord4, // Standard Muted Text
+    ),
+    bodyMedium: TextStyle(
+      fontSize: 14,
+      fontWeight: FontWeight.normal,
+      color: NordColors.nord4,
+    ),
+    bodySmall: TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.normal,
+      color: NordColors.nord4,
+    ),
+
+    // --- LABEL (Buttons, tags, captions) ---
+    labelLarge: TextStyle(
+      fontSize: 14,
+      fontWeight: FontWeight.w500,
+      color: NordColors.nord6,
+    ),
+    labelMedium: TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w500,
+      color: NordColors.nord4,
+    ),
+    labelSmall: TextStyle(
+      fontSize: 11,
+      fontWeight: FontWeight.w500,
+      color: NordColors.nord3, // Very subtle (e.g. timestamps)
     ),
   ),
 
