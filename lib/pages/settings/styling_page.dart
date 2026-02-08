@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/models/app_theme.dart';
-// import 'package:nordplayer/theme/nord_theme.dart';
+import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/widgets/section_header.dart';
 
 class StylingSettingPage extends StatefulWidget {
@@ -11,7 +12,10 @@ class StylingSettingPage extends StatefulWidget {
 }
 
 class _StylingSettingPageState extends State<StylingSettingPage> {
-  var themeDataMap = AppTheme().getThemeDataMap();
+  final themeDataMap = AppTheme().getThemeDataMap();
+  Map<String, String> keyLabel = AppTheme().getKeyAndLabel();
+  AppConfig currentTheme = ConfigService().appConfig;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -25,23 +29,20 @@ class _StylingSettingPageState extends State<StylingSettingPage> {
                 ListTile(
                   leading: const Icon(Icons.settings_display_outlined),
                   title: const Text('App Theme'),
-                  trailing: DropdownMenu<ThemeData>(
-                    initialSelection: themeDataMap['nord'],
-                    dropdownMenuEntries: [
-                      DropdownMenuEntry(
-                        value: themeDataMap['nord']!,
-                        label: 'Nord',
-                      ),
-                      DropdownMenuEntry(
-                        value: themeDataMap['dark']!,
-                        label: 'Default Dark',
-                      ),
-                      DropdownMenuEntry(
-                        value: themeDataMap['light']!,
-                        label: 'Default Light',
-                      ),
-                    ],
-                    onSelected: (val) {},
+                  trailing: DropdownMenu<String>(
+                    initialSelection: currentTheme.theme,
+                    dropdownMenuEntries: keyLabel.entries.map((entry) {
+                      return DropdownMenuEntry(
+                        value: entry.key,
+                        label: entry.value,
+                      );
+                    }).toList(),
+
+                    onSelected: (selectedTheme) {
+                      setState(() {
+                        ConfigService().update(theme: selectedTheme);
+                      });
+                    },
                   ),
                 ),
 

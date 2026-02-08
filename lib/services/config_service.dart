@@ -43,8 +43,19 @@ class ConfigService extends ChangeNotifier {
     }
   }
 
+  // AppConfig got updated -> update config.json
+  Future<void> updateJson() async {
+    try {
+      const encoder = JsonEncoder.withIndent('  ');
+      _configFile!.writeAsString(encoder.convert(_appConfig.toJson()));
+    } catch (e) {
+      print("SAVE ERROR: $e");
+    }
+  }
+
   void update({List<String>? musicPath, String? theme}) {
     _appConfig = _appConfig.copyWith(musicPath: musicPath, theme: theme);
     notifyListeners();
+    updateJson();
   }
 }

@@ -20,6 +20,10 @@ class AppTheme {
     return _themeDataMap;
   }
 
+  Map<String, String> getKeyAndLabel() {
+    return {'nord': 'Nord', 'dark': 'Default Dark', 'light': 'Default Light'};
+  }
+
   ThemeData withKey(String key) {
     return _themeDataMap[key]!;
   }
