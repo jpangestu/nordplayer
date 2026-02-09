@@ -39,9 +39,8 @@ class _StylingSettingPageState extends State<StylingSettingPage> {
                     }).toList(),
 
                     onSelected: (selectedTheme) {
-                      setState(() {
-                        ConfigService().update(theme: selectedTheme);
-                      });
+                      if (selectedTheme == null) return;
+                      ConfigService().update(theme: selectedTheme);
                     },
                   ),
                 ),

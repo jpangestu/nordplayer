@@ -26,7 +26,7 @@ void main() async {
   });
 
   // Initialize Config Service
-  ConfigService().initConfig();
+  ConfigService().init();
 
   runApp(const NordplayerApp());
 }
