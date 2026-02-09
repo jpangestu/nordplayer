@@ -12,12 +12,12 @@ class StylingSettingPage extends StatefulWidget {
 }
 
 class _StylingSettingPageState extends State<StylingSettingPage> {
-  final themeDataMap = AppTheme().getThemeDataMap();
-  Map<String, String> keyLabel = AppTheme().getKeyAndLabel();
-  AppConfig currentTheme = ConfigService().appConfig;
+  Map<String, String> keyLabel = AppTheme.labels;
 
   @override
   Widget build(BuildContext context) {
+    AppConfig appConfig = ConfigService().appConfig;
+
     return Scaffold(
       body: Column(
         children: [
@@ -30,7 +30,7 @@ class _StylingSettingPageState extends State<StylingSettingPage> {
                   leading: const Icon(Icons.settings_display_outlined),
                   title: const Text('App Theme'),
                   trailing: DropdownMenu<String>(
-                    initialSelection: currentTheme.theme,
+                    initialSelection: appConfig.theme,
                     dropdownMenuEntries: keyLabel.entries.map((entry) {
                       return DropdownMenuEntry(
                         value: entry.key,

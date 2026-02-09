@@ -19,54 +19,100 @@ class ConfigService extends ChangeNotifier with LoggerMixin {
 
   Future<void> init() async {
     final configDir = await getApplicationSupportDirectory();
-    log.d("Initializing ConfigService. Directory: ${configDir.path}"); 
-    
+    log.d("Initializing ConfigService. Directory: ${configDir.path}");
+
     _configFile = File(p.join(configDir.path, 'config.json'));
 
     if (!_configFile!.existsSync()) {
-      log.i('Config file missing. creating default configuration.');
-      
-      try {
-        const encoder = JsonEncoder.withIndent('  ');
-        await _configFile!.writeAsString(encoder.convert(_appConfig.toJson()));
-        log.d("Default config successfully written to disk.");
-      } catch (e, s) {
-        log.e("Failed to create default config file", error: e, stackTrace: s);
-      }
+      log.i('Config file missing. Creating default configuration.');
+      _saveToDisk();
     } else {
       try {
         final configString = await _configFile!.readAsString();
-        final configMap = jsonDecode(configString);
-        _appConfig = AppConfig.fromJson(configMap);
-        log.i("Config loaded successfully: $_appConfig");
-        
+        final decodedJson = jsonDecode(configString);
+
+        if (decodedJson is! Map<String, dynamic>) {
+          throw const FormatException(
+            "Config JSON is not a valid object structure",
+          );
+        }
+
+        _appConfig = AppConfig.fromJson(decodedJson, logger: log);
+
+        final cleanJson = _appConfig.toJson();
+        if (jsonEncode(decodedJson) != jsonEncode(cleanJson)) {
+          log.w(
+            "Config contained invalid values. Overwriting with corrected version.",
+          );
+          await _backupInvalidConfig();
+          await _saveToDisk();
+        } else {
+          log.i("Config loaded successfully.");
+        }
+
         notifyListeners();
       } catch (e, s) {
-        log.e("Failed to load existing config. App may be unstable.", error: e, stackTrace: s);
+        log.e(
+          "Failed to load existing config. Resetting to defaults.",
+          error: e,
+          stackTrace: s,
+        );
+        await _backupInvalidConfig();
+        _appConfig = AppConfig();
+        await _saveToDisk();
       }
     }
   }
 
-  Future<void> updateJson() async {
-    if (_configFile == null) {
-      log.w("Attempted to save config before initialization.");
-      return;
-    }
+  void update({List<String>? musicPath, String? theme}) {
+    log.d(
+      "Updating Config -> Theme: $theme, MusicPaths: ${musicPath?.length ?? 'unchanged'}",
+    );
 
+    _appConfig = _appConfig.copyWith(musicPath: musicPath, theme: theme);
+    notifyListeners();
+    _saveToDisk();
+  }
+
+  Future<void> resetToDefaults() async {
+    log.w("User requested factory reset of settings.");
+
+    _appConfig = AppConfig();
+    notifyListeners();
+    await _saveToDisk();
+    log.i("Settings reset to defaults.");
+  }
+
+  //
+  // HELPER
+  //
+
+  Future<void> _saveToDisk() async {
+    if (_configFile == null) return;
     try {
       const encoder = JsonEncoder.withIndent('  ');
       await _configFile!.writeAsString(encoder.convert(_appConfig.toJson()));
       log.d("Config saved to disk.");
     } catch (e, s) {
-      log.e("Failed to save config to disk", error: e, stackTrace: s);
+      log.e("Failed to save config file", error: e, stackTrace: s);
     }
   }
 
-  void update({List<String>? musicPath, String? theme}) {
-    log.d("Updating Config -> Theme: $theme, MusicPaths: ${musicPath?.length ?? 'unchanged'}");
+  Future<void> _backupInvalidConfig() async {
+    if (_configFile == null || !_configFile!.existsSync()) return;
 
-    _appConfig = _appConfig.copyWith(musicPath: musicPath, theme: theme);
-    notifyListeners();
-    updateJson(); 
+    try {
+      final configDir = await getApplicationSupportDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final backupPath = p.join(
+        configDir.path,
+        'invalid_config.$timestamp.json',
+      );
+
+      await _configFile!.copy(backupPath);
+      log.w("Invalid config backed up to: $backupPath");
+    } catch (e, s) {
+      log.e("Failed to backup corrupt config.", error: e, stackTrace: s);
+    }
   }
 }

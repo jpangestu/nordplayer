@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nordplayer/pages/settings/about_page.dart';
+import 'package:nordplayer/pages/settings/advanced.dart';
 import 'package:nordplayer/pages/settings/library_setting_page.dart';
 import 'package:nordplayer/pages/settings/styling_page.dart';
 import 'package:nordplayer/widgets/sidebar.dart';
@@ -19,6 +20,7 @@ class _SettingsPageState extends State<SettingsPage> {
   final List<Widget> _pages = <Widget>[
     StylingSettingPage(),
     LibrarySettingPage(),
+    AdvancedPage(),
   ];
 
   List<SidebarDestination> destinations = <SidebarDestination>[
@@ -31,6 +33,11 @@ class _SettingsPageState extends State<SettingsPage> {
       icon: Icon(Icons.my_library_music_outlined),
       selectedIcon: Icon(Icons.my_library_music),
       label: Text('Library'),
+    ),
+    SidebarDestination(
+      icon: Icon(Icons.handyman_outlined),
+      selectedIcon: Icon(Icons.handyman),
+      label: Text('Advanced'),
     ),
   ];
 

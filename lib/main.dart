@@ -26,7 +26,7 @@ void main() async {
   });
 
   // Initialize Config Service
-  ConfigService().init();
+  await ConfigService().init();
 
   runApp(const NordplayerApp());
 }
@@ -46,7 +46,7 @@ class _NordplayerAppState extends State<NordplayerApp> with WindowListener {
       builder: (context, _) {
         return MaterialApp(
           title: 'Nordplayer',
-          theme: AppTheme().withKey(ConfigService().appConfig.theme),
+          theme: AppTheme.getTheme(ConfigService().appConfig.theme),
           home: const MainPage(),
         );
       }
