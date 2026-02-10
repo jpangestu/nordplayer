@@ -77,7 +77,10 @@ class LibrarySettingPage extends StatelessWidget {
     final selectedPaths = await getDirectoryPaths();
 
     if (selectedPaths.isNotEmpty) {
-      List<String> updatedPaths = ConfigService().appConfig.musicPath;
+      final currentPaths = ConfigService().appConfig.musicPath;
+      // Make sure to pass by value
+      final List<String> updatedPaths = List<String>.from(currentPaths);
+      
       bool hasChanges = false;
 
       for (String? path in selectedPaths) {
