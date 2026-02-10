@@ -30,6 +30,7 @@ class ProgressBar extends LeafRenderObjectWidget {
     this.thumbGlowRadius = 30.0,
     this.thumbCanPaintOutsideBar = true,
     this.timeLabelType,
+    this.onRightTimeLabelTap,
     this.timeLabelTextStyle,
     this.timeLabelPadding = 0.0,
   });
@@ -51,6 +52,7 @@ class ProgressBar extends LeafRenderObjectWidget {
   final double thumbGlowRadius;
   final bool thumbCanPaintOutsideBar;
   final TimeLabelType? timeLabelType;
+  final VoidCallback? onRightTimeLabelTap;
   final TextStyle? timeLabelTextStyle;
   final double timeLabelPadding;
 
@@ -70,17 +72,26 @@ class ProgressBar extends LeafRenderObjectWidget {
       onDragUpdate: onDragUpdate,
       onDragEnd: onDragEnd,
       barHeight: barHeight,
-      baseBarColor: baseBarColor ?? sliderTheme.inactiveTrackColor ?? primaryColor.withValues(alpha: 0.24),
-      progressBarColor: progressBarColor ?? sliderTheme.activeTrackColor ??  primaryColor,
+      baseBarColor:
+          baseBarColor ??
+          sliderTheme.inactiveTrackColor ??
+          primaryColor.withValues(alpha: 0.24),
+      progressBarColor:
+          progressBarColor ?? sliderTheme.activeTrackColor ?? primaryColor,
       bufferedBarColor:
-          bufferedBarColor ?? sliderTheme.secondaryActiveTrackColor ?? primaryColor.withValues(alpha: 0.38),
+          bufferedBarColor ??
+          sliderTheme.secondaryActiveTrackColor ??
+          primaryColor.withValues(alpha: 0.38),
       thumbRadius: thumbRadius,
       thumbColor: thumbColor ?? sliderTheme.thumbColor ?? primaryColor,
       thumbGlowColor:
-          thumbGlowColor ?? sliderTheme.overlayColor ?? (thumbColor ?? primaryColor).withValues(alpha: 0.54),
+          thumbGlowColor ??
+          sliderTheme.overlayColor ??
+          (thumbColor ?? primaryColor).withValues(alpha: 0.54),
       thumbGlowRadius: thumbGlowRadius,
       thumbCanPaintOutsideBar: thumbCanPaintOutsideBar,
       timeLabelType: timeLabelType ?? TimeLabelType.totalTime,
+      onRightTimeLabelTap: onRightTimeLabelTap,
       timeLabelTextStyle: textStyle,
       timeLabelPadding: timeLabelPadding,
       textScaler: textScaler,
@@ -105,14 +116,22 @@ class ProgressBar extends LeafRenderObjectWidget {
       ..onDragStart = onDragStart
       ..onDragUpdate = onDragUpdate
       ..onDragEnd = onDragEnd
-      ..baseBarColor = baseBarColor ?? sliderTheme.inactiveTrackColor ?? primaryColor.withValues(alpha: 0.24)
-      ..progressBarColor = progressBarColor ?? sliderTheme.activeTrackColor ??  primaryColor
+      ..baseBarColor =
+          baseBarColor ??
+          sliderTheme.inactiveTrackColor ??
+          primaryColor.withValues(alpha: 0.24)
+      ..progressBarColor =
+          progressBarColor ?? sliderTheme.activeTrackColor ?? primaryColor
       ..bufferedBarColor =
-          bufferedBarColor ?? sliderTheme.secondaryActiveTrackColor ?? primaryColor.withValues(alpha: 38)
+          bufferedBarColor ??
+          sliderTheme.secondaryActiveTrackColor ??
+          primaryColor.withValues(alpha: 0.38)
       ..thumbRadius = thumbRadius
       ..thumbColor = thumbColor ?? sliderTheme.thumbColor ?? primaryColor
       ..thumbGlowColor =
-          thumbGlowColor ?? sliderTheme.overlayColor ?? (thumbColor ?? primaryColor).withValues(alpha: 54)
+          thumbGlowColor ??
+          sliderTheme.overlayColor ??
+          (thumbColor ?? primaryColor).withValues(alpha: 0.54)
       ..thumbGlowRadius = thumbGlowRadius
       ..thumbCanPaintOutsideBar = thumbCanPaintOutsideBar
       ..timeLabelTextStyle = textStyle
@@ -178,6 +197,7 @@ class _RenderProgressBar extends RenderBox {
     double thumbGlowRadius = 30.0,
     bool thumbCanPaintOutsideBar = true,
     required TimeLabelType timeLabelType,
+    VoidCallback? onRightTimeLabelTap,
     TextStyle? timeLabelTextStyle,
     double timeLabelPadding = 0.0,
     TextScaler textScaler = TextScaler.noScaling,
@@ -197,6 +217,7 @@ class _RenderProgressBar extends RenderBox {
        _thumbGlowRadius = thumbGlowRadius,
        _thumbCanPaintOutsideBar = thumbCanPaintOutsideBar,
        _timeLabelType = timeLabelType,
+       _onRightTimeLabelTap = onRightTimeLabelTap,
        _timeLabelTextStyle = timeLabelTextStyle,
        _timeLabelPadding = timeLabelPadding,
        _textScaler = textScaler {
@@ -207,7 +228,7 @@ class _RenderProgressBar extends RenderBox {
       ..onCancel = _finishDrag;
 
     // Initialize the tap recognizer for the label
-    _tap = TapGestureRecognizer()..onTap = _onRightLabelTap;
+    _tap = TapGestureRecognizer()..onTap = _onTap;
 
     if (!_userIsDraggingThumb) {
       _progress = progress;
@@ -226,6 +247,32 @@ class _RenderProgressBar extends RenderBox {
     return (_thumbCanPaintOutsideBar) ? thumbRadius + minPadding : minPadding;
   }
 
+  Rect get _leftLabelHitRect {
+    final verticalOffset = size.height / 2 - _leftLabelSize.height / 2;
+    final maxLeftWidth = max(_maxLeftLabelWidth, _leftLabelSize.width);
+    final leftLabelDx = maxLeftWidth - _leftLabelSize.width;
+
+    return Rect.fromLTWH(
+      leftLabelDx,
+      verticalOffset,
+      _leftLabelSize.width,
+      _leftLabelSize.height,
+    );
+  }
+
+  Rect get _rightLabelHitRect {
+    final verticalOffset = size.height / 2 - _rightLabelSize.height / 2;
+    final maxRightWidth = max(_maxRightLabelWidth, _rightLabelSize.width);
+    final rightLabelDx = size.width - maxRightWidth;
+
+    return Rect.fromLTWH(
+      rightLabelDx,
+      verticalOffset,
+      _rightLabelSize.width, // The clickable area is the size of the text
+      _rightLabelSize.height,
+    );
+  }
+
   @override
   void detach() {
     _drag?.dispose();
@@ -237,41 +284,13 @@ class _RenderProgressBar extends RenderBox {
   void handleEvent(PointerEvent event, BoxHitTestEntry entry) {
     assert(debugHandleEvent(event, entry));
     if (event is PointerDownEvent) {
-      final localPos = event.localPosition;
-
-      // Calculate the bounding box of the Right Label
-      final verticalOffset = size.height / 2 - _rightLabelSize.height / 2;
-      final rightLabelRect = Rect.fromLTWH(
-        size.width - _rightLabelSize.width,
-        verticalOffset,
-        _rightLabelSize.width,
-        _rightLabelSize.height,
-      );
-
-      // Calculate the bounding box of the Left Label
-      final leftLabelRect = Rect.fromLTWH(
-        0,
-        verticalOffset,
-        _leftLabelSize.width,
-        _leftLabelSize.height,
-      );
-
-      // Logic to determine who gets the event
-      if (rightLabelRect.contains(localPos)) {
+      if (_rightLabelHitRect.contains(event.localPosition)) {
         _tap?.addPointer(event);
-      } else if (leftLabelRect.contains(localPos)) {
+      } else if (_leftLabelHitRect.contains(event.localPosition)) {
         return;
       } else {
         _drag?.addPointer(event);
       }
-    }
-  }
-
-  void _onRightLabelTap() {
-    if (_timeLabelType == TimeLabelType.totalTime) {
-      timeLabelType = TimeLabelType.remainingTime;
-    } else {
-      timeLabelType = TimeLabelType.totalTime;
     }
   }
 
@@ -317,25 +336,19 @@ class _RenderProgressBar extends RenderBox {
   void _updateThumbPosition(Offset localPosition) {
     final dx = localPosition.dx;
 
-    // Use MAX slot widths for the drag area too to align with paint logic
+    // Use Max slot widths for the drag area too to align with paint logic
     final currentLeftWidth = _leftLabelSize.width;
     final effectiveLeftWidth = max(_maxLeftLabelWidth, currentLeftWidth);
 
     final lengthBefore = effectiveLeftWidth + _totalLabelPadding;
     final lengthAfter = _maxRightLabelWidth + _totalLabelPadding;
-
     final barCapRadius = _barHeight / 2;
     double barStart = lengthBefore + barCapRadius;
     double barEnd = size.width - lengthAfter - barCapRadius;
     final barWidth = barEnd - barStart;
     final position = (dx - barStart).clamp(0.0, barWidth);
-
-    // Prevent division by zero
     _thumbValue = (barWidth > 0) ? (position / barWidth) : 0.0;
-
     _progress = _currentThumbDuration();
-
-    // Must invalidate the text cache so the label rebuilds with the new time
     _clearLabelCache();
     markNeedsPaint();
   }
@@ -493,6 +506,17 @@ class _RenderProgressBar extends RenderBox {
     _clearLabelCache();
     markNeedsLayout();
     markNeedsPaint();
+  }
+
+  VoidCallback? get onRightTimeLabelTap => _onRightTimeLabelTap;
+  VoidCallback? _onRightTimeLabelTap;
+  set onRightTimeLabelTap(VoidCallback? value) {
+    if (_onRightTimeLabelTap == value) return;
+    _onRightTimeLabelTap = value;
+  }
+
+  void _onTap() {
+    _onRightTimeLabelTap?.call();
   }
 
   TextStyle? get timeLabelTextStyle => _timeLabelTextStyle;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 class VolumeSlider extends StatefulWidget {
+  /// Volume range: 0-1
   final double volume;
   final ValueChanged<double> onChanged;
 

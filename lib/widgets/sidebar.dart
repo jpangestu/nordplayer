@@ -6,7 +6,7 @@ class Sidebar extends StatefulWidget {
   final List<SidebarDestination> destinations;
   final void Function(int)? onDestinationSelected;
   final bool showExtendedToggle;
-  final bool? isExpanded;
+  final bool? isExtended;
   final VoidCallback? onExtendedToggle;
   final Widget? trailing;
   final Widget? bottom;
@@ -18,7 +18,7 @@ class Sidebar extends StatefulWidget {
     required this.destinations,
     this.onDestinationSelected,
     this.showExtendedToggle = true,
-    this.isExpanded,
+    this.isExtended,
     this.onExtendedToggle,
     this.trailing,
     this.bottom,
@@ -42,7 +42,7 @@ class _SidebarState extends State<Sidebar> {
 
     return AnimatedContainer(
       duration: Duration.zero,
-      width: widget.isExpanded ?? true ? expandedWidth : collapsedWidth,
+      width: widget.isExtended ?? true ? expandedWidth : collapsedWidth,
       color: navTheme.backgroundColor ?? theme.colorScheme.surfaceContainer,
 
       child: Column(
@@ -95,7 +95,10 @@ class _SidebarState extends State<Sidebar> {
 
           if (widget.trailing != null) widget.trailing!,
           if (widget.bottom != null)
-            Align(alignment: .bottomLeft, child: widget.bottom!),
+            SizedBox(
+              width: widget.isExtended ?? true ? expandedWidth : collapsedWidth,
+              child: Align(alignment: .bottomLeft, child: widget.bottom!),
+            ),
         ],
       ),
     );
@@ -155,7 +158,7 @@ class _SidebarState extends State<Sidebar> {
           child: Row(
             children: [
               iconWidget,
-              if (widget.isExpanded != null && widget.isExpanded == true) ...[
+              if (widget.isExtended != null && widget.isExtended == true) ...[
                 const SizedBox(width: 16),
                 Expanded(child: labelWidget),
               ],

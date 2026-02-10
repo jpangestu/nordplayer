@@ -4,6 +4,8 @@ import 'package:nordplayer/pages/artists_page.dart';
 import 'package:nordplayer/pages/library_page.dart';
 import 'package:nordplayer/pages/playlists_page.dart';
 import 'package:nordplayer/pages/settings/settings_page.dart';
+import 'package:nordplayer/services/logger.dart';
+import 'package:nordplayer/services/preference_service.dart';
 import 'package:nordplayer/widgets/player_bar/player_bar.dart';
 import 'package:nordplayer/widgets/sidebar.dart';
 
@@ -14,9 +16,8 @@ class MainPage extends StatefulWidget {
   State<MainPage> createState() => _MainPageState();
 }
 
-class _MainPageState extends State<MainPage> {
+class _MainPageState extends State<MainPage> with LoggerMixin {
   int _selectedIndex = 0;
-  bool isExpanded = false;
 
   final List<Widget> _pages = const [
     LibraryPage(),
@@ -62,23 +63,28 @@ class _MainPageState extends State<MainPage> {
           Expanded(
             child: Row(
               children: [
-                Sidebar(
-                  selectedIndex: _selectedIndex,
-                  destinations: destinations,
-                  onDestinationSelected: (newIndex) {
-                    setState(() {
-                      _selectedIndex = newIndex;
-                    });
-                  },
-                  showExtendedToggle: true,
-                  isExpanded: isExpanded,
-                  onExtendedToggle: () {
-                    setState(() {
-                      isExpanded = !isExpanded;
-                    });
+                ListenableBuilder(
+                  listenable: PreferenceService(),
+                  builder: (context, child) {
+                    bool isExtended = PreferenceService().sidebarExtended;
+                    return Sidebar(
+                      selectedIndex: _selectedIndex,
+                      destinations: destinations,
+                      onDestinationSelected: (newIndex) {
+                        setState(() {
+                          _selectedIndex = newIndex;
+                        });
+                      },
+                      showExtendedToggle: true,
+                      isExtended: isExtended,
+                      onExtendedToggle: () {
+                        isExtended = !isExtended;
+                        PreferenceService().setSidebarExtended(isExtended);
+                      },
+                    );
                   },
                 ),
-                VerticalDivider(width: 2,),
+                VerticalDivider(width: 2),
                 Expanded(
                   child: IndexedStack(index: _selectedIndex, children: _pages),
                 ),
@@ -86,7 +92,7 @@ class _MainPageState extends State<MainPage> {
             ),
           ),
 
-          Divider(height: 2,),
+          Divider(height: 2),
 
           PlayerBar(),
         ],

@@ -17,6 +17,8 @@ class ConfigService extends ChangeNotifier with LoggerMixin {
 
   File? _configFile;
 
+  /// Initializes the config file.
+  /// Must be called before accessing any properties.
   Future<void> init() async {
     final configDir = await getApplicationSupportDirectory();
     log.d("Initializing ConfigService. Directory: ${configDir.path}");
@@ -65,13 +67,17 @@ class ConfigService extends ChangeNotifier with LoggerMixin {
   }
 
   void update({List<String>? musicPath, String? theme}) {
-    log.d(
-      "Updating Config -> Theme: $theme, MusicPaths: ${musicPath?.length ?? 'unchanged'}",
-    );
+    final changes = [
+      if (musicPath != null) 'musicPath',
+      if (theme != null) 'theme',
+    ].join(', ');
+
+    log.d("Updating Config -> $changes");
 
     _appConfig = _appConfig.copyWith(musicPath: musicPath, theme: theme);
     notifyListeners();
-    _saveToDisk();
+
+    _saveToDisk(reason: "updating $changes");
   }
 
   Future<void> resetToDefaults() async {
@@ -87,14 +93,18 @@ class ConfigService extends ChangeNotifier with LoggerMixin {
   // HELPER
   //
 
-  Future<void> _saveToDisk() async {
+  Future<void> _saveToDisk({String? reason}) async {
     if (_configFile == null) return;
     try {
       const encoder = JsonEncoder.withIndent('  ');
       await _configFile!.writeAsString(encoder.convert(_appConfig.toJson()));
       log.d("Config saved to disk.");
     } catch (e, s) {
-      log.e("Failed to save config file", error: e, stackTrace: s);
+      log.e(
+        "Failed to save config file ${reason != null ? '($reason)' : ''}",
+        error: e,
+        stackTrace: s,
+      );
     }
   }
 

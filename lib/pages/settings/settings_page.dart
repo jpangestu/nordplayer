@@ -3,6 +3,7 @@ import 'package:nordplayer/pages/settings/about_page.dart';
 import 'package:nordplayer/pages/settings/advanced.dart';
 import 'package:nordplayer/pages/settings/library_setting_page.dart';
 import 'package:nordplayer/pages/settings/styling_page.dart';
+import 'package:nordplayer/services/preference_service.dart';
 import 'package:nordplayer/widgets/sidebar.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -13,8 +14,6 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool showExtendedToggle = false;
-  bool isExpanded = true;
   int _selectedIndex = 0;
 
   final List<Widget> _pages = <Widget>[
@@ -51,18 +50,32 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       body: Row(
         children: [
-          Sidebar(
-            leading: SizedBox(height: 24),
-            selectedIndex: _selectedIndex,
-            destinations: destinations,
-            onDestinationSelected: (newIndex) {
-              setState(() {
-                _selectedIndex = newIndex;
-              });
+          ListenableBuilder(
+            listenable: PreferenceService(),
+            builder: (context, child) {
+              bool mainSidebarExtended = PreferenceService().sidebarExtended;
+              bool isExtended = true;
+              final double screenWidth = MediaQuery.sizeOf(context).width;
+              if (screenWidth <= 850) {
+                mainSidebarExtended ? isExtended = false : isExtended = true;
+              } else {
+                isExtended = true;
+              }
+
+              return Sidebar(
+                leading: SizedBox(height: 24),
+                selectedIndex: _selectedIndex,
+                destinations: destinations,
+                onDestinationSelected: (newIndex) {
+                  setState(() {
+                    _selectedIndex = newIndex;
+                  });
+                },
+                showExtendedToggle: false,
+                isExtended: isExtended,
+                bottom: aboutPage(context, isExtended),
+              );
             },
-            showExtendedToggle: false,
-            isExpanded: isExpanded,
-            bottom: aboutPage(context, isExpanded),
           ),
           Expanded(
             child: IndexedStack(index: _selectedIndex, children: _pages),

@@ -15,11 +15,10 @@ class AppTheme {
   };
 
   static const Map<String, String> labels = {
-       'nord': 'Nord',
-       'dark': 'Default Dark',
-       'light': 'Default Light',
-     };
-
+    'nord': 'Nord',
+    'dark': 'Default Dark',
+    'light': 'Default Light',
+  };
 
   static ThemeData getTheme(String key) => themes[key] ?? nordTheme;
 }

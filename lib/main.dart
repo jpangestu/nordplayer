@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:window_manager/window_manager.dart';
 import 'package:nordplayer/models/app_theme.dart';
 import 'package:nordplayer/services/config_service.dart';
+import 'package:nordplayer/services/preference_service.dart';
 import 'package:nordplayer/pages/main_page.dart';
-import 'package:window_manager/window_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,8 +26,9 @@ void main() async {
     await windowManager.focus();
   });
 
-  // Initialize Config Service
+  // Initialize Config and Preference Service
   await ConfigService().init();
+  await PreferenceService().init();
 
   runApp(const NordplayerApp());
 }
