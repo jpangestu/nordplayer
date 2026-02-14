@@ -146,23 +146,26 @@ class _SidebarState extends State<Sidebar> {
         color: backgroundColor,
         borderRadius: BorderRadius.circular(8.0),
       ),
-      child: InkWell(
-        onTap: () {
-          if (widget.onDestinationSelected != null) {
-            widget.onDestinationSelected!(index);
-          }
-        },
-        borderRadius: BorderRadius.circular(10.0),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12.0),
-          child: Row(
-            children: [
-              iconWidget,
-              if (widget.isExtended != null && widget.isExtended == true) ...[
-                const SizedBox(width: 16),
-                Expanded(child: labelWidget),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            if (widget.onDestinationSelected != null) {
+              widget.onDestinationSelected!(index);
+            }
+          },
+          borderRadius: BorderRadius.circular(10.0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            child: Row(
+              children: [
+                iconWidget,
+                if (widget.isExtended != null && widget.isExtended == true) ...[
+                  const SizedBox(width: 16),
+                  Expanded(child: labelWidget),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

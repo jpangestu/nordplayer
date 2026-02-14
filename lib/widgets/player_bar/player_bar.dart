@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/preference_service.dart';
+import 'package:nordplayer/widgets/music_tile.dart';
 import 'package:nordplayer/widgets/player_bar/playback.dart';
 import 'package:nordplayer/widgets/player_bar/progress_bar.dart';
 import 'package:nordplayer/widgets/player_bar/volume_slider.dart';
@@ -33,11 +34,9 @@ class _PlayerBarState extends State<PlayerBar> with LoggerMixin {
             children: [
               Expanded(
                 flex: lefttFlex,
-                child: ListTile(
-                  leading: Icon(Icons.music_note_outlined),
-                  title: Text('Let Love Win'),
-                  subtitle: Text('TheFatRat'),
-                ),
+                child: Padding(
+                  padding: .only(left: 8),
+                  child: MusicTile(title: 'Let Love Win', artists: ['TheFatRat'], artPath: 'assets/let_love_win.jpg', artSize: 60,))
               ),
               Expanded(
                 flex: centerFlex,
