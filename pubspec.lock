@@ -272,6 +272,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.3.0"
+  marqueer:
+    dependency: "direct main"
+    description:
+      name: marqueer
+      sha256: f198e80abfc37581eba3927b2536a62e99357918f2a59cf58558b451fdef7cc7
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.4.3"
   matcher:
     dependency: transitive
     description:

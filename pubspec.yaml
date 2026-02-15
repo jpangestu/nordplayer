@@ -17,6 +17,7 @@ dependencies:
   file_selector: ^1.1.0
   logger: ^2.6.2
   shared_preferences: ^2.5.4
+  marqueer: ^2.4.3
 
 dev_dependencies:
   flutter_test:

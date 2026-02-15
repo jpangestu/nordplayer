@@ -31,8 +31,8 @@ class LibraryPage extends StatelessWidget {
             onTap: () {},
           ),
           MusicTile(
-            title: 'Let Love Win',
-            artists: ['TheFatRat'],
+            title: '\'O sole mio',
+            artists: ['Eduardo di Capua', 'Alfredo Mazzucchi', 'Luciano Pavarotti', 'National Philharmonic Orchestra', 'Giancarlo Chiaramello'],
             onTap: () {},
           ),
           ListTile(),

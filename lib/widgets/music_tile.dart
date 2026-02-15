@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:marqueer/marqueer.dart';
 import 'package:nordplayer/services/logger.dart';
 
 class MusicTile extends StatefulWidget {
@@ -125,21 +126,19 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
                 SizedBox(width: 8),
                 Expanded(
                   child: Column(
-                    mainAxisAlignment: .center,
-                    crossAxisAlignment: .start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       IgnorePointer(
-                        child: Text(
-                          widget.title,
-                          style: titleStyle.copyWith(color: contentColor),
-                          textAlign: .start,
-                          overflow: .ellipsis,
+                        child: ScrollingText(
+                          textSpan: TextSpan(
+                            text: widget.title,
+                            style: titleStyle.copyWith(color: contentColor),
+                          ),
                         ),
                       ),
-                      // const SizedBox(height: 2),
-                      RichText(
-                        overflow: .ellipsis,
-                        text: TextSpan(
+                      ScrollingText(
+                        textSpan: TextSpan(
                           children: _buildArtistsSpan(
                             artistStyle,
                             contentColor,
@@ -188,5 +187,63 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
     }
 
     return artistSpan;
+  }
+}
+
+class ScrollingText extends StatefulWidget {
+  final InlineSpan textSpan;
+  final TextStyle? style;
+
+  const ScrollingText({super.key, required this.textSpan, this.style});
+
+  @override
+  State<ScrollingText> createState() => _ScrollingTextState();
+}
+
+class _ScrollingTextState extends State<ScrollingText> {
+  final MarqueerController _controller = MarqueerController();
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final painter = TextPainter(
+          text: widget.textSpan,
+          maxLines: 1,
+          textDirection: TextDirection.ltr,
+        );
+        painter.layout();
+
+        final isOverflowing = painter.width > constraints.maxWidth;
+
+        if (isOverflowing) {
+          return MouseRegion(
+            // Pause on hover
+            onEnter: (_) => _controller.stop(),
+            onExit: (_) => _controller.start(),
+            child: SizedBox(
+              height: painter.height,
+              child: Marqueer(
+                controller: _controller,
+                pps: 20,
+                infinity: true,
+                interaction: false,
+                direction: MarqueerDirection.rtl,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 32.0),
+                  child: RichText(text: widget.textSpan, maxLines: 1),
+                ),
+              ),
+            ),
+          );
+        } else {
+          return RichText(
+            text: widget.textSpan,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          );
+        }
+      },
+    );
   }
 }
