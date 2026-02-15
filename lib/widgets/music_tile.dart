@@ -7,6 +7,7 @@ class MusicTile extends StatefulWidget {
   final String title;
   final List<String> artists;
   final String? artPath;
+  /// If set, the art size will have fixed size
   final double? artSize;
   final bool selected;
   final VoidCallback? onTap;
@@ -73,7 +74,13 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final listTileTheme = Theme.of(context).listTileTheme;
-    // ListTileTheme.of(context)
+
+    final scaler = MediaQuery.textScalerOf(context);
+    final double baseSize = widget.artSize ?? 50.0;
+    final double responsiveSize = (baseSize * scaler.scale(1)).clamp(
+      40.0,
+      80.0,
+    );
 
     final TextStyle titleStyle =
         listTileTheme.titleTextStyle ?? theme.textTheme.titleMedium!;
@@ -105,27 +112,31 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
             padding: .all(8),
             child: Row(
               children: [
-                IgnorePointer(
-                  child: widget.artPath != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: Image.asset(
-                            widget.artPath!,
-                            width: widget.artSize ?? 45,
-                            height: widget.artSize ?? 45,
-                            fit: BoxFit.cover,
+                Align(
+                  alignment: .center,
+                  child: IgnorePointer(
+                    child: widget.artPath != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: Image.asset(
+                              widget.artPath!,
+                              width: widget.artSize ?? responsiveSize,
+                              height: widget.artSize ?? responsiveSize,
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        : Icon(
+                            Icons.music_note,
+                            size: widget.artSize ?? responsiveSize,
+                            color: listTileTheme.iconColor,
                           ),
-                        )
-                      : Icon(
-                          Icons.music_note,
-                          size: 45,
-                          color: listTileTheme.iconColor,
-                        ),
+                  ),
                 ),
 
                 SizedBox(width: 8),
                 Expanded(
                   child: Column(
+                    mainAxisSize: .min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -133,7 +144,10 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
                         child: ScrollingText(
                           textSpan: TextSpan(
                             text: widget.title,
-                            style: titleStyle.copyWith(color: contentColor),
+                            style: titleStyle.copyWith(
+                              color: contentColor,
+                              height: 1.0,
+                            ),
                           ),
                         ),
                       ),
@@ -167,7 +181,7 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
         artistSpan.add(
           TextSpan(
             text: ', ',
-            style: baseStyle.copyWith(color: effectiveColor),
+            style: baseStyle.copyWith(color: effectiveColor, height: 1.0),
           ),
         );
       }
@@ -207,10 +221,13 @@ class _ScrollingTextState extends State<ScrollingText> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final textScaler = MediaQuery.textScalerOf(context);
+
         final painter = TextPainter(
           text: widget.textSpan,
           maxLines: 1,
           textDirection: TextDirection.ltr,
+          textScaler: textScaler,
         );
         painter.layout();
 
@@ -231,7 +248,11 @@ class _ScrollingTextState extends State<ScrollingText> {
                 direction: MarqueerDirection.rtl,
                 child: Padding(
                   padding: const EdgeInsets.only(right: 32.0),
-                  child: RichText(text: widget.textSpan, maxLines: 1),
+                  child: RichText(
+                    text: widget.textSpan,
+                    maxLines: 1,
+                    textScaler: textScaler,
+                  ),
                 ),
               ),
             ),
@@ -241,6 +262,7 @@ class _ScrollingTextState extends State<ScrollingText> {
             text: widget.textSpan,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
+            textScaler: textScaler,
           );
         }
       },

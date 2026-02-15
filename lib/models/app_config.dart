@@ -4,29 +4,45 @@ import 'package:nordplayer/models/app_theme.dart';
 class AppConfig {
   final List<String> musicPath;
   final String theme;
+  final double textScale;
 
   static const List<String> _defaultMusicPath = [];
   static const String _defaultTheme = 'nord';
+  static const double _defaultTextScale = 1.0;
 
-  AppConfig({this.musicPath = _defaultMusicPath, this.theme = _defaultTheme});
+  AppConfig({
+    this.musicPath = _defaultMusicPath,
+    this.theme = _defaultTheme,
+    this.textScale = _defaultTextScale,
+  });
 
-  AppConfig copyWith({List<String>? musicPath, String? theme}) {
+  AppConfig copyWith({
+    List<String>? musicPath,
+    String? theme,
+    double? textScale,
+  }) {
     return AppConfig(
       musicPath: musicPath ?? this.musicPath,
       theme: theme ?? this.theme,
+      textScale: textScale ?? this.textScale,
     );
   }
 
-  factory AppConfig.fromJson(Map<String, dynamic> json, {required Logger logger}) {
+  factory AppConfig.fromJson(
+    Map<String, dynamic> json, {
+    required Logger logger,
+  }) {
     return AppConfig(
       musicPath: _parseMusicPath(json['musicPath'], logger: logger),
       theme: _parseTheme(json['theme'], logger: logger),
+      textScale: _parseTextScale(json['textScale'], logger: logger),
     );
   }
-
   static List<String> _parseMusicPath(dynamic value, {required Logger logger}) {
     if (value is! List) {
-      logger.w("Invalid music path(s): $value. Replaced with '$_defaultMusicPath'.");
+      logger.w(
+        "Invalid music path(s): $value. Replaced with '$_defaultMusicPath'.",
+      );
       return _defaultMusicPath;
     }
 
@@ -48,7 +64,16 @@ class AppConfig {
     return value;
   }
 
+  static double _parseTextScale(dynamic value, {required Logger logger}) {
+    if (value is! double) {
+      logger.w("Invalid text scale: $value. Fallback to '$_defaultTheme.");
+      return _defaultTextScale;
+    }
+
+    return value;
+  }
+
   Map<String, dynamic> toJson() {
-    return {'musicPath': musicPath, 'theme': theme};
+    return {'musicPath': musicPath, 'theme': theme, 'textScale': textScale};
   }
 }

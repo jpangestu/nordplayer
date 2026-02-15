@@ -66,18 +66,29 @@ class ConfigService extends ChangeNotifier with LoggerMixin {
     }
   }
 
-  void update({List<String>? musicPath, String? theme}) {
-    final changes = [
-      if (musicPath != null) 'musicPath',
-      if (theme != null) 'theme',
-    ].join(', ');
-
-    log.d("Updating Config -> $changes");
-
-    _appConfig = _appConfig.copyWith(musicPath: musicPath, theme: theme);
+  void update({
+    List<String>? musicPath,
+    String? theme,
+    double? textScale,
+    bool save = true,
+  }) {
+    _appConfig = _appConfig.copyWith(
+      musicPath: musicPath,
+      theme: theme,
+      textScale: textScale,
+    );
     notifyListeners();
 
-    _saveToDisk(reason: "updating $changes");
+    if (save) {
+      final changes = [
+        if (musicPath != null) 'musicPath',
+        if (theme != null) 'theme',
+        if (textScale != null) 'textScale',
+      ].join(', ');
+
+      log.d("Updating Config -> $changes");
+      _saveToDisk(reason: "updating $changes");
+    }
   }
 
   Future<void> resetToDefaults() async {

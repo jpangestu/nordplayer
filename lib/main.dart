@@ -46,9 +46,19 @@ class _NordplayerAppState extends State<NordplayerApp> with WindowListener {
     return ListenableBuilder(
       listenable: ConfigService(),
       builder: (context, _) {
+        final config = ConfigService().appConfig;
+
         return MaterialApp(
           title: 'Nordplayer',
-          theme: AppTheme.getTheme(ConfigService().appConfig.theme),
+          theme: AppTheme.getTheme(config.theme),
+          builder: (context, child) {
+            return MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                textScaler: TextScaler.linear(config.textScale), 
+              ),
+              child: child!,
+            );
+          },
           home: const MainPage(),
         );
       }
