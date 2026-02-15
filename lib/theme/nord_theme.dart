@@ -192,6 +192,32 @@ final ThemeData nordTheme = ThemeData(
     ),
   ),
 
+  listTileTheme: ListTileThemeData(
+    tileColor: Colors.transparent,
+    selectedTileColor: NordColors.nord2,
+    iconColor: NordColors.nord4,
+    textColor: NordColors.nord6,
+    selectedColor: NordColors.nord8,
+    titleTextStyle: const TextStyle(
+      inherit: false,
+      fontSize: 16,
+      fontWeight: FontWeight.w500,
+      color: NordColors.nord6,
+      height: 1.4,
+      letterSpacing: 0.15,
+    ),
+    subtitleTextStyle: TextStyle(
+      inherit: false,
+      fontSize: 14,
+      fontWeight: FontWeight.normal,
+      color: Color.lerp(NordColors.nord3, NordColors.nord4, 0.8),
+      height: 1.4,
+      letterSpacing: 0.25,
+    ),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    visualDensity: VisualDensity.standard,
+  ),
+
   textTheme: const TextTheme(
     // --- DISPLAY (Large, distinct numbers or hero text) ---
     displayLarge: TextStyle(

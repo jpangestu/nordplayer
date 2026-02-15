@@ -1,13 +1,14 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:nordplayer/services/logger.dart';
-import 'package:nordplayer/theme/nord_theme.dart';
 
 class MusicTile extends StatefulWidget {
   final String title;
   final List<String> artists;
   final String? artPath;
   final double? artSize;
+  final bool selected;
+  final VoidCallback? onTap;
 
   const MusicTile({
     super.key,
@@ -15,6 +16,8 @@ class MusicTile extends StatefulWidget {
     required this.artists,
     this.artPath,
     this.artSize,
+    this.selected = false,
+    required this.onTap,
   });
 
   @override
@@ -55,12 +58,11 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
   }
 
   void _updateRecognizers() {
-    // Generate a permanent recognizer for each artist
     for (var artist in widget.artists) {
       _recognizers.add(
         TapGestureRecognizer()
           ..onTap = () {
-            log.d('$artist is tapped');
+            log.d('Navigate to Artist: "$artist" (from "${widget.title}")');
           },
       );
     }
@@ -69,17 +71,33 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final listTileTheme = Theme.of(context).listTileTheme;
+    // ListTileTheme.of(context)
+
+    final TextStyle titleStyle =
+        listTileTheme.titleTextStyle ?? theme.textTheme.titleMedium!;
+    final TextStyle artistStyle =
+        listTileTheme.subtitleTextStyle ?? theme.textTheme.bodyMedium!;
+    final Color contentColor = widget.selected
+        ? (listTileTheme.selectedColor ?? theme.colorScheme.primary)
+        : (listTileTheme.textColor ?? theme.colorScheme.onSurface);
+    final Color tileColor = widget.selected
+        ? (listTileTheme.selectedTileColor ??
+              theme.colorScheme.secondaryContainer)
+        : (listTileTheme.tileColor ?? Colors.transparent);
 
     return Material(
-      color: Colors.transparent,
+      color: tileColor,
+      borderRadius: .circular(8),
       child: Stack(
         children: [
           Positioned.fill(
             child: InkWell(
-              onTap: () {
-                log.d('${widget.title} is tapped');
-              },
-              borderRadius: .circular(8),
+              onTap: widget.onTap,
+              borderRadius: .circular(6),
+              splashColor: widget.selected
+                  ? theme.colorScheme.primary.withValues(alpha: 0.1)
+                  : null,
             ),
           ),
           Padding(
@@ -89,7 +107,7 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
                 IgnorePointer(
                   child: widget.artPath != null
                       ? ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(4),
                           child: Image.asset(
                             widget.artPath!,
                             width: widget.artSize ?? 45,
@@ -97,7 +115,11 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
                             fit: BoxFit.cover,
                           ),
                         )
-                      : const Icon(Icons.music_note, size: 50),
+                      : Icon(
+                          Icons.music_note,
+                          size: 45,
+                          color: listTileTheme.iconColor,
+                        ),
                 ),
 
                 SizedBox(width: 8),
@@ -107,16 +129,22 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
                     crossAxisAlignment: .start,
                     children: [
                       IgnorePointer(
-                        child: DefaultTextStyle(
-                          style: theme.textTheme.titleMedium!,
+                        child: Text(
+                          widget.title,
+                          style: titleStyle.copyWith(color: contentColor),
                           textAlign: .start,
                           overflow: .ellipsis,
-                          child: Text(widget.title),
                         ),
                       ),
+                      // const SizedBox(height: 2),
                       RichText(
                         overflow: .ellipsis,
-                        text: TextSpan(children: _buildArtistsSpan()),
+                        text: TextSpan(
+                          children: _buildArtistsSpan(
+                            artistStyle,
+                            contentColor,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -129,8 +157,10 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
     );
   }
 
-  List<TextSpan> _buildArtistsSpan() {
+  List<TextSpan> _buildArtistsSpan(TextStyle baseStyle, Color baseColor) {
     final List<TextSpan> artistSpan = [];
+
+    final effectiveColor = widget.selected ? baseColor : baseStyle.color;
 
     for (int i = 0; i < widget.artists.length; i++) {
       if (i >= _recognizers.length) break;
@@ -138,11 +168,7 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
         artistSpan.add(
           TextSpan(
             text: ', ',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: NordColors.nord5,
-            ),
+            style: baseStyle.copyWith(color: effectiveColor),
           ),
         );
       }
@@ -150,10 +176,8 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
       artistSpan.add(
         TextSpan(
           text: widget.artists[i],
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: NordColors.nord5,
+          style: baseStyle.copyWith(
+            color: effectiveColor,
             decoration: _hoveredIndex == i ? .underline : .none,
           ),
           onEnter: (_) => setState(() => _hoveredIndex = i),

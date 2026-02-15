@@ -36,7 +36,14 @@ class _PlayerBarState extends State<PlayerBar> with LoggerMixin {
                 flex: lefttFlex,
                 child: Padding(
                   padding: .only(left: 8),
-                  child: MusicTile(title: 'Let Love Win', artists: ['TheFatRat'], artPath: 'assets/let_love_win.jpg', artSize: 60,))
+                  child: MusicTile(
+                    title: 'Let Love Win',
+                    artists: ['TheFatRat'],
+                    artPath: 'assets/let_love_win.jpg',
+                    artSize: 60,
+                    onTap: () {},
+                  ),
+                ),
               ),
               Expanded(
                 flex: centerFlex,
