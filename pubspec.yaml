@@ -18,12 +18,17 @@ dependencies:
   logger: ^2.6.2
   shared_preferences: ^2.5.4
   marqueer: ^2.4.3
+  drift: ^2.31.0
+  drift_flutter: ^0.2.8
+  metadata_god: ^1.1.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
   flutter_lints: ^6.0.0
+  drift_dev: ^2.31.0
+  build_runner: ^2.11.1
 
 flutter:
   uses-material-design: true

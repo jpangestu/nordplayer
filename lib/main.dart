@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:metadata_god/metadata_god.dart';
+import 'package:nordplayer/database/app_database.dart';
+import 'package:nordplayer/services/library_scanner.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:nordplayer/models/app_theme.dart';
 import 'package:nordplayer/services/config_service.dart';
@@ -26,9 +29,13 @@ void main() async {
     await windowManager.focus();
   });
 
+  await MetadataGod.initialize();
+
   // Initialize Config and Preference Service
   await ConfigService().init();
   await PreferenceService().init();
+
+  LibraryScanner().scanLibrary(AppDatabase());
 
   runApp(const NordplayerApp());
 }
@@ -53,15 +60,15 @@ class _NordplayerAppState extends State<NordplayerApp> with WindowListener {
           theme: AppTheme.getTheme(config.theme),
           builder: (context, child) {
             return MediaQuery(
-              data: MediaQuery.of(context).copyWith(
-                textScaler: TextScaler.linear(config.textScale), 
-              ),
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: TextScaler.linear(config.textScale)),
               child: child!,
             );
           },
           home: const MainPage(),
         );
-      }
+      },
     );
   }
 }

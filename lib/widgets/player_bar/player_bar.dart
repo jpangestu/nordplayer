@@ -39,8 +39,9 @@ class _PlayerBarState extends State<PlayerBar> with LoggerMixin {
                   child: MusicTile(
                     title: 'Let Love Win',
                     artists: ['TheFatRat'],
-                    artPath: 'assets/let_love_win.jpg',
-                    artSize: 60,
+                    albumArtPath: 'assets/let_love_win.jpg',
+                    albumArtSize: 60,
+                    marqueEffect: true,
                     onTap: () {},
                   ),
                 ),

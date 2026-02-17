@@ -18,7 +18,7 @@ class LibrarySettingPage extends StatelessWidget {
             child: ListenableBuilder(
               listenable: ConfigService(),
               builder: (context, _) {
-                List<String> musicPaths = ConfigService().appConfig.musicPath;
+                List<String> musicPaths = ConfigService().appConfig.musicPaths;
 
                 return ListView(
                   padding: const .all(16),
@@ -77,7 +77,7 @@ class LibrarySettingPage extends StatelessWidget {
     final selectedPaths = await getDirectoryPaths();
 
     if (selectedPaths.isNotEmpty) {
-      final currentPaths = ConfigService().appConfig.musicPath;
+      final currentPaths = ConfigService().appConfig.musicPaths;
       // Make sure to pass by value
       final List<String> updatedPaths = List<String>.from(currentPaths);
       
@@ -91,14 +91,14 @@ class LibrarySettingPage extends StatelessWidget {
       }
 
       if (hasChanges) {
-        ConfigService().update(musicPath: updatedPaths);
+        ConfigService().update(musicPaths: updatedPaths);
       }
     }
   }
 
   void _removeFolder(String path) {
-    List<String> currentPaths = ConfigService().appConfig.musicPath;
+    List<String> currentPaths = ConfigService().appConfig.musicPaths;
     currentPaths.remove(path);
-    ConfigService().update(musicPath: currentPaths);
+    ConfigService().update(musicPaths: currentPaths);
   }
 }

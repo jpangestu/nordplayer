@@ -2,7 +2,7 @@ import 'package:logger/logger.dart';
 import 'package:nordplayer/models/app_theme.dart';
 
 class AppConfig {
-  final List<String> musicPath;
+  final List<String> musicPaths;
   final String theme;
   final double textScale;
 
@@ -11,18 +11,18 @@ class AppConfig {
   static const double _defaultTextScale = 1.0;
 
   AppConfig({
-    this.musicPath = _defaultMusicPath,
+    this.musicPaths = _defaultMusicPath,
     this.theme = _defaultTheme,
     this.textScale = _defaultTextScale,
   });
 
   AppConfig copyWith({
-    List<String>? musicPath,
+    List<String>? musicPaths,
     String? theme,
     double? textScale,
   }) {
     return AppConfig(
-      musicPath: musicPath ?? this.musicPath,
+      musicPaths: musicPaths ?? this.musicPaths,
       theme: theme ?? this.theme,
       textScale: textScale ?? this.textScale,
     );
@@ -33,7 +33,7 @@ class AppConfig {
     required Logger logger,
   }) {
     return AppConfig(
-      musicPath: _parseMusicPath(json['musicPath'], logger: logger),
+      musicPaths: _parseMusicPath(json['musicPath'], logger: logger),
       theme: _parseTheme(json['theme'], logger: logger),
       textScale: _parseTextScale(json['textScale'], logger: logger),
     );
@@ -74,6 +74,6 @@ class AppConfig {
   }
 
   Map<String, dynamic> toJson() {
-    return {'musicPath': musicPath, 'theme': theme, 'textScale': textScale};
+    return {'musicPath': musicPaths, 'theme': theme, 'textScale': textScale};
   }
 }

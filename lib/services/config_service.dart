@@ -67,13 +67,13 @@ class ConfigService extends ChangeNotifier with LoggerMixin {
   }
 
   void update({
-    List<String>? musicPath,
+    List<String>? musicPaths,
     String? theme,
     double? textScale,
     bool save = true,
   }) {
     _appConfig = _appConfig.copyWith(
-      musicPath: musicPath,
+      musicPaths: musicPaths,
       theme: theme,
       textScale: textScale,
     );
@@ -81,7 +81,7 @@ class ConfigService extends ChangeNotifier with LoggerMixin {
 
     if (save) {
       final changes = [
-        if (musicPath != null) 'musicPath',
+        if (musicPaths != null) 'musicPath',
         if (theme != null) 'theme',
         if (textScale != null) 'textScale',
       ].join(', ');

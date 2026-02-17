@@ -5,10 +5,12 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   file_selector_linux
   screen_retriever_linux
+  sqlite3_flutter_libs
   window_manager
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
+  metadata_god
 )
 
 set(PLUGIN_BUNDLED_LIBRARIES)
