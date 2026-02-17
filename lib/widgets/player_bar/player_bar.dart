@@ -41,7 +41,6 @@ class _PlayerBarState extends State<PlayerBar> with LoggerMixin {
                     artists: ['TheFatRat'],
                     albumArtPath: 'assets/let_love_win.jpg',
                     albumArtSize: 60,
-                    marqueEffect: true,
                     onTap: () {},
                   ),
                 ),

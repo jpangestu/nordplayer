@@ -17,7 +17,6 @@ dependencies:
   file_selector: ^1.1.0
   logger: ^2.6.2
   shared_preferences: ^2.5.4
-  marqueer: ^2.4.3
   drift: ^2.31.0
   drift_flutter: ^0.2.8
   metadata_god: ^1.1.0

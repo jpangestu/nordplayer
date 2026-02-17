@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:marqueer/marqueer.dart';
 import 'package:nordplayer/services/logger.dart';
+import 'package:nordplayer/widgets/scrolling_text.dart';
 
 class MusicTile extends StatefulWidget {
   final String title;
@@ -15,9 +15,6 @@ class MusicTile extends StatefulWidget {
   final bool selected;
   final VoidCallback? onTap;
 
-  /// Infinite looping animation for cut off text
-  final bool marqueEffect;
-
   const MusicTile({
     super.key,
     required this.title,
@@ -26,8 +23,15 @@ class MusicTile extends StatefulWidget {
     this.albumArtSize,
     this.selected = false,
     required this.onTap,
-    this.marqueEffect = false,
   });
+
+  /// Get the exact tile height for itemExtent
+  static double tileHeight(TextScaler textScaler) {
+    const double baseSize = 50.0;
+    final double artSize = (baseSize * textScaler.scale(1)).clamp(40.0, 80.0);
+    const double padding = 8 * 2; // .all(8) = 8 top + 8 bottom
+    return artSize + padding;
+  }
 
   @override
   State<MusicTile> createState() => _MusicTileState();
@@ -107,77 +111,60 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
               theme.colorScheme.secondaryContainer)
         : (listTileTheme.tileColor ?? Colors.transparent);
 
-    return Material(
-      color: tileColor,
-      borderRadius: .circular(8),
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: InkWell(
-              onTap: widget.onTap,
-              borderRadius: .circular(6),
-              splashColor: widget.selected
-                  ? theme.colorScheme.primary.withValues(alpha: 0.1)
-                  : null,
+    return SizedBox(
+      // height: 72,
+      child: Material(
+        color: tileColor,
+        borderRadius: .circular(8),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: InkWell(
+                onTap: widget.onTap,
+                borderRadius: .circular(6),
+                splashColor: widget.selected
+                    ? theme.colorScheme.primary.withValues(alpha: 0.1)
+                    : null,
+              ),
             ),
-          ),
-          Padding(
-            padding: .all(8),
-            child: Row(
-              children: [
-                Align(
-                  alignment: .center,
-                  child: IgnorePointer(
-                    child: widget.albumArtPath != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: Image.file(
-                              File(widget.albumArtPath!),
-                              width: widget.albumArtSize ?? responsiveSize,
-                              height: widget.albumArtSize ?? responsiveSize,
-                              fit: BoxFit.cover,
-                              cacheWidth: pixelSize,
-                              gaplessPlayback: true,
-                              errorBuilder: (_, _, _) => Icon(
-                                Icons.music_note,
-                                size: widget.albumArtSize ?? responsiveSize,
+            Padding(
+              padding: .all(8),
+              child: Row(
+                children: [
+                  Align(
+                    alignment: .center,
+                    child: IgnorePointer(
+                      child: widget.albumArtPath != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: Image.file(
+                                File(widget.albumArtPath!),
+                                width: widget.albumArtSize ?? responsiveSize,
+                                height: widget.albumArtSize ?? responsiveSize,
+                                fit: BoxFit.cover,
+                                cacheWidth: pixelSize,
+                                gaplessPlayback: true,
+                                errorBuilder: (_, _, _) => Icon(
+                                  Icons.music_note,
+                                  size: widget.albumArtSize ?? responsiveSize,
+                                ),
                               ),
+                            )
+                          : Icon(
+                              Icons.music_note,
+                              size: widget.albumArtSize ?? responsiveSize,
+                              color: listTileTheme.iconColor,
                             ),
-                          )
-                        : Icon(
-                            Icons.music_note,
-                            size: widget.albumArtSize ?? responsiveSize,
-                            color: listTileTheme.iconColor,
-                          ),
+                    ),
                   ),
-                ),
 
-                SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: .min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (!widget.marqueEffect) ...[
-                        RichText(
-                          text: TextSpan(text: widget.title),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textScaler: textScaler,
-                        ),
-                        RichText(
-                          text: TextSpan(
-                            children: _buildArtistsSpan(
-                              artistStyle,
-                              contentColor,
-                            ),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textScaler: textScaler,
-                        ),
-                      ] else ...[
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: .min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         IgnorePointer(
                           child: ScrollingText(
                             textSpan: TextSpan(
@@ -198,13 +185,13 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
                           ),
                         ),
                       ],
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -244,71 +231,5 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
     }
 
     return artistSpan;
-  }
-}
-
-class ScrollingText extends StatefulWidget {
-  final InlineSpan textSpan;
-  final TextStyle? style;
-
-  const ScrollingText({super.key, required this.textSpan, this.style});
-
-  @override
-  State<ScrollingText> createState() => _ScrollingTextState();
-}
-
-class _ScrollingTextState extends State<ScrollingText> {
-  final MarqueerController _controller = MarqueerController();
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final textScaler = MediaQuery.textScalerOf(context);
-
-        final painter = TextPainter(
-          text: widget.textSpan,
-          maxLines: 1,
-          textDirection: TextDirection.ltr,
-          textScaler: textScaler,
-        );
-        painter.layout();
-
-        final isOverflowing = painter.width > constraints.maxWidth;
-
-        if (isOverflowing) {
-          return MouseRegion(
-            // Pause on hover
-            onEnter: (_) => _controller.stop(),
-            onExit: (_) => _controller.start(),
-            child: SizedBox(
-              height: painter.height,
-              child: Marqueer(
-                controller: _controller,
-                pps: 20,
-                infinity: true,
-                interaction: false,
-                direction: MarqueerDirection.rtl,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 32.0),
-                  child: RichText(
-                    text: widget.textSpan,
-                    maxLines: 1,
-                    textScaler: textScaler,
-                  ),
-                ),
-              ),
-            ),
-          );
-        } else {
-          return RichText(
-            text: widget.textSpan,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textScaler: textScaler,
-          );
-        }
-      },
-    );
   }
 }

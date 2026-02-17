@@ -7,6 +7,9 @@ class LibraryPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textScaler = MediaQuery.textScalerOf(context);
+    final double tileHeight = MusicTile.tileHeight(textScaler);
+
     return Scaffold(
       appBar: AppBar(title: Text('Library'), centerTitle: true),
       body: StreamBuilder<List<SongWithArtists>>(
@@ -28,6 +31,7 @@ class LibraryPage extends StatelessWidget {
 
           return ListView.builder(
             itemCount: songs.length,
+            itemExtent: tileHeight,
             itemBuilder: (context, index) {
               final item = songs[index];
               final track = item.track;
