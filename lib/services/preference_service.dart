@@ -1,20 +1,31 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:media_kit/media_kit.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/widgets/player_bar/progress_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PrefConstants {
+  static const String loopMode = 'loopMode';
+  static const String shuffleMode = 'shuffleMode';
   static const String sidebarExtended = 'sidebarExtended';
   static const String timeLabelType = 'timeLabelType';
   static const String volume = 'volume';
 
+  static const PlaylistMode defaultLoopMode = PlaylistMode.none;
+  static const bool defaultShuffleMode = false;
   static const bool defaultSidebarExtended = true;
   static const TimeLabelType defaultTimeLabelType = .totalTime;
   static const double defaultVolume = 1;
 
-  static const Set<String> allowList = {sidebarExtended, timeLabelType, volume};
+  static const Set<String> allowList = {
+    loopMode,
+    shuffleMode,
+    sidebarExtended,
+    timeLabelType,
+    volume,
+  };
 }
 
 class PreferenceService extends ChangeNotifier with LoggerMixin {
@@ -24,34 +35,23 @@ class PreferenceService extends ChangeNotifier with LoggerMixin {
 
   SharedPreferencesWithCache? _prefs;
 
-  /// Initializes the Shared Preferences cache.
-  /// Must be called before accessing any properties.
-  Future<void> init() async {
-    log.d("Initializing Preference Service...");
+  PlaylistMode get loopMode {
+    final result = _prefs?.getString(PrefConstants.loopMode);
+    if (result == PlaylistMode.loop .toString()) return PlaylistMode.loop;
+    if (result == PlaylistMode.single.toString()) return PlaylistMode.single;
+    return PrefConstants.defaultLoopMode;
+  }
 
-    if (_prefs != null) {
-      log.d("Preferences already initialized. Skipping.");
-      return;
-    }
+  void setLoopMode(PlaylistMode value) {
+    _setValue(PrefConstants.loopMode, value.toString());
+  }
 
-    try {
-      _prefs = await SharedPreferencesWithCache.create(
-        cacheOptions: SharedPreferencesWithCacheOptions(
-          allowList: PrefConstants.allowList,
-        ),
-      );
+  bool get shuffleMode =>
+      _prefs?.getBool(PrefConstants.shuffleMode) ??
+      PrefConstants.defaultShuffleMode;
 
-      log.i(
-        "Preferences loaded successfully. "
-        "Sidebar: ${sidebarExtended ? 'Extended' : 'Collapsed'}",
-      );
-    } catch (e, s) {
-      log.e(
-        "Failed to initialize preferences service.",
-        error: e,
-        stackTrace: s,
-      );
-    }
+  void setShuffleMode(bool value) {
+    _setValue(PrefConstants.shuffleMode, value);
   }
 
   bool get sidebarExtended =>
@@ -103,6 +103,40 @@ class PreferenceService extends ChangeNotifier with LoggerMixin {
     });
   }
 
+  /// Initializes the Shared Preferences cache.
+  /// Must be called before accessing any properties.
+  Future<void> init() async {
+    log.d("Initializing Preference Service...");
+
+    if (_prefs != null) {
+      log.d("Preferences already initialized. Skipping.");
+      return;
+    }
+
+    try {
+      _prefs = await SharedPreferencesWithCache.create(
+        cacheOptions: SharedPreferencesWithCacheOptions(
+          allowList: PrefConstants.allowList,
+        ),
+      );
+
+      log.i(
+        "Preferences loaded successfully.\n"
+        "Loop Mode      : $loopMode\n"
+        "Shuffle Mode   : ${shuffleMode ? 'True' : 'False'}\n"
+        "Sidebar        : ${sidebarExtended ? 'Extended' : 'Collapsed'}\n"
+        "Time Label Type: $timeLabelType\n"
+        "Volume         : $volume",
+      );
+    } catch (e, s) {
+      log.e(
+        "Failed to initialize preferences service.",
+        error: e,
+        stackTrace: s,
+      );
+    }
+  }
+
   void _setValue(String key, dynamic value) {
     final currentValue = _prefs?.get(key);
     if (currentValue == value) return;
@@ -132,6 +166,7 @@ class PreferenceService extends ChangeNotifier with LoggerMixin {
     log.w("User requested factory reset of preferences.");
 
     try {
+      _optimisticVolume = null;
       await _prefs?.clear();
       notifyListeners();
       log.i("Preferences reset to defaults.");

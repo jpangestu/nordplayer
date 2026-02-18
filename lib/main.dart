@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:nordplayer/services/player_service.dart';
+import 'package:window_manager/window_manager.dart';
 import 'package:metadata_god/metadata_god.dart';
+import 'package:media_kit/media_kit.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/services/library_scanner.dart';
-import 'package:window_manager/window_manager.dart';
 import 'package:nordplayer/models/app_theme.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
@@ -30,10 +32,12 @@ void main() async {
   });
 
   await MetadataGod.initialize();
+  MediaKit.ensureInitialized();
 
-  // Initialize Config and Preference Service
+  // Initialize Services
   await ConfigService().init();
   await PreferenceService().init();
+  await PlayerService().init();
 
   LibraryScanner().scanLibrary(AppDatabase());
 

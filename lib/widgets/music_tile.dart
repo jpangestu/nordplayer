@@ -92,12 +92,12 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
       40.0,
       80.0,
     );
+    
+    final double displaySize = widget.albumArtSize ?? responsiveSize;
     // Calculate the exact pixel size needed for the screen
     // Multiply by devicePixelRatio (e.g., x2 or x3) to keep it crisp on Retina screens
-    final pixelSize =
-        (widget.albumArtSize ??
-                responsiveSize * MediaQuery.of(context).devicePixelRatio)
-            .toInt();
+    final int pixelSize =
+        (displaySize * MediaQuery.of(context).devicePixelRatio).toInt();
 
     final TextStyle titleStyle =
         listTileTheme.titleTextStyle ?? theme.textTheme.titleMedium!;
@@ -112,7 +112,6 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
         : (listTileTheme.tileColor ?? Colors.transparent);
 
     return SizedBox(
-      // height: 72,
       child: Material(
         color: tileColor,
         borderRadius: .circular(8),

@@ -75,8 +75,8 @@ class _VolumeSliderState extends State<VolumeSlider> {
               child: Slider(
                 value: widget.volume,
                 min: 0,
-                max: 1,
-                label: '${(widget.volume * 100).round()}',
+                max: 100,
+                label: '${widget.volume.round()}',
                 onChanged: (value) {
                   // If user drags, update the memory of "last volume"
                   if (value > 0) {

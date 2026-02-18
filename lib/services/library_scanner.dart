@@ -35,7 +35,7 @@ class LibraryScanner with LoggerMixin {
                 p.extension(entity.path).toLowerCase(),
               )) {
             allMusic.add(entity);
-            log.d('Found: ${p.basename(entity.path)}');
+            // log.d('Found: ${p.basename(entity.path)}');
           }
         }
       } else {

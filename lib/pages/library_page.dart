@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nordplayer/database/app_database.dart';
+import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
 
 class LibraryPage extends StatelessWidget {
@@ -26,10 +27,12 @@ class LibraryPage extends StatelessWidget {
           final songs = snapshot.data ?? [];
 
           if (songs.isEmpty) {
-            return const Center(child: Text("No songs found. Try scanning!"));
+            return const Center(child: Text("No songs found.\nMake sure you've added folder(s) to scan music from"));
+            // TODO: link to settings
           }
 
           return ListView.builder(
+            padding: .symmetric(horizontal: 8),
             itemCount: songs.length,
             itemExtent: tileHeight,
             itemBuilder: (context, index) {
@@ -42,7 +45,9 @@ class LibraryPage extends StatelessWidget {
                 albumArtPath: album.albumArtPath,
                 title: track.title,
                 artists: artists,
-                onTap: () {},
+                onTap: () {
+                  PlayerService().setPlaylist(songs, index);
+                },
               );
             },
           );
