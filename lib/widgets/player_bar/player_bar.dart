@@ -55,6 +55,7 @@ class _PlayerBarState extends State<PlayerBar> with LoggerMixin {
                     albumArtPath: song.album.albumArtPath,
                     albumArtSize: 60,
                     onTap: () {},
+                    marqueeEffect: true,
                   ),
                 ),
               );

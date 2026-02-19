@@ -52,14 +52,14 @@ class _ScrollingTextState extends State<ScrollingText> {
       if (_forward) {
         if (current >= max) {
           _forward = false;
-          _pauseUntil = DateTime.now().add(const Duration(milliseconds: 800));
+          _pauseUntil = DateTime.now().add(const Duration(milliseconds: 1000));
         } else {
           _scrollController.jumpTo((current + step).clamp(0, max));
         }
       } else {
         if (current <= 0) {
           _forward = true;
-          _pauseUntil = DateTime.now().add(const Duration(milliseconds: 800));
+          _pauseUntil = DateTime.now().add(const Duration(milliseconds: 1000));
         } else {
           _scrollController.jumpTo((current - step).clamp(0, max));
         }

@@ -14,6 +14,7 @@ class MusicTile extends StatefulWidget {
   final double? albumArtSize;
   final bool selected;
   final VoidCallback? onTap;
+  final bool marqueeEffect;
 
   const MusicTile({
     super.key,
@@ -22,7 +23,8 @@ class MusicTile extends StatefulWidget {
     this.albumArtPath,
     this.albumArtSize,
     this.selected = false,
-    required this.onTap,
+    this.onTap,
+    this.marqueeEffect = false,
   });
 
   /// Get the exact tile height for itemExtent
@@ -76,7 +78,7 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
         TapGestureRecognizer()
           ..onTap = () {
             if (!mounted) return;
-            log.d('Navigate to Artist: "$artist" (from "${widget.title}")');
+            log.d('Navigate to Artist: $artist (from "${widget.title}")');
           },
       );
     }
@@ -92,7 +94,7 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
       40.0,
       80.0,
     );
-    
+
     final double displaySize = widget.albumArtSize ?? responsiveSize;
     // Calculate the exact pixel size needed for the screen
     // Multiply by devicePixelRatio (e.g., x2 or x3) to keep it crisp on Retina screens
@@ -101,7 +103,7 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
 
     final TextStyle titleStyle =
         listTileTheme.titleTextStyle ?? theme.textTheme.titleMedium!;
-    final TextStyle artistStyle =
+    final TextStyle subtitleStyle =
         listTileTheme.subtitleTextStyle ?? theme.textTheme.bodyMedium!;
     final Color contentColor = widget.selected
         ? (listTileTheme.selectedColor ?? theme.colorScheme.primary)
@@ -117,15 +119,16 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
         borderRadius: .circular(8),
         child: Stack(
           children: [
-            Positioned.fill(
-              child: InkWell(
-                onTap: widget.onTap,
-                borderRadius: .circular(6),
-                splashColor: widget.selected
-                    ? theme.colorScheme.primary.withValues(alpha: 0.1)
-                    : null,
+            if (widget.onTap != null)
+              Positioned.fill(
+                child: InkWell(
+                  onTap: widget.onTap,
+                  borderRadius: .circular(6),
+                  splashColor: widget.selected
+                      ? theme.colorScheme.primary.withValues(alpha: 0.1)
+                      : null,
+                ),
               ),
-            ),
             Padding(
               padding: .all(8),
               child: Row(
@@ -164,25 +167,49 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        IgnorePointer(
-                          child: ScrollingText(
+                        if (widget.marqueeEffect) ...[
+                          IgnorePointer(
+                            child: ScrollingText(
+                              textSpan: TextSpan(
+                                text: widget.title,
+                                style: titleStyle.copyWith(
+                                  color: contentColor,
+                                  height: 1.0,
+                                ),
+                              ),
+                            ),
+                          ),
+                          ScrollingText(
                             textSpan: TextSpan(
+                              children: _buildArtistsSpan(
+                                subtitleStyle,
+                                contentColor,
+                              ),
+                            ),
+                          ),
+                        ] else ...[
+                          RichText(
+                            text: TextSpan(
                               text: widget.title,
                               style: titleStyle.copyWith(
                                 color: contentColor,
                                 height: 1.0,
                               ),
                             ),
+                            maxLines: 1,
+                            overflow: .ellipsis,
                           ),
-                        ),
-                        ScrollingText(
-                          textSpan: TextSpan(
-                            children: _buildArtistsSpan(
-                              artistStyle,
-                              contentColor,
+                          RichText(
+                            text: TextSpan(
+                              children: _buildArtistsSpan(
+                                subtitleStyle,
+                                contentColor,
+                              ),
                             ),
+                            maxLines: 1,
+                            overflow: .ellipsis,
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
