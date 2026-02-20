@@ -198,6 +198,7 @@ final ThemeData nordTheme = ThemeData(
     iconColor: NordColors.nord4,
     selectedColor: NordColors.nord8,
     titleTextStyle: const TextStyle(
+      inherit: false,
       fontSize: 16,
       fontWeight: FontWeight.w500,
       color: NordColors.nord6,
@@ -205,6 +206,7 @@ final ThemeData nordTheme = ThemeData(
       letterSpacing: 0.15,
     ),
     subtitleTextStyle: TextStyle(
+      inherit: false,
       fontSize: 14,
       fontWeight: FontWeight.normal,
       color: Color.lerp(NordColors.nord3, NordColors.nord4, 0.8),

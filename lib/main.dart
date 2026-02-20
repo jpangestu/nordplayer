@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:metadata_god/metadata_god.dart';
@@ -8,7 +9,6 @@ import 'package:nordplayer/services/library_scanner.dart';
 import 'package:nordplayer/models/app_theme.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
-import 'package:nordplayer/pages/main_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,7 +59,8 @@ class _NordplayerAppState extends State<NordplayerApp> with WindowListener {
       builder: (context, _) {
         final config = ConfigService().appConfig;
 
-        return MaterialApp(
+        return MaterialApp.router(
+          routerConfig: router,
           title: 'Nordplayer',
           theme: AppTheme.getTheme(config.theme),
           builder: (context, child) {
@@ -70,7 +71,6 @@ class _NordplayerAppState extends State<NordplayerApp> with WindowListener {
               child: child!,
             );
           },
-          home: const MainPage(),
         );
       },
     );

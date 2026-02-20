@@ -171,8 +171,6 @@ class LibraryScanner with LoggerMixin {
       caseSensitive: false,
     );
 
-    RegExp(r'\s*(?:,|&|/|;|ft\.|feat\.)\s*', caseSensitive: false);
-
     // Split, trim whitespace, and remove empty strings
     return rawArtist
         .split(separator)

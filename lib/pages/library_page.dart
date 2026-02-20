@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
@@ -53,7 +54,7 @@ class LibraryPage extends StatelessWidget {
                     const SizedBox(height: 24),
                     FilledButton.icon(
                       onPressed: () {
-                        // TODO: Navigate to Settings
+                        context.go('/settings/library-management');
                       },
                       icon: const Icon(Icons.create_new_folder),
                       label: const Text("Add Music Folders"),

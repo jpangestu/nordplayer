@@ -5,14 +5,14 @@ import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/widgets/section_header.dart';
 import 'package:nordplayer/widgets/slider_tile.dart';
 
-class AppearanceSettingPage extends StatefulWidget {
-  const AppearanceSettingPage({super.key});
+class AppearancePage extends StatefulWidget {
+  const AppearancePage({super.key});
 
   @override
-  State<AppearanceSettingPage> createState() => _AppearanceSettingPageState();
+  State<AppearancePage> createState() => _AppearancePageState();
 }
 
-class _AppearanceSettingPageState extends State<AppearanceSettingPage> {
+class _AppearancePageState extends State<AppearancePage> {
   Map<String, String> keyLabel = AppTheme.labels;
 
   @override
