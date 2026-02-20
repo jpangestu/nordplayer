@@ -174,10 +174,7 @@ class _LibrarySongRowState extends State<_LibrarySongRow> with LoggerMixin {
                       child: Padding(
                         padding: const EdgeInsets.only(right: 16),
                         child: _rowHovered
-                            ? const Icon(
-                                Icons.play_arrow,
-                                size: 20,
-                              )
+                            ? const Icon(Icons.play_arrow, size: 20)
                             : Text(
                                 "${widget.index + 1}",
                                 style: const TextStyle(color: Colors.grey),
@@ -191,33 +188,39 @@ class _LibrarySongRowState extends State<_LibrarySongRow> with LoggerMixin {
               // COLUMN 2: Title & Artist
               SizedBox(
                 width: widget.widths[1],
-                child: MusicTile(
-                  albumArtPath: thisSong.album.albumArtPath,
-                  title: thisSong.track.title,
-                  artists: thisSongArtists,
+                child: Padding(
+                  padding: .only(left: 0),
+                  child: MusicTile(
+                    albumArtPath: thisSong.album.albumArtPath,
+                    title: thisSong.track.title,
+                    artists: thisSongArtists,
+                  ),
                 ),
               ),
 
               // COLUMN 3: Album
               SizedBox(
                 width: widget.widths[2],
-                child: RichText(
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  text: TextSpan(
-                    text: thisSong.album.title,
-                    recognizer: _albumTapRecognizer
-                      ..onTap = () {
-                        log.d(
-                          'Navigate to album: ${thisSong.album.title} (from "${thisSong.track.title}")',
-                        );
-                      },
-                    onEnter: (_) => setState(() => _albumHovered = true),
-                    onExit: (_) => setState(() => _albumHovered = false),
-                    style: subtitleStyle.copyWith(
-                      decoration: _albumHovered
-                          ? TextDecoration.underline
-                          : TextDecoration.none,
+                child: Padding(
+                  padding: .only(left: 16),
+                  child: RichText(
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    text: TextSpan(
+                      text: thisSong.album.title,
+                      recognizer: _albumTapRecognizer
+                        ..onTap = () {
+                          log.d(
+                            'Navigate to album: ${thisSong.album.title} (from "${thisSong.track.title}")',
+                          );
+                        },
+                      onEnter: (_) => setState(() => _albumHovered = true),
+                      onExit: (_) => setState(() => _albumHovered = false),
+                      style: subtitleStyle.copyWith(
+                        decoration: _albumHovered
+                            ? TextDecoration.underline
+                            : TextDecoration.none,
+                      ),
                     ),
                   ),
                 ),

@@ -70,12 +70,14 @@ class ConfigService extends ChangeNotifier with LoggerMixin {
     List<String>? musicPaths,
     String? theme,
     double? textScale,
+    List<String>? artistDelimiters,
     bool save = true,
   }) {
     _appConfig = _appConfig.copyWith(
       musicPaths: musicPaths,
       theme: theme,
       textScale: textScale,
+      artistDelimiters: artistDelimiters,
     );
     notifyListeners();
 
@@ -84,6 +86,8 @@ class ConfigService extends ChangeNotifier with LoggerMixin {
         if (musicPaths != null) 'musicPath',
         if (theme != null) 'theme',
         if (textScale != null) 'textScale',
+        if (musicPaths != null) 'musicPath',
+        if (artistDelimiters != null) 'artistDelimiters',
       ].join(', ');
 
       log.d("Updating Config -> $changes");

@@ -19,7 +19,7 @@ class AdvancedPage extends StatelessWidget with LoggerMixin {
     return ListView(
       padding: .all(16),
       children: [
-        SectionHeader(label: 'Reset'),
+        SectionHeader(label: 'Reset', labelType: .h1,),
 
         ListTile(
           leading: Icon(Icons.refresh_rounded, color: errorColor),

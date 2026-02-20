@@ -196,10 +196,8 @@ final ThemeData nordTheme = ThemeData(
     tileColor: Colors.transparent,
     selectedTileColor: NordColors.nord2,
     iconColor: NordColors.nord4,
-    textColor: NordColors.nord6,
     selectedColor: NordColors.nord8,
     titleTextStyle: const TextStyle(
-      inherit: false,
       fontSize: 16,
       fontWeight: FontWeight.w500,
       color: NordColors.nord6,
@@ -207,7 +205,6 @@ final ThemeData nordTheme = ThemeData(
       letterSpacing: 0.15,
     ),
     subtitleTextStyle: TextStyle(
-      inherit: false,
       fontSize: 14,
       fontWeight: FontWeight.normal,
       color: Color.lerp(NordColors.nord3, NordColors.nord4, 0.8),
@@ -219,62 +216,52 @@ final ThemeData nordTheme = ThemeData(
   ),
 
   textTheme: const TextTheme(
-    // --- DISPLAY (Large, distinct numbers or hero text) ---
+    // --- DISPLAY (Used sparingly for hero numbers or large branding) ---
     displayLarge: TextStyle(
-      fontSize: 57,
-      fontWeight: FontWeight.bold,
-      color: NordColors.nord6, // Brightest
-    ),
-    displayMedium: TextStyle(
-      fontSize: 45,
+      fontSize: 48,
       fontWeight: FontWeight.bold,
       color: NordColors.nord6,
     ),
-    displaySmall: TextStyle(
+    displayMedium: TextStyle(
       fontSize: 36,
       fontWeight: FontWeight.bold,
       color: NordColors.nord6,
     ),
 
-    // --- HEADLINE (Section headers) ---
+    // --- HEADLINE (Main Page Titles, e.g., "Settings") ---
     headlineLarge: TextStyle(
-      fontSize: 32,
-      fontWeight: FontWeight.w600,
-      color: NordColors.nord6,
-    ),
-    headlineMedium: TextStyle(
       fontSize: 28,
       fontWeight: FontWeight.w600,
       color: NordColors.nord6,
     ),
-    headlineSmall: TextStyle(
+    headlineMedium: TextStyle(
       fontSize: 24,
       fontWeight: FontWeight.w600,
       color: NordColors.nord6,
     ),
 
-    // --- TITLE (Card titles, ListTiles, AppBars) ---
+    // --- TITLE (Section Headers & List Labels) ---
     titleLarge: TextStyle(
-      fontSize: 22,
-      fontWeight: FontWeight.w500,
+      fontSize: 18,
+      fontWeight: FontWeight.w600,
       color: NordColors.nord6,
     ),
     titleMedium: TextStyle(
-      fontSize: 16,
+      fontSize: 15,
       fontWeight: FontWeight.w500,
-      color: NordColors.nord5, // Slightly softer
+      color: NordColors.nord5,
     ),
     titleSmall: TextStyle(
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: FontWeight.w500,
       color: NordColors.nord5,
     ),
 
-    // --- BODY (Standard reading text, descriptions) ---
+    // --- BODY (Reading text and descriptions) ---
     bodyLarge: TextStyle(
-      fontSize: 16,
+      fontSize: 15,
       fontWeight: FontWeight.normal,
-      color: NordColors.nord4, // Standard Muted Text
+      color: NordColors.nord4,
     ),
     bodyMedium: TextStyle(
       fontSize: 14,
@@ -282,26 +269,21 @@ final ThemeData nordTheme = ThemeData(
       color: NordColors.nord4,
     ),
     bodySmall: TextStyle(
-      fontSize: 12,
+      fontSize: 12, // Muted subtext
       fontWeight: FontWeight.normal,
       color: NordColors.nord4,
     ),
 
-    // --- LABEL (Buttons, tags, captions) ---
+    // --- LABEL (Buttons, chips, and small captions) ---
     labelLarge: TextStyle(
-      fontSize: 14,
-      fontWeight: FontWeight.w500,
+      fontSize: 13, // Compact button text
+      fontWeight: FontWeight.w600,
       color: NordColors.nord6,
-    ),
-    labelMedium: TextStyle(
-      fontSize: 12,
-      fontWeight: FontWeight.w500,
-      color: NordColors.nord4,
     ),
     labelSmall: TextStyle(
       fontSize: 11,
       fontWeight: FontWeight.w500,
-      color: NordColors.nord3, // Very subtle (e.g. timestamps)
+      color: NordColors.nord4,
     ),
   ),
 

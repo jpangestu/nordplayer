@@ -8,8 +8,12 @@ class Sidebar extends StatefulWidget {
   final bool showExtendedToggle;
   final bool? isExtended;
   final VoidCallback? onExtendedToggle;
+
+  /// Will be placed at the bottom
   final Widget? trailing;
-  final Widget? bottom;
+
+  /// Width when expanded
+  final double? width;
 
   const Sidebar({
     super.key,
@@ -21,7 +25,7 @@ class Sidebar extends StatefulWidget {
     this.isExtended,
     this.onExtendedToggle,
     this.trailing,
-    this.bottom,
+    this.width,
   }) : assert(
          selectedIndex == null ||
              (0 <= selectedIndex && selectedIndex < destinations.length),
@@ -32,13 +36,13 @@ class Sidebar extends StatefulWidget {
 }
 
 class _SidebarState extends State<Sidebar> {
-  final double collapsedWidth = 64.0;
-  final double expandedWidth = 180.0;
+  static const double collapsedWidth = 64.0;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final navTheme = theme.navigationRailTheme;
+    final double expandedWidth = widget.width ?? 180;
 
     return AnimatedContainer(
       duration: Duration.zero,
@@ -76,6 +80,7 @@ class _SidebarState extends State<Sidebar> {
                       destination.icon,
                       destination.selectedIcon,
                       destination.label,
+                      destination.subLabel,
                     ),
                   ] else ...[
                     Align(
@@ -86,6 +91,7 @@ class _SidebarState extends State<Sidebar> {
                         destination.icon,
                         destination.selectedIcon,
                         destination.label,
+                        destination.subLabel,
                       ),
                     ),
                   ],
@@ -94,11 +100,6 @@ class _SidebarState extends State<Sidebar> {
           ),
 
           if (widget.trailing != null) widget.trailing!,
-          if (widget.bottom != null)
-            SizedBox(
-              width: widget.isExtended ?? true ? expandedWidth : collapsedWidth,
-              child: Align(alignment: .bottomLeft, child: widget.bottom!),
-            ),
         ],
       ),
     );
@@ -110,6 +111,7 @@ class _SidebarState extends State<Sidebar> {
     Widget icon,
     Widget? selectedIcon,
     Widget label,
+    Widget? subLabel,
   ) {
     final bool isSelected = widget.selectedIndex == index;
     final theme = Theme.of(context);
@@ -139,8 +141,18 @@ class _SidebarState extends State<Sidebar> {
       child: label,
     );
 
+    final secondaryColor =
+        theme.navigationRailTheme.unselectedIconTheme?.color ??
+        theme.colorScheme.onSurfaceVariant;
+    final subLabelColor =
+        (theme.listTileTheme.subtitleTextStyle ?? theme.textTheme.bodyMedium)!
+            .color;
+
+    final textScale = MediaQuery.textScalerOf(context);
+    final double minHeight = subLabel != null ? 56.0 : 48.0;
+
     return Container(
-      height: 48.0,
+      constraints: BoxConstraints(minHeight: textScale.scale(minHeight)),
       margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
       decoration: BoxDecoration(
         color: backgroundColor,
@@ -162,7 +174,29 @@ class _SidebarState extends State<Sidebar> {
                 iconWidget,
                 if (widget.isExtended != null && widget.isExtended == true) ...[
                   const SizedBox(width: 16),
-                  Expanded(child: labelWidget),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: .center,
+                      crossAxisAlignment: .start,
+                      children: [
+                        labelWidget,
+                        if (subLabel != null) ...[
+                          DefaultTextStyle(
+                            style:
+                                (theme.listTileTheme.subtitleTextStyle ??
+                                        theme.textTheme.bodyMedium)!
+                                    .copyWith(
+                                      color: isSelected
+                                          ? secondaryColor
+                                          : subLabelColor,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                            child: subLabel,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -178,9 +212,11 @@ class SidebarDestination {
     required this.icon,
     Widget? selectedIcon,
     required this.label,
+    this.subLabel,
   }) : selectedIcon = selectedIcon ?? icon;
 
   final Widget icon;
   final Widget selectedIcon;
   final Widget label;
+  final Widget? subLabel;
 }

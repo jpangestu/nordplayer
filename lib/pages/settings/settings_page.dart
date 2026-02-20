@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:nordplayer/pages/settings/about_page.dart';
 import 'package:nordplayer/pages/settings/advanced.dart';
-import 'package:nordplayer/pages/settings/library_setting_page.dart';
-import 'package:nordplayer/pages/settings/styling_page.dart';
+import 'package:nordplayer/pages/settings/library_management_page.dart';
+import 'package:nordplayer/pages/settings/appearance_page.dart';
 import 'package:nordplayer/services/preference_service.dart';
 import 'package:nordplayer/widgets/sidebar.dart';
 
@@ -17,8 +17,8 @@ class _SettingsPageState extends State<SettingsPage> {
   int _selectedIndex = 0;
 
   final List<Widget> _pages = <Widget>[
-    StylingSettingPage(),
-    LibrarySettingPage(),
+    AppearanceSettingPage(),
+    LibraryManagementPage(),
     AdvancedPage(),
   ];
 
@@ -26,19 +26,30 @@ class _SettingsPageState extends State<SettingsPage> {
     SidebarDestination(
       icon: Icon(Icons.palette_outlined),
       selectedIcon: Icon(Icons.palette),
-      label: Text('Styling'),
+      label: Text('Appearance'),
+      subLabel: Text('Themes, fonts, layout, and visual styles'),
     ),
     SidebarDestination(
       icon: Icon(Icons.my_library_music_outlined),
       selectedIcon: Icon(Icons.my_library_music),
-      label: Text('Library'),
+      label: Text('Library Management'),
+      subLabel: Text('Manage folders, parsing options'),
     ),
     SidebarDestination(
       icon: Icon(Icons.handyman_outlined),
       selectedIcon: Icon(Icons.handyman),
       label: Text('Advanced'),
+      subLabel: Text('Reset settings'),
     ),
   ];
+
+  // List<NavigationRailDestination> dest = <NavigationRailDestination>[
+  //   NavigationRailDestination(
+  //     icon: Icon(Icons.palette_outlined),
+  //     selectedIcon: Icon(Icons.palette),
+  //     label: Text('Appearance'),
+  //   ),
+  // ];
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +84,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 },
                 showExtendedToggle: false,
                 isExtended: isExtended,
-                bottom: aboutPage(context, isExtended),
+                trailing: aboutPage(context, isExtended),
+                width: 220,
               );
             },
           ),

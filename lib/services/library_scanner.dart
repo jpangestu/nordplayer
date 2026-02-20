@@ -163,12 +163,15 @@ class LibraryScanner with LoggerMixin {
   }
 
   List<String> _splitArtistString(String rawArtist) {
-    // Regex matches: comma, ampersand, forward slash, semicolon, "ft.", "feat."
-    // \s* means "optional whitespace around it"
+    final List<String> delimiters = ConfigService().appConfig.artistDelimiters;
+    final String pattern = delimiters.map((d) => RegExp.escape(d)).join('|');
+
     final RegExp separator = RegExp(
-      r'\s*(?:,|&|/|;|ft\.|feat\.)\s*',
+      '\\s*(?:$pattern)\\s*',
       caseSensitive: false,
     );
+
+    RegExp(r'\s*(?:,|&|/|;|ft\.|feat\.)\s*', caseSensitive: false);
 
     // Split, trim whitespace, and remove empty strings
     return rawArtist

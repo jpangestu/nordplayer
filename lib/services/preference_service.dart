@@ -17,7 +17,7 @@ class PrefConstants {
   static const bool defaultShuffleMode = false;
   static const bool defaultSidebarExtended = true;
   static const TimeLabelType defaultTimeLabelType = .totalTime;
-  static const double defaultVolume = 1;
+  static const double defaultVolume = 100;
 
   static const Set<String> allowList = {
     loopMode,

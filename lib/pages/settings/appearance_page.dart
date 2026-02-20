@@ -5,14 +5,14 @@ import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/widgets/section_header.dart';
 import 'package:nordplayer/widgets/slider_tile.dart';
 
-class StylingSettingPage extends StatefulWidget {
-  const StylingSettingPage({super.key});
+class AppearanceSettingPage extends StatefulWidget {
+  const AppearanceSettingPage({super.key});
 
   @override
-  State<StylingSettingPage> createState() => _StylingSettingPageState();
+  State<AppearanceSettingPage> createState() => _AppearanceSettingPageState();
 }
 
-class _StylingSettingPageState extends State<StylingSettingPage> {
+class _AppearanceSettingPageState extends State<AppearanceSettingPage> {
   Map<String, String> keyLabel = AppTheme.labels;
 
   @override
@@ -29,7 +29,7 @@ class _StylingSettingPageState extends State<StylingSettingPage> {
                 return ListView(
                   padding: const .all(16),
                   children: [
-                    const SectionHeader(label: 'Appearance'),
+                    const SectionHeader(label: 'Theme', labelType: .h1,),
                     Padding(
                       padding: .symmetric(vertical: 8),
                       child: ListTile(
@@ -59,7 +59,7 @@ class _StylingSettingPageState extends State<StylingSettingPage> {
 
                     const SizedBox(height: 8),
                     const Divider(),
-                    SectionHeader(label: 'Typography'),
+                    SectionHeader(label: 'Typography', labelType: .h1,),
 
                     SliderTile(
                       label: 'Font Scale',
