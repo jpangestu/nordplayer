@@ -2,13 +2,26 @@ import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/database/schema.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
 part 'app_database.g.dart';
 
-LazyDatabase _openConection() {
+final appDatabaseProvider = Provider<AppDatabase>((ref) {
+  final database = AppDatabase(openConection());
+  ref.onDispose(() => database.close());
+
+  return database;
+});
+
+final libraryStreamProvider = StreamProvider<List<SongWithArtists>>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return db.watchLibrary();
+});
+
+LazyDatabase openConection() {
   return LazyDatabase(() async {
     final dbPath = await getApplicationSupportDirectory();
     final file = File(p.join(dbPath.path, 'database.sqlite'));
@@ -27,9 +40,11 @@ LazyDatabase _openConection() {
 
 @DriftDatabase(tables: [Tracks, Artists, Albums, TrackArtist])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase._instance() : super(_openConection());
-  static final AppDatabase _singleton = AppDatabase._instance();
-  factory AppDatabase() => _singleton;
+  // AppDatabase._instance() : super(_openConection());
+  // static final AppDatabase _singleton = AppDatabase._instance();
+  // factory AppDatabase() => _singleton;
+
+  AppDatabase(super.e);
 
   @override
   int get schemaVersion => 1;

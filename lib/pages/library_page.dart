@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/services/logger.dart';
@@ -7,27 +8,20 @@ import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/widgets/flexible_table_layout.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
 
-class LibraryPage extends StatelessWidget {
+class LibraryPage extends ConsumerWidget {
   const LibraryPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final libraryAsync = ref.watch(libraryStreamProvider);
+
     return Scaffold(
-      appBar: AppBar(title: Text('Library'), centerTitle: true),
-      body: StreamBuilder<List<SongWithArtists>>(
-        stream: AppDatabase().watchLibrary(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          final songs = snapshot.data ?? [];
-
+      appBar: AppBar(title: const Text('Library'), centerTitle: true),
+      body: libraryAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(child: Text('Error: $error')),
+        data: (songs) {
           if (songs.isEmpty) {
             return Center(
               child: Padding(
@@ -43,7 +37,7 @@ class LibraryPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      "Songs you add from your local folders will appear here.",
+                      "Scan your local folders to set up your music library.",
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurface.withValues(
@@ -97,7 +91,7 @@ class LibraryPage extends StatelessWidget {
   }
 }
 
-class _LibrarySongRow extends StatefulWidget {
+class _LibrarySongRow extends ConsumerStatefulWidget {
   final List<SongWithArtists> songs;
   final int index;
   final List<double> widths;
@@ -109,10 +103,11 @@ class _LibrarySongRow extends StatefulWidget {
   });
 
   @override
-  State<_LibrarySongRow> createState() => _LibrarySongRowState();
+  ConsumerState<_LibrarySongRow> createState() => _LibrarySongRowState();
 }
 
-class _LibrarySongRowState extends State<_LibrarySongRow> with LoggerMixin {
+class _LibrarySongRowState extends ConsumerState<_LibrarySongRow>
+    with LoggerMixin {
   late final TapGestureRecognizer _albumTapRecognizer;
   bool _rowHovered = false;
   bool _albumHovered = false;
@@ -150,8 +145,9 @@ class _LibrarySongRowState extends State<_LibrarySongRow> with LoggerMixin {
       onExit: (_) => setState(() => _rowHovered = false),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onDoubleTap: () =>
-            PlayerService().setPlaylist(widget.songs, widget.index),
+        onDoubleTap: () => ref
+            .read(playerServiceProvider)
+            .setPlaylist(widget.songs, widget.index),
         child: Container(
           height: tileHeight,
           decoration: BoxDecoration(
@@ -168,8 +164,9 @@ class _LibrarySongRowState extends State<_LibrarySongRow> with LoggerMixin {
                   cursor: SystemMouseCursors.click,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: () =>
-                        PlayerService().setPlaylist(widget.songs, widget.index),
+                    onTap: () => ref
+                        .read(playerServiceProvider)
+                        .setPlaylist(widget.songs, widget.index),
                     child: Align(
                       alignment: Alignment.centerRight,
                       child: Padding(

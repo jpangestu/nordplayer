@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/routes/router.dart';
-import 'package:nordplayer/services/player_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:metadata_god/metadata_god.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/services/library_scanner.dart';
 import 'package:nordplayer/models/app_theme.dart';
 import 'package:nordplayer/services/config_service.dart';
@@ -34,31 +35,52 @@ void main() async {
   await MetadataGod.initialize();
   MediaKit.ensureInitialized();
 
-  // Initialize Services
-  await ConfigService().init();
-  await PreferenceService().init();
-  await PlayerService().init();
+  // SharedPreferencesWithCache must be loaded once at startup
+  final prefs = await SharedPreferencesWithCache.create(
+    cacheOptions: const SharedPreferencesWithCacheOptions(
+      allowList: PrefConstants.allowList,
+    ),
+  );
 
-  LibraryScanner().scanLibrary(AppDatabase());
-
-  runApp(const NordplayerApp());
+  runApp(
+    ProviderScope(
+      overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
+      child: const NordplayerApp(),
+    ),
+  );
 }
 
-class NordplayerApp extends StatefulWidget {
+class NordplayerApp extends ConsumerStatefulWidget {
   const NordplayerApp({super.key});
 
   @override
-  State<NordplayerApp> createState() => _NordplayerAppState();
+  ConsumerState<NordplayerApp> createState() => _NordplayerAppState();
 }
 
-class _NordplayerAppState extends State<NordplayerApp> with WindowListener {
+class _NordplayerAppState extends ConsumerState<NordplayerApp>
+    with WindowListener {
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: ConfigService(),
-      builder: (context, _) {
-        final config = ConfigService().appConfig;
+    // Scan library after config loaded
+    ref.listen<AsyncValue<AppConfig>>(configServiceProvider, (previous, next) {
+      if (previous is AsyncLoading && next is AsyncData) {
+        ref.read(libraryScannerProvider).scanLibrary();
+      }
+    });
 
+    final configState = ref.watch(configServiceProvider);
+
+    return configState.when(
+      loading: () => const SizedBox.shrink(),
+
+      error: (err, stack) => MaterialApp(
+        theme: ThemeData.light(),
+        darkTheme: ThemeData.dark(),
+        themeMode: ThemeMode.system,
+        home: Scaffold(body: Center(child: Text('Disk Error: $err'))),
+      ),
+
+      data: (config) {
         return MaterialApp.router(
           routerConfig: router,
           title: 'Nordplayer',

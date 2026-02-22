@@ -1,6 +1,5 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/services/logger.dart';
@@ -11,18 +10,18 @@ import 'package:nordplayer/widgets/player_bar/playback.dart';
 import 'package:nordplayer/widgets/player_bar/progress_bar.dart';
 import 'package:nordplayer/widgets/player_bar/volume_slider.dart';
 
-class PlayerBar extends StatefulWidget {
+class PlayerBar extends ConsumerStatefulWidget {
   const PlayerBar({super.key});
 
   @override
-  State<PlayerBar> createState() => _PlayerBarState();
+  ConsumerState<PlayerBar> createState() => _PlayerBarState();
 }
 
-class _PlayerBarState extends State<PlayerBar> with LoggerMixin {
-  final player = PlayerService().player;
-
+class _PlayerBarState extends ConsumerState<PlayerBar> with LoggerMixin {
   @override
   Widget build(BuildContext context) {
+    final player = ref.watch(playerServiceProvider);
+
     final double screenWidth = MediaQuery.sizeOf(context).width;
     bool isLargeScreen = screenWidth > 900;
     final int lefttFlex = isLargeScreen ? 25 : 25;
@@ -35,7 +34,7 @@ class _PlayerBarState extends State<PlayerBar> with LoggerMixin {
       child: Row(
         children: [
           StreamBuilder<Playlist>(
-            stream: player.stream.playlist,
+            stream: player.mkPlayer.stream.playlist,
             builder: (context, snapshot) {
               final playlist = snapshot.data;
               final media = playlist?.medias[playlist.index];
@@ -92,16 +91,10 @@ class _PlayerBarState extends State<PlayerBar> with LoggerMixin {
                   tooltip: 'Show Queue',
                   onPressed: () {},
                 ),
-                ListenableBuilder(
-                  listenable: PreferenceService(),
-                  builder: (context, child) {
-                    final volume = PreferenceService().volume;
-                    return VolumeSlider(
-                      volume: volume,
-                      onChanged: (value) {
-                        PlayerService().setVolume(value.roundToDouble());
-                      },
-                    );
+                VolumeSlider(
+                  volume: ref.watch(preferenceServiceProvider).volume,
+                  onChanged: (value) {
+                    player.setVolume(value.roundToDouble());
                   },
                 ),
               ],
@@ -113,74 +106,35 @@ class _PlayerBarState extends State<PlayerBar> with LoggerMixin {
   }
 }
 
-class ProgressBarSection extends StatefulWidget {
+class ProgressBarSection extends ConsumerWidget {
   const ProgressBarSection({super.key});
 
   @override
-  State<ProgressBarSection> createState() => _ProgressBarSectionState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final position = ref.watch(positionStreamProvider).value ?? Duration.zero;
+    // final buffer = ref.watch(bufferStreamProvider).value ?? Duration.zero;
+    final total = ref.watch(durationStreamProvider).value ?? Duration.zero;
+    TimeLabelType timeLabelType = ref
+        .watch(preferenceServiceProvider)
+        .timeLabelType;
 
-class _ProgressBarSectionState extends State<ProgressBarSection> {
-  TimeLabelType timeLabelType = PreferenceService().timeLabelType;
+    return ProgressBar(
+      progress: position,
+      // buffered: _buffered,
+      total: total,
+      onSeek: (value) => ref.read(playerServiceProvider).mkPlayer.seek(value),
+      onRightTimeLabelTap: () {
+        final newType = timeLabelType == TimeLabelType.totalTime
+            ? TimeLabelType.remainingTime
+            : TimeLabelType.totalTime;
 
-  Duration _position = Duration.zero;
-  Duration _total = Duration.zero;
-  // Duration _buffered = Duration.zero;
-
-  StreamSubscription<Duration>? _posSub;
-  StreamSubscription<Duration?>? _durSub;
-  // StreamSubscription<Duration>? _bufSub;
-
-  @override
-  void initState() {
-    super.initState();
-    final player = PlayerService().player;
-
-    // Listen to streams and update local state
-    _posSub = player.stream.position.listen((p) {
-      if (mounted) setState(() => _position = p);
-    });
-    _durSub = player.stream.duration.listen((d) {
-      if (mounted) setState(() => _total = d);
-    });
-    // _bufSub = player.stream.buffer.listen((b) {
-    //   if (mounted) setState(() => _buffered = b);
-    // });
-  }
-
-  @override
-  void dispose() {
-    _posSub?.cancel();
-    _durSub?.cancel();
-    // _bufSub?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: PreferenceService(),
-      builder: (context, child) {
-        return ProgressBar(
-          progress: _position,
-          // buffered: _buffered,
-          total: _total,
-          onSeek: (value) => PlayerService().player.seek(value),
-          onRightTimeLabelTap: () {
-            if (timeLabelType == .totalTime) {
-              timeLabelType = .remainingTime;
-            } else {
-              timeLabelType = .totalTime;
-            }
-            PreferenceService().setTimeLabelType(timeLabelType);
-          },
-          barHeight: 5,
-          thumbRadius: 6,
-          thumbGlowRadius: 14,
-          timeLabelTextStyle: TextStyle(fontSize: 14),
-          timeLabelType: timeLabelType,
-        );
+        ref.read(preferenceServiceProvider.notifier).setTimeLabelType(newType);
       },
+      barHeight: 5,
+      thumbRadius: 6,
+      thumbGlowRadius: 14,
+      timeLabelTextStyle: TextStyle(fontSize: 14),
+      timeLabelType: timeLabelType,
     );
   }
 }

@@ -1,14 +1,29 @@
 import 'dart:io';
 
+import 'package:nordplayer/models/app_config.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:metadata_god/metadata_god.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/services/logger.dart';
-import 'package:path/path.dart' as p;
 import 'package:nordplayer/services/config_service.dart';
-import 'package:path_provider/path_provider.dart';
+
+final libraryScannerProvider = Provider<LibraryScanner>((ref) {
+  final appConfig = ref.read(configServiceProvider).requireValue;
+  final db = ref.read(appDatabaseProvider);
+
+  return LibraryScanner(appConfig, db);
+});
 
 class LibraryScanner with LoggerMixin {
+  final AppConfig _appConfig;
+  final AppDatabase _db;
+
+  // 2. The new constructor
+  LibraryScanner(this._appConfig, this._db);
+
   Set<String> supportedExtensions = {'.mp3', '.m4a', '.flac'};
 
   // Map<ArtistName, ArtistId>
@@ -16,10 +31,14 @@ class LibraryScanner with LoggerMixin {
   // Map<"AlbumName-ArtistId", AlbumId>
   final Map<String, int> _albumCache = {};
 
-  Future<void> scanLibrary(AppDatabase db) async {
+  Future<void> scanLibrary() async {
+    log.i(
+      "[LibraryScanner] Initializing full library scan for ${_appConfig.musicPaths.length} folders",
+    );
+
     List<File> allMusic = [];
 
-    for (String path in ConfigService().appConfig.musicPaths) {
+    for (String path in _appConfig.musicPaths) {
       final musicDir = Directory(path);
 
       if (await musicDir.exists()) {
@@ -50,13 +69,13 @@ class LibraryScanner with LoggerMixin {
           : allMusic.length;
       final batch = allMusic.sublist(i, end);
 
-      await _processBatch(db, batch);
+      await _processBatch(batch);
 
       log.d("Processed $end / ${allMusic.length}");
     }
   }
 
-  Future<void> _processBatch(AppDatabase db, List<File> files) async {
+  Future<void> _processBatch(List<File> files) async {
     final metadataList = await Future.wait(
       files.map((file) async {
         try {
@@ -69,7 +88,7 @@ class LibraryScanner with LoggerMixin {
       }),
     );
 
-    await db.transaction(() async {
+    await _db.transaction(() async {
       for (var item in metadataList) {
         if (item == null) continue;
         final file = item.$1;
@@ -84,21 +103,21 @@ class LibraryScanner with LoggerMixin {
         // Use a Set to avoid duplicates
         final List<int> allArtistIds = [];
         for (final name in artistNames.toSet()) {
-          final id = await _getOrCreateArtist(db, name);
+          final id = await _getOrCreateArtist(name);
           allArtistIds.add(id);
         }
         final primaryArtistId = allArtistIds.first;
 
-        final albumId = await _getOrCreateAlbum(db, meta, primaryArtistId);
+        final albumId = await _getOrCreateAlbum(meta, primaryArtistId);
 
         final artPath = await _saveAlbumArt(meta, albumId);
         if (artPath != null) {
-          await (db.update(db.albums)..where((a) => a.id.equals(albumId)))
+          await (_db.update(_db.albums)..where((a) => a.id.equals(albumId)))
               .write(AlbumsCompanion(albumArtPath: Value(artPath)));
         }
 
-        final newTrackId = await db
-            .into(db.tracks)
+        final newTrackId = await _db
+            .into(_db.tracks)
             .insert(
               TracksCompanion(
                 title: Value(meta.title ?? p.basename(file.path)),
@@ -117,8 +136,8 @@ class LibraryScanner with LoggerMixin {
             );
 
         for (final artistId in allArtistIds) {
-          await db
-              .into(db.trackArtist)
+          await _db
+              .into(_db.trackArtist)
               .insert(
                 TrackArtistCompanion(
                   trackId: Value(newTrackId),
@@ -163,7 +182,7 @@ class LibraryScanner with LoggerMixin {
   }
 
   List<String> _splitArtistString(String rawArtist) {
-    final List<String> delimiters = ConfigService().appConfig.artistDelimiters;
+    final List<String> delimiters = _appConfig.artistDelimiters;
     final String pattern = delimiters.map((d) => RegExp.escape(d)).join('|');
 
     final RegExp separator = RegExp(
@@ -179,13 +198,13 @@ class LibraryScanner with LoggerMixin {
         .toList();
   }
 
-  Future<int> _getOrCreateArtist(AppDatabase db, String artistName) async {
+  Future<int> _getOrCreateArtist(String artistName) async {
     if (_artistCache.containsKey(artistName)) {
       return _artistCache[artistName]!;
     }
 
-    final existing = await (db.select(
-      db.artists,
+    final existing = await (_db.select(
+      _db.artists,
     )..where((a) => a.name.equals(artistName))).getSingleOrNull();
 
     if (existing != null) {
@@ -193,18 +212,14 @@ class LibraryScanner with LoggerMixin {
       return existing.id;
     }
 
-    final newId = await db
-        .into(db.artists)
+    final newId = await _db
+        .into(_db.artists)
         .insert(ArtistsCompanion(name: Value(artistName)));
     _artistCache[artistName] = newId;
     return newId;
   }
 
-  Future<int> _getOrCreateAlbum(
-    AppDatabase db,
-    Metadata meta,
-    int artistId,
-  ) async {
+  Future<int> _getOrCreateAlbum(Metadata meta, int artistId) async {
     final albumTitle = meta.album ?? 'Unknown Album';
     final cacheKey = '$albumTitle-$artistId';
 
@@ -213,7 +228,7 @@ class LibraryScanner with LoggerMixin {
     }
 
     final existing =
-        await (db.select(db.albums)..where(
+        await (_db.select(_db.albums)..where(
               (a) => a.title.equals(albumTitle) & a.artistId.equals(artistId),
             ))
             .getSingleOrNull();
@@ -223,8 +238,8 @@ class LibraryScanner with LoggerMixin {
       return existing.id;
     }
 
-    final newId = await db
-        .into(db.albums)
+    final newId = await _db
+        .into(_db.albums)
         .insert(
           AlbumsCompanion(
             title: Value(albumTitle),
