@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/routes/router.dart';
+import 'package:nordplayer/services/library_watcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:metadata_god/metadata_god.dart';
@@ -61,9 +62,10 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp>
     with WindowListener {
   @override
   Widget build(BuildContext context) {
-    // Scan library after config loaded
+    // Scan and watch for changes in library after config loaded
     ref.listen<AsyncValue<AppConfig>>(configServiceProvider, (previous, next) {
       if (previous is AsyncLoading && next is AsyncData) {
+        ref.read(libraryWatcherProvider).startWatching();
         ref.read(libraryScannerProvider).scanLibrary();
       }
     });

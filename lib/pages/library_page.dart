@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
-import 'package:nordplayer/widgets/flexible_table_layout.dart';
+import 'package:nordplayer/widgets/resizable_table_layout.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
 
 class LibraryPage extends ConsumerWidget {
@@ -67,8 +67,8 @@ class LibraryPage extends ConsumerWidget {
                 minWidth: 50,
                 alignment: .centerRight,
               ),
-              TableColumn(label: "Title", flex: 5, minWidth: 300),
-              TableColumn(label: "Album", flex: 3, minWidth: 150),
+              TableColumn(label: "Title", flex: 5, minWidth: 200),
+              TableColumn(label: "Album", flex: 3, minWidth: 120),
               TableColumn(
                 label: 'Duration',
                 width: 100,
@@ -140,107 +140,112 @@ class _LibrarySongRowState extends ConsumerState<_LibrarySongRow>
     final subtitleStyle =
         theme.listTileTheme.subtitleTextStyle ?? theme.textTheme.bodyMedium!;
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _rowHovered = true),
-      onExit: (_) => setState(() => _rowHovered = false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onDoubleTap: () => ref
-            .read(playerServiceProvider)
-            .setPlaylist(widget.songs, widget.index),
-        child: Container(
-          height: tileHeight,
-          decoration: BoxDecoration(
-            color: _rowHovered
-                ? Colors.white.withValues(alpha: 0.1)
-                : Colors.transparent,
-          ),
-          child: Row(
-            children: [
-              // COLUMN 1: Index OR Play Button
-              SizedBox(
-                width: widget.widths[0],
-                child: MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => ref
-                        .read(playerServiceProvider)
-                        .setPlaylist(widget.songs, widget.index),
+    return Column(
+      children: [
+        widget.index == 0 ? SizedBox(height: 8) : SizedBox.shrink(),
+        MouseRegion(
+          onEnter: (_) => setState(() => _rowHovered = true),
+          onExit: (_) => setState(() => _rowHovered = false),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onDoubleTap: () => ref
+                .read(playerServiceProvider)
+                .setPlaylist(widget.songs, widget.index),
+            child: Container(
+              height: tileHeight,
+              decoration: BoxDecoration(
+                color: _rowHovered
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : Colors.transparent,
+              ),
+              child: Row(
+                children: [
+                  // COLUMN 1: Index OR Play Button
+                  SizedBox(
+                    width: widget.widths[0],
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => ref
+                            .read(playerServiceProvider)
+                            .setPlaylist(widget.songs, widget.index),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 16),
+                            child: _rowHovered
+                                ? const Icon(Icons.play_arrow, size: 20)
+                                : Text(
+                                    "${widget.index + 1}",
+                                    style: const TextStyle(color: Colors.grey),
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // COLUMN 2: Title & Artist
+                  SizedBox(
+                    width: widget.widths[1],
+                    child: Padding(
+                      padding: .only(left: 0),
+                      child: MusicTile(
+                        albumArtPath: thisSong.album.albumArtPath,
+                        title: thisSong.track.title,
+                        artists: thisSongArtists,
+                      ),
+                    ),
+                  ),
+
+                  // COLUMN 3: Album
+                  SizedBox(
+                    width: widget.widths[2],
+                    child: Padding(
+                      padding: .only(left: 16),
+                      child: RichText(
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        text: TextSpan(
+                          text: thisSong.album.title,
+                          recognizer: _albumTapRecognizer
+                            ..onTap = () {
+                              log.d(
+                                'Navigate to album: ${thisSong.album.title} (from "${thisSong.track.title}")',
+                              );
+                            },
+                          onEnter: (_) => setState(() => _albumHovered = true),
+                          onExit: (_) => setState(() => _albumHovered = false),
+                          style: subtitleStyle.copyWith(
+                            decoration: _albumHovered
+                                ? TextDecoration.underline
+                                : TextDecoration.none,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // COLUMN 4: Duration
+                  SizedBox(
+                    width: widget.widths[3],
                     child: Align(
                       alignment: Alignment.centerRight,
                       child: Padding(
                         padding: const EdgeInsets.only(right: 16),
-                        child: _rowHovered
-                            ? const Icon(Icons.play_arrow, size: 20)
-                            : Text(
-                                "${widget.index + 1}",
-                                style: const TextStyle(color: Colors.grey),
-                              ),
+                        child: Text(
+                          '$minutes:${seconds.toString().padLeft(2, '0')}',
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
-
-              // COLUMN 2: Title & Artist
-              SizedBox(
-                width: widget.widths[1],
-                child: Padding(
-                  padding: .only(left: 0),
-                  child: MusicTile(
-                    albumArtPath: thisSong.album.albumArtPath,
-                    title: thisSong.track.title,
-                    artists: thisSongArtists,
-                  ),
-                ),
-              ),
-
-              // COLUMN 3: Album
-              SizedBox(
-                width: widget.widths[2],
-                child: Padding(
-                  padding: .only(left: 16),
-                  child: RichText(
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    text: TextSpan(
-                      text: thisSong.album.title,
-                      recognizer: _albumTapRecognizer
-                        ..onTap = () {
-                          log.d(
-                            'Navigate to album: ${thisSong.album.title} (from "${thisSong.track.title}")',
-                          );
-                        },
-                      onEnter: (_) => setState(() => _albumHovered = true),
-                      onExit: (_) => setState(() => _albumHovered = false),
-                      style: subtitleStyle.copyWith(
-                        decoration: _albumHovered
-                            ? TextDecoration.underline
-                            : TextDecoration.none,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              // COLUMN 4: Duration
-              SizedBox(
-                width: widget.widths[3],
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 16),
-                    child: Text(
-                      '$minutes:${seconds.toString().padLeft(2, '0')}',
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 }

@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:file_selector/file_selector.dart';
+import 'package:nordplayer/services/library_scanner.dart';
+import 'package:nordplayer/services/library_watcher.dart';
 
 import 'package:nordplayer/widgets/section_header.dart';
 
@@ -48,7 +50,7 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
               label: const Text("Add Folders"),
             ),
           ),
-      
+
           if (musicPaths.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(
@@ -73,28 +75,19 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
                 dense: true,
               ),
             ),
-      
+
           const SizedBox(height: 8),
           const Divider(),
-      
+
           const SectionHeader(label: 'Metadata', labelType: .h1),
           Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 8,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Current Delimiters Section
-                SectionHeader(
-                  label: 'Multi-artist parsing',
-                  labelType: .h2,
-                ),
-                Text(
-                  'Current Delimiters',
-                  style: theme.textTheme.titleMedium,
-                ),
+                SectionHeader(label: 'Multi-artist parsing', labelType: .h2),
+                Text('Current Delimiters', style: theme.textTheme.titleMedium),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -124,14 +117,11 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
                     ),
                   ],
                 ),
-      
+
                 const SizedBox(height: 24),
-      
+
                 // Add New Delimiter Section
-                Text(
-                  'Add New Delimiter',
-                  style: theme.textTheme.titleMedium,
-                ),
+                Text('Add New Delimiter', style: theme.textTheme.titleMedium),
                 Text(
                   'Case insensitive ("Feat." and "feat." are considered the same)',
                   style: theme.textTheme.bodyMedium,
@@ -200,11 +190,17 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
         ref
             .read(configServiceProvider.notifier)
             .updateConfig(musicPaths: updatedPaths);
+
+        for (var path in updatedPaths) {
+          ref.read(libraryWatcherProvider).watchFolder(path);
+        }
+
+        await ref.read(libraryScannerProvider).scanLibrary();
       }
     }
   }
 
-  void _removeFolder(String path) {
+  Future<void> _removeFolder(String path) async {
     List<String> updatedPaths = List<String>.from(
       ref.read(configServiceProvider).requireValue.musicPaths,
     );
@@ -212,6 +208,10 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
     ref
         .read(configServiceProvider.notifier)
         .updateConfig(musicPaths: updatedPaths);
+
+    ref.read(libraryWatcherProvider).stopWatchingFolder(path);
+
+    await ref.read(libraryScannerProvider).removeTracksInDirectory(path);
   }
 
   void _addNewDelimiter() {

@@ -11,8 +11,8 @@ import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/config_service.dart';
 
 final libraryScannerProvider = Provider<LibraryScanner>((ref) {
-  final appConfig = ref.read(configServiceProvider).requireValue;
-  final db = ref.read(appDatabaseProvider);
+  final appConfig = ref.watch(configServiceProvider).requireValue;
+  final db = ref.watch(appDatabaseProvider);
 
   return LibraryScanner(appConfig, db);
 });
@@ -33,10 +33,15 @@ class LibraryScanner with LoggerMixin {
 
   Future<void> scanLibrary() async {
     log.i(
-      "[LibraryScanner] Initializing full library scan for ${_appConfig.musicPaths.length} folders",
+      "Initializing library scan for ${_appConfig.musicPaths.length} folders",
     );
 
-    List<File> allMusic = [];
+    final existingTracks = await _db.select(_db.tracks).get();
+    final Set<String> knownTrackPaths = existingTracks
+        .map((track) => track.filePath)
+        .toSet();
+    final Set<String> filesFoundOnDisk = {};
+    List<File> newTrackToProcess = [];
 
     for (String path in _appConfig.musicPaths) {
       final musicDir = Directory(path);
@@ -53,8 +58,12 @@ class LibraryScanner with LoggerMixin {
               supportedExtensions.contains(
                 p.extension(entity.path).toLowerCase(),
               )) {
-            allMusic.add(entity);
-            // log.d('Found: ${p.basename(entity.path)}');
+            filesFoundOnDisk.add(entity.path);
+
+            if (!knownTrackPaths.contains(entity.path)) {
+              newTrackToProcess.add(entity);
+              // log.d('New Track Found: ${p.basename(entity.path)}');
+            }
           }
         }
       } else {
@@ -62,17 +71,46 @@ class LibraryScanner with LoggerMixin {
       }
     }
 
-    int chunkSize = 50;
-    for (var i = 0; i < allMusic.length; i += chunkSize) {
-      final end = (i + chunkSize < allMusic.length)
-          ? i + chunkSize
-          : allMusic.length;
-      final batch = allMusic.sublist(i, end);
-
-      await _processBatch(batch);
-
-      log.d("Processed $end / ${allMusic.length}");
+    if (newTrackToProcess.isNotEmpty) {
+      log.i('Found ${newTrackToProcess.length} new track(s). Processing...');
+      int chunkSize = 50;
+      for (var i = 0; i < newTrackToProcess.length; i += chunkSize) {
+        final end = (i + chunkSize < newTrackToProcess.length)
+            ? i + chunkSize
+            : newTrackToProcess.length;
+        await _processBatch(newTrackToProcess.sublist(i, end));
+      }
+    } else {
+      log.i('No new tracks found. Library is up to date');
     }
+
+    final tracksToRemove = knownTrackPaths.difference(filesFoundOnDisk);
+    if (tracksToRemove.isNotEmpty) {
+      log.i(
+        'Cleaning up ${tracksToRemove.length} removed tracks from database...',
+      );
+      await (_db.delete(
+        _db.tracks,
+      )..where((track) => track.filePath.isIn(tracksToRemove))).go();
+    }
+  }
+
+  Future<void> removeTrackByPath(String path) async {
+    await (_db.delete(
+      _db.tracks,
+    )..where((track) => track.filePath.equals(path))).go();
+  }
+
+  Future<void> removeTracksInDirectory(String directoryPath) async {
+    log.i("Removing all tracks under: $directoryPath");
+    await (_db.delete(
+      _db.tracks,
+    )..where((track) => track.filePath.like('$directoryPath%'))).go();
+  }
+
+  Future<void> processSingleFile(File file) async {
+    log.i("Processing individual file: ${file.path}");
+    await _processBatch([file]);
   }
 
   Future<void> _processBatch(List<File> files) async {
@@ -80,23 +118,28 @@ class LibraryScanner with LoggerMixin {
       files.map((file) async {
         try {
           final meta = await MetadataGod.readMetadata(file: file.path);
-          return (file, meta);
+          return (file.path, meta);
         } catch (e) {
           log.e("Error parsing ${file.path}: $e");
-          return null;
+          return (file.path, null);
         }
       }),
     );
 
     await _db.transaction(() async {
       for (var item in metadataList) {
-        if (item == null) continue;
-        final file = item.$1;
+        final filePath = item.$1;
         final meta = item.$2;
+
+        if (meta == null) {
+          log.w("Skipped file due to parsing error: $filePath");
+          continue;
+        }
+
+        final file = File(filePath);
 
         final rawArtistString = meta.artist ?? 'Unknown Artist';
         List<String> artistNames = _splitArtistString(rawArtistString);
-        // If split resulted in empty (e.g. string was just ","), use default
         if (artistNames.isEmpty) artistNames = ['Unknown Artist'];
 
         // Resolve IDs for ALL artists found
@@ -120,7 +163,7 @@ class LibraryScanner with LoggerMixin {
             .into(_db.tracks)
             .insert(
               TracksCompanion(
-                title: Value(meta.title ?? p.basename(file.path)),
+                title: Value(meta.title ?? p.basename(filePath)),
                 trackNumber: Value(meta.trackNumber ?? 0),
                 trackTotal: Value(meta.trackTotal ?? 0),
                 discNumber: Value(meta.discNumber ?? 0),
