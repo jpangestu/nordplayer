@@ -18,7 +18,7 @@ class _PlaybackState extends ConsumerState<Playback> with LoggerMixin {
     final colorScheme = Theme.of(context).colorScheme;
 
     final player = ref.watch(playerServiceProvider);
-    final isPlaying = ref.watch(isPlayingProvider).value ?? false;
+    final isPlaying = ref.watch(isPlayingProvider);
     final isShuffled = ref.watch(preferenceServiceProvider).shuffleMode;
     final loopMode = ref.watch(preferenceServiceProvider).loopMode;
 

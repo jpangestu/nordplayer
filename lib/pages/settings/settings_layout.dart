@@ -13,6 +13,7 @@ class SettingsLayout extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     bool mainSidebarExtended = ref
         .watch(preferenceServiceProvider)
         .sidebarExtended;
@@ -26,14 +27,50 @@ class SettingsLayout extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Settings'),
+        backgroundColor: theme.colorScheme.surface,
+        leading: Container(
+          color:
+              theme.navigationRailTheme.backgroundColor ??
+              theme.colorScheme.surfaceContainer,
+        ),
+        leadingWidth: isExtended ? 220 : 64,
         centerTitle: true,
-        backgroundColor: Theme.of(context).navigationRailTheme.backgroundColor,
+        title: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: Container(
+            height: 44,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: "Search settings",
+                hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+                prefixIcon: const Icon(Icons.search, size: 20),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+              ),
+              onChanged: (value) {
+                // Future: Add search filtering logic here
+              },
+            ),
+          ),
+        ),
+        actions: [
+          IconButton(
+            onPressed: () {},
+            isSelected: true,
+            icon: Icon(Icons.settings, color: theme.colorScheme.primary),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Row(
         children: [
           Sidebar(
-            leading: SizedBox(height: 24),
             selectedIndex: navigationShell.currentIndex,
             destinations: Destinations.settingsDestinations,
             onDestinationSelected: navigationShell.goBranch,

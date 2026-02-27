@@ -3,7 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 /// A configuration object defining the sizing and layout rules for a single column
-/// within a [ResizableTableLayout].
+/// within a [SliverResizableTableLayout].
 ///
 /// A column must be defined as either fixed-width (using [width]) or flexible
 /// (using [flex]), but not both.
@@ -50,7 +50,7 @@ class TableColumn {
 /// This widget provides a desktop-class table experience similar to Spotify or Excel.
 /// It supports a mix of fixed and flexible columns, and features "cascading" resize
 /// logic—where shrinking a column past its minimum width will push adjacent columns.
-class ResizableTableLayout extends StatefulWidget {
+class SliverResizableTableLayout extends StatefulWidget {
   /// The list of column configurations defining the table structure.
   final List<TableColumn> columns;
 
@@ -59,7 +59,7 @@ class ResizableTableLayout extends StatefulWidget {
 
   /// A builder function responsible for rendering a single row of data.
   ///
-  /// The [widths] parameter provides the current calculated pixel width for each 
+  /// The [widths] parameter provides the current calculated pixel width for each
   /// column. The [cellPadding] matches the header's internal spacing.
   ///
   /// To maintain perfect alignment:
@@ -91,23 +91,23 @@ class ResizableTableLayout extends StatefulWidget {
 
   /// The outer padding for the entire table component.
   ///
-  /// This padding indents both the header's bottom border and the scrollable 
-  /// list area. The layout logic automatically subtracts this from the total 
+  /// This padding indents both the header's bottom border and the scrollable
+  /// list area. The layout logic automatically subtracts this from the total
   /// width to prevent column overflow.
-  /// 
+  ///
   /// Defaults to `EdgeInsets.only(left: 16, top: 8, bottom: 16, right: 16)`.
   final EdgeInsets padding;
 
   /// The internal horizontal padding for header labels and row cells.
   ///
-  /// This is the "source of truth" for alignment. It is passed to [rowBuilder] 
-  /// so that row content starts at the exact same horizontal offset as the 
+  /// This is the "source of truth" for alignment. It is passed to [rowBuilder]
+  /// so that row content starts at the exact same horizontal offset as the
   /// header text, regardless of column resizing.
-  /// 
+  ///
   /// Defaults to `EdgeInsets.symmetric(horizontal: 16)`.
   final EdgeInsets cellPadding;
 
-  const ResizableTableLayout({
+  const SliverResizableTableLayout({
     super.key,
     required this.columns,
     required this.itemCount,
@@ -126,10 +126,10 @@ class ResizableTableLayout extends StatefulWidget {
   });
 
   @override
-  State<ResizableTableLayout> createState() => _ResizableTableLayoutState();
+  State<SliverResizableTableLayout> createState() => _SliverResizableTableLayoutState();
 }
 
-class _ResizableTableLayoutState extends State<ResizableTableLayout> {
+class _SliverResizableTableLayoutState extends State<SliverResizableTableLayout> {
   final FlexibleTableLayoutController _controller =
       FlexibleTableLayoutController();
 
@@ -145,21 +145,32 @@ class _ResizableTableLayoutState extends State<ResizableTableLayout> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
+    // REFACTOR: Converted LayoutBuilder to SliverLayoutBuilder for direct CustomScrollView usage
+    return SliverLayoutBuilder(
       builder: (context, constraints) {
-        final availableWidth = constraints.maxWidth - widget.padding.horizontal;
+        // Use crossAxisExtent for sliver width constraints
+        final availableWidth =
+            constraints.crossAxisExtent - widget.padding.horizontal;
         _controller.init(widget.columns, availableWidth);
 
         return AnimatedBuilder(
           animation: _controller,
           builder: (context, _) {
-            return Column(
-              children: [
-                _buildHeader(context),
-                Expanded(
-                  child: ListView.builder(
-                    padding: widget.padding,
-                    controller: widget.scrollController,
+            // REFACTOR: Replaced Column with SliverMainAxisGroup
+            return SliverMainAxisGroup(
+              slivers: [
+                // 1. STICKY HEADER
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _StickyTableHeaderDelegate(
+                    height: widget.headerHeight,
+                    child: _buildHeader(context),
+                  ),
+                ),
+                // 2. SCROLLABLE DATA ROWS
+                SliverPadding(
+                  padding: widget.padding,
+                  sliver: SliverList.builder(
                     itemCount: widget.itemCount,
                     itemBuilder: (context, index) {
                       return widget.rowBuilder(
@@ -180,12 +191,12 @@ class _ResizableTableLayoutState extends State<ResizableTableLayout> {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final theme = Theme.of(context);
     final defaultBorderColor =
-        Theme.of(context).dividerTheme.color ??
-        Theme.of(context).colorScheme.outlineVariant;
+        theme.dividerTheme.color ?? theme.colorScheme.outlineVariant;
 
     final defaultTextColor =
-        Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ??
+        theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ??
         Colors.grey;
 
     return MouseRegion(
@@ -194,61 +205,66 @@ class _ResizableTableLayoutState extends State<ResizableTableLayout> {
         _isHeaderHovered = false;
         _hoveredHandleIndex = null;
       }),
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: widget.padding.left,
-          right: widget.padding.right,
-        ),
-        child: Container(
-          height: widget.headerHeight,
-          decoration:
-              widget.headerDecoration ??
-              BoxDecoration(
-                border: Border(bottom: BorderSide(color: defaultBorderColor)),
-              ),
-          child: Listener(
-            onPointerDown: _handlePointerDown,
-            onPointerMove: _handlePointerMove,
-            onPointerUp: _handlePointerUp,
-            onPointerCancel: _handlePointerUp,
-            onPointerHover: _handlePointerHover,
-            behavior: HitTestBehavior.translucent,
-            child: MouseRegion(
-              cursor:
-                  _hoveredHandleIndex != null || _activeDragHandleIndex != null
-                  ? SystemMouseCursors.resizeColumn
-                  : SystemMouseCursors.basic,
-              child: CustomMultiChildLayout(
-                delegate: _TableHeaderLayoutDelegate(
-                  widths: _controller.widths,
+      // REFACTOR: Added solid background container so scrolling tracks don't bleed through
+      child: Container(
+        color: theme.colorScheme.surface,
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: widget.padding.left,
+            right: widget.padding.right,
+          ),
+          child: Container(
+            height: widget.headerHeight,
+            decoration:
+                widget.headerDecoration ??
+                BoxDecoration(
+                  border: Border(bottom: BorderSide(color: defaultBorderColor)),
                 ),
-                children: [
-                  for (int i = 0; i < widget.columns.length; i++)
-                    LayoutId(
-                      id: 'label_$i',
-                      child: Container(
-                        padding: widget.cellPadding,
-                        alignment: widget.columns[i].alignment,
-                        child: Text(
-                          widget.columns[i].label,
-                          style:
-                              widget.headerTextStyle ??
-                              TextStyle(
-                                color: defaultTextColor,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                              ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+            child: Listener(
+              onPointerDown: _handlePointerDown,
+              onPointerMove: _handlePointerMove,
+              onPointerUp: _handlePointerUp,
+              onPointerCancel: _handlePointerUp,
+              onPointerHover: _handlePointerHover,
+              behavior: HitTestBehavior.translucent,
+              child: MouseRegion(
+                cursor:
+                    _hoveredHandleIndex != null ||
+                        _activeDragHandleIndex != null
+                    ? SystemMouseCursors.resizeColumn
+                    : SystemMouseCursors.basic,
+                child: CustomMultiChildLayout(
+                  delegate: _TableHeaderLayoutDelegate(
+                    widths: _controller.widths,
+                  ),
+                  children: [
+                    for (int i = 0; i < widget.columns.length; i++)
+                      LayoutId(
+                        id: 'label_$i',
+                        child: Container(
+                          padding: widget.cellPadding,
+                          alignment: widget.columns[i].alignment,
+                          child: Text(
+                            widget.columns[i].label,
+                            style:
+                                widget.headerTextStyle ??
+                                TextStyle(
+                                  color: defaultTextColor,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ),
-                    ),
-                  for (int i = 0; i < widget.columns.length - 1; i++)
-                    LayoutId(
-                      id: 'handle_$i',
-                      child: Container(color: _getHandleColor(context, i)),
-                    ),
-                ],
+                    for (int i = 0; i < widget.columns.length - 1; i++)
+                      LayoutId(
+                        id: 'handle_$i',
+                        child: Container(color: _getHandleColor(context, i)),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -320,6 +336,31 @@ class _ResizableTableLayoutState extends State<ResizableTableLayout> {
     }
     return null;
   }
+}
+
+// REFACTOR: Added the delegate class required for the sticky sliver header
+/// A delegate to turn the table header into a pinned sliver.
+class _StickyTableHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final double height;
+  final Widget child;
+
+  _StickyTableHeaderDelegate({required this.height, required this.child});
+
+  @override
+  double get minExtent => height;
+
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) => child;
+
+  @override
+  bool shouldRebuild(covariant _StickyTableHeaderDelegate oldDelegate) => true;
 }
 
 class _TableHeaderLayoutDelegate extends MultiChildLayoutDelegate {

@@ -6,16 +6,6 @@ import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/widgets/scrolling_text.dart';
 
 class MusicTile extends StatefulWidget {
-  final String title;
-  final List<String> artists;
-  final String? albumArtPath;
-
-  /// If set, the art size will have fixed size
-  final double? albumArtSize;
-  final bool selected;
-  final VoidCallback? onTap;
-  final bool marqueeEffect;
-
   const MusicTile({
     super.key,
     required this.title,
@@ -24,8 +14,20 @@ class MusicTile extends StatefulWidget {
     this.albumArtSize,
     this.selected = false,
     this.onTap,
+    this.padding = const EdgeInsets.only(left: 16),
     this.marqueeEffect = false,
   });
+
+  final String title;
+  final List<String> artists;
+  final String? albumArtPath;
+
+  /// If set, the art size will have fixed size
+  final double? albumArtSize;
+  final bool selected;
+  final VoidCallback? onTap;
+  final EdgeInsets padding;
+  final bool marqueeEffect;
 
   /// Get the exact tile height for itemExtent
   static double tileHeight(TextScaler textScaler) {
@@ -103,34 +105,21 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
 
     final TextStyle titleStyle =
         listTileTheme.titleTextStyle ?? theme.textTheme.titleMedium!;
-    final TextStyle subtitleStyle =
-        listTileTheme.subtitleTextStyle ?? theme.textTheme.bodyMedium!;
-    final Color contentColor = widget.selected
+    final Color titleSelectedColor = widget.selected
         ? (listTileTheme.selectedColor ?? theme.colorScheme.primary)
         : (listTileTheme.textColor ?? theme.colorScheme.onSurface);
-    final Color tileColor = widget.selected
-        ? (listTileTheme.selectedTileColor ??
-              theme.colorScheme.secondaryContainer)
-        : (listTileTheme.tileColor ?? Colors.transparent);
+    final TextStyle subtitleStyle =
+        listTileTheme.subtitleTextStyle ?? theme.textTheme.bodyMedium!;
 
     return SizedBox(
       child: Material(
-        color: tileColor,
-        borderRadius: .circular(8),
+        color: Colors.transparent,
         child: Stack(
           children: [
             if (widget.onTap != null)
-              Positioned.fill(
-                child: InkWell(
-                  onTap: widget.onTap,
-                  borderRadius: .circular(6),
-                  splashColor: widget.selected
-                      ? theme.colorScheme.primary.withValues(alpha: 0.1)
-                      : null,
-                ),
-              ),
+              Positioned.fill(child: InkWell(onTap: widget.onTap)),
             Padding(
-              padding: .all(8),
+              padding: widget.padding,
               child: Row(
                 children: [
                   Align(
@@ -173,7 +162,7 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
                               textSpan: TextSpan(
                                 text: widget.title,
                                 style: titleStyle.copyWith(
-                                  color: contentColor,
+                                  color: titleSelectedColor,
                                   height: 1.0,
                                 ),
                               ),
@@ -181,30 +170,26 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
                           ),
                           ScrollingText(
                             textSpan: TextSpan(
-                              children: _buildArtistsSpan(
-                                subtitleStyle,
-                                contentColor,
-                              ),
+                              children: _buildArtistsSpan(subtitleStyle),
                             ),
                           ),
                         ] else ...[
-                          RichText(
-                            text: TextSpan(
-                              text: widget.title,
-                              style: titleStyle.copyWith(
-                                color: contentColor,
-                                height: 1.0,
+                          IgnorePointer(
+                            child: RichText(
+                              text: TextSpan(
+                                text: widget.title,
+                                style: titleStyle.copyWith(
+                                  color: titleSelectedColor,
+                                  height: 1.0,
+                                ),
                               ),
+                              maxLines: 1,
+                              overflow: .ellipsis,
                             ),
-                            maxLines: 1,
-                            overflow: .ellipsis,
                           ),
                           RichText(
                             text: TextSpan(
-                              children: _buildArtistsSpan(
-                                subtitleStyle,
-                                contentColor,
-                              ),
+                              children: _buildArtistsSpan(subtitleStyle),
                             ),
                             maxLines: 1,
                             overflow: .ellipsis,
@@ -222,19 +207,14 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
     );
   }
 
-  List<TextSpan> _buildArtistsSpan(TextStyle baseStyle, Color baseColor) {
+  List<TextSpan> _buildArtistsSpan(TextStyle baseStyle) {
     final List<TextSpan> artistSpan = [];
-
-    final effectiveColor = widget.selected ? baseColor : baseStyle.color;
 
     for (int i = 0; i < widget.artists.length; i++) {
       if (i >= _recognizers.length) break;
       if (i > 0) {
         artistSpan.add(
-          TextSpan(
-            text: ', ',
-            style: baseStyle.copyWith(color: effectiveColor, height: 1.0),
-          ),
+          TextSpan(text: ', ', style: baseStyle.copyWith(height: 1.0)),
         );
       }
 
@@ -242,7 +222,6 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
         TextSpan(
           text: widget.artists[i],
           style: baseStyle.copyWith(
-            color: effectiveColor,
             decoration: _hoveredIndex == i ? .underline : .none,
           ),
           onEnter: (_) {
