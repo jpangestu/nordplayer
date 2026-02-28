@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-class AlbumStack extends StatelessWidget {
+class AlbumArtStack extends StatelessWidget {
   final List<String> imageUrls;
   final double size;
   final int maxLayers;
@@ -10,7 +10,7 @@ class AlbumStack extends StatelessWidget {
   /// Increased slice width for a "bigger" visible part on the right
   final double sliceWidth;
 
-  const AlbumStack({
+  const AlbumArtStack({
     super.key,
     required this.imageUrls,
     this.size = 180.0,
@@ -46,6 +46,10 @@ class AlbumStack extends StatelessWidget {
         children: List.generate(count, (index) {
           final double leftOffset = (count - 1 - index) * sliceWidth;
 
+          final imageUrl = displayUrls[index];
+          final file = File(Uri.parse(imageUrl).toFilePath());
+          final hasImage = imageUrl.isNotEmpty && file.existsSync();
+
           return Positioned(
             top: 0,
             bottom: 0,
@@ -54,25 +58,27 @@ class AlbumStack extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(4),
-                image: DecorationImage(
-                  image: FileImage(
-                    File(Uri.parse(displayUrls[index]).toFilePath()),
-                  ),
-                  fit: BoxFit.cover,
-                ),
-                border: Border.all(
-                  color: Colors.black.withValues(alpha: 0.5),
-                  width: 1.0,
-                ),
+                image: hasImage
+                    ? DecorationImage(image: FileImage(file), fit: BoxFit.cover)
+                    : null,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.6),
-                    // Shadow cast to the right to define the slice edge
+                    color: Colors.black.withValues(alpha: 0.4),
                     offset: const Offset(4, 0),
-                    blurRadius: 8.0,
+                    blurRadius: 12.0,
                   ),
                 ],
               ),
+              child: !hasImage
+                  ? Container(
+                    color: Colors.grey,
+                    child: const Icon(
+                        Icons.music_note,
+                        size: 48,
+                        color: Colors.white24,
+                      ),
+                  )
+                  : null,
             ),
           );
         }),

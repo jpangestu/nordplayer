@@ -26,10 +26,10 @@ class SettingsLayout extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: NordplayerAppBar(),
       body: Row(
         children: [
           Sidebar(
+            leading: SizedBox(height: 16,),
             selectedIndex: navigationShell.currentIndex,
             destinations: Destinations.settingsDestinations,
             onDestinationSelected: navigationShell.goBranch,
@@ -38,7 +38,12 @@ class SettingsLayout extends ConsumerWidget {
             trailing: aboutPage(context, isExtended),
             width: 220,
           ),
-          Expanded(child: navigationShell),
+          Expanded(
+            child: Scaffold(
+              appBar: NordplayerAppBar(),
+              body: navigationShell,
+            ),
+          ),
         ],
       ),
     );

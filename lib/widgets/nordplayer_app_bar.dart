@@ -25,7 +25,7 @@ class _NordplayerAppBarState extends ConsumerState<NordplayerAppBar> {
     final bool isSettingsRoute = currentRoute.startsWith(Routes.settingsPage);
 
     return AppBar(
-      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.10),
+      backgroundColor: theme.colorScheme.surface.withValues(alpha: 0.90),
       toolbarHeight: 60,
       scrolledUnderElevation: 0,
       leading: isSettingsRoute

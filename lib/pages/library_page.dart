@@ -2,10 +2,12 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:media_kit/media_kit.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
-import 'package:nordplayer/widgets/album_stack.dart';
+import 'package:nordplayer/widgets/album_art_stack.dart';
+import 'package:nordplayer/widgets/album_art_wall.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
 import 'package:nordplayer/widgets/nordplayer_app_bar.dart';
 import 'package:nordplayer/widgets/sliver_resizable_table_layout.dart';
@@ -18,44 +20,8 @@ class LibraryPage extends ConsumerWidget {
     final theme = Theme.of(context);
     final libraryAsync = ref.watch(libraryStreamProvider);
 
-    final songs = libraryAsync.value ?? [];
-    final songsRandom = [...songs]..shuffle();
-
-    final int totalMs = songs.fold(
-      0,
-      (sum, song) => sum + song.track.durationMs,
-    );
-
-    final Duration totalDuration = Duration(milliseconds: totalMs);
-
-    String formatTotalDuration(Duration d) {
-      final hours = d.inHours;
-      final minutes = d.inMinutes % 60;
-
-      if (hours > 0) {
-        return '$hours hr $minutes min';
-      } else {
-        return '$minutes min';
-      }
-    }
-
-    final List<String> sampleCovers = [];
-    final Set<String> seenCovers = {};
-
-    for (final song in songsRandom) {
-      final artPath = song.album.albumArtPath;
-
-      if (artPath != null &&
-          artPath.isNotEmpty &&
-          !seenCovers.contains(artPath)) {
-        seenCovers.add(artPath);
-        sampleCovers.add(artPath);
-      }
-
-      if (sampleCovers.length >= 6) break;
-    }
-
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: NordplayerAppBar(),
       body: CustomScrollView(
         slivers: [
@@ -77,7 +43,7 @@ class LibraryPage extends ConsumerWidget {
                       (settings.currentExtent - settings.minExtent) /
                       deltaExtent;
                   final clampT = t.clamp(0.0, 1.0);
-                  final double horizontalOffset = 135 * clampT;
+                  final double horizontalOffset = 141 * clampT;
 
                   return Padding(
                     padding: EdgeInsets.only(
@@ -91,40 +57,7 @@ class LibraryPage extends ConsumerWidget {
                   );
                 },
               ),
-              background: Container(
-                padding: .symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      theme.colorScheme.primary.withValues(alpha: 0.10),
-                      theme.colorScheme.primary.withValues(alpha: 0.0),
-                    ],
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: .center,
-                  children: [
-                    AlbumStack(
-                      imageUrls: sampleCovers,
-                      size: 180,
-                      maxLayers: 5,
-                      sliceWidth: 16,
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(
-                        left: 16,
-                        top: 40,
-                        right: 16,
-                      ),
-                      child: Text(
-                        '${songs.length} Songs - ${formatTotalDuration(totalDuration)}',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              background: LibraryHeroHeader(),
             ),
           ),
 
@@ -374,3 +307,151 @@ class _LibrarySongRowState extends ConsumerState<_LibrarySongRow>
     );
   }
 }
+
+class LibraryHeroHeader extends ConsumerWidget {
+  const LibraryHeroHeader({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final wallCovers = ref.watch(libraryWallCoversProvider);
+    final stackCovers = ref.watch(stackCoversProvider).value ?? [];
+    final displayStackCovers = stackCovers.isEmpty
+        ? wallCovers.take(5).toList()
+        : stackCovers;
+
+    final librarySongs = ref.watch(libraryStreamProvider).value ?? [];
+    final int totalMs = librarySongs.fold(
+      0,
+      (sum, song) => sum + song.track.durationMs,
+    );
+
+    final Duration totalDuration = Duration(milliseconds: totalMs);
+
+    String formatTotalDuration(Duration d) {
+      final hours = d.inHours;
+      final minutes = d.inMinutes % 60;
+
+      if (hours > 0) {
+        return '$hours hr $minutes min';
+      } else {
+        return '$minutes min';
+      }
+    }
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        AlbumArtWall(imageUrls: wallCovers),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                theme.colorScheme.primary.withValues(alpha: 0.10),
+                theme.colorScheme.primary.withValues(alpha: 0.0),
+              ],
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 60),
+                child: SizedBox(
+                  width: 244,
+                  child: Align(
+                    alignment: .centerLeft,
+                    child: AlbumArtStack(
+                      imageUrls: displayStackCovers,
+                      size: 180,
+                      maxLayers: 5,
+                      sliceWidth: 16,
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 24, top: 100, right: 16),
+                child: Text(
+                  '${librarySongs.length} Songs - ${formatTotalDuration(totalDuration)}',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+final libraryWallCoversProvider = Provider<List<String>>((ref) {
+  final libraryAsync = ref.watch(libraryStreamProvider);
+  final librarySongs = libraryAsync.value ?? [];
+
+  if (librarySongs.isEmpty) return [];
+
+  final List<String> wallCovers = [];
+  final Set<String> seenWallCovers = {};
+
+  final randomLibrary = [...librarySongs]..shuffle();
+
+  for (final song in randomLibrary) {
+    final artPath = song.album.albumArtPath;
+    if (artPath != null &&
+        artPath.isNotEmpty &&
+        !seenWallCovers.contains(artPath)) {
+      seenWallCovers.add(artPath);
+      wallCovers.add(artPath);
+    }
+    if (wallCovers.length >= 30) break;
+  }
+
+  return wallCovers;
+});
+
+final stackCoversProvider = StreamProvider<List<String>>((ref) {
+  final player = ref.watch(playerServiceProvider).mkPlayer;
+
+  return player.stream.playlist.map((playlist) {
+    if (playlist.medias.isEmpty || playlist.index < 0) {
+      return [];
+    }
+
+    final int currentIndex = playlist.index;
+    final List<Media> allMedia = playlist.medias;
+    final PlaylistMode loopMode = player.state.playlistMode;
+
+    final List<String> stackCovers = [];
+
+    for (
+      int count = 0;
+      count < allMedia.length && stackCovers.length < 5;
+      count++
+    ) {
+      int targetIndex = currentIndex + count;
+
+      if (targetIndex >= allMedia.length) {
+        if (loopMode == PlaylistMode.loop) {
+          targetIndex = targetIndex % allMedia.length;
+        } else {
+          break;
+        }
+      }
+
+      final song = allMedia[targetIndex].extras?['data'] as SongWithArtists?;
+      if (song != null) {
+        // If there is no art, pass an empty string "" as a placeholder flag
+        final artPath = song.album.albumArtPath?.isNotEmpty == true
+            ? song.album.albumArtPath!
+            : "";
+
+        stackCovers.add(artPath);
+      }
+    }
+
+    return stackCovers;
+  });
+});
