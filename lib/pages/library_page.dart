@@ -7,6 +7,7 @@ import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/widgets/album_stack.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
+import 'package:nordplayer/widgets/nordplayer_app_bar.dart';
 import 'package:nordplayer/widgets/sliver_resizable_table_layout.dart';
 
 class LibraryPage extends ConsumerWidget {
@@ -55,41 +56,7 @@ class LibraryPage extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.10),
-        toolbarHeight: 64,
-        scrolledUnderElevation: 0,
-        centerTitle: true,
-        title: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 500),
-          child: Container(
-            height: 44,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: "What do you want to play?",
-                hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
-                prefixIcon: const Icon(Icons.search, size: 20),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
-              ),
-              onChanged: (value) {},
-            ),
-          ),
-        ),
-        actions: [
-          IconButton(
-            onPressed: () => context.go('/settings/library-management'),
-            icon: const Icon(Icons.settings_outlined),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
+      appBar: NordplayerAppBar(),
       body: CustomScrollView(
         slivers: [
           SliverAppBar(

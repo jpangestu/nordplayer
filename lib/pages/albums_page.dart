@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nordplayer/widgets/nordplayer_app_bar.dart';
 
 class AlbumsPage extends StatelessWidget {
   const AlbumsPage({super.key});
@@ -6,10 +7,7 @@ class AlbumsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Albums'),
-        centerTitle: true,
-      ),
+      appBar: NordplayerAppBar(),
       body: Center(child: Text('Albums')),
     );
   }

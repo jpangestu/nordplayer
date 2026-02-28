@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nordplayer/pages/albums_page.dart';
 import 'package:nordplayer/pages/artists_page.dart';
@@ -11,12 +12,26 @@ import 'package:nordplayer/pages/settings/library_management_page.dart';
 import 'package:nordplayer/pages/settings/settings_layout.dart';
 import 'package:nordplayer/routes/routes.dart';
 
+class LastMainRoute extends Notifier<String> {
+  @override
+  String build() => Routes.libraryPage;
+
+  void updateRoute(String newRoute) {
+    state = newRoute;
+  }
+}
+
+final lastMainRouteProvider = NotifierProvider<LastMainRoute, String>(() {
+  return LastMainRoute();
+});
+
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final router = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: Routes.libraryPage,
   routes: [
+    GoRoute(path: '/', redirect: (context, state) => Routes.libraryPage),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
           AppLayout(navigationShell: navigationShell),

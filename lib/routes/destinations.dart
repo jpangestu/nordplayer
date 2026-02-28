@@ -24,11 +24,6 @@ class Destinations {
       selectedIcon: Icon(Icons.person),
       label: Text('Artists'),
     ),
-    SidebarDestination(
-      icon: Icon(Icons.settings_outlined),
-      selectedIcon: Icon(Icons.settings),
-      label: Text('Settings'),
-    ),
   ];
 
   /// Destinations for the settings sidebar

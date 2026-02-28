@@ -22,7 +22,11 @@ class AppLayout extends ConsumerWidget {
             child: Row(
               children: [
                 Sidebar(
-                  selectedIndex: navigationShell.currentIndex,
+                  selectedIndex:
+                      navigationShell.currentIndex <
+                          Destinations.mainDestinations.length
+                      ? navigationShell.currentIndex
+                      : null,
                   destinations: Destinations.mainDestinations,
                   onDestinationSelected: navigationShell.goBranch,
                   showExtendedToggle: true,
