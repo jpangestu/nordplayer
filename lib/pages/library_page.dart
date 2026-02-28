@@ -109,8 +109,8 @@ class LibraryPage extends ConsumerWidget {
                 columns: const [
                   TableColumn(
                     label: "#",
-                    width: 50,
-                    minWidth: 50,
+                    width: 60,
+                    minWidth: 60,
                     alignment: Alignment.centerRight,
                   ),
                   TableColumn(label: "Title", flex: 5, minWidth: 200),

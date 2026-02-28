@@ -1,5 +1,4 @@
 import 'dart:math';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -10,7 +9,7 @@ import 'package:flutter/rendering.dart';
 
 enum TimeLabelType { totalTime, remainingTime }
 
-class ProgressBar extends LeafRenderObjectWidget {
+class ProgressBar extends StatefulWidget {
   const ProgressBar({
     super.key,
     required this.progress,
@@ -57,12 +56,119 @@ class ProgressBar extends LeafRenderObjectWidget {
   final double timeLabelPadding;
 
   @override
+  State<ProgressBar> createState() => _ProgressBarState();
+}
+
+class _ProgressBarState extends State<ProgressBar> {
+  Offset? _hoverPosition;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onHover: (event) {
+        setState(() {
+          _hoverPosition = event.localPosition;
+        });
+      },
+      onExit: (event) {
+        setState(() {
+          _hoverPosition = null;
+        });
+      },
+      child: _RawProgressBar(
+        progress: widget.progress,
+        total: widget.total,
+        buffered: widget.buffered,
+        onSeek: widget.onSeek,
+        onDragStart: widget.onDragStart,
+        onDragUpdate: widget.onDragUpdate,
+        onDragEnd: widget.onDragEnd,
+        barHeight: widget.barHeight,
+        baseBarColor: widget.baseBarColor,
+        progressBarColor: widget.progressBarColor,
+        bufferedBarColor: widget.bufferedBarColor,
+        thumbRadius: widget.thumbRadius,
+        thumbColor: widget.thumbColor,
+        thumbGlowColor: widget.thumbGlowColor,
+        thumbGlowRadius: widget.thumbGlowRadius,
+        thumbCanPaintOutsideBar: widget.thumbCanPaintOutsideBar,
+        timeLabelType: widget.timeLabelType,
+        onRightTimeLabelTap: widget.onRightTimeLabelTap,
+        timeLabelTextStyle: widget.timeLabelTextStyle,
+        timeLabelPadding: widget.timeLabelPadding,
+        hoverPosition: _hoverPosition,
+      ),
+    );
+  }
+}
+
+class _RawProgressBar extends LeafRenderObjectWidget {
+  const _RawProgressBar({
+    required this.progress,
+    required this.total,
+    this.buffered,
+    this.onSeek,
+    this.onDragStart,
+    this.onDragUpdate,
+    this.onDragEnd,
+    this.barHeight = 5.0,
+    this.baseBarColor,
+    this.progressBarColor,
+    this.bufferedBarColor,
+    this.thumbRadius = 10.0,
+    this.thumbColor,
+    this.thumbGlowColor,
+    this.thumbGlowRadius = 30.0,
+    this.thumbCanPaintOutsideBar = true,
+    this.timeLabelType,
+    this.onRightTimeLabelTap,
+    this.timeLabelTextStyle,
+    this.timeLabelPadding = 0.0,
+    this.hoverPosition,
+  });
+
+  final Duration progress;
+  final Duration total;
+  final Duration? buffered;
+  final ValueChanged<Duration>? onSeek;
+  final ThumbDragStartCallback? onDragStart;
+  final ThumbDragUpdateCallback? onDragUpdate;
+  final VoidCallback? onDragEnd;
+  final double barHeight;
+  final Color? baseBarColor;
+  final Color? progressBarColor;
+  final Color? bufferedBarColor;
+  final double thumbRadius;
+  final Color? thumbColor;
+  final Color? thumbGlowColor;
+  final double thumbGlowRadius;
+  final bool thumbCanPaintOutsideBar;
+  final TimeLabelType? timeLabelType;
+  final VoidCallback? onRightTimeLabelTap;
+  final TextStyle? timeLabelTextStyle;
+  final double timeLabelPadding;
+  final Offset? hoverPosition;
+
+  @override
   RenderObject createRenderObject(BuildContext context) {
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
     final sliderTheme = SliderTheme.of(context);
     final textStyle = timeLabelTextStyle ?? theme.textTheme.bodyLarge;
     final textScaler = MediaQuery.textScalerOf(context);
+
+    // Extract dynamic tooltip colors based on the current context theme
+    final tooltipBgColor = theme.colorScheme.inverseSurface;
+    final tooltipStyle =
+        theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onInverseSurface,
+          fontWeight: FontWeight.bold,
+        ) ??
+        TextStyle(
+          color: theme.colorScheme.onInverseSurface,
+          fontWeight: FontWeight.bold,
+        );
+
     return _RenderProgressBar(
       progress: progress,
       total: total,
@@ -95,6 +201,9 @@ class ProgressBar extends LeafRenderObjectWidget {
       timeLabelTextStyle: textStyle,
       timeLabelPadding: timeLabelPadding,
       textScaler: textScaler,
+      hoverPosition: hoverPosition,
+      tooltipBgColor: tooltipBgColor,
+      tooltipTextStyle: tooltipStyle,
     );
   }
 
@@ -105,6 +214,17 @@ class ProgressBar extends LeafRenderObjectWidget {
     final primaryColor = theme.colorScheme.primary;
     final textStyle = timeLabelTextStyle ?? theme.textTheme.bodyLarge;
     final textScaler = MediaQuery.textScalerOf(context);
+
+    final tooltipBgColor = theme.colorScheme.inverseSurface;
+    final tooltipStyle =
+        theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onInverseSurface,
+          fontWeight: FontWeight.bold,
+        ) ??
+        TextStyle(
+          color: theme.colorScheme.onInverseSurface,
+          fontWeight: FontWeight.bold,
+        );
 
     final renderProgressBar = renderObject as _RenderProgressBar;
     renderProgressBar
@@ -134,13 +254,14 @@ class ProgressBar extends LeafRenderObjectWidget {
           (thumbColor ?? primaryColor).withValues(alpha: 0.54)
       ..thumbGlowRadius = thumbGlowRadius
       ..thumbCanPaintOutsideBar = thumbCanPaintOutsideBar
+      ..timeLabelType = timeLabelType ?? TimeLabelType.totalTime
+      ..onRightTimeLabelTap = onRightTimeLabelTap
       ..timeLabelTextStyle = textStyle
       ..timeLabelPadding = timeLabelPadding
-      ..textScaler = textScaler;
-
-    if (timeLabelType != null) {
-      renderProgressBar.timeLabelType = timeLabelType!;
-    }
+      ..textScaler = textScaler
+      ..hoverPosition = hoverPosition
+      ..tooltipBgColor = tooltipBgColor
+      ..tooltipTextStyle = tooltipStyle;
   }
 }
 
@@ -201,6 +322,9 @@ class _RenderProgressBar extends RenderBox {
     TextStyle? timeLabelTextStyle,
     double timeLabelPadding = 0.0,
     TextScaler textScaler = TextScaler.noScaling,
+    Offset? hoverPosition,
+    required Color tooltipBgColor,
+    required TextStyle tooltipTextStyle,
   }) : _total = total,
        _buffered = buffered,
        _onSeek = onSeek,
@@ -220,14 +344,16 @@ class _RenderProgressBar extends RenderBox {
        _onRightTimeLabelTap = onRightTimeLabelTap,
        _timeLabelTextStyle = timeLabelTextStyle,
        _timeLabelPadding = timeLabelPadding,
-       _textScaler = textScaler {
+       _textScaler = textScaler,
+       _hoverPosition = hoverPosition,
+       _tooltipBgColor = tooltipBgColor,
+       _tooltipTextStyle = tooltipTextStyle {
     _drag = _EagerHorizontalDragGestureRecognizer()
       ..onStart = _onDragStart
       ..onUpdate = _onDragUpdate
       ..onEnd = _onDragEnd
       ..onCancel = _finishDrag;
 
-    // Initialize the tap recognizer for the label
     _tap = TapGestureRecognizer()..onTap = _onTap;
 
     if (!_userIsDraggingThumb) {
@@ -241,6 +367,35 @@ class _RenderProgressBar extends RenderBox {
 
   late double _thumbValue;
   bool _userIsDraggingThumb = false;
+
+  // Cache variables for tooltip optimization
+  String? _cachedTooltipTime;
+  TextPainter? _cachedTooltipPainter;
+
+  Offset? get hoverPosition => _hoverPosition;
+  Offset? _hoverPosition;
+  set hoverPosition(Offset? value) {
+    if (_hoverPosition == value) return;
+    _hoverPosition = value;
+    markNeedsPaint();
+  }
+
+  Color get tooltipBgColor => _tooltipBgColor;
+  Color _tooltipBgColor;
+  set tooltipBgColor(Color value) {
+    if (_tooltipBgColor == value) return;
+    _tooltipBgColor = value;
+    markNeedsPaint();
+  }
+
+  TextStyle get tooltipTextStyle => _tooltipTextStyle;
+  TextStyle _tooltipTextStyle;
+  set tooltipTextStyle(TextStyle value) {
+    if (_tooltipTextStyle == value) return;
+    _tooltipTextStyle = value;
+    _cachedTooltipTime = null; // Invalidate cache if style changes
+    markNeedsPaint();
+  }
 
   double get _defaultSidePadding {
     const minPadding = 5.0;
@@ -268,7 +423,7 @@ class _RenderProgressBar extends RenderBox {
     return Rect.fromLTWH(
       rightLabelDx,
       verticalOffset,
-      _rightLabelSize.width, // The clickable area is the size of the text
+      _rightLabelSize.width,
       _rightLabelSize.height,
     );
   }
@@ -335,8 +490,6 @@ class _RenderProgressBar extends RenderBox {
 
   void _updateThumbPosition(Offset localPosition) {
     final dx = localPosition.dx;
-
-    // Use Max slot widths for the drag area too to align with paint logic
     final currentLeftWidth = _leftLabelSize.width;
     final effectiveLeftWidth = max(_maxLeftLabelWidth, currentLeftWidth);
 
@@ -353,8 +506,6 @@ class _RenderProgressBar extends RenderBox {
     markNeedsPaint();
   }
 
-  // Note: Aggressive caching (_labelLengthDifferent) has been removed
-  // to prevent overlap issues with proportional fonts.
   Duration get progress => _progress;
   Duration _progress = Duration.zero;
   set progress(Duration value) {
@@ -375,7 +526,6 @@ class _RenderProgressBar extends RenderBox {
     if (_total == clamp) return;
     _clearLabelCache();
     _clearMaxWidthCache();
-    _total = clamp;
     _total = clamp;
     if (!_userIsDraggingThumb) {
       _thumbValue = _proportionOfTotal(progress);
@@ -609,7 +759,12 @@ class _RenderProgressBar extends RenderBox {
 
   TextPainter _layoutText(String text) {
     TextPainter textPainter = TextPainter(
-      text: TextSpan(text: text, style: _timeLabelTextStyle),
+      text: TextSpan(
+        text: text,
+        style: _timeLabelTextStyle?.copyWith(
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
+      ),
       textDirection: TextDirection.ltr,
       textScaler: _textScaler,
     );
@@ -684,21 +839,16 @@ class _RenderProgressBar extends RenderBox {
   void _drawProgressBarWithLabelsOnSides(Canvas canvas) {
     final verticalOffset = size.height / 2 - _leftLabelSize.height / 2;
 
-    // Calculate Slots using the MAX text width (fixed slots)
-    // to prevent overlap in edge cases.
     final maxLeftWidth = max(_maxLeftLabelWidth, _leftLabelSize.width);
     final maxRightWidth = max(_maxRightLabelWidth, _rightLabelSize.width);
     final padding = _totalLabelPadding;
 
-    // Draw Left Label (Hugging the right side of the left slot)
     final leftLabelDx = maxLeftWidth - _leftLabelSize.width;
     _leftTimeLabel().paint(canvas, Offset(leftLabelDx, verticalOffset));
 
-    // Draw Right Label (Hugging the left side of the right slot)
     final rightLabelDx = size.width - maxRightWidth;
     _rightTimeLabel().paint(canvas, Offset(rightLabelDx, verticalOffset));
 
-    // Draw Progress Bar (Centered in the remaining space)
     final barHeight = max(2 * _thumbRadius, _barHeight);
     final barDy = size.height / 2 - barHeight / 2;
 
@@ -706,11 +856,50 @@ class _RenderProgressBar extends RenderBox {
     final barWidth = size.width - maxLeftWidth - maxRightWidth - (padding * 2);
 
     if (barWidth > 0) {
-      _drawProgressBar(canvas, Offset(barDx, barDy), Size(barWidth, barHeight));
+      // Check if the mouse is strictly within the horizontal bounds of the bar
+      final bool isHoveringBar =
+          _hoverPosition != null &&
+          _hoverPosition!.dx >= barDx &&
+          _hoverPosition!.dx <= (barDx + barWidth);
+
+      if (isHoveringBar) {
+        final localHoverX = _hoverPosition!.dx - barDx;
+        final hoverProportion = localHoverX / barWidth;
+
+        _drawProgressBar(
+          canvas,
+          Offset(barDx, barDy),
+          Size(barWidth, barHeight),
+          hoverProportion,
+        );
+
+        _drawHoverTooltip(
+          canvas,
+          barDx,
+          barDy,
+          localHoverX,
+          hoverProportion,
+          maxLeftWidth,
+          maxRightWidth,
+        );
+      } else {
+        // Not Hovering or Hovering over labels: Draw normally
+        _drawProgressBar(
+          canvas,
+          Offset(barDx, barDy),
+          Size(barWidth, barHeight),
+          null,
+        );
+      }
     }
   }
 
-  void _drawProgressBar(Canvas canvas, Offset offset, Size localSize) {
+  void _drawProgressBar(
+    Canvas canvas,
+    Offset offset,
+    Size localSize,
+    double? hoverProportion,
+  ) {
     canvas.save();
     canvas.translate(offset.dx, offset.dy);
 
@@ -718,9 +907,90 @@ class _RenderProgressBar extends RenderBox {
 
     _drawBaseBar(canvas, lineSize);
     _drawBufferedBar(canvas, lineSize);
+    if (hoverProportion != null) {
+      _drawHoverBar(canvas, lineSize, hoverProportion);
+    }
     _drawCurrentProgressBar(canvas, lineSize);
     _drawThumb(canvas, lineSize);
     canvas.restore();
+  }
+
+  void _drawHoverTooltip(
+    Canvas canvas,
+    double barDx,
+    double barDy,
+    double localHoverX,
+    double hoverProportion,
+    double maxLeftWidth,
+    double maxRightWidth,
+  ) {
+    final hoverDuration = Duration(
+      milliseconds: (hoverProportion * total.inMilliseconds).round(),
+    );
+    final timeString = _getTimeString(hoverDuration);
+
+    // Only re-layout the text if the second changed or style updated
+    if (_cachedTooltipTime != timeString || _cachedTooltipPainter == null) {
+      _cachedTooltipTime = timeString;
+      _cachedTooltipPainter = TextPainter(
+        text: TextSpan(
+          text: timeString,
+          style: _tooltipTextStyle.copyWith(
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+    }
+
+    final textPainter = _cachedTooltipPainter!;
+
+    final tooltipDy = barDy - 14; // Hover slightly above the bar
+    final tooltipCenterDx = barDx + localHoverX;
+
+    // Ensure the tooltip bubble doesn't clip into the side timers
+    final minTooltipX = maxLeftWidth + textPainter.width / 2;
+    final maxTooltipX = size.width - maxRightWidth - textPainter.width / 2;
+    final clampedTooltipDx = tooltipCenterDx.clamp(minTooltipX, maxTooltipX);
+
+    final tooltipRect = Rect.fromCenter(
+      center: Offset(clampedTooltipDx, tooltipDy),
+      width: textPainter.width + 16,
+      height: textPainter.height + 10,
+    );
+
+    final tooltipRRect = RRect.fromRectAndRadius(
+      tooltipRect,
+      const Radius.circular(6),
+    );
+
+    final bgPaint = Paint()..color = _tooltipBgColor;
+    canvas.drawRRect(tooltipRRect, bgPaint);
+
+    final trianglePath = Path();
+    trianglePath.moveTo(tooltipCenterDx - 5, tooltipRect.bottom - 1);
+    trianglePath.lineTo(tooltipCenterDx + 5, tooltipRect.bottom - 1);
+    trianglePath.lineTo(tooltipCenterDx, tooltipRect.bottom + 5);
+    trianglePath.close();
+    canvas.drawPath(trianglePath, bgPaint);
+
+    textPainter.paint(
+      canvas,
+      Offset(
+        clampedTooltipDx - textPainter.width / 2,
+        tooltipDy - textPainter.height / 2,
+      ),
+    );
+  }
+
+  void _drawHoverBar(Canvas canvas, Size localSize, double proportion) {
+    final hoverColor = progressBarColor.withValues(alpha: 0.35);
+    _drawBar(
+      canvas: canvas,
+      availableSize: localSize,
+      widthProportion: proportion,
+      color: hoverColor,
+    );
   }
 
   void _drawBaseBar(Canvas canvas, Size localSize) {
@@ -763,7 +1033,6 @@ class _RenderProgressBar extends RenderBox {
       ..strokeWidth = _barHeight;
 
     final capRadius = _barHeight / 2;
-    // Center vertically in available height
     final dy = availableSize.height / 2;
 
     final adjustedWidth = availableSize.width - _barHeight;

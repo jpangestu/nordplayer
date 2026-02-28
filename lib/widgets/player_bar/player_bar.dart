@@ -49,34 +49,6 @@ class _PlayerBarState extends ConsumerState<PlayerBar> with LoggerMixin {
             ),
           ],
 
-          // StreamBuilder<Playlist>(
-          //   stream: player.mkPlayer.stream.playlist,
-          //   builder: (context, snapshot) {
-          //     final playlist = snapshot.data;
-          //     final media = playlist?.medias[playlist.index];
-          //     final song = media?.extras?['data'] as SongWithArtists?;
-
-          //     if (song == null) {
-          //       return Expanded(flex: lefttFlex, child: const SizedBox());
-          //     }
-
-          //     return Expanded(
-          //       flex: lefttFlex,
-          //       child: Padding(
-          //         padding: const EdgeInsets.only(left: 8),
-          //         child: MusicTile(
-          //           title: song.track.title,
-          //           artists: song.artists.map((a) => a.name).toList(),
-          //           albumArtPath: song.album.albumArtPath,
-          //           albumArtSize: 60,
-          //           onTap: () {},
-          //           marqueeEffect: true,
-          //         ),
-          //       ),
-          //     );
-          //   },
-          // ),
-
           Expanded(
             flex: centerFlex,
             child: Column(

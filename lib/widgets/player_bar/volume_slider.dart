@@ -41,54 +41,59 @@ class _VolumeSliderState extends State<VolumeSlider> {
     final sliderTheme = Theme.of(context).sliderTheme;
     final isMuted = widget.volume == 0;
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          icon: Icon(
-            isMuted ? Icons.volume_off_outlined : Icons.volume_up_outlined,
-            size: 24,
+    return Flexible(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: Icon(
+              isMuted ? Icons.volume_off_outlined : Icons.volume_up_outlined,
+              size: 24,
+            ),
+            tooltip: isMuted ? "Unmute" : "Mute",
+            onPressed: _handleMuteToggle,
           ),
-          tooltip: isMuted ? "Unmute" : "Mute",
-          onPressed: _handleMuteToggle,
-        ),
 
-        Padding(
-          padding: .only(right: 20),
-          child: SizedBox(
-            width: 80,
-            child: SliderTheme(
-              data: SliderThemeData(
-                padding: .only(right: 5),
-                trackHeight: 3,
-                trackShape: sliderTheme.trackShape,
-                activeTrackColor: sliderTheme.activeTrackColor,
-                inactiveTrackColor: sliderTheme.inactiveTrackColor,
-                thumbColor: sliderTheme.thumbColor,
-                thumbShape: sliderTheme.thumbShape,
-                overlayColor: sliderTheme.overlayColor,
-                overlayShape: sliderTheme.overlayShape,
-                showValueIndicator: .onDrag,
-                valueIndicatorColor: sliderTheme.valueIndicatorColor,
-                valueIndicatorTextStyle: sliderTheme.valueIndicatorTextStyle,
-              ),
-              child: Slider(
-                value: widget.volume,
-                min: 0,
-                max: 100,
-                label: '${widget.volume.round()}',
-                onChanged: (value) {
-                  // If user drags, update the memory of "last volume"
-                  if (value > 0) {
-                    _lastNonZeroVolume = value;
-                  }
-                  widget.onChanged(value);
-                },
+          Flexible(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 120),
+              child: Padding(
+                padding: .only(right: 20),
+                child: SliderTheme(
+                  data: SliderThemeData(
+                    padding: .only(right: 5),
+                    trackHeight: 3,
+                    trackShape: sliderTheme.trackShape,
+                    activeTrackColor: sliderTheme.activeTrackColor,
+                    inactiveTrackColor: sliderTheme.inactiveTrackColor,
+                    thumbColor: sliderTheme.thumbColor,
+                    thumbShape: sliderTheme.thumbShape,
+                    overlayColor: sliderTheme.overlayColor,
+                    overlayShape: sliderTheme.overlayShape,
+                    showValueIndicator: .onDrag,
+                    valueIndicatorColor: sliderTheme.valueIndicatorColor,
+                    valueIndicatorTextStyle:
+                        sliderTheme.valueIndicatorTextStyle,
+                  ),
+                  child: Slider(
+                    value: widget.volume,
+                    min: 0,
+                    max: 100,
+                    label: '${widget.volume.round()}',
+                    onChanged: (value) {
+                      // If user drags, update the memory of "last volume"
+                      if (value > 0) {
+                        _lastNonZeroVolume = value;
+                      }
+                      widget.onChanged(value);
+                    },
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
