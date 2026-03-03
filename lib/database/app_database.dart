@@ -16,9 +16,49 @@ final appDatabaseProvider = Provider<AppDatabase>((ref) {
   return database;
 });
 
-final libraryStreamProvider = StreamProvider<List<SongWithArtists>>((ref) {
+final libraryStreamProvider = StreamProvider<List<TrackWithArtists>>((ref) {
   final db = ref.watch(appDatabaseProvider);
-  return db.watchLibrary();
+
+  final query = db.select(db.tracks).join([
+    leftOuterJoin(db.albums, db.albums.id.equalsExp(db.tracks.albumId)),
+    leftOuterJoin(
+      db.trackArtist,
+      db.trackArtist.trackId.equalsExp(db.tracks.id),
+    ),
+    leftOuterJoin(db.artists, db.artists.id.equalsExp(db.trackArtist.artistId)),
+  ]);
+
+  // Sort title ascending
+  query.orderBy([OrderingTerm.asc(db.tracks.title)]);
+
+  // Return the stream and map the raw rows into grouped objects
+  return query.watch().map((rows) {
+    final Map<int, TrackWithArtists> groupedTracks = {};
+
+    for (final row in rows) {
+      final track = row.readTable(db.tracks);
+      final album = row.readTable(db.albums);
+      final artist = row.readTable(db.artists);
+
+      // If track is new, create the entry
+      if (!groupedTracks.containsKey(track.id)) {
+        groupedTracks[track.id] = TrackWithArtists(
+          track: track,
+          album: album,
+          artists: [],
+        );
+      }
+
+      // Add the artist from this row to the artists list
+      // distinct check to avoid duplicates if query logic overlaps
+      final currentArtists = groupedTracks[track.id]!.artists;
+      if (!currentArtists.any((a) => a.id == artist.id)) {
+        currentArtists.add(artist);
+      }
+    }
+
+    return groupedTracks.values.toList();
+  });
 });
 
 LazyDatabase openConection() {
@@ -48,53 +88,14 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   int get schemaVersion => 1;
-
-  Stream<List<SongWithArtists>> watchLibrary() {
-    final query = select(tracks).join([
-      leftOuterJoin(albums, albums.id.equalsExp(tracks.albumId)),
-      leftOuterJoin(trackArtist, trackArtist.trackId.equalsExp(tracks.id)),
-      leftOuterJoin(artists, artists.id.equalsExp(trackArtist.artistId)),
-    ]);
-
-    query.orderBy([OrderingTerm.asc(tracks.title)]);
-
-    return query.watch().map((rows) {
-      // Use a Map to group rows by Track ID to handle duplicates
-      final Map<int, SongWithArtists> groupedSongs = {};
-
-      for (final row in rows) {
-        final track = row.readTable(tracks);
-        final album = row.readTable(albums);
-        final artist = row.readTable(artists);
-
-        // If track is new, create the entry
-        if (!groupedSongs.containsKey(track.id)) {
-          groupedSongs[track.id] = SongWithArtists(
-            track: track,
-            album: album,
-            artists: [],
-          );
-        }
-
-        // Add the artist from this row to the list
-        // distinct check to avoid duplicates if query logic overlaps
-        final currentList = groupedSongs[track.id]!.artists;
-        if (!currentList.any((a) => a.id == artist.id)) {
-          currentList.add(artist);
-        }
-      }
-
-      return groupedSongs.values.toList();
-    });
-  }
 }
 
-class SongWithArtists {
+class TrackWithArtists {
   final Track track;
   final Album album;
   final List<Artist> artists;
 
-  SongWithArtists({
+  TrackWithArtists({
     required this.track,
     required this.album,
     required this.artists,

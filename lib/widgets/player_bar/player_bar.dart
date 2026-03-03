@@ -19,7 +19,7 @@ class _PlayerBarState extends ConsumerState<PlayerBar> with LoggerMixin {
   @override
   Widget build(BuildContext context) {
     final player = ref.watch(playerServiceProvider);
-    final currentSong = ref.watch(currentSongProvider).value;
+    final currentTrack = ref.watch(currentTrackProvider).value;
 
     final double screenWidth = MediaQuery.sizeOf(context).width;
     bool isLargeScreen = screenWidth > 900;
@@ -32,15 +32,15 @@ class _PlayerBarState extends ConsumerState<PlayerBar> with LoggerMixin {
       color: Theme.of(context).colorScheme.surfaceContainer,
       child: Row(
         children: [
-          if (currentSong == null) ...[
+          if (currentTrack == null) ...[
             Expanded(flex: lefttFlex, child: const SizedBox()),
           ] else ...[
             Expanded(
               flex: lefttFlex,
               child: MusicTile(
-                title: currentSong.track.title,
-                artists: currentSong.artists.map((a) => a.name).toList(),
-                albumArtPath: currentSong.album.albumArtPath,
+                title: currentTrack.track.title,
+                artists: currentTrack.artists.map((a) => a.name).toList(),
+                albumArtPath: currentTrack.album.albumArtPath,
                 albumArtSize: 60,
                 onTap: () {},
                 padding: const .only(left: 16),

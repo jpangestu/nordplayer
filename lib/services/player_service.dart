@@ -79,7 +79,7 @@ class IsPlayingNotifier extends Notifier<bool> {
 //   }
 // }
 
-final currentSongProvider = StreamProvider<SongWithArtists?>((ref) {
+final currentTrackProvider = StreamProvider<TrackWithArtists?>((ref) {
   final player = ref.watch(playerServiceProvider).mkPlayer;
 
   return player.stream.playlist.map((playlist) {
@@ -90,7 +90,7 @@ final currentSongProvider = StreamProvider<SongWithArtists?>((ref) {
     }
 
     final currentMedia = playlist.medias[playlist.index];
-    return currentMedia.extras?['data'] as SongWithArtists?;
+    return currentMedia.extras?['data'] as TrackWithArtists?;
   });
 });
 
@@ -119,9 +119,9 @@ class PlayerService with LoggerMixin {
     }
   }
 
-  /// Opens a list of songs as a Playlist and play the given index
+  /// Opens a list of tracks as a Playlist and play the given index
   Future<void> setPlaylist(
-    List<SongWithArtists> songs,
+    List<TrackWithArtists> tracks,
     int initialIndex,
   ) async {
     final bool shouldShuffle = ref.read(preferenceServiceProvider).shuffleMode;
@@ -131,14 +131,14 @@ class PlayerService with LoggerMixin {
         .map((m) => m.uri)
         .toList();
 
-    final newPaths = songs.map((s) => s.track.filePath).toList();
+    final newPaths = tracks.map((s) => s.track.filePath).toList();
 
     bool isSamePlaylist = false;
     if (currentPaths.length == newPaths.length && currentPaths.isNotEmpty) {
       final currentSet = currentPaths.toSet();
 
       // Heuristic Check: If it has the exact same length, and the engine's set
-      // contains the first, middle, and last songs from the UI's list,
+      // contains the first, middle, and last tracks from the UI's list,
       // it is safely the exact same playlist.
       if (currentSet.contains(newPaths.first) &&
           currentSet.contains(newPaths.last) &&
@@ -147,12 +147,12 @@ class PlayerService with LoggerMixin {
       }
     }
 
-    final targetSongPath = songs[initialIndex].track.filePath;
+    final targetTrackPath = tracks[initialIndex].track.filePath;
 
     if (isSamePlaylist) {
-      // Find where the target song ended up in the shuffled queue
+      // Find where the target track ended up in the shuffled queue
       final targetIndex = _mkPlayer.state.playlist.medias.indexWhere(
-        (m) => m.uri == targetSongPath,
+        (m) => m.uri == targetTrackPath,
       );
 
       if (targetIndex != -1) {
@@ -168,13 +168,13 @@ class PlayerService with LoggerMixin {
 
     if (!isSamePlaylist) {
       log.d("New playlist detected. Opening new media pipeline.");
-      final playableMedia = songs.map((song) {
+      final playableMedia = tracks.map((track) {
         return Media(
-          song.track.filePath,
+          track.track.filePath,
           extras: {
-            'title': song.track.title,
-            'artists': song.artists,
-            'data': song,
+            'title': track.track.title,
+            'artists': track.artists,
+            'data': track,
           },
         );
       }).toList();
