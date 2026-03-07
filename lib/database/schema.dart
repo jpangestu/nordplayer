@@ -30,6 +30,13 @@ class Tracks extends Table {
   DateTimeColumn get dateAdded => dateTime().withDefault(currentDateAndTime)();
 }
 
+@DataClassName('PlaylistData')
+class Playlists extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get coverPath => text().nullable()();
+}
+
 class TrackArtist extends Table {
   IntColumn get trackId =>
       integer().references(Tracks, #id, onDelete: KeyAction.cascade)();
@@ -38,4 +45,11 @@ class TrackArtist extends Table {
 
   @override
   Set<Column> get primaryKey => {trackId, artistId};
+}
+
+class PlaylistTrack extends Table {
+  IntColumn get playlistId =>
+      integer().references(Playlists, #id, onDelete: KeyAction.cascade)();
+  IntColumn get trackId =>
+      integer().references(Tracks, #id, onDelete: KeyAction.cascade)();
 }

@@ -124,7 +124,8 @@ class PlayerService with LoggerMixin {
     List<TrackWithArtists> tracks,
     int initialIndex,
   ) async {
-    final bool shouldShuffle = ref.read(preferenceServiceProvider).shuffleMode;
+    final shouldShuffle = ref.read(preferenceServiceProvider).shuffleMode;
+    final loopMode = ref.read(preferenceServiceProvider).loopMode;
     // ref.read(isPlayingProvider.notifier).setPlaying(true);
 
     final currentPaths = _mkPlayer.state.playlist.medias
@@ -192,7 +193,40 @@ class PlayerService with LoggerMixin {
         await Future.delayed(const Duration(milliseconds: 100));
         await _mkPlayer.setShuffle(true);
       }
+
+      // Always set loop mode to the user prefs
+      await _mkPlayer.setPlaylistMode(loopMode);
     }
+  }
+
+  /// Appends a list of tracks to the end of the current playback queue
+  Future<void> addToQueue(List<TrackWithArtists> tracks) async {
+    if (tracks.isEmpty) return;
+
+    // If nothing is currently in the playlist, just start playing these tracks
+    if (_mkPlayer.state.playlist.medias.isEmpty) {
+      await setPlaylist(tracks, 0);
+      return;
+    }
+
+    // Convert tracks to media_kit Media objects
+    final playableMedia = tracks.map((track) {
+      return Media(
+        track.track.filePath,
+        extras: {
+          'title': track.track.title,
+          'artists': track.artists,
+          'data': track,
+        },
+      );
+    }).toList();
+
+    // Append each track to the media_kit engine
+    for (final media in playableMedia) {
+      await _mkPlayer.add(media);
+    }
+
+    log.i("Added ${tracks.length} tracks to the queue.");
   }
 
   Future<void> playOrPause() async {

@@ -57,6 +57,8 @@ class ContextMenu {
 
     currentEntry = OverlayEntry(
       builder: (context) {
+        final maxHeight = overlayBox.size.height - dy - 16;
+
         return Stack(
           children: [
             Positioned(
@@ -75,12 +77,17 @@ class ContextMenu {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: SizedBox(
-                    width: menuWidth,
-                    child: _ContextMenuUI(
-                      entries: actionMenus,
-                      onClose: closeAll,
-                      depth: depth,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: menuWidth,
+                      maxHeight: maxHeight < 200 ? 200 : maxHeight,
+                    ),
+                    child: SingleChildScrollView(
+                      child: _ContextMenuUI(
+                        entries: actionMenus,
+                        onClose: closeAll,
+                        depth: depth,
+                      ),
                     ),
                   ),
                 ),
@@ -128,6 +135,12 @@ class ContextSubMenuAction extends ContextMenuEntry {
   });
 }
 
+// Add this right below ContextSubMenuAction
+class ContextMenuCustomWidget extends ContextMenuEntry {
+  final Widget child;
+  ContextMenuCustomWidget({required this.child});
+}
+
 class _ContextMenuUI extends StatelessWidget {
   final List<ContextMenuEntry> entries;
   final VoidCallback onClose;
@@ -164,7 +177,6 @@ class _ContextMenuUI extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(4),
-        hoverColor: Colors.white.withValues(alpha: 0.1),
         child: Container(
           height: 32,
           padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -203,7 +215,6 @@ class _ContextMenuUI extends StatelessWidget {
     final theme = Theme.of(context);
 
     return switch (entry) {
-      // Regular Actions
       ContextMenuActions() => MouseRegion(
         onEnter: (_) => ContextMenu.closeMenusBeyond(depth),
         child: _buildCustomMenuItem(
@@ -221,7 +232,6 @@ class _ContextMenuUI extends StatelessWidget {
         ),
       ),
 
-      // Dividers
       ContextMenuDivider() => MouseRegion(
         onEnter: (_) => ContextMenu.closeMenusBeyond(depth),
         child: Divider(
@@ -231,7 +241,6 @@ class _ContextMenuUI extends StatelessWidget {
         ),
       ),
 
-      // Sub-Menus
       ContextSubMenuAction() => Builder(
         builder: (itemContext) {
           return MouseRegion(
@@ -247,6 +256,8 @@ class _ContextMenuUI extends StatelessWidget {
           );
         },
       ),
+
+      ContextMenuCustomWidget() => entry.child,
     };
   }
 

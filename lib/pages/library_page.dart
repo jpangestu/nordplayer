@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:nordplayer/database/app_database.dart';
+import 'package:nordplayer/pages/playlists_page.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/widgets/album_art_stack.dart';
@@ -308,28 +309,18 @@ class _LibraryTrackRowState extends ConsumerState<_LibraryTrackRow>
                 ContextMenuActions(
                   icon: Icons.playlist_add_outlined,
                   label: 'Add to queue',
-                  onTap: () => ref
-                      .read(playerServiceProvider)
-                      .setPlaylist(widget.tracks, widget.index),
+                  onTap: _addToQueue,
                 ),
                 ContextSubMenuAction(
                   icon: Icons.add,
                   label: 'Add to playlist',
                   children: [
-                    ContextMenuActions(
-                      icon: Icons.playlist_add,
-                      label: 'Playlist 1',
-                      onTap: () {},
-                    ),
-                    ContextMenuActions(
-                      icon: Icons.playlist_add,
-                      label: 'Playlist 2',
-                      onTap: () {},
-                    ),
-                    ContextMenuActions(
-                      icon: Icons.playlist_add,
-                      label: 'Playlist 2',
-                      onTap: () {},
+                    ContextMenuCustomWidget(
+                      child: SearchablePlaylistMenu(
+                        tracksToAdd: currentTracks.isEmpty
+                            ? [widget.tracks[widget.index]]
+                            : currentTracks,
+                      ),
                     ),
                   ],
                 ),
@@ -369,14 +360,14 @@ class _LibraryTrackRowState extends ConsumerState<_LibraryTrackRow>
             decoration: BoxDecoration(
               borderRadius: .circular(6),
               color: _rowHovered
-                  ? Colors.white.withValues(alpha: 0.1)
+                  ? theme.colorScheme.primary.withValues(alpha: 0.1)
                   : Colors.transparent,
             ),
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: .circular(6),
                 color: thisTrackSelected
-                    ? Colors.white.withValues(alpha: 0.1)
+                    ? theme.colorScheme.primary.withValues(alpha: 0.1)
                     : Colors.transparent,
               ),
               child: Row(
@@ -470,6 +461,24 @@ class _LibraryTrackRowState extends ConsumerState<_LibraryTrackRow>
       ),
     );
   }
+
+  Future<void> _addToQueue() async {
+    final currentTrack = ref.read(selectedTracksProvider);
+    ref.read(playerServiceProvider).addToQueue(currentTrack);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Added ${currentTrack.length} tracks to queue'),
+          behavior: SnackBarBehavior.floating,
+          width: 300,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+        ),
+      );
+    }
+  }
 }
 
 class LibraryHeroHeader extends ConsumerWidget {
@@ -531,7 +540,6 @@ class LibraryHeroHeader extends ConsumerWidget {
                     child: AlbumArtStack(
                       imageUrls: displayStackCovers,
                       size: 180,
-                      maxLayers: 5,
                       sliceWidth: 16,
                     ),
                   ),
@@ -551,6 +559,7 @@ class LibraryHeroHeader extends ConsumerWidget {
   }
 }
 
+// TODO: Fix cannot open certain path with weird characters (' ` ;, etc)
 Future<void> showInFolder(String filePath) async {
   final file = File(filePath);
   if (!await file.exists()) {
@@ -578,6 +587,165 @@ Future<void> showInFolder(String filePath) async {
     await Process.run('explorer.exe', ['/select,', filePath]);
   } else if (Platform.isMacOS) {
     await Process.run('open', ['-R', filePath]);
+  }
+}
+
+class SearchablePlaylistMenu extends ConsumerStatefulWidget {
+  final List<TrackWithArtists> tracksToAdd;
+
+  const SearchablePlaylistMenu({super.key, required this.tracksToAdd});
+
+  @override
+  ConsumerState<SearchablePlaylistMenu> createState() =>
+      _SearchablePlaylistMenuState();
+}
+
+class _SearchablePlaylistMenuState
+    extends ConsumerState<SearchablePlaylistMenu> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final playlistsWithDetails = ref.watch(playlistsStreamProvider);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // -- SEARCH BOX --
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: SizedBox(
+            height: 32,
+            child: TextField(
+              autofocus: true,
+              style: const TextStyle(fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'Find a playlist',
+                prefixIcon: const Icon(Icons.search, size: 16),
+                contentPadding: EdgeInsets.zero,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(4),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.5,
+                ),
+              ),
+              onChanged: (val) => setState(() => _query = val),
+            ),
+          ),
+        ),
+
+        // -- NEW PLAYLIST BUTTON --
+        InkWell(
+          onTap: () async {
+            ContextMenu.closeAll();
+            showCreatePlaylistDialogAndAddTracks(
+              context,
+              ref.read(appDatabaseProvider),
+              widget.tracksToAdd,
+            );
+          },
+          child: Container(
+            height: 36,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                const Icon(Icons.add, size: 20),
+                const SizedBox(width: 12),
+                const Text(
+                  'New playlist',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        Divider(
+          height: 9,
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+        ),
+
+        // -- PLAYLIST LISTS --
+        playlistsWithDetails.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (e, st) => const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('Error loading playlists'),
+          ),
+          data: (playlistsWithDetailsData) {
+            final filtered = playlistsWithDetailsData
+                .where(
+                  (p) => p.playlist.name.toLowerCase().contains(
+                    _query.toLowerCase(),
+                  ),
+                )
+                .toList();
+
+            if (filtered.isEmpty) {
+              return Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'No playlists found.',
+                  style: TextStyle(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+              );
+            }
+
+            return ConstrainedBox(
+              // Constrain this list so it scrolls independently if needed
+              constraints: const BoxConstraints(maxHeight: 250),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: filtered.length,
+                itemBuilder: (context, index) {
+                  final playlist = filtered[index].playlist;
+                  return InkWell(
+                    onTap: () async {
+                      // ADD TO DATABASE
+                      final db = ref.read(appDatabaseProvider);
+                      final trackIds = widget.tracksToAdd
+                          .map((t) => t.track.id)
+                          .toList();
+                      await db.addTracksToPlaylist(playlist.id, trackIds);
+
+                      ContextMenu.closeAll();
+
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Added to ${playlist.name}')),
+                        );
+                      }
+                    },
+                    child: Container(
+                      height: 36,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        playlist.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ],
+    );
   }
 }
 
