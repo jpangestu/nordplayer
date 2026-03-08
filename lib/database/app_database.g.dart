@@ -2039,6 +2039,325 @@ class PlaylistTrackCompanion extends UpdateCompanion<PlaylistTrackData> {
   }
 }
 
+class $QueueEntriesTable extends QueueEntries
+    with TableInfo<$QueueEntriesTable, QueueEntry> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $QueueEntriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _trackIdMeta = const VerificationMeta(
+    'trackId',
+  );
+  @override
+  late final GeneratedColumn<int> trackId = GeneratedColumn<int>(
+    'track_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES tracks (id)',
+    ),
+  );
+  static const VerificationMeta _isLastPlayedMeta = const VerificationMeta(
+    'isLastPlayed',
+  );
+  @override
+  late final GeneratedColumn<bool> isLastPlayed = GeneratedColumn<bool>(
+    'is_last_played',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_last_played" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _lastPositionMeta = const VerificationMeta(
+    'lastPosition',
+  );
+  @override
+  late final GeneratedColumn<int> lastPosition = GeneratedColumn<int>(
+    'last_position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    position,
+    trackId,
+    isLastPlayed,
+    lastPosition,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'queue_entries';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<QueueEntry> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    }
+    if (data.containsKey('track_id')) {
+      context.handle(
+        _trackIdMeta,
+        trackId.isAcceptableOrUnknown(data['track_id']!, _trackIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_trackIdMeta);
+    }
+    if (data.containsKey('is_last_played')) {
+      context.handle(
+        _isLastPlayedMeta,
+        isLastPlayed.isAcceptableOrUnknown(
+          data['is_last_played']!,
+          _isLastPlayedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_position')) {
+      context.handle(
+        _lastPositionMeta,
+        lastPosition.isAcceptableOrUnknown(
+          data['last_position']!,
+          _lastPositionMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {position};
+  @override
+  QueueEntry map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return QueueEntry(
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+      trackId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}track_id'],
+      )!,
+      isLastPlayed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_last_played'],
+      )!,
+      lastPosition: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_position'],
+      )!,
+    );
+  }
+
+  @override
+  $QueueEntriesTable createAlias(String alias) {
+    return $QueueEntriesTable(attachedDatabase, alias);
+  }
+}
+
+class QueueEntry extends DataClass implements Insertable<QueueEntry> {
+  final int position;
+  final int trackId;
+  final bool isLastPlayed;
+  final int lastPosition;
+  const QueueEntry({
+    required this.position,
+    required this.trackId,
+    required this.isLastPlayed,
+    required this.lastPosition,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['position'] = Variable<int>(position);
+    map['track_id'] = Variable<int>(trackId);
+    map['is_last_played'] = Variable<bool>(isLastPlayed);
+    map['last_position'] = Variable<int>(lastPosition);
+    return map;
+  }
+
+  QueueEntriesCompanion toCompanion(bool nullToAbsent) {
+    return QueueEntriesCompanion(
+      position: Value(position),
+      trackId: Value(trackId),
+      isLastPlayed: Value(isLastPlayed),
+      lastPosition: Value(lastPosition),
+    );
+  }
+
+  factory QueueEntry.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return QueueEntry(
+      position: serializer.fromJson<int>(json['position']),
+      trackId: serializer.fromJson<int>(json['trackId']),
+      isLastPlayed: serializer.fromJson<bool>(json['isLastPlayed']),
+      lastPosition: serializer.fromJson<int>(json['lastPosition']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'position': serializer.toJson<int>(position),
+      'trackId': serializer.toJson<int>(trackId),
+      'isLastPlayed': serializer.toJson<bool>(isLastPlayed),
+      'lastPosition': serializer.toJson<int>(lastPosition),
+    };
+  }
+
+  QueueEntry copyWith({
+    int? position,
+    int? trackId,
+    bool? isLastPlayed,
+    int? lastPosition,
+  }) => QueueEntry(
+    position: position ?? this.position,
+    trackId: trackId ?? this.trackId,
+    isLastPlayed: isLastPlayed ?? this.isLastPlayed,
+    lastPosition: lastPosition ?? this.lastPosition,
+  );
+  QueueEntry copyWithCompanion(QueueEntriesCompanion data) {
+    return QueueEntry(
+      position: data.position.present ? data.position.value : this.position,
+      trackId: data.trackId.present ? data.trackId.value : this.trackId,
+      isLastPlayed: data.isLastPlayed.present
+          ? data.isLastPlayed.value
+          : this.isLastPlayed,
+      lastPosition: data.lastPosition.present
+          ? data.lastPosition.value
+          : this.lastPosition,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('QueueEntry(')
+          ..write('position: $position, ')
+          ..write('trackId: $trackId, ')
+          ..write('isLastPlayed: $isLastPlayed, ')
+          ..write('lastPosition: $lastPosition')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(position, trackId, isLastPlayed, lastPosition);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is QueueEntry &&
+          other.position == this.position &&
+          other.trackId == this.trackId &&
+          other.isLastPlayed == this.isLastPlayed &&
+          other.lastPosition == this.lastPosition);
+}
+
+class QueueEntriesCompanion extends UpdateCompanion<QueueEntry> {
+  final Value<int> position;
+  final Value<int> trackId;
+  final Value<bool> isLastPlayed;
+  final Value<int> lastPosition;
+  const QueueEntriesCompanion({
+    this.position = const Value.absent(),
+    this.trackId = const Value.absent(),
+    this.isLastPlayed = const Value.absent(),
+    this.lastPosition = const Value.absent(),
+  });
+  QueueEntriesCompanion.insert({
+    this.position = const Value.absent(),
+    required int trackId,
+    this.isLastPlayed = const Value.absent(),
+    this.lastPosition = const Value.absent(),
+  }) : trackId = Value(trackId);
+  static Insertable<QueueEntry> custom({
+    Expression<int>? position,
+    Expression<int>? trackId,
+    Expression<bool>? isLastPlayed,
+    Expression<int>? lastPosition,
+  }) {
+    return RawValuesInsertable({
+      if (position != null) 'position': position,
+      if (trackId != null) 'track_id': trackId,
+      if (isLastPlayed != null) 'is_last_played': isLastPlayed,
+      if (lastPosition != null) 'last_position': lastPosition,
+    });
+  }
+
+  QueueEntriesCompanion copyWith({
+    Value<int>? position,
+    Value<int>? trackId,
+    Value<bool>? isLastPlayed,
+    Value<int>? lastPosition,
+  }) {
+    return QueueEntriesCompanion(
+      position: position ?? this.position,
+      trackId: trackId ?? this.trackId,
+      isLastPlayed: isLastPlayed ?? this.isLastPlayed,
+      lastPosition: lastPosition ?? this.lastPosition,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (trackId.present) {
+      map['track_id'] = Variable<int>(trackId.value);
+    }
+    if (isLastPlayed.present) {
+      map['is_last_played'] = Variable<bool>(isLastPlayed.value);
+    }
+    if (lastPosition.present) {
+      map['last_position'] = Variable<int>(lastPosition.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('QueueEntriesCompanion(')
+          ..write('position: $position, ')
+          ..write('trackId: $trackId, ')
+          ..write('isLastPlayed: $isLastPlayed, ')
+          ..write('lastPosition: $lastPosition')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2048,6 +2367,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PlaylistsTable playlists = $PlaylistsTable(this);
   late final $TrackArtistTable trackArtist = $TrackArtistTable(this);
   late final $PlaylistTrackTable playlistTrack = $PlaylistTrackTable(this);
+  late final $QueueEntriesTable queueEntries = $QueueEntriesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2059,6 +2379,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     playlists,
     trackArtist,
     playlistTrack,
+    queueEntries,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -3029,6 +3350,24 @@ final class $$TracksTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$QueueEntriesTable, List<QueueEntry>>
+  _queueEntriesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.queueEntries,
+    aliasName: $_aliasNameGenerator(db.tracks.id, db.queueEntries.trackId),
+  );
+
+  $$QueueEntriesTableProcessedTableManager get queueEntriesRefs {
+    final manager = $$QueueEntriesTableTableManager(
+      $_db,
+      $_db.queueEntries,
+    ).filter((f) => f.trackId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_queueEntriesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$TracksTableFilterComposer
@@ -3182,6 +3521,31 @@ class $$TracksTableFilterComposer
           }) => $$PlaylistTrackTableFilterComposer(
             $db: $db,
             $table: $db.playlistTrack,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> queueEntriesRefs(
+    Expression<bool> Function($$QueueEntriesTableFilterComposer f) f,
+  ) {
+    final $$QueueEntriesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.queueEntries,
+      getReferencedColumn: (t) => t.trackId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$QueueEntriesTableFilterComposer(
+            $db: $db,
+            $table: $db.queueEntries,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -3448,6 +3812,31 @@ class $$TracksTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> queueEntriesRefs<T extends Object>(
+    Expression<T> Function($$QueueEntriesTableAnnotationComposer a) f,
+  ) {
+    final $$QueueEntriesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.queueEntries,
+      getReferencedColumn: (t) => t.trackId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$QueueEntriesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.queueEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$TracksTableTableManager
@@ -3468,6 +3857,7 @@ class $$TracksTableTableManager
             bool albumId,
             bool trackArtistRefs,
             bool playlistTrackRefs,
+            bool queueEntriesRefs,
           })
         > {
   $$TracksTableTableManager(_$AppDatabase db, $TracksTable table)
@@ -3553,12 +3943,14 @@ class $$TracksTableTableManager
                 albumId = false,
                 trackArtistRefs = false,
                 playlistTrackRefs = false,
+                queueEntriesRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (trackArtistRefs) db.trackArtist,
                     if (playlistTrackRefs) db.playlistTrack,
+                    if (queueEntriesRefs) db.queueEntries,
                   ],
                   addJoins:
                       <
@@ -3649,6 +4041,27 @@ class $$TracksTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (queueEntriesRefs)
+                        await $_getPrefetchedData<
+                          Track,
+                          $TracksTable,
+                          QueueEntry
+                        >(
+                          currentTable: table,
+                          referencedTable: $$TracksTableReferences
+                              ._queueEntriesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$TracksTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).queueEntriesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.trackId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -3674,6 +4087,7 @@ typedef $$TracksTableProcessedTableManager =
         bool albumId,
         bool trackArtistRefs,
         bool playlistTrackRefs,
+        bool queueEntriesRefs,
       })
     >;
 typedef $$PlaylistsTableCreateCompanionBuilder =
@@ -4638,6 +5052,303 @@ typedef $$PlaylistTrackTableProcessedTableManager =
       PlaylistTrackData,
       PrefetchHooks Function({bool playlistId, bool trackId})
     >;
+typedef $$QueueEntriesTableCreateCompanionBuilder =
+    QueueEntriesCompanion Function({
+      Value<int> position,
+      required int trackId,
+      Value<bool> isLastPlayed,
+      Value<int> lastPosition,
+    });
+typedef $$QueueEntriesTableUpdateCompanionBuilder =
+    QueueEntriesCompanion Function({
+      Value<int> position,
+      Value<int> trackId,
+      Value<bool> isLastPlayed,
+      Value<int> lastPosition,
+    });
+
+final class $$QueueEntriesTableReferences
+    extends BaseReferences<_$AppDatabase, $QueueEntriesTable, QueueEntry> {
+  $$QueueEntriesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $TracksTable _trackIdTable(_$AppDatabase db) => db.tracks.createAlias(
+    $_aliasNameGenerator(db.queueEntries.trackId, db.tracks.id),
+  );
+
+  $$TracksTableProcessedTableManager get trackId {
+    final $_column = $_itemColumn<int>('track_id')!;
+
+    final manager = $$TracksTableTableManager(
+      $_db,
+      $_db.tracks,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_trackIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$QueueEntriesTableFilterComposer
+    extends Composer<_$AppDatabase, $QueueEntriesTable> {
+  $$QueueEntriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isLastPlayed => $composableBuilder(
+    column: $table.isLastPlayed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastPosition => $composableBuilder(
+    column: $table.lastPosition,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$TracksTableFilterComposer get trackId {
+    final $$TracksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.trackId,
+      referencedTable: $db.tracks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TracksTableFilterComposer(
+            $db: $db,
+            $table: $db.tracks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$QueueEntriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $QueueEntriesTable> {
+  $$QueueEntriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isLastPlayed => $composableBuilder(
+    column: $table.isLastPlayed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastPosition => $composableBuilder(
+    column: $table.lastPosition,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$TracksTableOrderingComposer get trackId {
+    final $$TracksTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.trackId,
+      referencedTable: $db.tracks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TracksTableOrderingComposer(
+            $db: $db,
+            $table: $db.tracks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$QueueEntriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $QueueEntriesTable> {
+  $$QueueEntriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<bool> get isLastPlayed => $composableBuilder(
+    column: $table.isLastPlayed,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lastPosition => $composableBuilder(
+    column: $table.lastPosition,
+    builder: (column) => column,
+  );
+
+  $$TracksTableAnnotationComposer get trackId {
+    final $$TracksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.trackId,
+      referencedTable: $db.tracks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TracksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.tracks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$QueueEntriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $QueueEntriesTable,
+          QueueEntry,
+          $$QueueEntriesTableFilterComposer,
+          $$QueueEntriesTableOrderingComposer,
+          $$QueueEntriesTableAnnotationComposer,
+          $$QueueEntriesTableCreateCompanionBuilder,
+          $$QueueEntriesTableUpdateCompanionBuilder,
+          (QueueEntry, $$QueueEntriesTableReferences),
+          QueueEntry,
+          PrefetchHooks Function({bool trackId})
+        > {
+  $$QueueEntriesTableTableManager(_$AppDatabase db, $QueueEntriesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$QueueEntriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$QueueEntriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$QueueEntriesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> position = const Value.absent(),
+                Value<int> trackId = const Value.absent(),
+                Value<bool> isLastPlayed = const Value.absent(),
+                Value<int> lastPosition = const Value.absent(),
+              }) => QueueEntriesCompanion(
+                position: position,
+                trackId: trackId,
+                isLastPlayed: isLastPlayed,
+                lastPosition: lastPosition,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> position = const Value.absent(),
+                required int trackId,
+                Value<bool> isLastPlayed = const Value.absent(),
+                Value<int> lastPosition = const Value.absent(),
+              }) => QueueEntriesCompanion.insert(
+                position: position,
+                trackId: trackId,
+                isLastPlayed: isLastPlayed,
+                lastPosition: lastPosition,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$QueueEntriesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({trackId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (trackId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.trackId,
+                                referencedTable: $$QueueEntriesTableReferences
+                                    ._trackIdTable(db),
+                                referencedColumn: $$QueueEntriesTableReferences
+                                    ._trackIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$QueueEntriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $QueueEntriesTable,
+      QueueEntry,
+      $$QueueEntriesTableFilterComposer,
+      $$QueueEntriesTableOrderingComposer,
+      $$QueueEntriesTableAnnotationComposer,
+      $$QueueEntriesTableCreateCompanionBuilder,
+      $$QueueEntriesTableUpdateCompanionBuilder,
+      (QueueEntry, $$QueueEntriesTableReferences),
+      QueueEntry,
+      PrefetchHooks Function({bool trackId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4654,4 +5365,6 @@ class $AppDatabaseManager {
       $$TrackArtistTableTableManager(_db, _db.trackArtist);
   $$PlaylistTrackTableTableManager get playlistTrack =>
       $$PlaylistTrackTableTableManager(_db, _db.playlistTrack);
+  $$QueueEntriesTableTableManager get queueEntries =>
+      $$QueueEntriesTableTableManager(_db, _db.queueEntries);
 }

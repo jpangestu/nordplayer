@@ -9,65 +9,6 @@ import 'package:path/path.dart' as p;
 
 part 'app_database.g.dart';
 
-final appDatabaseProvider = Provider<AppDatabase>((ref) {
-  final database = AppDatabase(openConection());
-  ref.onDispose(() => database.close());
-
-  return database;
-});
-
-final libraryStreamProvider = StreamProvider<List<TrackWithArtists>>((ref) {
-  final db = ref.watch(appDatabaseProvider);
-
-  final query = db.select(db.tracks).join([
-    leftOuterJoin(db.albums, db.albums.id.equalsExp(db.tracks.albumId)),
-    leftOuterJoin(
-      db.trackArtist,
-      db.trackArtist.trackId.equalsExp(db.tracks.id),
-    ),
-    leftOuterJoin(db.artists, db.artists.id.equalsExp(db.trackArtist.artistId)),
-  ]);
-
-  // Sort title ascending
-  query.orderBy([OrderingTerm.asc(db.tracks.title.lower())]);
-
-  // Return the stream and map the raw rows into grouped objects
-  return query.watch().map((rows) {
-    final Map<int, TrackWithArtists> groupedTracks = {};
-
-    for (final row in rows) {
-      final track = row.readTable(db.tracks);
-      final album = row.readTable(db.albums);
-      final artist = row.readTable(db.artists);
-
-      // If track is new, create the entry
-      if (!groupedTracks.containsKey(track.id)) {
-        groupedTracks[track.id] = TrackWithArtists(
-          track: track,
-          album: album,
-          artists: [],
-        );
-      }
-
-      // Add the artist from this row to the artists list
-      // distinct check to avoid duplicates if query logic overlaps
-      final currentArtists = groupedTracks[track.id]!.artists;
-      if (!currentArtists.any((a) => a.id == artist.id)) {
-        currentArtists.add(artist);
-      }
-    }
-
-    return groupedTracks.values.toList();
-  });
-});
-
-final playlistsStreamProvider = StreamProvider<List<PlaylistWithDetails>>((
-  ref,
-) {
-  final db = ref.watch(appDatabaseProvider);
-  return db.watchAllPlaylists();
-});
-
 LazyDatabase openConection() {
   return LazyDatabase(() async {
     final dbPath = await getApplicationSupportDirectory();
@@ -86,13 +27,44 @@ LazyDatabase openConection() {
 }
 
 @DriftDatabase(
-  tables: [Tracks, Artists, Albums, Playlists, TrackArtist, PlaylistTrack],
+  tables: [
+    Tracks,
+    Artists,
+    Albums,
+    Playlists,
+    TrackArtist,
+    PlaylistTrack,
+    QueueEntries,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
   int get schemaVersion => 1;
+
+  Future<TrackWithArtists?> getTrackWithArtistsById(int id) async {
+    final query = select(tracks).join([
+      leftOuterJoin(albums, albums.id.equalsExp(tracks.albumId)),
+      leftOuterJoin(trackArtist, trackArtist.trackId.equalsExp(tracks.id)),
+      leftOuterJoin(artists, artists.id.equalsExp(trackArtist.artistId)),
+    ])..where(tracks.id.equals(id));
+
+    final rows = await query.get();
+    if (rows.isEmpty) return null;
+
+    final track = rows.first.readTable(tracks);
+    final album = rows.first.readTable(albums);
+    final artistList = rows
+        .map((row) => row.readTable(artists))
+        .where((a) => a.id != 0) // filter null-joined rows
+        .fold<List<Artist>>([], (list, a) {
+          if (!list.any((x) => x.id == a.id)) list.add(a);
+          return list;
+        });
+
+    return TrackWithArtists(track: track, album: album, artists: artistList);
+  }
 
   // -- PLAYLISTS TABLE CRUD --
   Stream<List<PlaylistWithDetails>> watchAllPlaylists() {
@@ -103,14 +75,11 @@ class AppDatabase extends _$AppDatabase {
 
     final query =
         select(playlists).join([
-            // 1. Join Junction Table
             leftOuterJoin(
               playlistTrack,
               playlistTrack.playlistId.equalsExp(playlists.id),
             ),
-            // 2. Join Tracks to get the track details
             leftOuterJoin(tracks, tracks.id.equalsExp(playlistTrack.trackId)),
-            // 3. Join Albums to get the actual cover art path
             leftOuterJoin(albums, albums.id.equalsExp(tracks.albumId)),
           ])
           ..addColumns([
@@ -132,7 +101,7 @@ class AppDatabase extends _$AppDatabase {
               .split('||')
               .where((path) => path.trim().isNotEmpty)
               .toSet() // Use a Set to prevent duplicate covers
-              .take(5) // Only take as many as your AlbumArtStack needs
+              .take(5)
               .toList();
         }
 
@@ -213,6 +182,54 @@ class AppDatabase extends _$AppDatabase {
       PlaylistsCompanion(name: Value(newName)),
     );
   }
+
+  // -- QUEUE SAVING --
+
+  Future<void> saveQueue(
+    List<TrackWithArtists> tracks,
+    int currentIndex,
+    Duration currentPosition,
+  ) async {
+    await transaction(() async {
+      await delete(queueEntries).go();
+      await batch((b) {
+        b.insertAll(queueEntries, [
+          for (var i = 0; i < tracks.length; i++)
+            QueueEntriesCompanion.insert(
+              position: Value(i),
+              trackId: tracks[i].track.id,
+              isLastPlayed: Value(i == currentIndex),
+              lastPosition: Value(
+                i == currentIndex ? currentPosition.inSeconds : 0,
+              ),
+            ),
+        ]);
+      });
+    });
+  }
+
+  Future<(List<TrackWithArtists>, int, Duration)> loadQueue() async {
+    final entries = await (select(
+      queueEntries,
+    )..orderBy([(t) => OrderingTerm.asc(t.position)])).get();
+
+    final tracks = <TrackWithArtists>[];
+    int lastIndex = 0;
+    Duration lastPosition = Duration.zero;
+
+    for (final entry in entries) {
+      final track = await getTrackWithArtistsById(entry.trackId);
+      if (track != null) {
+        if (entry.isLastPlayed) {
+          lastIndex = tracks.length;
+          lastPosition = Duration(seconds: entry.lastPosition);
+        }
+        tracks.add(track);
+      }
+    }
+
+    return (tracks, lastIndex, lastPosition);
+  }
 }
 
 class TrackWithArtists {
@@ -238,3 +255,65 @@ class PlaylistWithDetails {
     required this.imageUrls,
   });
 }
+
+//
+// =========================== Provider ==================================
+//
+final appDatabaseProvider = Provider<AppDatabase>((ref) {
+  final database = AppDatabase(openConection());
+  ref.onDispose(() => database.close());
+
+  return database;
+});
+
+final libraryStreamProvider = StreamProvider<List<TrackWithArtists>>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+
+  final query = db.select(db.tracks).join([
+    leftOuterJoin(db.albums, db.albums.id.equalsExp(db.tracks.albumId)),
+    leftOuterJoin(
+      db.trackArtist,
+      db.trackArtist.trackId.equalsExp(db.tracks.id),
+    ),
+    leftOuterJoin(db.artists, db.artists.id.equalsExp(db.trackArtist.artistId)),
+  ]);
+
+  // Sort title ascending
+  query.orderBy([OrderingTerm.asc(db.tracks.title.lower())]);
+
+  // Return the stream and map the raw rows into grouped objects
+  return query.watch().map((rows) {
+    final Map<int, TrackWithArtists> groupedTracks = {};
+
+    for (final row in rows) {
+      final track = row.readTable(db.tracks);
+      final album = row.readTable(db.albums);
+      final artist = row.readTable(db.artists);
+
+      // If track is new, create the entry
+      if (!groupedTracks.containsKey(track.id)) {
+        groupedTracks[track.id] = TrackWithArtists(
+          track: track,
+          album: album,
+          artists: [],
+        );
+      }
+
+      // Add the artist from this row to the artists list
+      // distinct check to avoid duplicates if query logic overlaps
+      final currentArtists = groupedTracks[track.id]!.artists;
+      if (!currentArtists.any((a) => a.id == artist.id)) {
+        currentArtists.add(artist);
+      }
+    }
+
+    return groupedTracks.values.toList();
+  });
+});
+
+final playlistsStreamProvider = StreamProvider<List<PlaylistWithDetails>>((
+  ref,
+) {
+  final db = ref.watch(appDatabaseProvider);
+  return db.watchAllPlaylists();
+});

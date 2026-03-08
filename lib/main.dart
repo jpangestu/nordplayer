@@ -1,8 +1,11 @@
+import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/library_watcher.dart';
+import 'package:nordplayer/services/player_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:metadata_god/metadata_god.dart';
@@ -43,9 +46,26 @@ void main() async {
     ),
   );
 
+  // Set here because PlayerService and MediaKitAudioHandler need the same player instance
+  final player = Player();
+  await AudioService.init(
+    builder: () => MediaKitAudioHandler(player),
+    config: const AudioServiceConfig(
+      androidNotificationChannelId: 'com.nordplayer.nordplayer.channel.audio',
+      androidNotificationChannelName: 'Audio Playback',
+    ),
+  );
+
   runApp(
     ProviderScope(
-      overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
+      overrides: [
+        sharedPrefsProvider.overrideWithValue(prefs),
+        playerServiceProvider.overrideWith((ref) {
+          final service = PlayerService.withPlayer(ref, player);
+          ref.onDispose(() => service.dispose());
+          return service;
+        }),
+      ],
       child: const NordplayerApp(),
     ),
   );
@@ -60,13 +80,53 @@ class NordplayerApp extends ConsumerStatefulWidget {
 
 class _NordplayerAppState extends ConsumerState<NordplayerApp>
     with WindowListener {
+  Future<void> _restoreQueue() async {
+    final db = ref.read(appDatabaseProvider);
+    final (queue, lastIndex, lastPosition) = await db.loadQueue();
+
+    if (queue.isEmpty) return;
+
+    final player = ref.read(playerServiceProvider);
+    await player.setPlaylist(queue, lastIndex);
+    await player.mkPlayer.seek(lastPosition);
+    await player.mkPlayer.pause();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    windowManager.addListener(this);
+  }
+
+  @override
+  void dispose() {
+    windowManager.removeListener(this);
+    super.dispose();
+  }
+
+  @override
+  void onWindowRestore() => windowManager.setMinimumSize(const Size(800, 600));
+
+  @override
+  void onWindowUnmaximize() =>
+      windowManager.setMinimumSize(const Size(800, 600));
+
+  @override
+  void onWindowResize() => windowManager.setMinimumSize(const Size(800, 600));
+
+  @override
+  void onWindowFocus() => windowManager.setMinimumSize(const Size(800, 600));
+
   @override
   Widget build(BuildContext context) {
     // Scan and watch for changes in library after config loaded
     ref.listen<AsyncValue<AppConfig>>(configServiceProvider, (previous, next) {
       if (previous is AsyncLoading && next is AsyncData) {
+        ref.read(playerServiceProvider).init();
         ref.read(libraryWatcherProvider).startWatching();
         ref.read(libraryScannerProvider).scanLibrary();
+
+        _restoreQueue();
       }
     });
 

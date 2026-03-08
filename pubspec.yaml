@@ -20,6 +20,8 @@ dependencies:
   url_launcher: ^6.3.2
 
   # Third parties
+  audio_service: ^0.18.18
+  audio_service_mpris: ^0.2.0
   drift: ^2.31.0
   drift_flutter: ^0.2.8
   flutter_riverpod: ^3.2.1

@@ -53,3 +53,14 @@ class PlaylistTrack extends Table {
   IntColumn get trackId =>
       integer().references(Tracks, #id, onDelete: KeyAction.cascade)();
 }
+
+// For saving the last played track and its playlist/queue
+class QueueEntries extends Table {
+  IntColumn get position => integer()();
+  IntColumn get trackId => integer().references(Tracks, #id)();
+  BoolColumn get isLastPlayed => boolean().withDefault(const Constant(false))();
+  IntColumn get lastPosition => integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column> get primaryKey => {position};
+}
