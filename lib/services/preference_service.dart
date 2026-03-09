@@ -8,12 +8,14 @@ import 'package:nordplayer/widgets/player_bar/progress_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PrefConstants {
+  static const String isMuted = 'isMuted';
   static const String loopMode = 'loopMode';
   static const String shuffleMode = 'shuffleMode';
   static const String sidebarExtended = 'sidebarExtended';
   static const String timeLabelType = 'timeLabelType';
   static const String volume = 'volume';
 
+  static const bool defaultIsMuted = false;
   static const PlaylistMode defaultLoopMode = PlaylistMode.none;
   static const bool defaultShuffleMode = false;
   static const bool defaultSidebarExtended = true;
@@ -21,6 +23,7 @@ class PrefConstants {
   static const double defaultVolume = 100;
 
   static const Set<String> allowList = {
+    isMuted,
     loopMode,
     shuffleMode,
     sidebarExtended,
@@ -31,6 +34,7 @@ class PrefConstants {
 
 @immutable
 class PreferencesState {
+  final bool isMuted;
   final PlaylistMode loopMode;
   final bool shuffleMode;
   final bool sidebarExtended;
@@ -38,6 +42,7 @@ class PreferencesState {
   final double volume;
 
   const PreferencesState({
+    required this.isMuted,
     required this.loopMode,
     required this.shuffleMode,
     required this.sidebarExtended,
@@ -46,6 +51,7 @@ class PreferencesState {
   });
 
   PreferencesState copyWith({
+    bool? isMuted,
     PlaylistMode? loopMode,
     bool? shuffleMode,
     bool? sidebarExtended,
@@ -53,6 +59,7 @@ class PreferencesState {
     double? volume,
   }) {
     return PreferencesState(
+      isMuted: isMuted ?? this.isMuted,
       loopMode: loopMode ?? this.loopMode,
       shuffleMode: shuffleMode ?? this.shuffleMode,
       sidebarExtended: sidebarExtended ?? this.sidebarExtended,
@@ -85,6 +92,8 @@ class PreferenceService extends Notifier<PreferencesState> with LoggerMixin {
 
     // Load everything synchronously from the cache
     return PreferencesState(
+      isMuted:
+          _prefs.getBool(PrefConstants.isMuted) ?? PrefConstants.defaultIsMuted,
       loopMode: _getLoopModeOrDefault(),
       shuffleMode:
           _prefs.getBool(PrefConstants.shuffleMode) ??
@@ -119,6 +128,11 @@ class PreferenceService extends Notifier<PreferencesState> with LoggerMixin {
     } catch (e, s) {
       log.e("Failed to save preference: $key", error: e, stackTrace: s);
     }
+  }
+
+  void setIsMuted(bool value) {
+    state = state.copyWith(isMuted: value);
+    _setValue(PrefConstants.isMuted, value);
   }
 
   void setLoopMode(PlaylistMode value) {
@@ -160,6 +174,7 @@ class PreferenceService extends Notifier<PreferencesState> with LoggerMixin {
 
       // Reset the Riverpod state to trigger UI updates
       state = const PreferencesState(
+        isMuted: PrefConstants.defaultIsMuted,
         loopMode: PrefConstants.defaultLoopMode,
         shuffleMode: PrefConstants.defaultShuffleMode,
         sidebarExtended: PrefConstants.defaultSidebarExtended,

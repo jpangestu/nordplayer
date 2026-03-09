@@ -81,8 +81,12 @@ class _PlayerBarState extends ConsumerState<PlayerBar> with LoggerMixin {
                 ),
                 VolumeSlider(
                   volume: ref.watch(preferenceServiceProvider).volume,
+                  isMuted: ref.watch(preferenceServiceProvider).isMuted,
                   onChanged: (value) {
                     player.setVolume(value.roundToDouble());
+                  },
+                  onMute: () {
+                    player.toggleMute();
                   },
                 ),
               ],

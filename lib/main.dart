@@ -1,7 +1,6 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/library_watcher.dart';
@@ -80,18 +79,6 @@ class NordplayerApp extends ConsumerStatefulWidget {
 
 class _NordplayerAppState extends ConsumerState<NordplayerApp>
     with WindowListener {
-  Future<void> _restoreQueue() async {
-    final db = ref.read(appDatabaseProvider);
-    final (queue, lastIndex, lastPosition) = await db.loadQueue();
-
-    if (queue.isEmpty) return;
-
-    final player = ref.read(playerServiceProvider);
-    await player.setPlaylist(queue, lastIndex);
-    await player.mkPlayer.seek(lastPosition);
-    await player.mkPlayer.pause();
-  }
-
   @override
   void initState() {
     super.initState();
@@ -125,8 +112,7 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp>
         ref.read(playerServiceProvider).init();
         ref.read(libraryWatcherProvider).startWatching();
         ref.read(libraryScannerProvider).scanLibrary();
-
-        _restoreQueue();
+        ref.read(playerServiceProvider).initializeQueueFromDatabase();
       }
     });
 

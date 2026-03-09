@@ -17,7 +17,6 @@ class _PlaybackState extends ConsumerState<Playback> with LoggerMixin {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    final player = ref.watch(playerServiceProvider);
     final isPlaying = ref.watch(isPlayingProvider);
     final isShuffled = ref.watch(preferenceServiceProvider).shuffleMode;
     final loopMode = ref.watch(preferenceServiceProvider).loopMode;
@@ -31,14 +30,12 @@ class _PlaybackState extends ConsumerState<Playback> with LoggerMixin {
             color: isShuffled ? colorScheme.primary : null,
           ),
           iconSize: 24,
-          onPressed: () => player.toggleShuffle(),
+          onPressed: () => ref.read(playerServiceProvider).toggleShuffle(),
         ),
         IconButton(
           icon: Icon(Icons.skip_previous),
           iconSize: 24,
-          onPressed: () {
-            player.previous();
-          },
+          onPressed: () => ref.read(playerServiceProvider).previous(),
         ),
         IconButton(
           isSelected: true,
@@ -49,9 +46,7 @@ class _PlaybackState extends ConsumerState<Playback> with LoggerMixin {
         IconButton(
           icon: Icon(Icons.skip_next),
           iconSize: 24,
-          onPressed: () {
-            player.next();
-          },
+          onPressed: () => ref.read(playerServiceProvider).next(),
         ),
         IconButton(
           icon: Icon(switch (loopMode) {
@@ -59,7 +54,7 @@ class _PlaybackState extends ConsumerState<Playback> with LoggerMixin {
             PlaylistMode.loop => Icons.repeat,
             PlaylistMode.single => Icons.repeat_one,
           }, color: loopMode != PlaylistMode.none ? colorScheme.primary : null),
-          onPressed: () => player.cycleLoopMode(),
+          onPressed: () => ref.read(playerServiceProvider).cycleLoopMode(),
         ),
       ],
     );

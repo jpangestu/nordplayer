@@ -15,11 +15,8 @@ import 'package:nordplayer/widgets/album_art_wall.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
 import 'package:nordplayer/widgets/nordplayer_app_bar.dart';
+import 'package:nordplayer/widgets/shortcuts.dart';
 import 'package:nordplayer/widgets/sliver_resizable_table_layout.dart';
-
-class PlayIntent extends Intent {
-  const PlayIntent();
-}
 
 class LibraryPage extends ConsumerWidget {
   const LibraryPage({super.key});
@@ -29,26 +26,13 @@ class LibraryPage extends ConsumerWidget {
     final theme = Theme.of(context);
     final libraryAsync = ref.watch(libraryStreamProvider);
 
-    void handleKeyboardPlay(WidgetRef ref) {
-      final currentSelection = ref.read(selectedTracksProvider);
-
-      if (currentSelection.isEmpty) return;
-
-      ref.read(playerServiceProvider).setPlaylist(currentSelection, 0);
-    }
-
     return Shortcuts(
       shortcuts: <ShortcutActivator, Intent>{
-        // Map the Physical Enter key to PlayIntent
-        LogicalKeySet(LogicalKeyboardKey.enter): const PlayIntent(),
-        LogicalKeySet(LogicalKeyboardKey.numpadEnter): const PlayIntent(),
+        LogicalKeySet(LogicalKeyboardKey.enter): const PlaySelectedIntent(),
+        LogicalKeySet(LogicalKeyboardKey.numpadEnter): const PlaySelectedIntent(),
       },
       child: Actions(
-        actions: <Type, Action<Intent>>{
-          PlayIntent: CallbackAction<PlayIntent>(
-            onInvoke: (intent) => handleKeyboardPlay(ref),
-          ),
-        },
+        actions: <Type, Action<Intent>>{PlaySelectedIntent: PlaySelectedAction(ref)},
         child: Focus(
           autofocus: true,
           child: Scaffold(

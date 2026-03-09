@@ -15,33 +15,56 @@ class PlayerService with LoggerMixin {
 
   Player get mkPlayer => _mkPlayer;
 
+  // Set up this way to prevent last position resetting to zero on startup
+  bool _isRestoringQueue = false;
+  Future<void> initializeQueueFromDatabase() async {
+    _isRestoringQueue = true; // Lock the listeners
+
+    try {
+      final (tracks, index, position) = await ref
+          .read(appDatabaseProvider)
+          .loadQueue();
+      if (tracks.isNotEmpty) {
+        await setPlaylist(tracks, index, autoplay: false);
+        await _mkPlayer.seek(position); // Restore the position
+      }
+    } finally {
+      // Give the engine 500ms to settle, then unlock the listeners
+      await Future.delayed(const Duration(milliseconds: 500));
+      _isRestoringQueue = false;
+    }
+  }
+
   PlayerService.withPlayer(this.ref, this._mkPlayer) {
-    Timer? positionDebounce;
+    DateTime? lastSaveTime;
 
     _mkPlayer.stream.playlist.listen((playlist) {
-      if (playlist.medias.isEmpty) return;
-      _persistQueue(playlist);
+      if (_isRestoringQueue || playlist.medias.isEmpty) return;
+      final tracks = playlist.medias
+          .map((m) => m.extras?['data'] as TrackWithArtists?)
+          .whereType<TrackWithArtists>()
+          .toList();
+
+      ref
+          .read(appDatabaseProvider)
+          .saveQueue(tracks, playlist.index, _mkPlayer.state.position);
     });
 
     _mkPlayer.stream.position.listen((position) {
-      positionDebounce?.cancel();
-      positionDebounce = Timer(const Duration(seconds: 5), () {
-        final playlist = _mkPlayer.state.playlist;
-        if (playlist.medias.isEmpty) return;
-        _persistQueue(playlist);
-      });
+      if (_isRestoringQueue) return;
+
+      final now = DateTime.now();
+
+      // DateTime-based debounce (can't use timer)
+      if (lastSaveTime == null ||
+          now.difference(lastSaveTime!) >= const Duration(seconds: 5)) {
+        lastSaveTime = now;
+
+        ref
+            .read(appDatabaseProvider)
+            .updateCurrentPosition(position.inMilliseconds);
+      }
     });
-  }
-
-  void _persistQueue(Playlist playlist) {
-    final tracks = playlist.medias
-        .map((m) => m.extras?['data'] as TrackWithArtists?)
-        .whereType<TrackWithArtists>()
-        .toList();
-
-    ref
-        .read(appDatabaseProvider)
-        .saveQueue(tracks, playlist.index, _mkPlayer.state.position);
   }
 
   /// Initialize with saved preferences
@@ -64,8 +87,9 @@ class PlayerService with LoggerMixin {
   /// Opens a list of tracks as a Playlist and play the given index
   Future<void> setPlaylist(
     List<TrackWithArtists> tracks,
-    int initialIndex,
-  ) async {
+    int initialIndex, {
+    bool autoplay = true,
+  }) async {
     final shouldShuffle = ref.read(preferenceServiceProvider).shuffleMode;
 
     final currentPaths = _mkPlayer.state.playlist.medias
@@ -123,7 +147,7 @@ class PlayerService with LoggerMixin {
       try {
         await _mkPlayer.open(
           Playlist(playableMedia, index: initialIndex),
-          play: true,
+          play: autoplay,
         );
       } catch (e) {
         log.e("Error loading media_kit playlist: $e");
@@ -174,7 +198,54 @@ class PlayerService with LoggerMixin {
   Future<void> next() async => await _mkPlayer.next();
   Future<void> previous() async => await _mkPlayer.previous();
 
+  Future<void> toggleMute() async {
+    final prefsState = ref.read(preferenceServiceProvider);
+    final prefsNotifier = ref.read(preferenceServiceProvider.notifier);
+
+    if (prefsState.isMuted) {
+      // UNMUTE: Restore to the saved volume
+      prefsNotifier.setIsMuted(false);
+      await _mkPlayer.setVolume(prefsState.volume);
+    } else {
+      // MUTE: Drop engine to 0, but leave prefs volume alone
+      prefsNotifier.setIsMuted(true);
+      await _mkPlayer.setVolume(0.0);
+    }
+  }
+
   Future<void> setVolume(double volume) async {
+    final prefsNotifier = ref.read(preferenceServiceProvider.notifier);
+
+    if (volume == 0) {
+      prefsNotifier.setIsMuted(true);
+    } else {
+      prefsNotifier.setIsMuted(false);
+    }
+
+    await _mkPlayer.setVolume(volume);
+    prefsNotifier.setVolume(volume);
+  }
+
+  Future<void> setVolumeUp(double increment) async {
+    final prefsVolume = ref.read(preferenceServiceProvider).volume;
+    ref.read(preferenceServiceProvider.notifier).setIsMuted(false);
+
+    final double volume = (prefsVolume + increment).clamp(0, 100);
+    await _mkPlayer.setVolume(volume);
+    ref.read(preferenceServiceProvider.notifier).setVolume(volume);
+  }
+
+  Future<void> setVolumeDown(double decrement) async {
+    final prefsVolume = ref.read(preferenceServiceProvider).volume;
+
+    final double volume = (prefsVolume - decrement).clamp(0, 100);
+
+    if (volume == 0) {
+      ref.read(preferenceServiceProvider.notifier).setIsMuted(true);
+    } else {
+      ref.read(preferenceServiceProvider.notifier).setIsMuted(false);
+    }
+
     await _mkPlayer.setVolume(volume);
     ref.read(preferenceServiceProvider.notifier).setVolume(volume);
   }

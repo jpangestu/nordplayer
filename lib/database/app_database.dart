@@ -200,7 +200,7 @@ class AppDatabase extends _$AppDatabase {
               trackId: tracks[i].track.id,
               isLastPlayed: Value(i == currentIndex),
               lastPosition: Value(
-                i == currentIndex ? currentPosition.inSeconds : 0,
+                i == currentIndex ? currentPosition.inMilliseconds : 0,
               ),
             ),
         ]);
@@ -222,13 +222,19 @@ class AppDatabase extends _$AppDatabase {
       if (track != null) {
         if (entry.isLastPlayed) {
           lastIndex = tracks.length;
-          lastPosition = Duration(seconds: entry.lastPosition);
+          lastPosition = Duration(milliseconds: entry.lastPosition);
         }
         tracks.add(track);
       }
     }
 
     return (tracks, lastIndex, lastPosition);
+  }
+
+  /// Updates ONLY the position of the currently active track.
+  Future<void> updateCurrentPosition(int positionInMs) async {
+    await (update(queueEntries)..where((t) => t.isLastPlayed.equals(true)))
+        .write(QueueEntriesCompanion(lastPosition: Value(positionInMs)));
   }
 }
 
