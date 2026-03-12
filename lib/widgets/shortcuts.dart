@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/pages/library_page.dart';
 import 'package:nordplayer/services/player_service.dart';
 
@@ -124,15 +125,29 @@ class PlaySelectedIntent extends Intent {
 }
 
 class PlaySelectedAction extends Action<PlaySelectedIntent> {
-  PlaySelectedAction(this.ref);
+  PlaySelectedAction(this.ref, this.allTracks, this.tableId);
+
   final WidgetRef ref;
+  final List<TrackWithArtists> allTracks;
+  final String tableId;
 
   @override
   void invoke(covariant PlaySelectedIntent intent) {
-    final currentSelection = ref.read(selectedTracksProvider);
+    // Get the current selection for this specific table
+    final selectedIndices = ref.read(selectedTracksIndexProvider(tableId));
 
-    if (currentSelection.isEmpty) return;
+    if (selectedIndices.isEmpty) return;
 
-    ref.read(playerServiceProvider).setPlaylist(currentSelection, 0);
+    if (selectedIndices.length == 1) {
+      // Single Selection: Play the whole list, starting at the selected index
+      final targetIndex = selectedIndices.first;
+      ref.read(playerServiceProvider).setPlaylist(allTracks, targetIndex);
+    } else {
+      // Multiple Selection: Play only the selected tracks as a new playlist
+      final sortedIndices = selectedIndices.toList()..sort();
+      final selectedTracks = sortedIndices.map((i) => allTracks[i]).toList();
+
+      ref.read(playerServiceProvider).setPlaylist(selectedTracks, 0);
+    }
   }
 }

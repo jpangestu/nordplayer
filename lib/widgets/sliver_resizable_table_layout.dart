@@ -1,13 +1,17 @@
 import 'dart:math' as math;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// A configuration object defining the sizing and layout rules for a single column
-/// within a [SliverResizableTableLayout].
+/// within a [SliverTableLayout].
 ///
 /// A column must be defined as either fixed-width (using [width]) or flexible
 /// (using [flex]), but not both.
-class TableColumn {
+class TableColumn<T> {
+  /// Unique identifier, useful for saving "hidden/visible" user preferences.
+  final String id;
+
   /// The text label displayed in the column header.
   final String label;
 
@@ -33,16 +37,43 @@ class TableColumn {
   /// The alignment of the text within the header cell. Defaults to [Alignment.centerLeft].
   final Alignment alignment;
 
+  /// Determines if the layout should calculate and render this column.
+  final bool isVisible;
+
+  /// Callback fired when the user left-clicks this column's header.
+  final VoidCallback? onHeaderClick;
+
+  /// The function that builds the UI for a single cell in this column.
+  final Widget Function(BuildContext context, T item, int index) cellBuilder;
+
   const TableColumn({
+    required this.id,
     required this.label,
     this.minWidth = 50.0,
     this.width,
     this.flex,
     this.alignment = Alignment.centerLeft,
+    this.isVisible = true,
+    this.onHeaderClick,
+    required this.cellBuilder,
   }) : assert(
          (width != null || flex != null) && !(width != null && flex != null),
          'A TableColumn must provide exactly one of either width or flex.',
        );
+
+  /// Creates a copy of this column with the [isVisible] property modified.
+  TableColumn<T> copyWith({bool? isVisible, double? width, double? flex}) {
+    return TableColumn<T>(
+      id: id,
+      label: label,
+      minWidth: minWidth,
+      width: width ?? this.width,
+      flex: flex ?? this.flex,
+      alignment: alignment,
+      isVisible: isVisible ?? this.isVisible,
+      cellBuilder: cellBuilder,
+    );
+  }
 }
 
 /// A resizable table layout widget.
@@ -50,7 +81,7 @@ class TableColumn {
 /// This widget provides a desktop-class table experience similar to Spotify or Excel.
 /// It supports a mix of fixed and flexible columns, and features "cascading" resize
 /// logic—where shrinking a column past its minimum width will push adjacent columns.
-class SliverResizableTableLayout extends StatefulWidget {
+class SliverTableLayout extends StatefulWidget {
   /// The list of column configurations defining the table structure.
   final List<TableColumn> columns;
 
@@ -107,11 +138,19 @@ class SliverResizableTableLayout extends StatefulWidget {
   /// Defaults to `EdgeInsets.symmetric(horizontal: 16)`.
   final EdgeInsets cellPadding;
 
-  const SliverResizableTableLayout({
+  /// Callback fired when the user finishes dragging a column resizer.
+  final void Function(List<double> newWidths)? onColumnsResized;
+
+  /// Callback fired when a user right-clicks anywhere on the header row.
+  final void Function(Offset globalPosition)? onHeaderRightClick;
+
+  const SliverTableLayout({
     super.key,
     required this.columns,
     required this.itemCount,
     required this.rowBuilder,
+    this.onColumnsResized,
+    this.onHeaderRightClick,
     this.headerHeight = 40.0,
     this.scrollController,
     this.headerDecoration,
@@ -126,10 +165,10 @@ class SliverResizableTableLayout extends StatefulWidget {
   });
 
   @override
-  State<SliverResizableTableLayout> createState() => _SliverResizableTableLayoutState();
+  State<SliverTableLayout> createState() => _SliverTableLayoutState();
 }
 
-class _SliverResizableTableLayoutState extends State<SliverResizableTableLayout> {
+class _SliverTableLayoutState extends State<SliverTableLayout> {
   final FlexibleTableLayoutController _controller =
       FlexibleTableLayoutController();
 
@@ -145,7 +184,6 @@ class _SliverResizableTableLayoutState extends State<SliverResizableTableLayout>
 
   @override
   Widget build(BuildContext context) {
-    // REFACTOR: Converted LayoutBuilder to SliverLayoutBuilder for direct CustomScrollView usage
     return SliverLayoutBuilder(
       builder: (context, constraints) {
         // Use crossAxisExtent for sliver width constraints
@@ -156,10 +194,9 @@ class _SliverResizableTableLayoutState extends State<SliverResizableTableLayout>
         return AnimatedBuilder(
           animation: _controller,
           builder: (context, _) {
-            // REFACTOR: Replaced Column with SliverMainAxisGroup
             return SliverMainAxisGroup(
               slivers: [
-                // 1. STICKY HEADER
+                // -- STICKY HEADER --
                 SliverPersistentHeader(
                   pinned: true,
                   delegate: _StickyTableHeaderDelegate(
@@ -167,7 +204,7 @@ class _SliverResizableTableLayoutState extends State<SliverResizableTableLayout>
                     child: _buildHeader(context),
                   ),
                 ),
-                // 2. SCROLLABLE DATA ROWS
+                // -- SCROLLABLE DATA ROWS --
                 SliverPadding(
                   padding: widget.padding,
                   sliver: SliverList.builder(
@@ -205,7 +242,6 @@ class _SliverResizableTableLayoutState extends State<SliverResizableTableLayout>
         _isHeaderHovered = false;
         _hoveredHandleIndex = null;
       }),
-      // REFACTOR: Added solid background container so scrolling tracks don't bleed through
       child: Container(
         color: theme.colorScheme.surface,
         child: Padding(
@@ -241,20 +277,24 @@ class _SliverResizableTableLayoutState extends State<SliverResizableTableLayout>
                     for (int i = 0; i < widget.columns.length; i++)
                       LayoutId(
                         id: 'label_$i',
-                        child: Container(
-                          padding: widget.cellPadding,
-                          alignment: widget.columns[i].alignment,
-                          child: Text(
-                            widget.columns[i].label,
-                            style:
-                                widget.headerTextStyle ??
-                                TextStyle(
-                                  color: defaultTextColor,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: widget.columns[i].onHeaderClick,
+                          child: Container(
+                            padding: widget.cellPadding,
+                            alignment: widget.columns[i].alignment,
+                            child: Text(
+                              widget.columns[i].label,
+                              style:
+                                  widget.headerTextStyle ??
+                                  TextStyle(
+                                    color: defaultTextColor,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ),
                       ),
@@ -303,6 +343,11 @@ class _SliverResizableTableLayoutState extends State<SliverResizableTableLayout>
   }
 
   void _handlePointerDown(PointerDownEvent event) {
+    if (event.buttons == kSecondaryMouseButton) {
+      widget.onHeaderRightClick?.call(event.position);
+      return;
+    }
+
     final index = _findHandleIndex(event.localPosition.dx);
     if (index != null) {
       setState(() => _activeDragHandleIndex = index);
@@ -323,6 +368,8 @@ class _SliverResizableTableLayoutState extends State<SliverResizableTableLayout>
   void _handlePointerUp(PointerEvent event) {
     if (_activeDragHandleIndex != null) {
       setState(() => _activeDragHandleIndex = null);
+      // Trigger the callback with the current calculated widths
+      widget.onColumnsResized?.call(_controller.widths);
     }
   }
 
@@ -421,29 +468,70 @@ class FlexibleTableLayoutController extends ChangeNotifier {
   }
 
   void _calculateInitialWidths() {
-    double usedFixed = 0;
-    double totalFlex = 0;
-
-    for (var col in _columns) {
-      if (col.width != null) usedFixed += col.width!;
-      if (col.flex != null) totalFlex += col.flex!;
-    }
-
-    double availableFlex = math.max(0, _totalWidth - usedFixed);
     _widths = List.filled(_columns.length, 0.0);
 
+    double availableSpace = _totalWidth;
+
+    // Allocate fixed-width columns first and identify flexible ones
+    List<int> flexibleIndices = [];
     for (int i = 0; i < _columns.length; i++) {
       if (_columns[i].width != null) {
         _widths[i] = _columns[i].width!;
+        availableSpace -= _widths[i];
+      } else if (_columns[i].flex != null) {
+        flexibleIndices.add(i);
       } else {
-        if (totalFlex > 0) {
-          double share = (_columns[i].flex! / totalFlex) * availableFlex;
-          _widths[i] = math.max(share, _columns[i].minWidth);
-        } else {
-          _widths[i] = _columns[i].minWidth;
-        }
+        // Fallback for safety
+        _widths[i] = _columns[i].minWidth;
+        availableSpace -= _widths[i];
       }
     }
+
+    // Iterative distribution for flexible columns
+    bool recalculate;
+    do {
+      recalculate = false;
+      double currentTotalFlex = 0;
+
+      for (int i in flexibleIndices) {
+        currentTotalFlex += _columns[i].flex!;
+      }
+
+      if (currentTotalFlex <= 0) break;
+
+      List<int> remainingFlexibleIndices = [];
+
+      for (int i in flexibleIndices) {
+        // Calculate the mathematical share for this flexible column
+        double share = (_columns[i].flex! / currentTotalFlex) * availableSpace;
+
+        // If the share violates the minWidth constraint, clamp it!
+        if (share <= _columns[i].minWidth) {
+          _widths[i] = _columns[i].minWidth;
+
+          // Deduct this clamped width from the remaining available space
+          availableSpace -= _columns[i].minWidth;
+          availableSpace = math.max(0.0, availableSpace);
+
+          // This column is no longer "flexible", it acts as a fixed column now.
+          // Flag the algorithm to run again for the remaining flexible columns.
+          recalculate = true;
+        } else {
+          // If it didn't violate the constraint, keep it in the pool
+          remainingFlexibleIndices.add(i);
+        }
+      }
+
+      if (recalculate) {
+        flexibleIndices = remainingFlexibleIndices;
+      } else {
+        // If no columns needed clamping, finalize the exact widths
+        for (int i in flexibleIndices) {
+          _widths[i] = (_columns[i].flex! / currentTotalFlex) * availableSpace;
+        }
+      }
+    } while (recalculate && flexibleIndices.isNotEmpty);
+
     notifyListeners();
   }
 
@@ -504,5 +592,182 @@ class FlexibleTableLayoutController extends ChangeNotifier {
     }
     _widths = newWidths;
     notifyListeners();
+  }
+}
+
+/// A generic, interactive table layout.
+///
+/// It maps a list of items of type [T] to the provided [columns], and handles
+/// row-level interactions like selection, hovering, and context menus.
+class SliverInteractiveTable<T> extends StatelessWidget {
+  final List<T> items;
+  final List<TableColumn<T>> columns;
+  final Set<int> selectedIndices;
+
+  /// Callback fired when the user finishes dragging a column resizer.
+  final void Function(List<double> newWidths)? onColumnsResized;
+
+  /// Callback fired when a user right-clicks the header.
+  final void Function(Offset globalPosition)? onHeaderRightClick;
+
+  /// Callback fired when a user left-clicks a row.
+  /// Provides keyboard modifier states for multi-selection logic.
+  final void Function(int index, {required bool isCtrl, required bool isShift})?
+  onRowClick;
+
+  /// Callback fired when a user double clicks a row.
+  final void Function(int index)? onRowDoubleClick;
+
+  /// Callback fired when a user right-clicks a row.
+  final void Function(int index, Offset globalPosition)? onRowRightClick;
+
+  final double rowHeight;
+
+  const SliverInteractiveTable({
+    super.key,
+    required this.items,
+    required this.columns,
+    this.selectedIndices = const {},
+    this.onColumnsResized,
+    this.onHeaderRightClick,
+    this.onRowClick,
+    this.onRowDoubleClick,
+    this.onRowRightClick,
+    this.rowHeight = 50.0,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleColumns = columns.where((c) => c.isVisible).toList();
+
+    return SliverTableLayout(
+      columns: visibleColumns,
+      itemCount: items.length,
+      onColumnsResized: onColumnsResized,
+      onHeaderRightClick: onHeaderRightClick,
+      rowBuilder: (context, index, widths, cellPadding) {
+        final item = items[index];
+        final isSelected = selectedIndices.contains(index);
+
+        // Check neighbors for seamless border rardius
+        final isPreviousSelected = selectedIndices.contains(index - 1);
+        final isNextSelected = selectedIndices.contains(index + 1);
+
+        return _GenericTableRowInteractiveWrapper(
+          isSelected: isSelected,
+          isPreviousSelected: isPreviousSelected,
+          isNextSelected: isNextSelected,
+          height: rowHeight,
+          onPointerDown: (event) {
+            if (event.buttons == kPrimaryMouseButton) {
+              final isCtrl =
+                  HardwareKeyboard.instance.isControlPressed ||
+                  HardwareKeyboard.instance.isMetaPressed;
+              final isShift = HardwareKeyboard.instance.isShiftPressed;
+              onRowClick?.call(index, isCtrl: isCtrl, isShift: isShift);
+            } else if (event.buttons == kSecondaryMouseButton) {
+              onRowRightClick?.call(index, event.position);
+            }
+          },
+          onDoubleTap: () => onRowDoubleClick?.call(index),
+          child: Row(
+            children: [
+              for (int i = 0; i < visibleColumns.length; i++)
+                SizedBox(
+                  width: widths[i],
+                  child: Padding(
+                    padding: cellPadding,
+                    child: Align(
+                      alignment: visibleColumns[i].alignment,
+                      child: visibleColumns[i].cellBuilder(
+                        context,
+                        item,
+                        index,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// A purely visual wrapper that handles hover/selection colors and raw pointer events.
+class _GenericTableRowInteractiveWrapper extends StatefulWidget {
+  final bool isSelected;
+  final bool isPreviousSelected;
+  final bool isNextSelected;
+  final Widget child;
+  final double height;
+  final void Function(PointerDownEvent) onPointerDown;
+  final VoidCallback? onDoubleTap;
+
+  const _GenericTableRowInteractiveWrapper({
+    required this.isSelected,
+    required this.isPreviousSelected,
+    required this.isNextSelected,
+    required this.child,
+    required this.height,
+    required this.onPointerDown,
+    this.onDoubleTap,
+  });
+
+  @override
+  State<_GenericTableRowInteractiveWrapper> createState() =>
+      _GenericTableRowInteractiveWrapperState();
+}
+
+class _GenericTableRowInteractiveWrapperState
+    extends State<_GenericTableRowInteractiveWrapper> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: Listener(
+        behavior: HitTestBehavior.opaque,
+        onPointerDown: widget.onPointerDown,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onDoubleTap: widget.onDoubleTap,
+          child: Container(
+            height: widget.height,
+            decoration: BoxDecoration(
+              borderRadius: !widget.isSelected
+                  ? BorderRadius.circular(6)
+                  : BorderRadius.vertical(
+                      top: widget.isPreviousSelected
+                          ? Radius.zero
+                          : const Radius.circular(6),
+                      bottom: widget.isNextSelected
+                          ? Radius.zero
+                          : const Radius.circular(6),
+                    ),
+              color: _isHovered
+                  ? theme.colorScheme.primary.withValues(alpha: 0.05)
+                  : widget.isSelected
+                  ? theme.colorScheme.primary.withValues(alpha: 0.12)
+                  : Colors.transparent,
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6),
+                color: widget.isSelected && _isHovered
+                    ? theme.colorScheme.primary.withValues(alpha: 0.1)
+                    : Colors.transparent,
+              ),
+              child: widget.child,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
