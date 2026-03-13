@@ -56,6 +56,8 @@ class PlaylistTrack extends Table {
 
 // For saving the last played track and its playlist/queue
 class QueueEntries extends Table {
+  TextColumn get playbackContextType => text()();
+  IntColumn get playbackContextId => integer().nullable()();
   IntColumn get position => integer()();
   IntColumn get trackId => integer().references(Tracks, #id)();
   BoolColumn get isLastPlayed => boolean().withDefault(const Constant(false))();

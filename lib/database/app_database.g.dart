@@ -2045,6 +2045,28 @@ class $QueueEntriesTable extends QueueEntries
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $QueueEntriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _playbackContextTypeMeta =
+      const VerificationMeta('playbackContextType');
+  @override
+  late final GeneratedColumn<String> playbackContextType =
+      GeneratedColumn<String>(
+        'playback_context_type',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _playbackContextIdMeta = const VerificationMeta(
+    'playbackContextId',
+  );
+  @override
+  late final GeneratedColumn<int> playbackContextId = GeneratedColumn<int>(
+    'playback_context_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _positionMeta = const VerificationMeta(
     'position',
   );
@@ -2099,6 +2121,8 @@ class $QueueEntriesTable extends QueueEntries
   );
   @override
   List<GeneratedColumn> get $columns => [
+    playbackContextType,
+    playbackContextId,
     position,
     trackId,
     isLastPlayed,
@@ -2116,6 +2140,26 @@ class $QueueEntriesTable extends QueueEntries
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('playback_context_type')) {
+      context.handle(
+        _playbackContextTypeMeta,
+        playbackContextType.isAcceptableOrUnknown(
+          data['playback_context_type']!,
+          _playbackContextTypeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_playbackContextTypeMeta);
+    }
+    if (data.containsKey('playback_context_id')) {
+      context.handle(
+        _playbackContextIdMeta,
+        playbackContextId.isAcceptableOrUnknown(
+          data['playback_context_id']!,
+          _playbackContextIdMeta,
+        ),
+      );
+    }
     if (data.containsKey('position')) {
       context.handle(
         _positionMeta,
@@ -2157,6 +2201,14 @@ class $QueueEntriesTable extends QueueEntries
   QueueEntry map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return QueueEntry(
+      playbackContextType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}playback_context_type'],
+      )!,
+      playbackContextId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}playback_context_id'],
+      ),
       position: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}position'],
@@ -2183,11 +2235,15 @@ class $QueueEntriesTable extends QueueEntries
 }
 
 class QueueEntry extends DataClass implements Insertable<QueueEntry> {
+  final String playbackContextType;
+  final int? playbackContextId;
   final int position;
   final int trackId;
   final bool isLastPlayed;
   final int lastPosition;
   const QueueEntry({
+    required this.playbackContextType,
+    this.playbackContextId,
     required this.position,
     required this.trackId,
     required this.isLastPlayed,
@@ -2196,6 +2252,10 @@ class QueueEntry extends DataClass implements Insertable<QueueEntry> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    map['playback_context_type'] = Variable<String>(playbackContextType);
+    if (!nullToAbsent || playbackContextId != null) {
+      map['playback_context_id'] = Variable<int>(playbackContextId);
+    }
     map['position'] = Variable<int>(position);
     map['track_id'] = Variable<int>(trackId);
     map['is_last_played'] = Variable<bool>(isLastPlayed);
@@ -2205,6 +2265,10 @@ class QueueEntry extends DataClass implements Insertable<QueueEntry> {
 
   QueueEntriesCompanion toCompanion(bool nullToAbsent) {
     return QueueEntriesCompanion(
+      playbackContextType: Value(playbackContextType),
+      playbackContextId: playbackContextId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(playbackContextId),
       position: Value(position),
       trackId: Value(trackId),
       isLastPlayed: Value(isLastPlayed),
@@ -2218,6 +2282,10 @@ class QueueEntry extends DataClass implements Insertable<QueueEntry> {
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return QueueEntry(
+      playbackContextType: serializer.fromJson<String>(
+        json['playbackContextType'],
+      ),
+      playbackContextId: serializer.fromJson<int?>(json['playbackContextId']),
       position: serializer.fromJson<int>(json['position']),
       trackId: serializer.fromJson<int>(json['trackId']),
       isLastPlayed: serializer.fromJson<bool>(json['isLastPlayed']),
@@ -2228,6 +2296,8 @@ class QueueEntry extends DataClass implements Insertable<QueueEntry> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'playbackContextType': serializer.toJson<String>(playbackContextType),
+      'playbackContextId': serializer.toJson<int?>(playbackContextId),
       'position': serializer.toJson<int>(position),
       'trackId': serializer.toJson<int>(trackId),
       'isLastPlayed': serializer.toJson<bool>(isLastPlayed),
@@ -2236,11 +2306,17 @@ class QueueEntry extends DataClass implements Insertable<QueueEntry> {
   }
 
   QueueEntry copyWith({
+    String? playbackContextType,
+    Value<int?> playbackContextId = const Value.absent(),
     int? position,
     int? trackId,
     bool? isLastPlayed,
     int? lastPosition,
   }) => QueueEntry(
+    playbackContextType: playbackContextType ?? this.playbackContextType,
+    playbackContextId: playbackContextId.present
+        ? playbackContextId.value
+        : this.playbackContextId,
     position: position ?? this.position,
     trackId: trackId ?? this.trackId,
     isLastPlayed: isLastPlayed ?? this.isLastPlayed,
@@ -2248,6 +2324,12 @@ class QueueEntry extends DataClass implements Insertable<QueueEntry> {
   );
   QueueEntry copyWithCompanion(QueueEntriesCompanion data) {
     return QueueEntry(
+      playbackContextType: data.playbackContextType.present
+          ? data.playbackContextType.value
+          : this.playbackContextType,
+      playbackContextId: data.playbackContextId.present
+          ? data.playbackContextId.value
+          : this.playbackContextId,
       position: data.position.present ? data.position.value : this.position,
       trackId: data.trackId.present ? data.trackId.value : this.trackId,
       isLastPlayed: data.isLastPlayed.present
@@ -2262,6 +2344,8 @@ class QueueEntry extends DataClass implements Insertable<QueueEntry> {
   @override
   String toString() {
     return (StringBuffer('QueueEntry(')
+          ..write('playbackContextType: $playbackContextType, ')
+          ..write('playbackContextId: $playbackContextId, ')
           ..write('position: $position, ')
           ..write('trackId: $trackId, ')
           ..write('isLastPlayed: $isLastPlayed, ')
@@ -2271,12 +2355,20 @@ class QueueEntry extends DataClass implements Insertable<QueueEntry> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(position, trackId, isLastPlayed, lastPosition);
+  int get hashCode => Object.hash(
+    playbackContextType,
+    playbackContextId,
+    position,
+    trackId,
+    isLastPlayed,
+    lastPosition,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is QueueEntry &&
+          other.playbackContextType == this.playbackContextType &&
+          other.playbackContextId == this.playbackContextId &&
           other.position == this.position &&
           other.trackId == this.trackId &&
           other.isLastPlayed == this.isLastPlayed &&
@@ -2284,29 +2376,41 @@ class QueueEntry extends DataClass implements Insertable<QueueEntry> {
 }
 
 class QueueEntriesCompanion extends UpdateCompanion<QueueEntry> {
+  final Value<String> playbackContextType;
+  final Value<int?> playbackContextId;
   final Value<int> position;
   final Value<int> trackId;
   final Value<bool> isLastPlayed;
   final Value<int> lastPosition;
   const QueueEntriesCompanion({
+    this.playbackContextType = const Value.absent(),
+    this.playbackContextId = const Value.absent(),
     this.position = const Value.absent(),
     this.trackId = const Value.absent(),
     this.isLastPlayed = const Value.absent(),
     this.lastPosition = const Value.absent(),
   });
   QueueEntriesCompanion.insert({
+    required String playbackContextType,
+    this.playbackContextId = const Value.absent(),
     this.position = const Value.absent(),
     required int trackId,
     this.isLastPlayed = const Value.absent(),
     this.lastPosition = const Value.absent(),
-  }) : trackId = Value(trackId);
+  }) : playbackContextType = Value(playbackContextType),
+       trackId = Value(trackId);
   static Insertable<QueueEntry> custom({
+    Expression<String>? playbackContextType,
+    Expression<int>? playbackContextId,
     Expression<int>? position,
     Expression<int>? trackId,
     Expression<bool>? isLastPlayed,
     Expression<int>? lastPosition,
   }) {
     return RawValuesInsertable({
+      if (playbackContextType != null)
+        'playback_context_type': playbackContextType,
+      if (playbackContextId != null) 'playback_context_id': playbackContextId,
       if (position != null) 'position': position,
       if (trackId != null) 'track_id': trackId,
       if (isLastPlayed != null) 'is_last_played': isLastPlayed,
@@ -2315,12 +2419,16 @@ class QueueEntriesCompanion extends UpdateCompanion<QueueEntry> {
   }
 
   QueueEntriesCompanion copyWith({
+    Value<String>? playbackContextType,
+    Value<int?>? playbackContextId,
     Value<int>? position,
     Value<int>? trackId,
     Value<bool>? isLastPlayed,
     Value<int>? lastPosition,
   }) {
     return QueueEntriesCompanion(
+      playbackContextType: playbackContextType ?? this.playbackContextType,
+      playbackContextId: playbackContextId ?? this.playbackContextId,
       position: position ?? this.position,
       trackId: trackId ?? this.trackId,
       isLastPlayed: isLastPlayed ?? this.isLastPlayed,
@@ -2331,6 +2439,14 @@ class QueueEntriesCompanion extends UpdateCompanion<QueueEntry> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (playbackContextType.present) {
+      map['playback_context_type'] = Variable<String>(
+        playbackContextType.value,
+      );
+    }
+    if (playbackContextId.present) {
+      map['playback_context_id'] = Variable<int>(playbackContextId.value);
+    }
     if (position.present) {
       map['position'] = Variable<int>(position.value);
     }
@@ -2349,6 +2465,8 @@ class QueueEntriesCompanion extends UpdateCompanion<QueueEntry> {
   @override
   String toString() {
     return (StringBuffer('QueueEntriesCompanion(')
+          ..write('playbackContextType: $playbackContextType, ')
+          ..write('playbackContextId: $playbackContextId, ')
           ..write('position: $position, ')
           ..write('trackId: $trackId, ')
           ..write('isLastPlayed: $isLastPlayed, ')
@@ -5054,6 +5172,8 @@ typedef $$PlaylistTrackTableProcessedTableManager =
     >;
 typedef $$QueueEntriesTableCreateCompanionBuilder =
     QueueEntriesCompanion Function({
+      required String playbackContextType,
+      Value<int?> playbackContextId,
       Value<int> position,
       required int trackId,
       Value<bool> isLastPlayed,
@@ -5061,6 +5181,8 @@ typedef $$QueueEntriesTableCreateCompanionBuilder =
     });
 typedef $$QueueEntriesTableUpdateCompanionBuilder =
     QueueEntriesCompanion Function({
+      Value<String> playbackContextType,
+      Value<int?> playbackContextId,
       Value<int> position,
       Value<int> trackId,
       Value<bool> isLastPlayed,
@@ -5099,6 +5221,16 @@ class $$QueueEntriesTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get playbackContextType => $composableBuilder(
+    column: $table.playbackContextType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get playbackContextId => $composableBuilder(
+    column: $table.playbackContextId,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get position => $composableBuilder(
     column: $table.position,
     builder: (column) => ColumnFilters(column),
@@ -5147,6 +5279,16 @@ class $$QueueEntriesTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get playbackContextType => $composableBuilder(
+    column: $table.playbackContextType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get playbackContextId => $composableBuilder(
+    column: $table.playbackContextId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get position => $composableBuilder(
     column: $table.position,
     builder: (column) => ColumnOrderings(column),
@@ -5195,6 +5337,16 @@ class $$QueueEntriesTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get playbackContextType => $composableBuilder(
+    column: $table.playbackContextType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get playbackContextId => $composableBuilder(
+    column: $table.playbackContextId,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get position =>
       $composableBuilder(column: $table.position, builder: (column) => column);
 
@@ -5260,11 +5412,15 @@ class $$QueueEntriesTableTableManager
               $$QueueEntriesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
+                Value<String> playbackContextType = const Value.absent(),
+                Value<int?> playbackContextId = const Value.absent(),
                 Value<int> position = const Value.absent(),
                 Value<int> trackId = const Value.absent(),
                 Value<bool> isLastPlayed = const Value.absent(),
                 Value<int> lastPosition = const Value.absent(),
               }) => QueueEntriesCompanion(
+                playbackContextType: playbackContextType,
+                playbackContextId: playbackContextId,
                 position: position,
                 trackId: trackId,
                 isLastPlayed: isLastPlayed,
@@ -5272,11 +5428,15 @@ class $$QueueEntriesTableTableManager
               ),
           createCompanionCallback:
               ({
+                required String playbackContextType,
+                Value<int?> playbackContextId = const Value.absent(),
                 Value<int> position = const Value.absent(),
                 required int trackId,
                 Value<bool> isLastPlayed = const Value.absent(),
                 Value<int> lastPosition = const Value.absent(),
               }) => QueueEntriesCompanion.insert(
+                playbackContextType: playbackContextType,
+                playbackContextId: playbackContextId,
                 position: position,
                 trackId: trackId,
                 isLastPlayed: isLastPlayed,

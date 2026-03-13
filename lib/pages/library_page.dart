@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:media_kit/media_kit.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/widgets/album_art_stack.dart';
 import 'package:nordplayer/widgets/album_art_wall.dart';
+import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
 import 'package:nordplayer/widgets/nordplayer_app_bar.dart';
@@ -34,103 +34,104 @@ class LibraryPage extends ConsumerWidget {
         SingleActivator(LogicalKeyboardKey.numpadEnter):
             const PlaySelectedIntent(),
       },
-      child: Focus(
-        autofocus: true,
-        child: Scaffold(
-          extendBodyBehindAppBar: true,
-          appBar: NordplayerAppBar(),
-          body: CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                floating: false,
-                pinned: true,
-                expandedHeight: 220,
-                scrolledUnderElevation: 0,
-                flexibleSpace: FlexibleSpaceBar(
-                  title: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final settings = context
-                          .dependOnInheritedWidgetOfExactType<
-                            FlexibleSpaceBarSettings
-                          >();
-                      if (settings == null) return const SizedBox.shrink();
-                      final deltaExtent =
-                          settings.maxExtent - settings.minExtent;
-                      final t =
-                          (settings.currentExtent - settings.minExtent) /
-                          deltaExtent;
-                      final clampT = t.clamp(0.0, 1.0);
-                      final double horizontalOffset = 141 * clampT;
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          PlaySelectedIntent: PlaySelectedAction(
+            ref: ref,
+            tableId: 'library_page',
+            playbackContextType: 'library',
+            getTracks: () => ref.read(libraryStreamProvider).value ?? [],
+          ),
+        },
+        child: Focus(
+          autofocus: true,
+          child: Scaffold(
+            extendBodyBehindAppBar: true,
+            appBar: NordplayerAppBar(),
+            body: CustomScrollView(
+              slivers: [
+                SliverAppBar(
+                  floating: false,
+                  pinned: true,
+                  expandedHeight: 220,
+                  scrolledUnderElevation: 0,
+                  flexibleSpace: FlexibleSpaceBar(
+                    title: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final settings = context
+                            .dependOnInheritedWidgetOfExactType<
+                              FlexibleSpaceBarSettings
+                            >();
+                        if (settings == null) return const SizedBox.shrink();
+                        final deltaExtent =
+                            settings.maxExtent - settings.minExtent;
+                        final t =
+                            (settings.currentExtent - settings.minExtent) /
+                            deltaExtent;
+                        final clampT = t.clamp(0.0, 1.0);
+                        final double horizontalOffset = 141 * clampT;
 
-                      return Padding(
-                        padding: EdgeInsets.only(
-                          left: horizontalOffset,
-                          bottom: 60 * clampT,
-                        ),
-                        child: Text(
-                          'Library',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      );
-                    },
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            left: horizontalOffset,
+                            bottom: 60 * clampT,
+                          ),
+                          child: Text(
+                            'Library',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        );
+                      },
+                    ),
+                    background: LibraryHeroHeader(),
                   ),
-                  background: LibraryHeroHeader(),
                 ),
-              ),
 
-              libraryAsync.when(
-                loading: () => const SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (error, stack) => SliverFillRemaining(
-                  child: Center(child: Text('Error: $error')),
-                ),
-                data: (tracks) {
-                  if (tracks.isEmpty) {
-                    return SliverFillRemaining(
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "Your library is empty",
-                              style: theme.textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              "Scan your local folders to set up your music library.",
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurface.withValues(
-                                  alpha: 0.6,
+                libraryAsync.when(
+                  loading: () => const SliverFillRemaining(
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (error, stack) => SliverFillRemaining(
+                    child: Center(child: Text('Error: $error')),
+                  ),
+                  data: (tracks) {
+                    if (tracks.isEmpty) {
+                      return SliverFillRemaining(
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                "Your library is empty",
+                                style: theme.textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 24),
-                            FilledButton.icon(
-                              onPressed: () {
-                                context.go('/settings/library-management');
-                              },
-                              icon: const Icon(Icons.create_new_folder),
-                              label: const Text("Add Music Folders"),
-                            ),
-                          ],
+                              const SizedBox(height: 8),
+                              Text(
+                                "Scan your local folders to set up your music library.",
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.6,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              FilledButton.icon(
+                                onPressed: () {
+                                  context.go('/settings/library-management');
+                                },
+                                icon: const Icon(Icons.create_new_folder),
+                                label: const Text("Add Music Folders"),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  }
+                      );
+                    }
 
-                  return Actions(
-                    actions: <Type, Action<Intent>>{
-                      PlaySelectedIntent: PlaySelectedAction(
-                        ref,
-                        tracks,
-                        'library_page',
-                      ),
-                    },
-                    child: SliverInteractiveTable<TrackWithArtists>(
+                    return SliverInteractiveTable<TrackWithArtists>(
                       items: tracks,
                       columns: tableColumns,
                       selectedIndices: selectedIndices,
@@ -168,7 +169,12 @@ class LibraryPage extends ConsumerWidget {
                       onRowDoubleClick: (index) {
                         ref
                             .read(playerServiceProvider)
-                            .setPlaylist(tracks, index);
+                            .setPlaylist(
+                              playbackContextType: 'library',
+                              playbackContextId: null,
+                              tracksToPlay: tracks,
+                              initialIndex: index,
+                            );
                       },
                       onRowRightClick: (index, globalPosition) {
                         final selectionNotifier = ref.read(
@@ -203,13 +209,15 @@ class LibraryPage extends ConsumerWidget {
                           allTracks: tracks,
                           clickedIndex: index,
                           selectedTracks: selectedTracks,
+                          playbackContextType: 'library',
+                          playbackContextId: null,
                         );
                       },
-                    ),
-                  );
-                },
-              ),
-            ],
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -223,11 +231,8 @@ class LibraryHeroHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final wallCovers = ref.watch(libraryWallCoversProvider);
-    final stackCovers = ref.watch(stackCoversProvider).value ?? [];
-    final displayStackCovers = stackCovers.isEmpty
-        ? wallCovers.take(5).toList()
-        : stackCovers;
+    final libraryAlbumArt = ref.watch(libraryAlbumArtProvider);
+    final nowPlayingAlbumArt = ref.watch(currentQueueAlbumArtProvider);
 
     final libraryTracks = ref.watch(libraryStreamProvider).value ?? [];
     final int totalMs = libraryTracks.fold(
@@ -251,7 +256,7 @@ class LibraryHeroHeader extends ConsumerWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        AlbumArtWall(imageUrls: wallCovers),
+        AlbumArtWall(imageUrls: libraryAlbumArt),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
@@ -274,8 +279,12 @@ class LibraryHeroHeader extends ConsumerWidget {
                   child: Align(
                     alignment: .centerLeft,
                     child: AlbumArtStack(
-                      imageUrls: displayStackCovers,
+                      imageUrls:
+                          ref.read(playbackContextProvider)?.type == 'library'
+                          ? nowPlayingAlbumArt
+                          : libraryAlbumArt,
                       size: 180,
+                      maxLayers: 5,
                       sliceWidth: 16,
                     ),
                   ),
@@ -344,6 +353,8 @@ class TrackContextMenu {
     required List<TrackWithArtists> allTracks,
     required int clickedIndex,
     required List<TrackWithArtists> selectedTracks,
+    required String playbackContextType,
+    int? playbackContextId,
   }) {
     ContextMenu.show(
       context: context,
@@ -357,7 +368,12 @@ class TrackContextMenu {
             if (selectedTracks.length == 1) {
               ref
                   .read(playerServiceProvider)
-                  .setPlaylist(allTracks, clickedIndex);
+                  .setPlaylist(
+                    playbackContextType: playbackContextType,
+                    playbackContextId: playbackContextId,
+                    tracksToPlay: allTracks,
+                    initialIndex: clickedIndex,
+                  );
             } else {
               // Keep the playlist perfectly sorted by library index
               final playlistToPlay = selectedTracks;
@@ -372,8 +388,12 @@ class TrackContextMenu {
               ref
                   .read(playerServiceProvider)
                   .setPlaylist(
-                    playlistToPlay,
-                    startingQueueIndex == -1 ? 0 : startingQueueIndex,
+                    playbackContextType: 'library',
+                    playbackContextId: null,
+                    tracksToPlay: playlistToPlay,
+                    initialIndex: startingQueueIndex == -1
+                        ? 0
+                        : startingQueueIndex,
                   );
             }
           },
@@ -382,7 +402,14 @@ class TrackContextMenu {
           icon: Icons.playlist_add_outlined,
           label: 'Add to queue',
           onTap: () {
-            ref.read(playerServiceProvider).addToQueue(selectedTracks);
+            final playbackContext = ref.read(playbackContextProvider);
+            ref
+                .read(playerServiceProvider)
+                .addToQueue(
+                  selectedTracks,
+                  playbackContext?.type ?? '', // TODO: FIX
+                  playbackContext?.id,
+                );
 
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -720,7 +747,7 @@ Future<void> showInFolder(String filePath) async {
 
 // ================================ Provider ==================================
 
-final libraryWallCoversProvider = Provider<List<String>>((ref) {
+final libraryAlbumArtProvider = Provider<List<String>>((ref) {
   final libraryAsync = ref.watch(libraryStreamProvider);
   final libraryTracks = libraryAsync.value ?? [];
 
@@ -745,50 +772,6 @@ final libraryWallCoversProvider = Provider<List<String>>((ref) {
   return wallCovers;
 });
 
-final stackCoversProvider = StreamProvider<List<String>>((ref) {
-  final player = ref.watch(playerServiceProvider).mkPlayer;
-
-  return player.stream.playlist.map((playlist) {
-    if (playlist.medias.isEmpty || playlist.index < 0) {
-      return [];
-    }
-
-    final int currentIndex = playlist.index;
-    final List<Media> allMedia = playlist.medias;
-    final PlaylistMode loopMode = player.state.playlistMode;
-
-    final List<String> stackCovers = [];
-
-    for (
-      int count = 0;
-      count < allMedia.length && stackCovers.length < 5;
-      count++
-    ) {
-      int targetIndex = currentIndex + count;
-
-      if (targetIndex >= allMedia.length) {
-        if (loopMode == PlaylistMode.loop) {
-          targetIndex = targetIndex % allMedia.length;
-        } else {
-          break;
-        }
-      }
-
-      final track = allMedia[targetIndex].extras?['data'] as TrackWithArtists?;
-      if (track != null) {
-        // If there is no art, pass an empty string "" as a placeholder flag
-        final artPath = track.album.albumArtPath?.isNotEmpty == true
-            ? track.album.albumArtPath!
-            : "";
-
-        stackCovers.add(artPath);
-      }
-    }
-
-    return stackCovers;
-  });
-});
-
 final libraryTableColumnsProvider =
     NotifierProvider<
       LibraryTableColumnsNotifier,
@@ -809,14 +792,17 @@ class LibraryTableColumnsNotifier
         cellBuilder: (context, track, index) {
           return Consumer(
             builder: (context, ref, child) {
-              final isPlaying =
+              final isActiveTrack =
                   ref.watch(currentTrackProvider).value?.track.filePath ==
                   track.track.filePath;
-              if (isPlaying) {
-                return Icon(
-                  Icons.volume_up,
-                  size: 16,
+
+              if (isActiveTrack) {
+                final isAudioPlaying = ref.watch(isPlayingProvider);
+
+                return AnimatedEqualizerIcon(
                   color: Theme.of(context).colorScheme.primary,
+                  size: 16,
+                  isPlaying: isAudioPlaying,
                 );
               }
               return Text(

@@ -6,6 +6,7 @@ import 'package:nordplayer/pages/artists_page.dart';
 import 'package:nordplayer/pages/library_page.dart';
 import 'package:nordplayer/pages/app_layout.dart';
 import 'package:nordplayer/pages/playlists_page.dart';
+import 'package:nordplayer/pages/playlist_details_page.dart';
 import 'package:nordplayer/pages/settings/advanced.dart';
 import 'package:nordplayer/pages/settings/appearance_page.dart';
 import 'package:nordplayer/pages/settings/library_management_page.dart';
@@ -49,6 +50,17 @@ final router = GoRouter(
             GoRoute(
               path: Routes.playlistsPage,
               builder: (context, state) => const PlaylistsPage(),
+              routes: [
+                GoRoute(
+                  path: ':id',
+                  builder: (context, state) {
+                    final playlistIdStr = state.pathParameters['id']!;
+                    final playlistId = int.parse(playlistIdStr);
+
+                    return PlaylistDetailPage(playlistId: playlistId);
+                  },
+                ),
+              ],
             ),
           ],
         ),

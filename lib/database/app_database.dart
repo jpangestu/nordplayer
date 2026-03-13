@@ -152,6 +152,40 @@ class AppDatabase extends _$AppDatabase {
     return groupedTracks.values.toList();
   }
 
+  Stream<List<TrackWithArtists>> watchPlaylistTracks(int playlistId) {
+    final query = select(tracks).join([
+      innerJoin(playlistTrack, playlistTrack.trackId.equalsExp(tracks.id)),
+      leftOuterJoin(albums, albums.id.equalsExp(tracks.albumId)),
+      leftOuterJoin(trackArtist, trackArtist.trackId.equalsExp(tracks.id)),
+      leftOuterJoin(artists, artists.id.equalsExp(trackArtist.artistId)),
+    ])..where(playlistTrack.playlistId.equals(playlistId));
+
+    return query.watch().map((rows) {
+      final Map<int, TrackWithArtists> groupedTracks = {};
+
+      for (final row in rows) {
+        final track = row.readTable(tracks);
+        final album = row.readTable(albums);
+        final artist = row.readTable(artists);
+
+        if (!groupedTracks.containsKey(track.id)) {
+          groupedTracks[track.id] = TrackWithArtists(
+            track: track,
+            album: album,
+            artists: [],
+          );
+        }
+
+        final currentArtists = groupedTracks[track.id]!.artists;
+        if (!currentArtists.any((a) => a.id == artist.id)) {
+          currentArtists.add(artist);
+        }
+      }
+
+      return groupedTracks.values.toList();
+    });
+  }
+
   Future<int> addPlaylist(PlaylistsCompanion playlist) {
     return into(playlists).insert(playlist);
   }
@@ -186,6 +220,8 @@ class AppDatabase extends _$AppDatabase {
   // -- QUEUE SAVING --
 
   Future<void> saveQueue(
+    String playbackContextType,
+    int? playbackContextId,
     List<TrackWithArtists> tracks,
     int currentIndex,
     Duration currentPosition,
@@ -196,6 +232,8 @@ class AppDatabase extends _$AppDatabase {
         b.insertAll(queueEntries, [
           for (var i = 0; i < tracks.length; i++)
             QueueEntriesCompanion.insert(
+              playbackContextType: playbackContextType,
+              playbackContextId: Value(playbackContextId),
               position: Value(i),
               trackId: tracks[i].track.id,
               isLastPlayed: Value(i == currentIndex),
@@ -208,16 +246,26 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
-  Future<(List<TrackWithArtists>, int, Duration)> loadQueue() async {
+  Future<(String, int?, List<TrackWithArtists>, int, Duration)>
+  loadQueue() async {
     final entries = await (select(
       queueEntries,
     )..orderBy([(t) => OrderingTerm.asc(t.position)])).get();
 
+    String playbackContextType = '';
+    int? playbackContextId;
     final tracks = <TrackWithArtists>[];
     int lastIndex = 0;
     Duration lastPosition = Duration.zero;
 
     for (final entry in entries) {
+      if (playbackContextType.isEmpty) {
+        playbackContextType = entry.playbackContextType;
+      }
+      if (entry.playbackContextId != null && playbackContextId == null) {
+        playbackContextId = entry.playbackContextId;
+      }
+
       final track = await getTrackWithArtistsById(entry.trackId);
       if (track != null) {
         if (entry.isLastPlayed) {
@@ -228,7 +276,13 @@ class AppDatabase extends _$AppDatabase {
       }
     }
 
-    return (tracks, lastIndex, lastPosition);
+    return (
+      playbackContextType,
+      playbackContextId,
+      tracks,
+      lastIndex,
+      lastPosition,
+    );
   }
 
   /// Updates ONLY the position of the currently active track.
@@ -260,6 +314,13 @@ class PlaylistWithDetails {
     required this.trackCount,
     required this.imageUrls,
   });
+}
+
+class PlaylistWithTracks {
+  final PlaylistData playlist;
+  final List<TrackWithArtists> tracks;
+
+  PlaylistWithTracks({required this.playlist, required this.tracks});
 }
 
 //
@@ -323,3 +384,51 @@ final playlistsStreamProvider = StreamProvider<List<PlaylistWithDetails>>((
   final db = ref.watch(appDatabaseProvider);
   return db.watchAllPlaylists();
 });
+
+// Watches just the playlist metadata (name, id)
+final singlePlaylistStreamProvider = StreamProvider.family<PlaylistData, int>((
+  ref,
+  playlistId,
+) {
+  final db = ref.watch(appDatabaseProvider);
+  return (db.select(
+    db.playlists,
+  )..where((p) => p.id.equals(playlistId))).watchSingle();
+});
+
+// Watches just the tracks for this playlist
+final playlistTracksStreamProvider =
+    StreamProvider.family<List<TrackWithArtists>, int>((ref, playlistId) {
+      final db = ref.watch(appDatabaseProvider);
+      return db.watchPlaylistTracks(playlistId);
+    });
+
+final playlistWithTracksProvider =
+    Provider.family<AsyncValue<PlaylistWithTracks>, int>((ref, playlistId) {
+      final playlistAsync = ref.watch(singlePlaylistStreamProvider(playlistId));
+      final tracksAsync = ref.watch(playlistTracksStreamProvider(playlistId));
+
+      // Bubble up any errors
+      if (playlistAsync is AsyncError) {
+        return AsyncError(playlistAsync.error!, playlistAsync.stackTrace!);
+      }
+      if (tracksAsync is AsyncError) {
+        return AsyncError(tracksAsync.error!, tracksAsync.stackTrace!);
+      }
+
+      // Show loading state until BOTH streams have emitted their first value
+      if (playlistAsync.isLoading ||
+          tracksAsync.isLoading ||
+          !playlistAsync.hasValue ||
+          !tracksAsync.hasValue) {
+        return const AsyncLoading();
+      }
+
+      // Once both are ready, return the combined data
+      return AsyncData(
+        PlaylistWithTracks(
+          playlist: playlistAsync.value!,
+          tracks: tracksAsync.value!,
+        ),
+      );
+    });

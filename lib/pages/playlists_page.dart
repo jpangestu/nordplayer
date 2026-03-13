@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:nordplayer/database/app_database.dart';
+import 'package:nordplayer/routes/routes.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/widgets/album_art_stack.dart';
+import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
 import 'package:nordplayer/widgets/nordplayer_app_bar.dart';
 
@@ -312,13 +315,25 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final totalTracks = widget.playlistWithDetails.trackCount;
+    final playlistId = widget.playlistWithDetails.playlist.id;
+
+    // Check if THIS playlist is the active context
+    final playbackContext = ref.watch(playbackContextProvider);
+    final isPlayingThisPlaylist =
+        playbackContext?.isPlaying('playlist', playlistId) ?? false;
+    final isAudioPlaying = ref.watch(isPlayingProvider);
+
+    final nowPlayingAlbumArt = ref.watch(currentQueueAlbumArtProvider);
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
         onTap: () {
-          // TODO: Navigate to Playlist Detail Page
+          final basePath = Routes.playlistsPage;
+          final targetId = widget.playlistWithDetails.playlist.id;
+
+          context.push('$basePath/$targetId');
           log.i(
             'Navigate to playlist ${widget.playlistWithDetails.playlist.id}',
           );
@@ -336,7 +351,11 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
                 children: [
                   // -- CARD BACKGROUND --
                   AlbumArtStack(
-                    imageUrls: widget.playlistWithDetails.imageUrls,
+                    imageUrls:
+                        ref.read(playbackContextProvider)?.id ==
+                            widget.playlistWithDetails.playlist.id
+                        ? nowPlayingAlbumArt
+                        : widget.playlistWithDetails.imageUrls,
                     sliceWidth: 10,
                   ),
 
@@ -412,12 +431,31 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
             const SizedBox(height: 12),
 
             // -- NAME AND TOTAL TRACKS --
-            Text(
-              widget.playlistWithDetails.playlist.name,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            Row(
+              children: [
+                if (isPlayingThisPlaylist && isAudioPlaying) ...[
+                  AnimatedEqualizerIcon(
+                    color: theme.colorScheme.primary,
+                    size: 16,
+                    isPlaying: isAudioPlaying,
+                  ),
+                  SizedBox(width: 8),
+                ],
+                Text(
+                  widget.playlistWithDetails.playlist.name,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    color: isPlayingThisPlaylist
+                        ? theme.colorScheme.primary
+                        : null,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
+
             const SizedBox(height: 4),
             _isHovered
                 ? Text(
@@ -492,7 +530,14 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
       return;
     }
 
-    ref.read(playerServiceProvider).setPlaylist(tracks, 0);
+    ref
+        .read(playerServiceProvider)
+        .setPlaylist(
+          playbackContextType: 'playlist',
+          playbackContextId: widget.playlistWithDetails.playlist.id,
+          tracksToPlay: tracks,
+          initialIndex: 0,
+        );
   }
 
   Future<void> _addToQueue() async {
@@ -511,7 +556,10 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
       return;
     }
 
-    ref.read(playerServiceProvider).addToQueue(tracks);
+    final playbackContext = ref.read(playbackContextProvider);
+    ref
+        .read(playerServiceProvider)
+        .addToQueue(tracks, playbackContext?.type ?? '', playbackContext?.id);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

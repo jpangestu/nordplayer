@@ -125,14 +125,26 @@ class PlaySelectedIntent extends Intent {
 }
 
 class PlaySelectedAction extends Action<PlaySelectedIntent> {
-  PlaySelectedAction(this.ref, this.allTracks, this.tableId);
+  PlaySelectedAction({
+    required this.ref,
+    required this.tableId,
+    required this.playbackContextType,
+    this.playbackContextId,
+    required this.getTracks,
+  });
 
   final WidgetRef ref;
-  final List<TrackWithArtists> allTracks;
   final String tableId;
+  final String playbackContextType;
+  final int? playbackContextId;
+  final List<TrackWithArtists> Function() getTracks;
 
   @override
   void invoke(covariant PlaySelectedIntent intent) {
+    // Fetch the latest tracks right when the key is pressed
+    final allTracks = getTracks();
+    if (allTracks.isEmpty) return;
+
     // Get the current selection for this specific table
     final selectedIndices = ref.read(selectedTracksIndexProvider(tableId));
 
@@ -141,13 +153,27 @@ class PlaySelectedAction extends Action<PlaySelectedIntent> {
     if (selectedIndices.length == 1) {
       // Single Selection: Play the whole list, starting at the selected index
       final targetIndex = selectedIndices.first;
-      ref.read(playerServiceProvider).setPlaylist(allTracks, targetIndex);
+      ref
+          .read(playerServiceProvider)
+          .setPlaylist(
+            tracksToPlay: allTracks,
+            initialIndex: targetIndex,
+            playbackContextType: playbackContextType,
+            playbackContextId: playbackContextId,
+          );
     } else {
       // Multiple Selection: Play only the selected tracks as a new playlist
       final sortedIndices = selectedIndices.toList()..sort();
       final selectedTracks = sortedIndices.map((i) => allTracks[i]).toList();
 
-      ref.read(playerServiceProvider).setPlaylist(selectedTracks, 0);
+      ref
+          .read(playerServiceProvider)
+          .setPlaylist(
+            tracksToPlay: selectedTracks,
+            initialIndex: 0,
+            playbackContextType: playbackContextType,
+            playbackContextId: playbackContextId,
+          );
     }
   }
 }

@@ -21,11 +21,18 @@ class PlayerService with LoggerMixin {
     _isRestoringQueue = true; // Lock the listeners
 
     try {
-      final (tracks, index, position) = await ref
-          .read(appDatabaseProvider)
-          .loadQueue();
+      final (playbackContextType, playbackContextId, tracks, index, position) =
+          await ref.read(appDatabaseProvider).loadQueue();
       if (tracks.isNotEmpty) {
-        await setPlaylist(tracks, index, autoplay: false);
+        await setPlaylist(
+          tracksToPlay: tracks,
+          initialIndex: index,
+          playbackContextType: playbackContextType,
+          playbackContextId: playbackContextId,
+          autoplay: false,
+        );
+
+        await Future.delayed(const Duration(milliseconds: 300));
         await _mkPlayer.seek(position); // Restore the position
       }
     } finally {
@@ -38,6 +45,8 @@ class PlayerService with LoggerMixin {
   PlayerService.withPlayer(this.ref, this._mkPlayer) {
     DateTime? lastSaveTime;
 
+    final playbackContext = ref.read(playbackContextProvider);
+
     _mkPlayer.stream.playlist.listen((playlist) {
       if (_isRestoringQueue || playlist.medias.isEmpty) return;
       final tracks = playlist.medias
@@ -47,7 +56,13 @@ class PlayerService with LoggerMixin {
 
       ref
           .read(appDatabaseProvider)
-          .saveQueue(tracks, playlist.index, _mkPlayer.state.position);
+          .saveQueue(
+            playbackContext?.type ?? '',
+            playbackContext?.id,
+            tracks,
+            playlist.index,
+            _mkPlayer.state.position,
+          );
     });
 
     _mkPlayer.stream.position.listen((position) {
@@ -74,9 +89,15 @@ class PlayerService with LoggerMixin {
     try {
       await _mkPlayer.setVolume(prefsState.volume);
       await _mkPlayer.setPlaylistMode(prefsState.loopMode);
+
+      if (prefsState.isMuted) {
+        await _mkPlayer.setVolume(0);
+      }
+
       log.i(
         "PlayerService initialized:\n"
-        "Vol ${prefsState.volume},\n"
+        "Volume ${prefsState.volume},\n"
+        "Mute ${prefsState.isMuted},\n"
         "Loop ${prefsState.loopMode}",
       );
     } catch (e) {
@@ -85,18 +106,24 @@ class PlayerService with LoggerMixin {
   }
 
   /// Opens a list of tracks as a Playlist and play the given index
-  Future<void> setPlaylist(
-    List<TrackWithArtists> tracks,
-    int initialIndex, {
+  Future<void> setPlaylist({
+    required List<TrackWithArtists> tracksToPlay,
+    required int initialIndex,
+    required String playbackContextType,
+    int? playbackContextId,
     bool autoplay = true,
   }) async {
+    ref
+        .read(playbackContextProvider.notifier)
+        .setContext(playbackContextType, playbackContextId);
+
     final shouldShuffle = ref.read(preferenceServiceProvider).shuffleMode;
 
     final currentPaths = _mkPlayer.state.playlist.medias
         .map((m) => m.uri)
         .toList();
 
-    final newPaths = tracks.map((s) => s.track.filePath).toList();
+    final newPaths = tracksToPlay.map((s) => s.track.filePath).toList();
 
     bool isSamePlaylist = false;
     if (currentPaths.length == newPaths.length && currentPaths.isNotEmpty) {
@@ -112,7 +139,7 @@ class PlayerService with LoggerMixin {
       }
     }
 
-    final targetTrackPath = tracks[initialIndex].track.filePath;
+    final targetTrackPath = tracksToPlay[initialIndex].track.filePath;
 
     if (isSamePlaylist) {
       // Find where the target track ended up in the shuffled queue
@@ -133,7 +160,7 @@ class PlayerService with LoggerMixin {
 
     if (!isSamePlaylist) {
       log.d("New playlist detected. Opening new media pipeline.");
-      final playableMedia = tracks.map((track) {
+      final playableMedia = tracksToPlay.map((track) {
         return Media(
           track.track.filePath,
           extras: {
@@ -161,17 +188,26 @@ class PlayerService with LoggerMixin {
   }
 
   /// Appends a list of tracks to the end of the current playback queue
-  Future<void> addToQueue(List<TrackWithArtists> tracks) async {
-    if (tracks.isEmpty) return;
+  Future<void> addToQueue(
+    List<TrackWithArtists> tracksToAdd,
+    String contextType,
+    int? contextId,
+  ) async {
+    if (tracksToAdd.isEmpty) return;
 
     // If nothing is currently in the playlist, just start playing these tracks
     if (_mkPlayer.state.playlist.medias.isEmpty) {
-      await setPlaylist(tracks, 0);
+      await setPlaylist(
+        tracksToPlay: tracksToAdd,
+        initialIndex: 0,
+        playbackContextType: contextType,
+        playbackContextId: contextId,
+      );
       return;
     }
 
     // Convert tracks to media_kit Media objects
-    final playableMedia = tracks.map((track) {
+    final playableMedia = tracksToAdd.map((track) {
       return Media(
         track.track.filePath,
         extras: {
@@ -187,7 +223,7 @@ class PlayerService with LoggerMixin {
       await _mkPlayer.add(media);
     }
 
-    log.i("Added ${tracks.length} tracks to the queue.");
+    log.i("Added ${tracksToAdd.length} tracks to the queue.");
   }
 
   Future<void> playOrPause() async {
@@ -463,3 +499,101 @@ final currentTrackProvider = StreamProvider<TrackWithArtists?>((ref) {
     return currentMedia.extras?['data'] as TrackWithArtists?;
   });
 });
+
+/// Track the currently played playlist
+final playbackContextProvider =
+    NotifierProvider<PlaybackContextNotifier, PlaybackContext?>(
+      PlaybackContextNotifier.new,
+    );
+
+class PlaybackContext {
+  final String type; // e.g., 'library', 'playlist', 'album'
+  final int? id; // e.g., 5 (the playlist ID). Null for 'library'
+
+  PlaybackContext({required this.type, this.id});
+
+  bool isPlaying(String targetType, int? targetId) {
+    return type == targetType && id == targetId;
+  }
+}
+
+class PlaybackContextNotifier extends Notifier<PlaybackContext?> {
+  @override
+  PlaybackContext? build() => null;
+
+  void setContext(String type, int? id) {
+    state = PlaybackContext(type: type, id: id);
+  }
+}
+
+final currentQueueAlbumArtProvider =
+    NotifierProvider<NowPlayingAlbumArtNotifier, List<String>>(
+      NowPlayingAlbumArtNotifier.new,
+    );
+
+class NowPlayingAlbumArtNotifier extends Notifier<List<String>> {
+  @override
+  List<String> build() {
+    final player = ref.watch(playerServiceProvider).mkPlayer;
+
+    // WATCH RIVERPOD: If the user clicks the loop button in the UI,
+    // this preference changes, instantly triggering a recalculation!
+    ref.watch(preferenceServiceProvider.select((prefs) => prefs.loopMode));
+
+    // LISTEN TO MEDIA_KIT: Update whenever the track changes or queue advances
+    final subscription = player.stream.playlist.listen((_) {
+      state = _calculateCovers();
+    });
+
+    ref.onDispose(() {
+      subscription.cancel();
+    });
+
+    // Initial calculation when the provider first boots up
+    return _calculateCovers();
+  }
+
+  List<String> _calculateCovers() {
+    // Read the current instantaneous state of the player
+    final player = ref.read(playerServiceProvider).mkPlayer;
+    final playlist = player.state.playlist;
+
+    if (playlist.medias.isEmpty || playlist.index < 0) {
+      return [];
+    }
+
+    final int currentIndex = playlist.index;
+    final List<Media> allMedia = playlist.medias;
+    final PlaylistMode loopMode = player.state.playlistMode;
+
+    final List<String> stackCovers = [];
+
+    for (
+      int count = 0;
+      count < allMedia.length && stackCovers.length < 5;
+      count++
+    ) {
+      int targetIndex = currentIndex + count;
+
+      if (targetIndex >= allMedia.length) {
+        if (loopMode == PlaylistMode.loop) {
+          targetIndex = targetIndex % allMedia.length;
+        } else {
+          break; // Stop wrapping around if loop is off
+        }
+      }
+
+      final track = allMedia[targetIndex].extras?['data'] as TrackWithArtists?;
+
+      if (track != null) {
+        final artPath = track.album.albumArtPath?.isNotEmpty == true
+            ? track.album.albumArtPath!
+            : "";
+
+        stackCovers.add(artPath);
+      }
+    }
+
+    return stackCovers;
+  }
+}

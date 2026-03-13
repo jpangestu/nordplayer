@@ -47,10 +47,7 @@ class AlbumArtStack extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  theme.colorScheme.primary,
-                  theme.colorScheme.tertiary,
-                ],
+                colors: [theme.colorScheme.primary, theme.colorScheme.tertiary],
               ),
             ),
             child: Icon(
@@ -81,13 +78,16 @@ class AlbumArtStack extends StatelessWidget {
                 final file = File(Uri.parse(imageUrl).toFilePath());
                 final hasImage = imageUrl.isNotEmpty && file.existsSync();
 
-                return Positioned(
+                return AnimatedPositioned(
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.linear,
                   top: 0,
                   bottom: 0,
                   left: leftOffset,
                   // Force the width to perfectly match the height
                   width: squareSize,
-                  child: Container(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 400),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(4),
                       image: hasImage
@@ -106,15 +106,6 @@ class AlbumArtStack extends StatelessWidget {
                               ],
                             )
                           : null,
-                      // boxShadow: [
-                      //   BoxShadow(
-                      //     color: Theme.of(
-                      //       context,
-                      //     ).shadowColor.withValues(alpha: 0.4),
-                      //     offset: const Offset(4, 0),
-                      //     blurRadius: 12.0,
-                      //   ),
-                      // ],
                     ),
                     child: !hasImage
                         ? Icon(
