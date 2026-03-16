@@ -187,6 +187,8 @@ class PlayerService with LoggerMixin {
     }
   }
 
+  // ========================== Queue Management ==============================
+
   /// Appends a list of tracks to the end of the current playback queue
   Future<void> addToQueue(
     List<TrackWithArtists> tracksToAdd,
@@ -226,6 +228,28 @@ class PlayerService with LoggerMixin {
     log.i("Added ${tracksToAdd.length} tracks to the queue.");
   }
 
+  /// Moves a track from one index to another in the current queue
+  Future<void> moveTrack(int oldIndex, int newIndex) async {
+    try {
+      await _mkPlayer.move(oldIndex, newIndex);
+      log.i("Moved track from $oldIndex to $newIndex");
+    } catch (e) {
+      log.e("Error moving track: $e");
+    }
+  }
+
+  /// Removes a track at a specific index from the queue
+  Future<void> removeTrack(int index) async {
+    try {
+      await _mkPlayer.remove(index);
+      log.i("Removed track at index $index");
+    } catch (e) {
+      log.e("Error removing track: $e");
+    }
+  }
+
+  // =============================== Playback =================================
+
   Future<void> playOrPause() async {
     if (_mkPlayer.state.playlist.medias.isEmpty) return;
     await _mkPlayer.playOrPause();
@@ -234,19 +258,31 @@ class PlayerService with LoggerMixin {
   Future<void> next() async => await _mkPlayer.next();
   Future<void> previous() async => await _mkPlayer.previous();
 
-  Future<void> toggleMute() async {
-    final prefsState = ref.read(preferenceServiceProvider);
-    final prefsNotifier = ref.read(preferenceServiceProvider.notifier);
-
-    if (prefsState.isMuted) {
-      // UNMUTE: Restore to the saved volume
-      prefsNotifier.setIsMuted(false);
-      await _mkPlayer.setVolume(prefsState.volume);
-    } else {
-      // MUTE: Drop engine to 0, but leave prefs volume alone
-      prefsNotifier.setIsMuted(true);
-      await _mkPlayer.setVolume(0.0);
+  Future<void> toggleShuffle() async {
+    if (_mkPlayer.state.playlist.medias.isEmpty) {
+      final newState = !ref.read(preferenceServiceProvider).shuffleMode;
+      ref.read(preferenceServiceProvider.notifier).setShuffleMode(newState);
+      log.w("Shuffle toggled while playlist is empty. Saving preference only.");
+      return;
     }
+
+    final bool newState = !_mkPlayer.state.shuffle;
+    await _mkPlayer.setShuffle(newState);
+    ref.read(preferenceServiceProvider.notifier).setShuffleMode(newState);
+  }
+
+  /// Cycle through Loop Modes. logic: Off -> All -> Single -> Off
+  Future<void> cycleLoopMode() async {
+    final current = ref.read(preferenceServiceProvider).loopMode;
+
+    final next = switch (current) {
+      PlaylistMode.none => PlaylistMode.loop,
+      PlaylistMode.loop => PlaylistMode.single,
+      PlaylistMode.single => PlaylistMode.none,
+    };
+
+    await _mkPlayer.setPlaylistMode(next);
+    ref.read(preferenceServiceProvider.notifier).setLoopMode(next);
   }
 
   Future<void> setVolume(double volume) async {
@@ -286,31 +322,19 @@ class PlayerService with LoggerMixin {
     ref.read(preferenceServiceProvider.notifier).setVolume(volume);
   }
 
-  Future<void> toggleShuffle() async {
-    if (_mkPlayer.state.playlist.medias.isEmpty) {
-      final newState = !ref.read(preferenceServiceProvider).shuffleMode;
-      ref.read(preferenceServiceProvider.notifier).setShuffleMode(newState);
-      log.w("Shuffle toggled while playlist is empty. Saving preference only.");
-      return;
+  Future<void> toggleMute() async {
+    final prefsState = ref.read(preferenceServiceProvider);
+    final prefsNotifier = ref.read(preferenceServiceProvider.notifier);
+
+    if (prefsState.isMuted) {
+      // UNMUTE: Restore to the saved volume
+      prefsNotifier.setIsMuted(false);
+      await _mkPlayer.setVolume(prefsState.volume);
+    } else {
+      // MUTE: Drop engine to 0, but leave prefs volume alone
+      prefsNotifier.setIsMuted(true);
+      await _mkPlayer.setVolume(0.0);
     }
-
-    final bool newState = !_mkPlayer.state.shuffle;
-    await _mkPlayer.setShuffle(newState);
-    ref.read(preferenceServiceProvider.notifier).setShuffleMode(newState);
-  }
-
-  /// Cycle through Loop Modes. logic: Off -> All -> Single -> Off
-  Future<void> cycleLoopMode() async {
-    final current = ref.read(preferenceServiceProvider).loopMode;
-
-    final next = switch (current) {
-      PlaylistMode.none => PlaylistMode.loop,
-      PlaylistMode.loop => PlaylistMode.single,
-      PlaylistMode.single => PlaylistMode.none,
-    };
-
-    await _mkPlayer.setPlaylistMode(next);
-    ref.read(preferenceServiceProvider.notifier).setLoopMode(next);
   }
 
   /// Dispose when the app closes
@@ -319,6 +343,7 @@ class PlayerService with LoggerMixin {
   }
 }
 
+// Handle audio playback communication with the OS
 class MediaKitAudioHandler extends BaseAudioHandler
     with QueueHandler, SeekHandler {
   final Player _player;
@@ -420,7 +445,7 @@ class MediaKitAudioHandler extends BaseAudioHandler
 }
 
 //
-// ============================ Provider =================================
+// =============================== Provider ===================================
 //
 
 final playerServiceProvider = Provider<PlayerService>((ref) {
@@ -430,10 +455,6 @@ final playerServiceProvider = Provider<PlayerService>((ref) {
 
   return service;
 });
-
-//
-// Convert media kit stream to riverpod
-//
 
 final positionStreamProvider = StreamProvider<Duration>((ref) {
   final player = ref.watch(playerServiceProvider).mkPlayer;
@@ -470,7 +491,7 @@ class IsPlayingNotifier extends Notifier<bool> {
       } else {
         // Wait 150ms before telling the UI to show the "Play" icon.
         _debounceTimer?.cancel();
-        _debounceTimer = Timer(const Duration(milliseconds: 100), () {
+        _debounceTimer = Timer(const Duration(milliseconds: 150), () {
           state = false;
         });
       }
@@ -484,21 +505,6 @@ class IsPlayingNotifier extends Notifier<bool> {
     return player.state.playing;
   }
 }
-
-final currentTrackProvider = StreamProvider<TrackWithArtists?>((ref) {
-  final player = ref.watch(playerServiceProvider).mkPlayer;
-
-  return player.stream.playlist.map((playlist) {
-    if (playlist.medias.isEmpty ||
-        playlist.index < 0 ||
-        playlist.index >= playlist.medias.length) {
-      return null;
-    }
-
-    final currentMedia = playlist.medias[playlist.index];
-    return currentMedia.extras?['data'] as TrackWithArtists?;
-  });
-});
 
 /// Track the currently played playlist
 final playbackContextProvider =
@@ -526,74 +532,86 @@ class PlaybackContextNotifier extends Notifier<PlaybackContext?> {
   }
 }
 
-final currentQueueAlbumArtProvider =
-    NotifierProvider<NowPlayingAlbumArtNotifier, List<String>>(
-      NowPlayingAlbumArtNotifier.new,
-    );
+// ============================ Current Queue =================================
 
-class NowPlayingAlbumArtNotifier extends Notifier<List<String>> {
-  @override
-  List<String> build() {
-    final player = ref.watch(playerServiceProvider).mkPlayer;
+/// Return MediaKit playlist stream
+final rawPlaylistProvider = StreamProvider<Playlist>((ref) async* {
+  final player = ref.watch(playerServiceProvider).mkPlayer;
 
-    // WATCH RIVERPOD: If the user clicks the loop button in the UI,
-    // this preference changes, instantly triggering a recalculation!
-    ref.watch(preferenceServiceProvider.select((prefs) => prefs.loopMode));
+  yield player.state.playlist;
+  yield* player.stream.playlist;
+});
 
-    // LISTEN TO MEDIA_KIT: Update whenever the track changes or queue advances
-    final subscription = player.stream.playlist.listen((_) {
-      state = _calculateCovers();
-    });
+/// Return currently playing track (single)
+final currentTrackProvider = Provider<TrackWithArtists?>((ref) {
+  final playlist = ref.watch(rawPlaylistProvider).value;
+  if (playlist == null || playlist.medias.isEmpty) return null;
 
-    ref.onDispose(() {
-      subscription.cancel();
-    });
+  final index = playlist.index;
+  if (index < 0 || index >= playlist.medias.length) return null;
 
-    // Initial calculation when the provider first boots up
-    return _calculateCovers();
+  return playlist.medias[index].extras?['data'] as TrackWithArtists?;
+});
+
+/// Return currently played track index in queue or -1 if no track played
+final currentTrackIndexProvider = Provider<int>((ref) {
+  final playlist = ref.watch(rawPlaylistProvider).value;
+  return playlist?.index ?? -1;
+});
+
+/// Return all the tracks currently in queue
+final currentTracksInQueueProvider = Provider<List<TrackWithArtists?>>((ref) {
+  final playlist = ref.watch(rawPlaylistProvider).value;
+  if (playlist == null || playlist.medias.isEmpty) return [];
+
+  return playlist.medias
+      .map((media) => media.extras?['data'] as TrackWithArtists?)
+      .toList();
+});
+
+/// Return upcoming album arts for the queue (current and the next 4)
+final current5TracksAlbumArtInQueueProvider = Provider<List<String>>((ref) {
+  final playlist = ref.watch(rawPlaylistProvider).value;
+  final loopMode = ref.watch(
+    preferenceServiceProvider.select((prefs) => prefs.loopMode),
+  );
+
+  if (playlist == null || playlist.medias.isEmpty || playlist.index < 0) {
+    return [];
   }
 
-  List<String> _calculateCovers() {
-    // Read the current instantaneous state of the player
-    final player = ref.read(playerServiceProvider).mkPlayer;
-    final playlist = player.state.playlist;
+  final int currentIndex = playlist.index;
+  final List<Media> allMedia = playlist.medias;
+  final List<String> stackCovers = [];
 
-    if (playlist.medias.isEmpty || playlist.index < 0) {
-      return [];
-    }
+  // Calculate up to 5 upcoming covers
+  for (
+    int count = 0;
+    count < allMedia.length && stackCovers.length < 5;
+    count++
+  ) {
+    int targetIndex = currentIndex + count;
 
-    final int currentIndex = playlist.index;
-    final List<Media> allMedia = playlist.medias;
-    final PlaylistMode loopMode = player.state.playlistMode;
-
-    final List<String> stackCovers = [];
-
-    for (
-      int count = 0;
-      count < allMedia.length && stackCovers.length < 5;
-      count++
-    ) {
-      int targetIndex = currentIndex + count;
-
-      if (targetIndex >= allMedia.length) {
-        if (loopMode == PlaylistMode.loop) {
-          targetIndex = targetIndex % allMedia.length;
-        } else {
-          break; // Stop wrapping around if loop is off
-        }
-      }
-
-      final track = allMedia[targetIndex].extras?['data'] as TrackWithArtists?;
-
-      if (track != null) {
-        final artPath = track.album.albumArtPath?.isNotEmpty == true
-            ? track.album.albumArtPath!
-            : "";
-
-        stackCovers.add(artPath);
+    // Handle wrap-around logic
+    if (targetIndex >= allMedia.length) {
+      if (loopMode == PlaylistMode.loop) {
+        targetIndex = targetIndex % allMedia.length;
+      } else {
+        break; // Stop wrapping around if loop is off
       }
     }
 
-    return stackCovers;
+    // Extract the track data
+    final track = allMedia[targetIndex].extras?['data'] as TrackWithArtists?;
+
+    if (track != null) {
+      final artPath = track.album.albumArtPath?.isNotEmpty == true
+          ? track.album.albumArtPath!
+          : "";
+
+      stackCovers.add(artPath);
+    }
   }
-}
+
+  return stackCovers;
+});

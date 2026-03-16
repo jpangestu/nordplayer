@@ -21,19 +21,25 @@ class _NordplayerAppBarState extends ConsumerState<NordplayerAppBar> {
     final theme = Theme.of(context);
 
     final currentRoute = GoRouterState.of(context).uri.toString();
-
     final bool isSettingsRoute = currentRoute.startsWith(Routes.settingsPage);
+    final bool canPop = context.canPop();
 
     return AppBar(
       backgroundColor: theme.colorScheme.surface.withValues(alpha: 0.90),
       toolbarHeight: 60,
       scrolledUnderElevation: 0,
-      leading: isSettingsRoute
+      leading: (isSettingsRoute || canPop)
           ? IconButton(
               icon: const Icon(Icons.arrow_back),
               onPressed: () {
-                final lastRoute = ref.read(lastMainRouteProvider);
-                context.go(lastRoute);
+                if (isSettingsRoute) {
+                  // Your custom settings exit logic
+                  final lastRoute = ref.read(lastMainRouteProvider);
+                  context.go(lastRoute);
+                } else if (canPop) {
+                  // Standard back navigation for playlists, albums, etc.
+                  context.pop();
+                }
               },
             )
           : null,
@@ -69,7 +75,9 @@ class _NordplayerAppBarState extends ConsumerState<NordplayerAppBar> {
               final lastRoute = ref.read(lastMainRouteProvider);
               context.go(lastRoute);
             } else {
-              ref.read(lastMainRouteProvider.notifier).updateRoute(currentRoute);
+              ref
+                  .read(lastMainRouteProvider.notifier)
+                  .updateRoute(currentRoute);
               context.go('/settings/appearance');
             }
           },

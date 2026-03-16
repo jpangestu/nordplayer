@@ -7,7 +7,6 @@ import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/widgets/album_art_stack.dart';
 import 'package:nordplayer/widgets/album_art_wall.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
-import 'package:nordplayer/widgets/nordplayer_app_bar.dart';
 import 'package:nordplayer/widgets/shortcuts.dart';
 import 'package:nordplayer/widgets/sliver_resizable_table_layout.dart';
 import 'package:nordplayer/pages/library_page.dart';
@@ -54,7 +53,6 @@ class PlaylistDetailPage extends ConsumerWidget {
           autofocus: true,
           child: Scaffold(
             extendBodyBehindAppBar: true,
-            appBar: const NordplayerAppBar(),
             body: playlistAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, stack) => Center(child: Text('Error: $error')),
@@ -212,7 +210,7 @@ class PlaylistHeroHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final nowPlayingAlbumArt = ref.watch(currentQueueAlbumArtProvider);
+    final nowPlayingAlbumArt = ref.watch(current5TracksAlbumArtInQueueProvider);
 
     // Dynamically pull up to 30 unique covers from this specific playlist
     final Set<String> uniqueCovers = {};

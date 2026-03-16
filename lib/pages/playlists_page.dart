@@ -8,7 +8,6 @@ import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/widgets/album_art_stack.dart';
 import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
-import 'package:nordplayer/widgets/nordplayer_app_bar.dart';
 
 class PlaylistsPage extends ConsumerWidget {
   const PlaylistsPage({super.key});
@@ -18,7 +17,6 @@ class PlaylistsPage extends ConsumerWidget {
     final db = ref.watch(appDatabaseProvider);
 
     return Scaffold(
-      appBar: const NordplayerAppBar(),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -323,7 +321,7 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
         playbackContext?.isPlaying('playlist', playlistId) ?? false;
     final isAudioPlaying = ref.watch(isPlayingProvider);
 
-    final nowPlayingAlbumArt = ref.watch(currentQueueAlbumArtProvider);
+    final nowPlayingAlbumArt = ref.watch(current5TracksAlbumArtInQueueProvider);
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),

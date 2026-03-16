@@ -19,7 +19,7 @@ class _PlayerBarState extends ConsumerState<PlayerBar> with LoggerMixin {
   @override
   Widget build(BuildContext context) {
     final player = ref.watch(playerServiceProvider);
-    final currentTrack = ref.watch(currentTrackProvider).value;
+    final currentTrack = ref.watch(currentTrackProvider);
 
     final double screenWidth = MediaQuery.sizeOf(context).width;
     bool isLargeScreen = screenWidth > 900;
@@ -77,7 +77,15 @@ class _PlayerBarState extends ConsumerState<PlayerBar> with LoggerMixin {
                   icon: const Icon(Icons.queue_music_outlined),
                   iconSize: 24,
                   tooltip: 'Show Queue',
-                  onPressed: () {},
+                  // isSelected: true,
+                  onPressed: () {
+                    final showQueue = ref
+                        .read(preferenceServiceProvider)
+                        .showQueue;
+                    ref
+                        .read(preferenceServiceProvider.notifier)
+                        .setShowQueue(!showQueue);
+                  },
                 ),
                 VolumeSlider(
                   volume: ref.watch(preferenceServiceProvider).volume,

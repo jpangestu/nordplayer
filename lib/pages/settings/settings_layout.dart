@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:nordplayer/pages/settings/about_page.dart';
 import 'package:nordplayer/routes/destinations.dart';
 import 'package:nordplayer/services/preference_service.dart';
-import 'package:nordplayer/widgets/nordplayer_app_bar.dart';
 import 'package:nordplayer/widgets/sidebar.dart';
 
 class SettingsLayout extends ConsumerWidget {
@@ -29,7 +28,7 @@ class SettingsLayout extends ConsumerWidget {
       body: Row(
         children: [
           Sidebar(
-            leading: SizedBox(height: 16,),
+            leading: SizedBox(height: 16),
             selectedIndex: navigationShell.currentIndex,
             destinations: Destinations.settingsDestinations,
             onDestinationSelected: navigationShell.goBranch,
@@ -38,12 +37,7 @@ class SettingsLayout extends ConsumerWidget {
             trailing: aboutPage(context, isExtended),
             width: 220,
           ),
-          Expanded(
-            child: Scaffold(
-              appBar: NordplayerAppBar(),
-              body: navigationShell,
-            ),
-          ),
+          Expanded(child: navigationShell),
         ],
       ),
     );

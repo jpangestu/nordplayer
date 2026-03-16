@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nordplayer/pages/queue_page.dart';
 import 'package:nordplayer/routes/destinations.dart';
 import 'package:nordplayer/services/preference_service.dart';
+import 'package:nordplayer/widgets/nordplayer_app_bar.dart';
 import 'package:nordplayer/widgets/player_bar/player_bar.dart';
 import 'package:nordplayer/widgets/shortcuts.dart';
 import 'package:nordplayer/widgets/sidebar.dart';
@@ -16,6 +18,7 @@ class AppLayout extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     bool isExtended = ref.watch(preferenceServiceProvider).sidebarExtended;
+    bool showQueue = ref.watch(preferenceServiceProvider).showQueue;
 
     return Shortcuts(
       shortcuts: <ShortcutActivator, Intent>{
@@ -45,40 +48,89 @@ class AppLayout extends ConsumerWidget {
         },
         child: Focus(
           autofocus: true,
-          child: Scaffold(
-            body: Column(
-              children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      Sidebar(
-                        selectedIndex:
-                            navigationShell.currentIndex <
-                                Destinations.mainDestinations.length
-                            ? navigationShell.currentIndex
-                            : null,
-                        destinations: Destinations.mainDestinations,
-                        onDestinationSelected: navigationShell.goBranch,
-                        showExtendedToggle: true,
-                        isExtended: isExtended,
-                        onExtendedToggle: () {
-                          isExtended = !isExtended;
-                          ref
-                              .read(preferenceServiceProvider.notifier)
-                              .setSidebarExtended(isExtended);
-                        },
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final bool isWideScreen = constraints.maxWidth > 1080;
+
+              return Scaffold(
+                body: Column(
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Sidebar(
+                            selectedIndex:
+                                navigationShell.currentIndex <
+                                    Destinations.mainDestinations.length
+                                ? navigationShell.currentIndex
+                                : null,
+                            destinations: Destinations.mainDestinations,
+                            onDestinationSelected: navigationShell.goBranch,
+                            showExtendedToggle: true,
+                            isExtended: isExtended,
+                            onExtendedToggle: () {
+                              isExtended = !isExtended;
+                              ref
+                                  .read(preferenceServiceProvider.notifier)
+                                  .setSidebarExtended(isExtended);
+                            },
+                          ),
+
+                          VerticalDivider(width: 2, thickness: 2),
+
+                          Expanded(
+                            child: Scaffold(
+                              appBar: NordplayerAppBar(),
+                              extendBodyBehindAppBar:
+                                  navigationShell.currentIndex == 0
+                                  ? true
+                                  : false,
+                              body: Stack(
+                                children: [
+                                  // --- LAYER 1: PAGES + PINNED QUEUE---
+                                  Row(
+                                    children: [
+                                      Expanded(child: navigationShell),
+
+                                      if (showQueue && isWideScreen)
+                                        QueuePage(
+                                          isWideScreen: isWideScreen,
+                                          isAppBarAllowContentBehindIt:
+                                              navigationShell.currentIndex == 0
+                                              ? true
+                                              : false,
+                                        ),
+                                    ],
+                                  ),
+
+                                  // --- LAYER 2: FLOATING QUEUE ---
+                                  if (showQueue && !isWideScreen) ...[
+                                    Positioned(
+                                      top: 0,
+                                      bottom: 0,
+                                      right: 0,
+                                      child: QueuePage(
+                                        isWideScreen: isWideScreen,
+                                        isAppBarAllowContentBehindIt:
+                                            navigationShell.currentIndex == 0
+                                            ? true
+                                            : false,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-
-                      VerticalDivider(width: 2, thickness: 2),
-
-                      Expanded(child: navigationShell),
-                    ],
-                  ),
+                    ),
+                    Divider(height: 2, thickness: 2),
+                    PlayerBar(),
+                  ],
                 ),
-                Divider(height: 2, thickness: 2),
-                PlayerBar(),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),

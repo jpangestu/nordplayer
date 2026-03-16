@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class PrefConstants {
   static const String isMuted = 'isMuted';
   static const String loopMode = 'loopMode';
+  static const String showQueue = 'showQueue';
   static const String shuffleMode = 'shuffleMode';
   static const String sidebarExtended = 'sidebarExtended';
   static const String timeLabelType = 'timeLabelType';
@@ -17,6 +18,7 @@ class PrefConstants {
 
   static const bool defaultIsMuted = false;
   static const PlaylistMode defaultLoopMode = PlaylistMode.none;
+  static const bool defaultShowQueue = false;
   static const bool defaultShuffleMode = false;
   static const bool defaultSidebarExtended = true;
   static const TimeLabelType defaultTimeLabelType = .totalTime;
@@ -25,6 +27,7 @@ class PrefConstants {
   static const Set<String> allowList = {
     isMuted,
     loopMode,
+    showQueue,
     shuffleMode,
     sidebarExtended,
     timeLabelType,
@@ -36,6 +39,7 @@ class PrefConstants {
 class PreferencesState {
   final bool isMuted;
   final PlaylistMode loopMode;
+  final bool showQueue;
   final bool shuffleMode;
   final bool sidebarExtended;
   final TimeLabelType timeLabelType;
@@ -44,6 +48,7 @@ class PreferencesState {
   const PreferencesState({
     required this.isMuted,
     required this.loopMode,
+    required this.showQueue,
     required this.shuffleMode,
     required this.sidebarExtended,
     required this.timeLabelType,
@@ -53,6 +58,7 @@ class PreferencesState {
   PreferencesState copyWith({
     bool? isMuted,
     PlaylistMode? loopMode,
+    bool? showQueue,
     bool? shuffleMode,
     bool? sidebarExtended,
     TimeLabelType? timeLabelType,
@@ -61,6 +67,7 @@ class PreferencesState {
     return PreferencesState(
       isMuted: isMuted ?? this.isMuted,
       loopMode: loopMode ?? this.loopMode,
+      showQueue: showQueue ?? this.showQueue,
       shuffleMode: shuffleMode ?? this.shuffleMode,
       sidebarExtended: sidebarExtended ?? this.sidebarExtended,
       timeLabelType: timeLabelType ?? this.timeLabelType,
@@ -69,6 +76,7 @@ class PreferencesState {
   }
 }
 
+/// Shared Preference api
 final sharedPrefsProvider = Provider<SharedPreferencesWithCache>((ref) {
   throw UnimplementedError('Initialize this in main.dart');
 });
@@ -95,6 +103,9 @@ class PreferenceService extends Notifier<PreferencesState> with LoggerMixin {
       isMuted:
           _prefs.getBool(PrefConstants.isMuted) ?? PrefConstants.defaultIsMuted,
       loopMode: _getLoopModeOrDefault(),
+      showQueue:
+          _prefs.getBool(PrefConstants.showQueue) ??
+          PrefConstants.defaultShowQueue,
       shuffleMode:
           _prefs.getBool(PrefConstants.shuffleMode) ??
           PrefConstants.defaultShuffleMode,
@@ -140,6 +151,11 @@ class PreferenceService extends Notifier<PreferencesState> with LoggerMixin {
     _setValue(PrefConstants.loopMode, value.toString());
   }
 
+  void setShowQueue(bool value) {
+    state = state.copyWith(showQueue: value);
+    _setValue(PrefConstants.showQueue, value);
+  }
+
   void setShuffleMode(bool value) {
     state = state.copyWith(shuffleMode: value);
     _setValue(PrefConstants.shuffleMode, value);
@@ -176,6 +192,7 @@ class PreferenceService extends Notifier<PreferencesState> with LoggerMixin {
       state = const PreferencesState(
         isMuted: PrefConstants.defaultIsMuted,
         loopMode: PrefConstants.defaultLoopMode,
+        showQueue: PrefConstants.defaultShowQueue,
         shuffleMode: PrefConstants.defaultShuffleMode,
         sidebarExtended: PrefConstants.defaultSidebarExtended,
         timeLabelType: PrefConstants.defaultTimeLabelType,

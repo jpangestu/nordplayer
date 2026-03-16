@@ -11,7 +11,6 @@ import 'package:nordplayer/widgets/album_art_wall.dart';
 import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
-import 'package:nordplayer/widgets/nordplayer_app_bar.dart';
 import 'package:nordplayer/widgets/shortcuts.dart';
 import 'package:nordplayer/widgets/sliver_resizable_table_layout.dart';
 
@@ -46,8 +45,6 @@ class LibraryPage extends ConsumerWidget {
         child: Focus(
           autofocus: true,
           child: Scaffold(
-            extendBodyBehindAppBar: true,
-            appBar: NordplayerAppBar(),
             body: CustomScrollView(
               slivers: [
                 SliverAppBar(
@@ -232,7 +229,7 @@ class LibraryHeroHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final libraryAlbumArt = ref.watch(libraryAlbumArtProvider);
-    final nowPlayingAlbumArt = ref.watch(currentQueueAlbumArtProvider);
+    final nowPlayingAlbumArt = ref.watch(current5TracksAlbumArtInQueueProvider);
 
     final libraryTracks = ref.watch(libraryStreamProvider).value ?? [];
     final int totalMs = libraryTracks.fold(
@@ -388,8 +385,8 @@ class TrackContextMenu {
               ref
                   .read(playerServiceProvider)
                   .setPlaylist(
-                    playbackContextType: 'library',
-                    playbackContextId: null,
+                    playbackContextType: playbackContextType,
+                    playbackContextId: playbackContextId,
                     tracksToPlay: playlistToPlay,
                     initialIndex: startingQueueIndex == -1
                         ? 0
@@ -398,35 +395,63 @@ class TrackContextMenu {
             }
           },
         ),
-        ContextMenuActions(
-          icon: Icons.playlist_add_outlined,
-          label: 'Add to queue',
-          onTap: () {
-            final playbackContext = ref.read(playbackContextProvider);
-            ref
-                .read(playerServiceProvider)
-                .addToQueue(
-                  selectedTracks,
-                  playbackContext?.type ?? '', // TODO: FIX
-                  playbackContext?.id,
-                );
+        // Only show "Add to queue" if we aren't already looking at the queue
+        if (playbackContextType != 'queue')
+          ContextMenuActions(
+            icon: Icons.playlist_add_outlined,
+            label: 'Add to queue',
+            onTap: () {
+              final playbackContext = ref.read(playbackContextProvider);
+              ref
+                  .read(playerServiceProvider)
+                  .addToQueue(
+                    selectedTracks,
+                    playbackContext?.type ?? 'library',
+                    playbackContext?.id,
+                  );
 
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Added ${selectedTracks.length} tracks to queue',
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Added ${selectedTracks.length} tracks to queue',
+                    ),
+                    behavior: SnackBarBehavior.floating,
+                    width: 300,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
                   ),
-                  behavior: SnackBarBehavior.floating,
-                  width: 300,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                ),
+                );
+              }
+            },
+          ),
+
+        // Show "Remove from queue" if we ARE looking at the queue
+        if (playbackContextType == 'queue')
+          ContextMenuActions(
+            icon: Icons.playlist_remove_outlined,
+            label: 'Remove from queue',
+            onTap: () {
+              final selectionSet = ref.read(
+                selectedTracksIndexProvider('queue_page'),
               );
-            }
-          },
-        ),
+
+              // Convert to list and sort descending for safe remove
+              final indicesToRemove = selectionSet.toList()
+                ..sort((a, b) => b.compareTo(a));
+
+              // Remove from highest index to lowest so the queue shifting doesn't break the math
+              for (final index in indicesToRemove) {
+                ref.read(playerServiceProvider).removeTrack(index);
+              }
+
+              // Clear the selection so the UI doesn't hold onto invalid, out-of-bounds highlighted rows
+              ref
+                  .read(selectedTracksIndexProvider('queue_page').notifier)
+                  .clear();
+            },
+          ),
         ContextSubMenuAction(
           icon: Icons.add,
           label: 'Add to playlist',
@@ -793,7 +818,7 @@ class LibraryTableColumnsNotifier
           return Consumer(
             builder: (context, ref, child) {
               final isActiveTrack =
-                  ref.watch(currentTrackProvider).value?.track.filePath ==
+                  ref.watch(currentTrackProvider)?.track.filePath ==
                   track.track.filePath;
 
               if (isActiveTrack) {
@@ -826,7 +851,7 @@ class LibraryTableColumnsNotifier
           return Consumer(
             builder: (context, ref, child) {
               final isPlaying =
-                  ref.watch(currentTrackProvider).value?.track.filePath ==
+                  ref.watch(currentTrackProvider)?.track.filePath ==
                   track.track.filePath;
               return MusicTile(
                 selected: isPlaying,
@@ -947,6 +972,8 @@ class SelectedTracksIndex extends Notifier<Set<int>> {
 
   @override
   Set<int> build() => {};
+
+  void clear() => state = {};
 
   void selectTrack(
     int index, {
