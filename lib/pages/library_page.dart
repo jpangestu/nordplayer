@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nordplayer/database/app_database.dart';
+import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/widgets/album_art_stack.dart';
@@ -20,6 +21,7 @@ class LibraryPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final appConfig = ref.watch(configServiceProvider).requireValue;
 
     final libraryAsync = ref.watch(libraryStreamProvider);
     final tableColumns = ref.watch(libraryTableColumnsProvider);
@@ -45,55 +47,31 @@ class LibraryPage extends ConsumerWidget {
         child: Focus(
           autofocus: true,
           child: Scaffold(
-            body: CustomScrollView(
-              slivers: [
-                SliverAppBar(
-                  floating: false,
-                  pinned: true,
-                  expandedHeight: 220,
-                  scrolledUnderElevation: 0,
-                  flexibleSpace: FlexibleSpaceBar(
-                    title: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final settings = context
-                            .dependOnInheritedWidgetOfExactType<
-                              FlexibleSpaceBarSettings
-                            >();
-                        if (settings == null) return const SizedBox.shrink();
-                        final deltaExtent =
-                            settings.maxExtent - settings.minExtent;
-                        final t =
-                            (settings.currentExtent - settings.minExtent) /
-                            deltaExtent;
-                        final clampT = t.clamp(0.0, 1.0);
-                        final double horizontalOffset = 141 * clampT;
-
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            left: horizontalOffset,
-                            bottom: 60 * clampT,
-                          ),
-                          child: Text(
-                            'Library',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        );
-                      },
+            backgroundColor: appConfig.adaptiveBg
+                ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.5)
+                : theme.colorScheme.surface,
+            body: libraryAsync.when(
+              loading: () => Center(child: CircularProgressIndicator()),
+              error: (error, stack) => Center(child: Text('Error: $error')),
+              data: (tracks) {
+                return CustomScrollView(
+                  slivers: [
+                    SliverAppBar(
+                      pinned: true,
+                      expandedHeight: 220.0,
+                      collapsedHeight: 0.0,
+                      toolbarHeight: 0.0,
+                      backgroundColor: Colors.transparent,
+                      elevation: 0,
+                      scrolledUnderElevation: 0,
+                      flexibleSpace: FlexibleSpaceBar(
+                        background: const LibraryHeroHeader(),
+                        collapseMode: CollapseMode.parallax,
+                      ),
                     ),
-                    background: LibraryHeroHeader(),
-                  ),
-                ),
 
-                libraryAsync.when(
-                  loading: () => const SliverFillRemaining(
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                  error: (error, stack) => SliverFillRemaining(
-                    child: Center(child: Text('Error: $error')),
-                  ),
-                  data: (tracks) {
-                    if (tracks.isEmpty) {
-                      return SliverFillRemaining(
+                    if (tracks.isEmpty)
+                      SliverFillRemaining(
                         child: Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -125,95 +103,98 @@ class LibraryPage extends ConsumerWidget {
                             ],
                           ),
                         ),
-                      );
-                    }
-
-                    return SliverInteractiveTable<TrackWithArtists>(
-                      items: tracks,
-                      columns: tableColumns,
-                      selectedIndices: selectedIndices,
-                      rowHeight: 66.0,
-                      onColumnsResized: (newWidths) {
-                        ref
-                            .read(libraryTableColumnsProvider.notifier)
-                            .updateColumnWidths(newWidths);
-                      },
-                      onHeaderRightClick: (globalPosition) {
-                        ContextMenu.show(
-                          context: context,
-                          globalPosition: globalPosition,
-                          actionMenus: [
-                            // Wrap our custom reactive widget inside the context menu
-                            ContextMenuCustomWidget(
-                              child: const ColumnToggleContextMenu(),
-                            ),
-                          ],
-                        );
-                      },
-                      onRowClick: (index, {required isCtrl, required isShift}) {
-                        ref
-                            .read(
-                              selectedTracksIndexProvider(
-                                'library_page',
-                              ).notifier,
-                            )
-                            .selectTrack(
-                              index,
-                              isCtrlSelect: isCtrl,
-                              isShiftSelect: isShift,
-                            );
-                      },
-                      onRowDoubleClick: (index) {
-                        ref
-                            .read(playerServiceProvider)
-                            .setPlaylist(
-                              playbackContextType: 'library',
-                              playbackContextId: null,
-                              tracksToPlay: tracks,
-                              initialIndex: index,
-                            );
-                      },
-                      onRowRightClick: (index, globalPosition) {
-                        final selectionNotifier = ref.read(
-                          selectedTracksIndexProvider('library_page').notifier,
-                        );
-                        final currentSelection = ref.read(
-                          selectedTracksIndexProvider('library_page'),
-                        );
-
-                        // If right-clicking an unselected item, select it first and clear others
-                        if (!currentSelection.contains(index)) {
-                          selectionNotifier.selectTrack(
-                            index,
-                            isCtrlSelect: false,
-                            isShiftSelect: false,
+                      )
+                    else
+                      SliverInteractiveTable<TrackWithArtists>(
+                        items: tracks,
+                        columns: tableColumns,
+                        selectedIndices: selectedIndices,
+                        rowHeight: 66.0,
+                        isAdaptive: appConfig.adaptiveBg,
+                        onColumnsResized: (newWidths) {
+                          ref
+                              .read(libraryTableColumnsProvider.notifier)
+                              .updateColumnWidths(newWidths);
+                        },
+                        onHeaderRightClick: (globalPosition) {
+                          ContextMenu.show(
+                            context: context,
+                            globalPosition: globalPosition,
+                            actionMenus: [
+                              ContextMenuCustomWidget(
+                                child: const ColumnToggleContextMenu(),
+                              ),
+                            ],
                           );
-                        }
+                        },
+                        onRowClick:
+                            (index, {required isCtrl, required isShift}) {
+                              ref
+                                  .read(
+                                    selectedTracksIndexProvider(
+                                      'library_page',
+                                    ).notifier,
+                                  )
+                                  .selectTrack(
+                                    index,
+                                    isCtrlSelect: isCtrl,
+                                    isShiftSelect: isShift,
+                                  );
+                            },
+                        onRowDoubleClick: (index) {
+                          ref
+                              .read(playerServiceProvider)
+                              .setPlaylist(
+                                playbackContextType: 'library',
+                                playbackContextId: null,
+                                tracksToPlay: tracks,
+                                initialIndex: index,
+                              );
+                        },
+                        onRowRightClick: (index, globalPosition) {
+                          final selectionNotifier = ref.read(
+                            selectedTracksIndexProvider(
+                              'library_page',
+                            ).notifier,
+                          );
+                          final currentSelection = ref.read(
+                            selectedTracksIndexProvider('library_page'),
+                          );
 
-                        final updatedSelection = ref.read(
-                          selectedTracksIndexProvider('library_page'),
-                        );
+                          // If right-clicking an unselected item, select it first and clear others
+                          if (!currentSelection.contains(index)) {
+                            selectionNotifier.selectTrack(
+                              index,
+                              isCtrlSelect: false,
+                              isShiftSelect: false,
+                            );
+                          }
 
-                        // Convert to list and sort the indices first
-                        final sortedIndices = updatedSelection.toList()..sort();
-                        final List<TrackWithArtists> selectedTracks =
-                            sortedIndices.map((i) => tracks[i]).toList();
+                          final updatedSelection = ref.read(
+                            selectedTracksIndexProvider('library_page'),
+                          );
 
-                        TrackContextMenu.show(
-                          context: context,
-                          ref: ref,
-                          globalPosition: globalPosition,
-                          allTracks: tracks,
-                          clickedIndex: index,
-                          selectedTracks: selectedTracks,
-                          playbackContextType: 'library',
-                          playbackContextId: null,
-                        );
-                      },
-                    );
-                  },
-                ),
-              ],
+                          // Convert to list and sort the indices first
+                          final sortedIndices = updatedSelection.toList()
+                            ..sort();
+                          final List<TrackWithArtists> selectedTracks =
+                              sortedIndices.map((i) => tracks[i]).toList();
+
+                          TrackContextMenu.show(
+                            context: context,
+                            ref: ref,
+                            globalPosition: globalPosition,
+                            allTracks: tracks,
+                            clickedIndex: index,
+                            selectedTracks: selectedTracks,
+                            playbackContextType: 'library',
+                            playbackContextId: null,
+                          );
+                        },
+                      ),
+                  ],
+                );
+              },
             ),
           ),
         ),
@@ -228,6 +209,7 @@ class LibraryHeroHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final appConfig = ref.watch(configServiceProvider).requireValue;
     final libraryAlbumArt = ref.watch(libraryAlbumArtProvider);
     final nowPlayingAlbumArt = ref.watch(current5TracksAlbumArtInQueueProvider);
 
@@ -262,16 +244,18 @@ class LibraryHeroHeader extends ConsumerWidget {
               end: Alignment.bottomCenter,
               colors: [
                 theme.colorScheme.primary.withValues(alpha: 0.10),
-                theme.colorScheme.primary.withValues(alpha: 0.0),
+                appConfig.adaptiveBg
+                    ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.5)
+                    : theme.colorScheme.primary.withValues(alpha: 0.0),
               ],
             ),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 60),
-                child: SizedBox(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 58.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(
                   width: 244,
                   child: Align(
                     alignment: .centerLeft,
@@ -286,14 +270,32 @@ class LibraryHeroHeader extends ConsumerWidget {
                     ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 24, top: 100, right: 16),
-                child: Text(
-                  '${libraryTracks.length} Tracks - ${formatTotalDuration(totalDuration)}',
+                Padding(
+                  padding: const .only(left: 24),
+                  child: Column(
+                    mainAxisAlignment: .center,
+                    crossAxisAlignment: .start,
+                    children: [
+                      Text(
+                        'Library',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+
+                      const SizedBox(height: 4),
+
+                      Text(
+                        '${libraryTracks.length} Tracks - ${formatTotalDuration(totalDuration)}',
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],

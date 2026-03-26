@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -144,6 +145,8 @@ class SliverTableLayout extends StatefulWidget {
   /// Callback fired when a user right-clicks anywhere on the header row.
   final void Function(Offset globalPosition)? onHeaderRightClick;
 
+  final bool isAdaptive;
+
   const SliverTableLayout({
     super.key,
     required this.columns,
@@ -162,6 +165,7 @@ class SliverTableLayout extends StatefulWidget {
       right: 16,
     ),
     this.cellPadding = const EdgeInsets.symmetric(horizontal: 16),
+    this.isAdaptive = false,
   });
 
   @override
@@ -236,74 +240,91 @@ class _SliverTableLayoutState extends State<SliverTableLayout> {
         theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ??
         Colors.grey;
 
+    final blurSigma = widget.isAdaptive ? 10.0 : 0.0;
+
     return MouseRegion(
       onEnter: (_) => setState(() => _isHeaderHovered = true),
       onExit: (_) => setState(() {
         _isHeaderHovered = false;
         _hoveredHandleIndex = null;
       }),
-      child: Container(
-        color: theme.colorScheme.surface,
-        child: Padding(
-          padding: EdgeInsets.only(
-            left: widget.padding.left,
-            right: widget.padding.right,
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(
+            sigmaX: blurSigma,
+            sigmaY: blurSigma,
+            tileMode: .mirror,
           ),
           child: Container(
-            height: widget.headerHeight,
-            decoration:
-                widget.headerDecoration ??
-                BoxDecoration(
-                  border: Border(bottom: BorderSide(color: defaultBorderColor)),
-                ),
-            child: Listener(
-              onPointerDown: _handlePointerDown,
-              onPointerMove: _handlePointerMove,
-              onPointerUp: _handlePointerUp,
-              onPointerCancel: _handlePointerUp,
-              onPointerHover: _handlePointerHover,
-              behavior: HitTestBehavior.translucent,
-              child: MouseRegion(
-                cursor:
-                    _hoveredHandleIndex != null ||
-                        _activeDragHandleIndex != null
-                    ? SystemMouseCursors.resizeColumn
-                    : SystemMouseCursors.basic,
-                child: CustomMultiChildLayout(
-                  delegate: _TableHeaderLayoutDelegate(
-                    widths: _controller.widths,
-                  ),
-                  children: [
-                    for (int i = 0; i < widget.columns.length; i++)
-                      LayoutId(
-                        id: 'label_$i',
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: widget.columns[i].onHeaderClick,
-                          child: Container(
-                            padding: widget.cellPadding,
-                            alignment: widget.columns[i].alignment,
-                            child: Text(
-                              widget.columns[i].label,
-                              style:
-                                  widget.headerTextStyle ??
-                                  TextStyle(
-                                    color: defaultTextColor,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+            color: widget.isAdaptive
+                ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.6)
+                : theme.colorScheme.surface,
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: widget.padding.left,
+                right: widget.padding.right,
+              ),
+              child: Container(
+                height: widget.headerHeight,
+                decoration:
+                    widget.headerDecoration ??
+                    BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: defaultBorderColor),
+                      ),
+                    ),
+                child: Listener(
+                  onPointerDown: _handlePointerDown,
+                  onPointerMove: _handlePointerMove,
+                  onPointerUp: _handlePointerUp,
+                  onPointerCancel: _handlePointerUp,
+                  onPointerHover: _handlePointerHover,
+                  behavior: HitTestBehavior.translucent,
+                  child: MouseRegion(
+                    cursor:
+                        _hoveredHandleIndex != null ||
+                            _activeDragHandleIndex != null
+                        ? SystemMouseCursors.resizeColumn
+                        : SystemMouseCursors.basic,
+                    child: CustomMultiChildLayout(
+                      delegate: _TableHeaderLayoutDelegate(
+                        widths: _controller.widths,
+                      ),
+                      children: [
+                        for (int i = 0; i < widget.columns.length; i++)
+                          LayoutId(
+                            id: 'label_$i',
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: widget.columns[i].onHeaderClick,
+                              child: Container(
+                                padding: widget.cellPadding,
+                                alignment: widget.columns[i].alignment,
+                                child: Text(
+                                  widget.columns[i].label,
+                                  style:
+                                      widget.headerTextStyle ??
+                                      TextStyle(
+                                        color: defaultTextColor,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                    for (int i = 0; i < widget.columns.length - 1; i++)
-                      LayoutId(
-                        id: 'handle_$i',
-                        child: Container(color: _getHandleColor(context, i)),
-                      ),
-                  ],
+                        for (int i = 0; i < widget.columns.length - 1; i++)
+                          LayoutId(
+                            id: 'handle_$i',
+                            child: Container(
+                              color: _getHandleColor(context, i),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -622,6 +643,7 @@ class SliverInteractiveTable<T> extends StatelessWidget {
   final void Function(int index, Offset globalPosition)? onRowRightClick;
 
   final double rowHeight;
+  final bool isAdaptive;
 
   const SliverInteractiveTable({
     super.key,
@@ -634,6 +656,7 @@ class SliverInteractiveTable<T> extends StatelessWidget {
     this.onRowDoubleClick,
     this.onRowRightClick,
     this.rowHeight = 50.0,
+    this.isAdaptive = false,
   });
 
   @override
@@ -643,6 +666,7 @@ class SliverInteractiveTable<T> extends StatelessWidget {
     return SliverTableLayout(
       columns: visibleColumns,
       itemCount: items.length,
+      isAdaptive: isAdaptive,
       onColumnsResized: onColumnsResized,
       onHeaderRightClick: onHeaderRightClick,
       rowBuilder: (context, index, widths, cellPadding) {

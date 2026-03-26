@@ -45,14 +45,14 @@ class PlayerService with LoggerMixin {
   PlayerService.withPlayer(this.ref, this._mkPlayer) {
     DateTime? lastSaveTime;
 
-    final playbackContext = ref.read(playbackContextProvider);
-
     _mkPlayer.stream.playlist.listen((playlist) {
       if (_isRestoringQueue || playlist.medias.isEmpty) return;
       final tracks = playlist.medias
           .map((m) => m.extras?['data'] as TrackWithArtists?)
           .whereType<TrackWithArtists>()
           .toList();
+
+      final playbackContext = ref.read(playbackContextProvider);
 
       ref
           .read(appDatabaseProvider)

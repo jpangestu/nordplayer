@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/routes/routes.dart';
+import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/widgets/album_art_stack.dart';
@@ -14,9 +15,14 @@ class PlaylistsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final db = ref.watch(appDatabaseProvider);
+    final appConfig = ref.watch(configServiceProvider).requireValue;
 
     return Scaffold(
+      backgroundColor: appConfig.adaptiveBg
+          ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.5)
+          : theme.colorScheme.surface,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

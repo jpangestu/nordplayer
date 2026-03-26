@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nordplayer/pages/queue_page.dart';
 import 'package:nordplayer/routes/destinations.dart';
+import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
+import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/nordplayer_app_bar.dart';
 import 'package:nordplayer/widgets/player_bar/player_bar.dart';
 import 'package:nordplayer/widgets/shortcuts.dart';
@@ -19,6 +21,7 @@ class AppLayout extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     bool isExtended = ref.watch(preferenceServiceProvider).sidebarExtended;
     bool showQueue = ref.watch(preferenceServiceProvider).showQueue;
+    final appConfig = ref.watch(configServiceProvider).requireValue;
 
     return Shortcuts(
       shortcuts: <ShortcutActivator, Intent>{
@@ -53,30 +56,44 @@ class AppLayout extends ConsumerWidget {
               final bool isWideScreen = constraints.maxWidth > 1080;
 
               return Scaffold(
+                backgroundColor: Colors.transparent,
                 body: Column(
                   children: [
                     Expanded(
                       child: Row(
                         children: [
-                          Sidebar(
-                            selectedIndex:
-                                navigationShell.currentIndex <
-                                    Destinations.mainDestinations.length
-                                ? navigationShell.currentIndex
-                                : null,
-                            destinations: Destinations.mainDestinations,
-                            onDestinationSelected: navigationShell.goBranch,
-                            showExtendedToggle: true,
-                            isExtended: isExtended,
-                            onExtendedToggle: () {
-                              isExtended = !isExtended;
-                              ref
-                                  .read(preferenceServiceProvider.notifier)
-                                  .setSidebarExtended(isExtended);
-                            },
+                          FrostedGlass(
+                            blurSigma: 10,
+                            child: Sidebar(
+                              isAdaptive: appConfig.adaptiveBg,
+                              selectedIndex:
+                                  navigationShell.currentIndex <
+                                      Destinations.mainDestinations.length
+                                  ? navigationShell.currentIndex
+                                  : null,
+                              destinations: Destinations.mainDestinations,
+                              onDestinationSelected: navigationShell.goBranch,
+                              showExtendedToggle: true,
+                              isExtended: isExtended,
+                              onExtendedToggle: () {
+                                isExtended = !isExtended;
+                                ref
+                                    .read(preferenceServiceProvider.notifier)
+                                    .setSidebarExtended(isExtended);
+                              },
+                            ),
                           ),
 
-                          VerticalDivider(width: 2, thickness: 2),
+                          appConfig.adaptiveBg
+                              ? VerticalDivider(
+                                  width: 2,
+                                  thickness: 2,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .surfaceContainer
+                                      .withValues(alpha: 0.4),
+                                )
+                              : const VerticalDivider(width: 2, thickness: 2),
 
                           Expanded(
                             child: Scaffold(
@@ -85,12 +102,27 @@ class AppLayout extends ConsumerWidget {
                                   navigationShell.currentIndex == 0
                                   ? true
                                   : false,
+                              backgroundColor: Colors.transparent,
                               body: Stack(
                                 children: [
                                   // --- LAYER 1: PAGES + PINNED QUEUE---
                                   Row(
                                     children: [
                                       Expanded(child: navigationShell),
+
+                                      appConfig.adaptiveBg
+                                          ? VerticalDivider(
+                                              width: 2,
+                                              thickness: 2,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .surfaceContainer
+                                                  .withValues(alpha: 0.4),
+                                            )
+                                          : const VerticalDivider(
+                                              width: 2,
+                                              thickness: 2,
+                                            ),
 
                                       if (showQueue && isWideScreen)
                                         QueuePage(
@@ -125,8 +157,19 @@ class AppLayout extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    Divider(height: 2, thickness: 2),
-                    PlayerBar(),
+
+                    appConfig.adaptiveBg
+                        ? Divider(
+                            height: 2,
+                            thickness: 2,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainer
+                                .withValues(alpha: 0.4),
+                          )
+                        : const Divider(height: 2, thickness: 2),
+
+                    FrostedGlass(blurSigma: 10, child: PlayerBar()),
                   ],
                 ),
               );

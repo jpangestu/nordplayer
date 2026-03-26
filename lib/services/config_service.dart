@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -70,9 +71,13 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
 
   void updateConfig({
     List<String>? musicPaths,
-    String? theme,
-    double? textScale,
     List<String>? artistDelimiters,
+    String? theme,
+    bool? adaptiveBg,
+    double? blur,
+    double? dimmer,
+    BoxFit? boxFit,
+    double? textScale,
     bool save = true,
   }) {
     if (!state.hasValue) return;
@@ -80,9 +85,13 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
     final currentConfig = state.requireValue;
     final newConfig = currentConfig.copyWith(
       musicPaths: musicPaths,
-      theme: theme,
-      textScale: textScale,
       artistDelimiters: artistDelimiters,
+      theme: theme,
+      adaptiveBg: adaptiveBg,
+      blur: blur,
+      dimmer: dimmer,
+      boxFit: boxFit,
+      textScale: textScale,
     );
 
     state = AsyncData(newConfig);
@@ -90,10 +99,13 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
     if (save) {
       final changes = [
         if (musicPaths != null) 'musicPath',
-        if (theme != null) 'theme',
-        if (textScale != null) 'textScale',
-        if (musicPaths != null) 'musicPath',
         if (artistDelimiters != null) 'artistDelimiters',
+        if (theme != null) 'theme',
+        if (adaptiveBg != null) 'adaptiveBg',
+        if (blur != null) 'blur',
+        if (dimmer != null) 'dimmer',
+        if (boxFit != null) 'boxFit',
+        if (textScale != null) 'textScale',
       ].join(', ');
 
       log.d("Updating Config -> $changes");

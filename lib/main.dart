@@ -5,6 +5,7 @@ import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/library_watcher.dart';
 import 'package:nordplayer/services/player_service.dart';
+import 'package:nordplayer/widgets/adaptive_scaffold.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:metadata_god/metadata_god.dart';
@@ -138,7 +139,7 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp>
               data: MediaQuery.of(
                 context,
               ).copyWith(textScaler: TextScaler.linear(config.textScale)),
-              child: child!,
+              child: AdaptiveScaffold(body: child!),
             );
           },
         );

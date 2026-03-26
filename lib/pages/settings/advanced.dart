@@ -15,44 +15,67 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final errorColor = Theme.of(context).colorScheme.error;
+    final theme = Theme.of(context);
+    final appConfig = ref.watch(configServiceProvider).requireValue;
 
-    return ListView(
-      padding: .all(16),
-      children: [
-        SectionHeader(label: 'Reset', labelType: .h1),
+    return Scaffold(
+      backgroundColor: appConfig.adaptiveBg
+          ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.5)
+          : theme.colorScheme.surface,
 
-        ListTile(
-          leading: Icon(Icons.refresh_rounded, color: errorColor),
-          title: Text(
-            'Reset app settings',
-            style: TextStyle(color: errorColor, fontWeight: FontWeight.w600),
+      body: ListView(
+        padding: .all(16),
+        children: [
+          SectionHeader(label: 'Reset', labelType: .h1),
+
+          ListTile(
+            leading: Icon(
+              Icons.refresh_rounded,
+              color: theme.colorScheme.error,
+            ),
+            title: Text(
+              'Reset app settings',
+              style: TextStyle(
+                color: theme.colorScheme.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            subtitle: Text(
+              'Theme, music paths, and player preferences',
+              style: TextStyle(
+                color: theme.colorScheme.error.withValues(alpha: 0.74),
+              ),
+            ),
+            onTap: () => _showResetSettingsDialog(context, ref),
           ),
-          subtitle: Text(
-            'Theme, music paths, and player preferences',
-            style: TextStyle(color: errorColor.withValues(alpha: 0.74)),
-          ),
-          onTap: () => _showResetSettingsDialog(context, ref),
-        ),
 
-        const SizedBox(height: 8),
+          const SizedBox(height: 8),
 
-        ListTile(
-          leading: Icon(Icons.delete_forever_outlined, color: errorColor),
-          title: Text(
-            'Clear music library',
-            style: TextStyle(color: errorColor, fontWeight: FontWeight.w600),
+          ListTile(
+            leading: Icon(
+              Icons.delete_forever_outlined,
+              color: theme.colorScheme.error,
+            ),
+            title: Text(
+              'Clear music library',
+              style: TextStyle(
+                color: theme.colorScheme.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            subtitle: Text(
+              'Wipes database and album art (does not delete music files)',
+              style: TextStyle(
+                color: theme.colorScheme.error.withValues(alpha: 0.74),
+              ),
+            ),
+            onTap: () => _showDeleteDataDialog(context, ref),
           ),
-          subtitle: Text(
-            'Wipes database and album art (does not delete music files)',
-            style: TextStyle(color: errorColor.withValues(alpha: 0.74)),
-          ),
-          onTap: () => _showDeleteDataDialog(context, ref),
-        ),
 
-        SizedBox(height: 8),
-        Divider(),
-      ],
+          SizedBox(height: 8),
+          Divider(),
+        ],
+      ),
     );
   }
 

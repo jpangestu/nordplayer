@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -6,8 +7,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/pages/library_page.dart';
+import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
+import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
 
 class QueuePage extends ConsumerStatefulWidget {
@@ -75,6 +78,9 @@ class _QueuePageState extends ConsumerState<QueuePage> {
 
     final isShuffleMode = ref.watch(preferenceServiceProvider).shuffleMode;
 
+    final theme = Theme.of(context);
+    final appConfig = ref.watch(configServiceProvider).requireValue;
+
     // Listen to shuffle mode change
     ref.listen<
       bool
@@ -112,192 +118,208 @@ class _QueuePageState extends ConsumerState<QueuePage> {
       }
     });
 
-    return Padding(
-      padding: EdgeInsets.only(
-        top: widget.isAppBarAllowContentBehindIt ? 60.0 : 0.0,
-      ),
-      child: Container(
-        width: widget.isWideScreen ? 350 : 300,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainer,
-          border: Border(
-            top: BorderSide(
-              color:
-                  Theme.of(context).dividerTheme.color ??
-                  Theme.of(context).dividerColor,
-            ),
-            left: BorderSide(
-              color:
-                  Theme.of(context).dividerTheme.color ??
-                  Theme.of(context).dividerColor,
-            ),
-          ),
+    return FrostedGlass(
+      blurSigma: 10,
+      child: Padding(
+        padding: EdgeInsets.only(
+          top: widget.isAppBarAllowContentBehindIt ? 60.0 : 0.0,
         ),
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          // MediaQuery.removePadding ensure tracks list doesn't leave blank space
-          // when scrolling up the first track in the list
-          body: MediaQuery.removePadding(
-            context: context,
-            removeTop: true,
-            child: CustomScrollView(
-              controller: _scrollController,
-              slivers: [
-                SliverAppBar(
-                  pinned: true,
-                  backgroundColor: Theme.of(
-                    context,
-                  ).colorScheme.surfaceContainer,
-                  // Disable app bar chaging color when tracks list scrolls below it
-                  surfaceTintColor: Colors.transparent,
-                  elevation: 0,
-                  scrolledUnderElevation: 4.0,
-                  shadowColor: Colors.black,
-                  titleSpacing: 0,
-                  title: MouseRegion(
-                    onEnter: (_) => setState(() => _isHeaderHovered = true),
-                    onExit: (_) => setState(() => _isHeaderHovered = false),
-                    child: Container(
-                      width: double.infinity,
-                      height: kToolbarHeight,
-                      alignment: Alignment.centerLeft,
-                      padding: .symmetric(
-                        horizontal: _isHeaderHovered ? 8 : 16.0,
-                      ),
-                      child: Row(
-                        children: [
-                          if (_isHeaderHovered) ...[
-                            IconButton(
-                              onPressed: () {
-                                ref
-                                    .read(preferenceServiceProvider.notifier)
-                                    .setShowQueue(false);
-                              },
-                              icon: Icon(Icons.keyboard_arrow_right),
-                              tooltip: 'Close Queue',
+        child: SizedBox(
+          width: widget.isWideScreen ? 350 : 300,
+          child: Scaffold(
+            backgroundColor: appConfig.adaptiveBg
+                ? widget.isWideScreen
+                      ? theme.colorScheme.surfaceContainer.withValues(
+                          alpha: 0.6,
+                        )
+                      : theme.colorScheme.surfaceContainer.withValues(
+                          alpha: 0.4,
+                        )
+                : Theme.of(context).colorScheme.surfaceContainer,
+            // MediaQuery.removePadding ensure tracks list doesn't leave blank space
+            // when scrolling up the first track in the list
+            body: MediaQuery.removePadding(
+              context: context,
+              removeTop: true,
+              child: CustomScrollView(
+                controller: _scrollController,
+                slivers: [
+                  SliverAppBar(
+                    pinned: true,
+                    backgroundColor: appConfig.adaptiveBg
+                        ? Colors.transparent
+                        : theme.colorScheme.secondaryContainer,
+                    // Disable app bar changing color when tracks list scrolls below it
+                    surfaceTintColor: Colors.transparent,
+                    elevation: 0,
+                    scrolledUnderElevation: 4.0,
+                    shadowColor: Colors.black,
+                    titleSpacing: 0,
+                    flexibleSpace: appConfig.adaptiveBg
+                        ? ClipRect(
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(
+                                sigmaX: 10.0,
+                                sigmaY: 10.0,
+                                tileMode: .mirror,
+                              ),
+                              child: Container(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainer
+                                    .withValues(alpha: 0.6),
+                              ),
                             ),
-                            SizedBox(width: 8),
+                          )
+                        : null,
+                    title: MouseRegion(
+                      onEnter: (_) => setState(() => _isHeaderHovered = true),
+                      onExit: (_) => setState(() => _isHeaderHovered = false),
+                      child: Container(
+                        width: double.infinity,
+                        height: kToolbarHeight,
+                        alignment: Alignment.centerLeft,
+                        padding: .symmetric(
+                          horizontal: _isHeaderHovered ? 8 : 16.0,
+                        ),
+                        child: Row(
+                          children: [
+                            if (_isHeaderHovered) ...[
+                              IconButton(
+                                onPressed: () {
+                                  ref
+                                      .read(preferenceServiceProvider.notifier)
+                                      .setShowQueue(false);
+                                },
+                                icon: Icon(Icons.keyboard_arrow_right),
+                                tooltip: 'Close Queue',
+                              ),
+                              SizedBox(width: 8),
+                            ],
+                            Text('Queue'),
                           ],
-                          Text('Queue'),
-                        ],
+                        ),
                       ),
                     ),
                   ),
-                ),
 
-                SliverReorderableList(
-                  // PERFORMANCE OPTIMIZATION:
-                  // Bind the list's Key to the shuffle state (true/false).
-                  // If not do it this way, toggling shuffle forces SliverReorderableList to calculate
-                  // the animation paths for hundreds of tracks simultaneously, which freezes the UI.
-                  // Changing the key forces Flutter to instantly destroy the old list and paint
-                  // the new one from scratch, completely bypassing the expensive animation diffing.
-                  key: ValueKey('queue_list_$isShuffleMode'),
-                  onReorder: (oldIndex, newIndex) {
-                    ref
-                        .read(playerServiceProvider)
-                        .moveTrack(oldIndex, newIndex);
-                  },
-                  itemCount: currentTracks.length,
-                  itemExtent: _itemHeight,
-                  itemBuilder: (context, index) {
-                    final trackItem = currentTracks[index];
+                  SliverReorderableList(
+                    // PERFORMANCE OPTIMIZATION:
+                    // Bind the list's Key to the shuffle state (true/false).
+                    // If not do it this way, toggling shuffle forces SliverReorderableList to calculate
+                    // the animation paths for hundreds of tracks simultaneously, which freezes the UI.
+                    // Changing the key forces Flutter to instantly destroy the old list and paint
+                    // the new one from scratch, completely bypassing the expensive animation diffing.
+                    key: ValueKey('queue_list_$isShuffleMode'),
+                    onReorder: (oldIndex, newIndex) {
+                      ref
+                          .read(playerServiceProvider)
+                          .moveTrack(oldIndex, newIndex);
+                    },
+                    itemCount: currentTracks.length,
+                    itemExtent: _itemHeight,
+                    itemBuilder: (context, index) {
+                      final trackItem = currentTracks[index];
 
-                    if (trackItem != null) {
-                      final isSelected = selectedIndices.contains(index);
-                      final isCurrentlyPlaying = index == currentTrackIndex;
+                      if (trackItem != null) {
+                        final isSelected = selectedIndices.contains(index);
+                        final isCurrentlyPlaying = index == currentTrackIndex;
 
-                      return _QueueItem(
-                        key: ObjectKey(trackItem),
-                        index: index,
-                        trackItem: trackItem,
-                        isSelected: isSelected,
-                        isCurrentlyPlaying: isCurrentlyPlaying,
-                        onRemove: () {
-                          ref.read(playerServiceProvider).removeTrack(index);
-                        },
-                        onClick: (index, {required isCtrl, required isShift}) {
-                          ref
-                              .read(
-                                selectedTracksIndexProvider(
-                                  'queue_page',
-                                ).notifier,
-                              )
-                              .selectTrack(
-                                index,
-                                isCtrlSelect: isCtrl,
-                                isShiftSelect: isShift,
-                              );
-                        },
-                        onDoubleClick: (index) {
-                          ref
-                              .read(playerServiceProvider)
-                              .setPlaylist(
-                                tracksToPlay: currentTracks.nonNulls.toList(),
-                                initialIndex: index,
-                                playbackContextType:
-                                    currentPlaybackContext?.type ?? 'library',
-                                playbackContextId: currentPlaybackContext?.id,
-                              );
-                        },
-                        onRightClick: (index, globalPosition) {
-                          final selectionNotifier = ref.read(
-                            selectedTracksIndexProvider('queue_page').notifier,
-                          );
-                          final currentSelection = ref.read(
-                            selectedTracksIndexProvider('queue_page'),
-                          );
-
-                          // If right-clicking an unselected item, select it first and clear others
-                          if (!currentSelection.contains(index)) {
-                            selectionNotifier.selectTrack(
-                              index,
-                              isCtrlSelect: false,
-                              isShiftSelect: false,
+                        return _QueueItem(
+                          key: ObjectKey(trackItem),
+                          index: index,
+                          trackItem: trackItem,
+                          isSelected: isSelected,
+                          isCurrentlyPlaying: isCurrentlyPlaying,
+                          onRemove: () {
+                            ref.read(playerServiceProvider).removeTrack(index);
+                          },
+                          onClick:
+                              (index, {required isCtrl, required isShift}) {
+                                ref
+                                    .read(
+                                      selectedTracksIndexProvider(
+                                        'queue_page',
+                                      ).notifier,
+                                    )
+                                    .selectTrack(
+                                      index,
+                                      isCtrlSelect: isCtrl,
+                                      isShiftSelect: isShift,
+                                    );
+                              },
+                          onDoubleClick: (index) {
+                            ref
+                                .read(playerServiceProvider)
+                                .setPlaylist(
+                                  tracksToPlay: currentTracks.nonNulls.toList(),
+                                  initialIndex: index,
+                                  playbackContextType:
+                                      currentPlaybackContext?.type ?? 'library',
+                                  playbackContextId: currentPlaybackContext?.id,
+                                );
+                          },
+                          onRightClick: (index, globalPosition) {
+                            final selectionNotifier = ref.read(
+                              selectedTracksIndexProvider(
+                                'queue_page',
+                              ).notifier,
                             );
-                          }
+                            final currentSelection = ref.read(
+                              selectedTracksIndexProvider('queue_page'),
+                            );
 
-                          final updatedSelection = ref.read(
-                            selectedTracksIndexProvider('queue_page'),
-                          );
+                            // If right-clicking an unselected item, select it first and clear others
+                            if (!currentSelection.contains(index)) {
+                              selectionNotifier.selectTrack(
+                                index,
+                                isCtrlSelect: false,
+                                isShiftSelect: false,
+                              );
+                            }
 
-                          // Convert to list and sort the indices
-                          final sortedIndices = updatedSelection.toList()
-                            ..sort();
+                            final updatedSelection = ref.read(
+                              selectedTracksIndexProvider('queue_page'),
+                            );
 
-                          // Safely map the selected tracks
-                          final List<TrackWithArtists> selectedTracks =
-                              sortedIndices
-                                  .map((i) => currentTracks[i])
-                                  .nonNulls
-                                  .toList();
+                            // Convert to list and sort the indices
+                            final sortedIndices = updatedSelection.toList()
+                              ..sort();
 
-                          TrackContextMenu.show(
-                            context: context,
-                            ref: ref,
-                            globalPosition: globalPosition,
-                            allTracks: currentTracks.nonNulls.toList(),
-                            clickedIndex:
-                                index, // Assuming no nulls skewing the index
-                            selectedTracks: selectedTracks,
-                            playbackContextType:
-                                'queue', // Explicitly pass 'queue'
-                            playbackContextId: null,
-                          );
-                        },
-                      );
-                    }
-                    return SizedBox.shrink(key: ValueKey('empty_$index'));
-                  },
-                ),
-              ],
+                            // Safely map the selected tracks
+                            final List<TrackWithArtists> selectedTracks =
+                                sortedIndices
+                                    .map((i) => currentTracks[i])
+                                    .nonNulls
+                                    .toList();
+
+                            TrackContextMenu.show(
+                              context: context,
+                              ref: ref,
+                              globalPosition: globalPosition,
+                              allTracks: currentTracks.nonNulls.toList(),
+                              clickedIndex:
+                                  index, // Assuming no nulls skewing the index
+                              selectedTracks: selectedTracks,
+                              playbackContextType:
+                                  'queue', // Explicitly pass 'queue'
+                              playbackContextId: null,
+                            );
+                          },
+                        );
+                      }
+                      return SizedBox.shrink(key: ValueKey('empty_$index'));
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: _scrollToCurrentTrack,
-            mini: true,
-            tooltip: 'Show currently playing',
-            child: const Icon(Icons.keyboard_arrow_up),
+            floatingActionButton: FloatingActionButton(
+              onPressed: _scrollToCurrentTrack,
+              mini: true,
+              tooltip: 'Show currently playing',
+              child: const Icon(Icons.keyboard_arrow_up),
+            ),
           ),
         ),
       ),
@@ -337,7 +359,6 @@ class _QueueItemState extends ConsumerState<_QueueItem> {
 
   @override
   Widget build(BuildContext context) {
-    // MouseRegion detects when the cursor enters and exits the tile
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
@@ -363,7 +384,7 @@ class _QueueItemState extends ConsumerState<_QueueItem> {
           child: Container(
             height: 66,
             color: widget.isSelected
-                ? Theme.of(context).colorScheme.secondaryContainer
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
                 : _isHovered
                 ? Theme.of(
                     context,

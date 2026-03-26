@@ -14,6 +14,7 @@ class Sidebar extends StatefulWidget {
 
   /// Width when expanded
   final double? width;
+  final bool isAdaptive;
 
   const Sidebar({
     super.key,
@@ -26,6 +27,7 @@ class Sidebar extends StatefulWidget {
     this.onExtendedToggle,
     this.trailing,
     this.width,
+    this.isAdaptive = false,
   }) : assert(
          selectedIndex == null ||
              (0 <= selectedIndex && selectedIndex < destinations.length),
@@ -47,7 +49,10 @@ class _SidebarState extends State<Sidebar> {
     return AnimatedContainer(
       duration: Duration.zero,
       width: widget.isExtended ?? true ? expandedWidth : collapsedWidth,
-      color: navTheme.backgroundColor ?? theme.colorScheme.surfaceContainer,
+      color: widget.isAdaptive
+          ? (navTheme.backgroundColor ?? theme.colorScheme.surfaceContainer)
+                .withValues(alpha: 0.6)
+          : navTheme.backgroundColor ?? theme.colorScheme.surfaceContainer,
 
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,9 +121,14 @@ class _SidebarState extends State<Sidebar> {
     final bool isSelected = widget.selectedIndex == index;
     final theme = Theme.of(context);
 
+    final baseBackgroundColor =
+        theme.navigationRailTheme.indicatorColor ??
+        theme.colorScheme.secondaryContainer;
+
     final backgroundColor = isSelected
-        ? theme.navigationRailTheme.indicatorColor ??
-              theme.colorScheme.secondaryContainer
+        ? widget.isAdaptive
+              ? baseBackgroundColor.withValues(alpha: 0.4)
+              : baseBackgroundColor
         : Colors.transparent;
 
     final foregroundColor = isSelected

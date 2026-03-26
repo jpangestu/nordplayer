@@ -37,6 +37,9 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
     List<String> currentDelimiters = appConfig.artistDelimiters;
 
     return Scaffold(
+      backgroundColor: appConfig.adaptiveBg
+          ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.5)
+          : theme.colorScheme.surface,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

@@ -1,8 +1,11 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/routes/routes.dart';
+import 'package:nordplayer/services/config_service.dart';
 
 class NordplayerAppBar extends ConsumerStatefulWidget
     implements PreferredSizeWidget {
@@ -19,15 +22,28 @@ class _NordplayerAppBarState extends ConsumerState<NordplayerAppBar> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final appConfig = ref.watch(configServiceProvider).requireValue;
 
     final currentRoute = GoRouterState.of(context).uri.toString();
     final bool isSettingsRoute = currentRoute.startsWith(Routes.settingsPage);
     final bool canPop = context.canPop();
 
     return AppBar(
-      backgroundColor: theme.colorScheme.surface.withValues(alpha: 0.90),
+      backgroundColor: appConfig.adaptiveBg
+          ? Colors.transparent
+          : theme.colorScheme.surfaceContainer,
       toolbarHeight: 60,
       scrolledUnderElevation: 0,
+      flexibleSpace: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0, tileMode: .mirror),
+          child: Container(
+            color: Theme.of(
+              context,
+            ).colorScheme.surfaceContainer.withValues(alpha: 0.6),
+          ),
+        ),
+      ),
       leading: (isSettingsRoute || canPop)
           ? IconButton(
               icon: const Icon(Icons.arrow_back),

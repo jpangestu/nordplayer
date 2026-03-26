@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
@@ -20,6 +21,8 @@ class _PlayerBarState extends ConsumerState<PlayerBar> with LoggerMixin {
   Widget build(BuildContext context) {
     final player = ref.watch(playerServiceProvider);
     final currentTrack = ref.watch(currentTrackProvider);
+    final adaptiveBg =
+        ref.watch(configServiceProvider).value?.adaptiveBg ?? false;
 
     final double screenWidth = MediaQuery.sizeOf(context).width;
     bool isLargeScreen = screenWidth > 900;
@@ -27,9 +30,13 @@ class _PlayerBarState extends ConsumerState<PlayerBar> with LoggerMixin {
     final int rightFlex = isLargeScreen ? 25 : 30;
     final int centerFlex = isLargeScreen ? 50 : 35;
 
+    final backgroundColor = Theme.of(context).colorScheme.surfaceContainer;
+
     return Container(
       height: 90,
-      color: Theme.of(context).colorScheme.surfaceContainer,
+      color: adaptiveBg
+          ? backgroundColor.withValues(alpha: 0.6)
+          : backgroundColor,
       child: Row(
         children: [
           if (currentTrack == null) ...[

@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nordplayer/pages/settings/about_page.dart';
 import 'package:nordplayer/routes/destinations.dart';
+import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
+import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/sidebar.dart';
 
 class SettingsLayout extends ConsumerWidget {
@@ -13,6 +15,7 @@ class SettingsLayout extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final appConfig = ref.watch(configServiceProvider).requireValue;
     bool mainSidebarExtended = ref
         .watch(preferenceServiceProvider)
         .sidebarExtended;
@@ -25,17 +28,22 @@ class SettingsLayout extends ConsumerWidget {
     }
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: Row(
         children: [
-          Sidebar(
-            leading: SizedBox(height: 16),
-            selectedIndex: navigationShell.currentIndex,
-            destinations: Destinations.settingsDestinations,
-            onDestinationSelected: navigationShell.goBranch,
-            showExtendedToggle: false,
-            isExtended: isExtended,
-            trailing: aboutPage(context, isExtended),
-            width: 220,
+          FrostedGlass(
+            blurSigma: 5,
+            child: Sidebar(
+              isAdaptive: appConfig.adaptiveBg,
+              leading: SizedBox(height: 16),
+              selectedIndex: navigationShell.currentIndex,
+              destinations: Destinations.settingsDestinations,
+              onDestinationSelected: navigationShell.goBranch,
+              showExtendedToggle: false,
+              isExtended: isExtended,
+              trailing: aboutPage(context, isExtended),
+              width: 220,
+            ),
           ),
           Expanded(child: navigationShell),
         ],
