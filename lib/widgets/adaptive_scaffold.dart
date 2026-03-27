@@ -14,21 +14,17 @@ class AdaptiveScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final appConfig = ref.watch(configServiceProvider).requireValue;
-    final adaptiveBg = appConfig.adaptiveBg;
-    final blur = appConfig.blur;
-    final dimmer = appConfig.dimmer;
-    final boxFit = appConfig.boxFit;
     final currentTrack = ref.watch(currentTrackProvider);
     final currentAlbumArtPath = currentTrack?.album.albumArtPath;
 
-    final cacheW = _getCacheWidth(blur);
+    final cacheW = _getCacheWidth(appConfig.adaptiveBgBlur);
 
     return Material(
       type: MaterialType.transparency,
       child: Stack(
         children: [
           // LAYER 1: The Album Artwork
-          if (adaptiveBg) ...[
+          if (appConfig.adaptiveBg) ...[
             RepaintBoundary(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 600),
@@ -39,15 +35,16 @@ class AdaptiveScaffold extends ConsumerWidget {
                         key: ValueKey(currentAlbumArtPath),
                         child: ImageFiltered(
                           imageFilter: ImageFilter.blur(
-                            sigmaX: blur,
-                            sigmaY: blur,
+                            sigmaX: appConfig.adaptiveBgBlur,
+                            sigmaY: appConfig.adaptiveBgBlur,
                             // tileMode: TileMode.clamp,
                           ),
                           child: Image.file(
                             File(currentAlbumArtPath),
-                            fit: boxFit,
+                            fit: appConfig.adaptiveBgBoxFit,
                             cacheWidth: cacheW,
-                            colorBlendMode: BlendMode.darken,
+                            // colorBlendMode: BlendMode.darken,
+                            gaplessPlayback: true,
                             errorBuilder: (_, _, _) =>
                                 getFallbackBackground(context),
                           ),
@@ -57,14 +54,43 @@ class AdaptiveScaffold extends ConsumerWidget {
               ),
             ),
 
+            // LAYER 2: Textured Layer
+            // if (appConfig.textureLayer)
+            //   Positioned.fill(
+            //     child: IgnorePointer(
+            //       child: Container(
+            //         decoration: BoxDecoration(
+            //           gradient: RadialGradient(
+            //             center: Alignment.center,
+            //             radius: 1.5,
+            //             colors: [
+            //               Colors.transparent,
+            //               Colors.black.withValues(alpha: 0.3),
+            //             ],
+            //           ),
+            //         ),
+            //         child: Opacity(
+            //           opacity: texturedLayer.opacity,
+            //           child: _buildTextureImage(
+            //             activeTexture,
+            //             texturedLayer.fit,
+            //           ),
+            //         ),
+            //       ),
+            //     ),
+            //   ),
+
             // LAYER 3: The Dimmer
             Positioned.fill(
               child: Container(
                 color:
-                    (Theme.of(context).brightness == Brightness.dark
-                            ? Theme.of(context).colorScheme.surface
-                            : Colors.white)
-                        .withValues(alpha: dimmer),
+                    // (dominantColorAsync.value != null
+                    //         ? dominantColorAsync.value!
+                    //         : Theme.of(context).colorScheme.surface)
+                    //     .withValues(alpha: appConfig.adaptiveBgDimmer),
+                    Theme.of(context).colorScheme.surface.withValues(
+                      alpha: appConfig.adaptiveBgDimmer,
+                    ),
               ),
             ),
           ],
@@ -93,8 +119,14 @@ class AdaptiveScaffold extends ConsumerWidget {
   }
 
   int? _getCacheWidth(double blur) {
+    // If it's barely blurred, we need full resolution to avoid pixelation
     if (blur <= 10) return null;
-    final int calculatedWidth = (300 - (blur * 5)).round();
-    return calculatedWidth.clamp(50, 300);
+
+    // If it's heavily blurred, squash it down to 50px.
+    // It's so blurry no one will see the pixels anyway!
+    if (blur >= 50) return 100;
+
+    // For the middle ground, use a moderate 150px resolution.
+    return 150;
   }
 }

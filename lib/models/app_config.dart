@@ -7,9 +7,9 @@ class AppConfig {
   final List<String> artistDelimiters;
   final String theme;
   final bool adaptiveBg;
-  final double blur;
-  final double dimmer;
-  final BoxFit boxFit;
+  final double adaptiveBgBlur;
+  final double adaptiveBgDimmer;
+  final BoxFit adaptiveBgBoxFit;
   final double textScale;
 
   static const List<String> _defaultMusicPath = [];
@@ -17,9 +17,9 @@ class AppConfig {
   static const List<String> defaultArtistDelimiters = [',', ';', '/', '+', '&'];
   static const String _defaultTheme = 'nord';
   static const bool _defaultAdaptiveBg = false;
-  static const double _defaultBlur = 40;
-  static const double _defaultDimmer = 0.4;
-  static const BoxFit _defaultBoxFit = BoxFit.cover;
+  static const double _defaultAdaptiveBgBlur = 40;
+  static const double _defaultAdaptiveBgDimmer = 0.4;
+  static const BoxFit _defaultAdaptiveBgBoxFit = BoxFit.cover;
   static const double _defaultTextScale = 1.0;
 
   AppConfig({
@@ -27,9 +27,9 @@ class AppConfig {
     this.artistDelimiters = defaultArtistDelimiters,
     this.theme = _defaultTheme,
     this.adaptiveBg = _defaultAdaptiveBg,
-    this.blur = _defaultBlur,
-    this.dimmer = _defaultDimmer,
-    this.boxFit = _defaultBoxFit,
+    this.adaptiveBgBlur = _defaultAdaptiveBgBlur,
+    this.adaptiveBgDimmer = _defaultAdaptiveBgDimmer,
+    this.adaptiveBgBoxFit = _defaultAdaptiveBgBoxFit,
     this.textScale = _defaultTextScale,
   });
 
@@ -38,9 +38,9 @@ class AppConfig {
     List<String>? artistDelimiters,
     String? theme,
     bool? adaptiveBg,
-    double? blur,
-    double? dimmer,
-    BoxFit? boxFit,
+    double? adaptiveBgBlur,
+    double? adaptiveBgDimmer,
+    BoxFit? adaptiveBgBoxFit,
     double? textScale,
   }) {
     return AppConfig(
@@ -48,9 +48,9 @@ class AppConfig {
       artistDelimiters: artistDelimiters ?? this.artistDelimiters,
       theme: theme ?? this.theme,
       adaptiveBg: adaptiveBg ?? this.adaptiveBg,
-      blur: blur ?? this.blur,
-      dimmer: dimmer ?? this.dimmer,
-      boxFit: boxFit ?? this.boxFit,
+      adaptiveBgBlur: adaptiveBgBlur ?? this.adaptiveBgBlur,
+      adaptiveBgDimmer: adaptiveBgDimmer ?? this.adaptiveBgDimmer,
+      adaptiveBgBoxFit: adaptiveBgBoxFit ?? this.adaptiveBgBoxFit,
       textScale: textScale ?? this.textScale,
     );
   }
@@ -67,9 +67,9 @@ class AppConfig {
       ),
       theme: _parseTheme(json['theme'], logger: logger),
       adaptiveBg: _parseAdaptiveBg(json['adaptiveBg'], logger: logger),
-      blur: _parseBlur(json['blur'], logger: logger),
-      dimmer: _parseDimmer(json['dimmer'], logger: logger),
-      boxFit: _parseBoxFit(json['boxFit'], logger: logger),
+      adaptiveBgBlur: _parseBlur(json['blur'], logger: logger),
+      adaptiveBgDimmer: _parseDimmer(json['dimmer'], logger: logger),
+      adaptiveBgBoxFit: _parseBoxFit(json['boxFit'], logger: logger),
       textScale: _parseTextScale(json['textScale'], logger: logger),
     );
   }
@@ -124,8 +124,10 @@ class AppConfig {
 
   static double _parseBlur(dynamic value, {required Logger logger}) {
     if (value is! num) {
-      logger.w("Invalid text scale: $value. Fallback to '$_defaultBlur.");
-      return _defaultBlur;
+      logger.w(
+        "Invalid text scale: $value. Fallback to '$_defaultAdaptiveBgBlur.",
+      );
+      return _defaultAdaptiveBgBlur;
     }
 
     return value.toDouble();
@@ -133,8 +135,10 @@ class AppConfig {
 
   static double _parseDimmer(dynamic value, {required Logger logger}) {
     if (value is! num) {
-      logger.w("Invalid text scale: $value. Fallback to '$_defaultDimmer.");
-      return _defaultDimmer;
+      logger.w(
+        "Invalid text scale: $value. Fallback to '$_defaultAdaptiveBgDimmer.",
+      );
+      return _defaultAdaptiveBgDimmer;
     }
 
     return value.toDouble();
@@ -142,16 +146,20 @@ class AppConfig {
 
   static BoxFit _parseBoxFit(dynamic value, {required Logger logger}) {
     if (value is! String) {
-      logger.w("Invalid boxFit type: $value. Fallback to '$_defaultBoxFit'.");
-      return _defaultBoxFit;
+      logger.w(
+        "Invalid boxFit type: $value. Fallback to '$_defaultAdaptiveBgBoxFit'.",
+      );
+      return _defaultAdaptiveBgBoxFit;
     }
 
     try {
       return BoxFit.values.byName(value);
     } catch (e) {
       // Catches the error if the string doesn't match any BoxFit enum name
-      logger.w("Unknown boxFit value: $value. Fallback to '$_defaultBoxFit'.");
-      return _defaultBoxFit;
+      logger.w(
+        "Unknown boxFit value: $value. Fallback to '$_defaultAdaptiveBgBoxFit'.",
+      );
+      return _defaultAdaptiveBgBoxFit;
     }
   }
 
@@ -170,9 +178,9 @@ class AppConfig {
       'artistDelimiters': artistDelimiters,
       'theme': theme,
       'adaptiveBg': adaptiveBg,
-      'blur': blur,
-      'dimmer': dimmer,
-      'boxfit': boxFit.name,
+      'blur': adaptiveBgBlur,
+      'dimmer': adaptiveBgDimmer,
+      'boxfit': adaptiveBgBoxFit.name,
       'textScale': textScale,
     };
   }

@@ -118,6 +118,7 @@ class LibraryPage extends ConsumerWidget {
                         },
                         onHeaderRightClick: (globalPosition) {
                           ContextMenu.show(
+                            isAdaptive: appConfig.adaptiveBg,
                             context: context,
                             globalPosition: globalPosition,
                             actionMenus: [
@@ -183,6 +184,7 @@ class LibraryPage extends ConsumerWidget {
                           TrackContextMenu.show(
                             context: context,
                             ref: ref,
+                            isAdaptive: appConfig.adaptiveBg,
                             globalPosition: globalPosition,
                             allTracks: tracks,
                             clickedIndex: index,
@@ -348,6 +350,7 @@ class TrackContextMenu {
   static void show({
     required BuildContext context,
     required WidgetRef ref,
+    required bool isAdaptive,
     required Offset globalPosition,
     required List<TrackWithArtists> allTracks,
     required int clickedIndex,
@@ -356,6 +359,7 @@ class TrackContextMenu {
     int? playbackContextId,
   }) {
     ContextMenu.show(
+      isAdaptive: isAdaptive,
       context: context,
       globalPosition: globalPosition,
       actionMenus: [

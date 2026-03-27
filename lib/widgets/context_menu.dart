@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nordplayer/widgets/frosted_glass.dart';
 
 class ContextMenu {
   static final List<OverlayEntry> _entries = [];
@@ -17,6 +18,7 @@ class ContextMenu {
   }
 
   static void show({
+    bool isAdaptive = false,
     required BuildContext context,
     required Offset globalPosition,
     required List<ContextMenuEntry> actionMenus,
@@ -59,41 +61,45 @@ class ContextMenu {
       builder: (context) {
         final maxHeight = overlayBox.size.height - dy - 16;
 
-        return Stack(
-          children: [
-            Positioned(
-              left: dx,
-              top: dy,
-              child: TapRegion(
-                groupId: 'context_menu',
-                onTapOutside: (_) {
-                  if (_entries.contains(currentEntry)) {
-                    closeAll();
-                  }
-                },
-                child: Material(
-                  color: Theme.of(context).colorScheme.surfaceContainer,
-                  elevation: 8.0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
+        return Positioned(
+          left: dx,
+          top: dy,
+          child: TapRegion(
+            groupId: 'context_menu',
+            onTapOutside: (_) {
+              if (_entries.contains(currentEntry)) {
+                closeAll();
+              }
+            },
+            child: FrostedGlass(
+              blurSigma: isAdaptive ? 10 : 0,
+              child: Material(
+                color: isAdaptive
+                    ? Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainer.withValues(alpha: 0.6)
+                    : Theme.of(context).colorScheme.surfaceContainer,
+                elevation: 8.0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: menuWidth,
+                    maxHeight: maxHeight < 200 ? 200 : maxHeight,
                   ),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: menuWidth,
-                      maxHeight: maxHeight < 200 ? 200 : maxHeight,
-                    ),
-                    child: SingleChildScrollView(
-                      child: _ContextMenuUI(
-                        entries: actionMenus,
-                        onClose: closeAll,
-                        depth: depth,
-                      ),
+                  child: SingleChildScrollView(
+                    child: _ContextMenuUI(
+                      isAdaptive: isAdaptive,
+                      entries: actionMenus,
+                      onClose: closeAll,
+                      depth: depth,
                     ),
                   ),
                 ),
               ),
             ),
-          ],
+          ),
         );
       },
     );
@@ -145,11 +151,13 @@ class _ContextMenuUI extends StatelessWidget {
   final List<ContextMenuEntry> entries;
   final VoidCallback onClose;
   final int depth;
+  final bool isAdaptive;
 
   const _ContextMenuUI({
     required this.entries,
     required this.onClose,
     required this.depth,
+    required this.isAdaptive,
   });
 
   @override
@@ -287,6 +295,7 @@ class _ContextMenuUI extends StatelessWidget {
     }
 
     ContextMenu.show(
+      isAdaptive: isAdaptive,
       context: itemContext,
       globalPosition: Offset(dx, position.dy - 4),
       actionMenus: subMenu.children,

@@ -88,9 +88,9 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
       artistDelimiters: artistDelimiters,
       theme: theme,
       adaptiveBg: adaptiveBg,
-      blur: blur,
-      dimmer: dimmer,
-      boxFit: boxFit,
+      adaptiveBgBlur: blur,
+      adaptiveBgDimmer: dimmer,
+      adaptiveBgBoxFit: boxFit,
       textScale: textScale,
     );
 

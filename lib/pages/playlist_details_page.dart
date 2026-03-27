@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nordplayer/database/app_database.dart';
+import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/widgets/album_art_stack.dart';
 import 'package:nordplayer/widgets/album_art_wall.dart';
@@ -176,6 +177,10 @@ class PlaylistDetailPage extends ConsumerWidget {
                           TrackContextMenu.show(
                             context: context,
                             ref: ref,
+                            isAdaptive: ref
+                                .watch(configServiceProvider)
+                                .requireValue
+                                .adaptiveBg,
                             globalPosition: globalPosition,
                             allTracks: tracks,
                             clickedIndex: index,

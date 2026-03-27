@@ -296,6 +296,10 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                             TrackContextMenu.show(
                               context: context,
                               ref: ref,
+                              isAdaptive: ref
+                                  .watch(configServiceProvider)
+                                  .requireValue
+                                  .adaptiveBg,
                               globalPosition: globalPosition,
                               allTracks: currentTracks.nonNulls.toList(),
                               clickedIndex:

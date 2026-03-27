@@ -26,7 +26,7 @@ class AppearancePage extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: ListTile(
               leading: const Icon(Icons.settings_display_outlined),
-              title: const Text('App Theme'),
+              title: const Text('Color Theme'),
               trailing: DropdownMenu<String>(
                 initialSelection: appConfig.theme,
                 inputDecorationTheme: const InputDecorationTheme(
@@ -65,7 +65,7 @@ class AppearancePage extends ConsumerWidget {
           if (appConfig.adaptiveBg) ...[
             SliderTile(
               label: 'Blur Intensity',
-              value: appConfig.blur,
+              value: appConfig.adaptiveBgBlur,
               min: 0.0,
               max: 100.0, // Adjust max based on how intense you want the blur
               labelBuilder: (val) => val.toInt().toString(),
@@ -83,7 +83,7 @@ class AppearancePage extends ConsumerWidget {
 
             SliderTile(
               label: 'Background Dimmer',
-              value: appConfig.dimmer,
+              value: appConfig.adaptiveBgDimmer,
               min: 0.0,
               max: 1.0,
               labelBuilder: (val) => "${(val * 100).toInt()}%",
@@ -103,17 +103,36 @@ class AppearancePage extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: ListTile(
                 leading: const Icon(Icons.aspect_ratio),
-                title: const Text('Image Fit'),
+                title: const Text('Album Art Fit'),
                 trailing: DropdownMenu<BoxFit>(
-                  initialSelection: appConfig.boxFit,
+                  initialSelection: appConfig.adaptiveBgBoxFit,
                   inputDecorationTheme: const InputDecorationTheme(
                     contentPadding: EdgeInsets.symmetric(horizontal: 8),
                     isDense: true,
                     border: OutlineInputBorder(),
                   ),
-                  dropdownMenuEntries: BoxFit.values.map((fit) {
-                    return DropdownMenuEntry(value: fit, label: fit.name);
-                  }).toList(),
+                  dropdownMenuEntries: const [
+                    DropdownMenuEntry(
+                      value: BoxFit.cover,
+                      label: 'Cover (Crop to fill)',
+                    ),
+                    DropdownMenuEntry(
+                      value: BoxFit.fill,
+                      label: 'Fill (Stretch)',
+                    ),
+                    DropdownMenuEntry(
+                      value: BoxFit.contain,
+                      label: 'Contain (Fit inside)',
+                    ),
+                    DropdownMenuEntry(
+                      value: BoxFit.fitHeight,
+                      label: 'Fit Height',
+                    ),
+                    DropdownMenuEntry(
+                      value: BoxFit.fitWidth,
+                      label: 'Fit Width',
+                    ),
+                  ],
                   onSelected: (selectedFit) {
                     if (selectedFit == null) return;
                     ref
