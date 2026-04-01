@@ -137,13 +137,20 @@ class _SidebarState extends State<Sidebar> {
         : theme.navigationRailTheme.unselectedIconTheme?.color ??
               theme.colorScheme.onSurfaceVariant;
 
+    final baseLabelStyle = isSelected
+        ? theme.navigationRailTheme.selectedLabelTextStyle ??
+              theme.textTheme.bodyLarge!
+        : theme.navigationRailTheme.unselectedLabelTextStyle ??
+              theme.textTheme.bodyLarge!;
+
+
     final iconWidget = IconTheme(
       data: IconThemeData(color: foregroundColor, size: 24),
       child: isSelected ? selectedIcon ?? icon : icon,
     );
 
     final labelWidget = DefaultTextStyle(
-      style: TextStyle(
+      style: baseLabelStyle.copyWith(
         color: foregroundColor,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         overflow: TextOverflow.ellipsis,

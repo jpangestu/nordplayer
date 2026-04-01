@@ -133,7 +133,7 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp>
         return MaterialApp.router(
           routerConfig: router,
           title: 'Nordplayer',
-          theme: AppTheme.getTheme(config.theme),
+          theme: AppTheme.getTheme(config.theme, config.fontFamily),
           builder: (context, child) {
             return MediaQuery(
               data: MediaQuery.of(

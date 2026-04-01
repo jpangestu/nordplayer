@@ -8,13 +8,6 @@ class AppTheme {
   static final ThemeData defaultDark = ThemeData.dark(useMaterial3: true);
   static final ThemeData defaultLight = ThemeData.light(useMaterial3: true);
 
-  static final Map<String, ThemeData> themes = {
-    'nord': nordTheme,
-    'catpuccin_mocha': catppuccinMochaTheme,
-    'dark': defaultDark,
-    'light': defaultLight,
-  };
-
   static const Map<String, String> labels = {
     'nord': 'Nord',
     'catpuccin_mocha': 'Catpuccin Mocha',
@@ -22,5 +15,29 @@ class AppTheme {
     'light': 'Default Light',
   };
 
-  static ThemeData getTheme(String key) => themes[key] ?? nordTheme;
+  static const Map<String, String> availableFonts = {
+    'System': 'System Default',
+    'Inter': 'Inter',
+    'JetBrains Mono': 'JetBrains Mono',
+    'Lora': 'Lora',
+    'Outfit': 'Outfit',
+    'Rubik': 'Rubik',
+  };
+
+  static ThemeData getTheme(String key, String fontFamily) {
+    if (key == 'nord') {
+      return buildNordTheme(fontFamily: fontFamily);
+    } else if (key == 'catpuccin_mocha') {
+      return buildCatppuccinMochaTheme(fontFamily: fontFamily);
+    } else if (key == 'light') {
+      return defaultLight.copyWith(
+        textTheme: defaultLight.textTheme.apply(fontFamily: fontFamily),
+      );
+    }
+
+    // Default fallback
+    return defaultDark.copyWith(
+      textTheme: defaultDark.textTheme.apply(fontFamily: fontFamily),
+    );
+  }
 }

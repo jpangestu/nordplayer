@@ -10,6 +10,7 @@ class AppConfig {
   final double adaptiveBgBlur;
   final double adaptiveBgDimmer;
   final BoxFit adaptiveBgBoxFit;
+  final String fontFamily;
   final double textScale;
 
   static const List<String> _defaultMusicPath = [];
@@ -20,6 +21,7 @@ class AppConfig {
   static const double _defaultAdaptiveBgBlur = 40;
   static const double _defaultAdaptiveBgDimmer = 0.4;
   static const BoxFit _defaultAdaptiveBgBoxFit = BoxFit.cover;
+  static const String _defaultFontFamily = 'system';
   static const double _defaultTextScale = 1.0;
 
   AppConfig({
@@ -30,6 +32,7 @@ class AppConfig {
     this.adaptiveBgBlur = _defaultAdaptiveBgBlur,
     this.adaptiveBgDimmer = _defaultAdaptiveBgDimmer,
     this.adaptiveBgBoxFit = _defaultAdaptiveBgBoxFit,
+    this.fontFamily = _defaultFontFamily,
     this.textScale = _defaultTextScale,
   });
 
@@ -41,6 +44,7 @@ class AppConfig {
     double? adaptiveBgBlur,
     double? adaptiveBgDimmer,
     BoxFit? adaptiveBgBoxFit,
+    String? fontFamily,
     double? textScale,
   }) {
     return AppConfig(
@@ -51,6 +55,7 @@ class AppConfig {
       adaptiveBgBlur: adaptiveBgBlur ?? this.adaptiveBgBlur,
       adaptiveBgDimmer: adaptiveBgDimmer ?? this.adaptiveBgDimmer,
       adaptiveBgBoxFit: adaptiveBgBoxFit ?? this.adaptiveBgBoxFit,
+      fontFamily: fontFamily ?? this.fontFamily,
       textScale: textScale ?? this.textScale,
     );
   }
@@ -70,6 +75,7 @@ class AppConfig {
       adaptiveBgBlur: _parseBlur(json['blur'], logger: logger),
       adaptiveBgDimmer: _parseDimmer(json['dimmer'], logger: logger),
       adaptiveBgBoxFit: _parseBoxFit(json['boxFit'], logger: logger),
+      fontFamily: _parseFontFamily(json['fontFamily'], logger: logger),
       textScale: _parseTextScale(json['textScale'], logger: logger),
     );
   }
@@ -105,7 +111,7 @@ class AppConfig {
       return _defaultTheme;
     }
 
-    if (!AppTheme.themes.containsKey(value)) {
+    if (!AppTheme.labels.containsKey(value)) {
       logger.w("Invalid theme config '$value'. Fallback to '$_defaultTheme'.");
       return _defaultTheme;
     }
@@ -163,6 +169,16 @@ class AppConfig {
     }
   }
 
+  static String _parseFontFamily(dynamic value, {required Logger logger}) {
+    if (value is! String) {
+      logger.w(
+        "Invalid font family: $value. Fallback to '$_defaultFontFamily'.",
+      );
+      return _defaultFontFamily;
+    }
+    return value;
+  }
+
   static double _parseTextScale(dynamic value, {required Logger logger}) {
     if (value is! num) {
       logger.w("Invalid text scale: $value. Fallback to '$_defaultTextScale.");
@@ -181,6 +197,7 @@ class AppConfig {
       'blur': adaptiveBgBlur,
       'dimmer': adaptiveBgDimmer,
       'boxfit': adaptiveBgBoxFit.name,
+      'fontFamily': fontFamily,
       'textScale': textScale,
     };
   }

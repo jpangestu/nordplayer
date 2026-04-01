@@ -77,6 +77,7 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
     double? blur,
     double? dimmer,
     BoxFit? boxFit,
+    String? fontFamily,
     double? textScale,
     bool save = true,
   }) {
@@ -91,6 +92,7 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
       adaptiveBgBlur: blur,
       adaptiveBgDimmer: dimmer,
       adaptiveBgBoxFit: boxFit,
+      fontFamily: fontFamily,
       textScale: textScale,
     );
 
@@ -105,6 +107,7 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
         if (blur != null) 'blur',
         if (dimmer != null) 'dimmer',
         if (boxFit != null) 'boxFit',
+        if (fontFamily != null) 'fontFamily',
         if (textScale != null) 'textScale',
       ].join(', ');
 

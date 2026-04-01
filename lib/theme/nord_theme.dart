@@ -46,253 +46,283 @@ class NordColors {
   static const Color nord15 = Color(0xFFB48EAD); // Uncommon
 }
 
-final ThemeData nordTheme = ThemeData(
-  useMaterial3: true,
-  brightness: Brightness.dark,
+ThemeData buildNordTheme({String? fontFamily}) {
+  // Resolve the font (null means it will use the default system font)
+  final String? resolvedFont =
+      (fontFamily == null || fontFamily == 'System' || fontFamily.isEmpty)
+      ? null
+      : fontFamily;
 
-  // SCAFFOLD (The Base)
-  // Guideline: Nord0 is for "background and area coloring".
-  scaffoldBackgroundColor: NordColors.nord0,
-
-  colorScheme: const ColorScheme(
+  return ThemeData(
+    useMaterial3: true,
     brightness: Brightness.dark,
 
-    // --- PRIMARY ---
-    // Guideline: Nord8 is "Primary accent color".
-    primary: NordColors.nord8,
-    onPrimary: NordColors.nord0, // Dark text on Cyan for readability
-    // --- SECONDARY ---
-    // Guideline: Nord9 is "Secondary UI elements".
-    secondary: NordColors.nord9,
-    onSecondary: NordColors.nord0,
+    // SCAFFOLD (The Base)
+    // Guideline: Nord0 is for "background and area coloring".
+    scaffoldBackgroundColor: NordColors.nord0,
 
-    // --- TERTIARY ---
-    // Guideline: Nord10 is "Tertiary UI elements".
-    tertiary: NordColors.nord10,
-    onTertiary: NordColors.nord6,
+    colorScheme: const ColorScheme(
+      brightness: Brightness.dark,
 
-    // --- SURFACES ---
-    // Surface: The "Sheet" of paper. Nord0 is base.
-    surface: NordColors.nord0,
-    onSurface: NordColors.nord6, // Main text (Nord6)
-    // Surface Container: "Elevated" elements (Sidebars, Cards).
-    // Guideline: Nord1 is for "panels, modals, and floating popups".
-    surfaceContainer: NordColors.nord1,
-    onSurfaceVariant: NordColors.nord4, // Muted text (Nord4)
-    // Highlight/Active States
-    // Guideline: Nord2 is for "active text... and text highlighting".
-    secondaryContainer: NordColors.nord2,
-    onSecondaryContainer: NordColors.nord8, // Text on active selection
-    // --- ERRORS ---
-    error: NordColors.nord11,
-    onError: NordColors.nord6,
-  ),
+      // --- PRIMARY ---
+      // Guideline: Nord8 is "Primary accent color".
+      primary: NordColors.nord8,
+      onPrimary: NordColors.nord0, // Dark text on Cyan for readability
+      // --- SECONDARY ---
+      // Guideline: Nord9 is "Secondary UI elements".
+      secondary: NordColors.nord9,
+      onSecondary: NordColors.nord0,
 
-  appBarTheme: const AppBarTheme(
-    backgroundColor: NordColors.nord0,
-    foregroundColor: NordColors.nord6,
-    elevation: 0,
-  ),
+      // --- TERTIARY ---
+      // Guideline: Nord10 is "Tertiary UI elements".
+      tertiary: NordColors.nord10,
+      onTertiary: NordColors.nord6,
 
-  navigationRailTheme: const NavigationRailThemeData(
-    backgroundColor: NordColors.nord1,
-    indicatorColor: NordColors.nord2,
-
-    selectedIconTheme: IconThemeData(color: NordColors.nord8),
-    unselectedIconTheme: IconThemeData(color: NordColors.nord4),
-
-    selectedLabelTextStyle: TextStyle(
-      color: NordColors.nord8,
-      fontWeight: FontWeight.bold,
+      // --- SURFACES ---
+      // Surface: The "Sheet" of paper. Nord0 is base.
+      surface: NordColors.nord0,
+      onSurface: NordColors.nord6, // Main text (Nord6)
+      // Surface Container: "Elevated" elements (Sidebars, Cards).
+      // Guideline: Nord1 is for "panels, modals, and floating popups".
+      surfaceContainer: NordColors.nord1,
+      onSurfaceVariant: NordColors.nord4, // Muted text (Nord4)
+      // Highlight/Active States
+      // Guideline: Nord2 is for "active text... and text highlighting".
+      secondaryContainer: NordColors.nord2,
+      onSecondaryContainer: NordColors.nord8, // Text on active selection
+      // --- ERRORS ---
+      error: NordColors.nord11,
+      onError: NordColors.nord6,
     ),
-    unselectedLabelTextStyle: TextStyle(color: NordColors.nord4),
-  ),
 
-  dividerTheme: const DividerThemeData(
-    color: NordColors.nord2,
-    thickness: 2,
-    space: 2,
-  ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: NordColors.nord0,
+      foregroundColor: NordColors.nord6,
+      elevation: 0,
+    ),
 
-  sliderTheme: SliderThemeData(
-    trackHeight: 5,
-    trackShape: const RoundedRectSliderTrackShape(),
-    activeTrackColor: NordColors.nord8,
-    inactiveTrackColor: NordColors.nord3,
-    secondaryActiveTrackColor: NordColors.nord8.withValues(alpha: 0.38),
+    navigationRailTheme: NavigationRailThemeData(
+      backgroundColor: NordColors.nord1,
+      indicatorColor: NordColors.nord2,
 
-    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
-    thumbColor: NordColors.nord8,
+      selectedIconTheme: IconThemeData(color: NordColors.nord8),
+      unselectedIconTheme: IconThemeData(color: NordColors.nord4),
 
-    overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
-    overlayColor: NordColors.nord8.withValues(alpha: 0.24),
-
-    valueIndicatorColor: NordColors.nord3,
-    valueIndicatorTextStyle: const TextStyle(color: NordColors.nord6),
-  ),
-
-  iconButtonTheme: IconButtonThemeData(
-    style: ButtonStyle(
-      foregroundColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected) ||
-            states.contains(WidgetState.pressed)) {
-          return NordColors.nord8;
-        }
-        if (states.contains(WidgetState.disabled)) {
-          return NordColors.nord3;
-        }
-        return NordColors.nord4;
-      }),
-
-      overlayColor: WidgetStateProperty.all(
-        NordColors.nord8.withValues(alpha: 0.12),
+      selectedLabelTextStyle: TextStyle(
+        fontFamily: resolvedFont,
+        color: NordColors.nord8,
+        fontWeight: FontWeight.bold,
       ),
-    ),
-  ),
-
-  tooltipTheme: TooltipThemeData(
-    decoration: BoxDecoration(
-      color: NordColors.nord3,
-      borderRadius: BorderRadius.circular(4),
-    ),
-
-    textStyle: const TextStyle(
-      color: NordColors.nord6,
-      fontSize: 12,
-      fontWeight: FontWeight.w500,
-    ),
-  ),
-
-  dropdownMenuTheme: DropdownMenuThemeData(
-    menuStyle: MenuStyle(
-      backgroundColor: WidgetStatePropertyAll(NordColors.nord3),
-      side: WidgetStatePropertyAll(
-        const BorderSide(color: NordColors.nord2, width: 2),
+      unselectedLabelTextStyle: TextStyle(
+        fontFamily: resolvedFont,
+        color: NordColors.nord4,
       ),
     ),
 
-    textStyle: const TextStyle(color: NordColors.nord6),
+    dividerTheme: const DividerThemeData(
+      color: NordColors.nord2,
+      thickness: 2,
+      space: 2,
+    ),
 
-    // The input box (not expanded)
-    inputDecorationTheme: InputDecorationTheme(
-      filled: true,
-      fillColor: NordColors.nord3,
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: NordColors.nord8, width: 1),
+    sliderTheme: SliderThemeData(
+      trackHeight: 5,
+      trackShape: const RoundedRectSliderTrackShape(),
+      activeTrackColor: NordColors.nord8,
+      inactiveTrackColor: NordColors.nord3,
+      secondaryActiveTrackColor: NordColors.nord8.withValues(alpha: 0.38),
+
+      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
+      thumbColor: NordColors.nord8,
+
+      overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
+      overlayColor: NordColors.nord8.withValues(alpha: 0.24),
+
+      valueIndicatorColor: NordColors.nord3,
+      valueIndicatorTextStyle: TextStyle(
+        fontFamily: resolvedFont,
+        color: NordColors.nord6,
       ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: NordColors.nord8, width: 2),
+    ),
+
+    iconButtonTheme: IconButtonThemeData(
+      style: ButtonStyle(
+        foregroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected) ||
+              states.contains(WidgetState.pressed)) {
+            return NordColors.nord8;
+          }
+          if (states.contains(WidgetState.disabled)) {
+            return NordColors.nord3;
+          }
+          return NordColors.nord4;
+        }),
+
+        overlayColor: WidgetStateProperty.all(
+          NordColors.nord8.withValues(alpha: 0.12),
+        ),
+      ),
+    ),
+
+    tooltipTheme: TooltipThemeData(
+      decoration: BoxDecoration(
+        color: NordColors.nord3,
+        borderRadius: BorderRadius.circular(4),
       ),
 
-      iconColor: NordColors.nord6,
-      // The arrow
-      suffixIconColor: NordColors.nord6,
-    ),
-  ),
-
-  listTileTheme: ListTileThemeData(
-    tileColor: Colors.transparent,
-    selectedTileColor: NordColors.nord2,
-    iconColor: NordColors.nord4,
-    selectedColor: NordColors.nord8,
-    titleTextStyle: const TextStyle(
-      inherit: false,
-      fontSize: 16,
-      fontWeight: FontWeight.w500,
-      color: NordColors.nord6,
-      height: 1.4,
-      letterSpacing: 0.15,
-    ),
-    subtitleTextStyle: TextStyle(
-      inherit: false,
-      fontSize: 14,
-      fontWeight: FontWeight.normal,
-      color: Color.lerp(NordColors.nord3, NordColors.nord4, 0.8),
-      height: 1.4,
-      letterSpacing: 0.25,
-    ),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-    visualDensity: VisualDensity.standard,
-  ),
-
-  textTheme: const TextTheme(
-    // --- DISPLAY (Used sparingly for hero numbers or large branding) ---
-    displayLarge: TextStyle(
-      fontSize: 48,
-      fontWeight: FontWeight.bold,
-      color: NordColors.nord6,
-    ),
-    displayMedium: TextStyle(
-      fontSize: 36,
-      fontWeight: FontWeight.bold,
-      color: NordColors.nord6,
+      textStyle: TextStyle(
+        fontFamily: resolvedFont,
+        color: NordColors.nord6,
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+      ),
     ),
 
-    // --- HEADLINE (Main Page Titles, e.g., "Settings") ---
-    headlineLarge: TextStyle(
-      fontSize: 28,
-      fontWeight: FontWeight.w600,
-      color: NordColors.nord6,
-    ),
-    headlineMedium: TextStyle(
-      fontSize: 24,
-      fontWeight: FontWeight.w600,
-      color: NordColors.nord6,
+    dropdownMenuTheme: DropdownMenuThemeData(
+      menuStyle: MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(NordColors.nord3),
+        side: WidgetStatePropertyAll(
+          const BorderSide(color: NordColors.nord2, width: 2),
+        ),
+      ),
+
+      textStyle: TextStyle(fontFamily: resolvedFont, color: NordColors.nord6),
+
+      // The input box (not expanded)
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: NordColors.nord3,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: NordColors.nord8, width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: NordColors.nord8, width: 2),
+        ),
+
+        iconColor: NordColors.nord6,
+        // The arrow
+        suffixIconColor: NordColors.nord6,
+      ),
     ),
 
-    // --- TITLE (Section Headers & List Labels) ---
-    titleLarge: TextStyle(
-      fontSize: 18,
-      fontWeight: FontWeight.w600,
-      color: NordColors.nord6,
-    ),
-    titleMedium: TextStyle(
-      fontSize: 15,
-      fontWeight: FontWeight.w500,
-      color: NordColors.nord5,
-    ),
-    titleSmall: TextStyle(
-      fontSize: 13,
-      fontWeight: FontWeight.w500,
-      color: NordColors.nord5,
-    ),
-
-    // --- BODY (Reading text and descriptions) ---
-    bodyLarge: TextStyle(
-      fontSize: 15,
-      fontWeight: FontWeight.normal,
-      color: NordColors.nord4,
-    ),
-    bodyMedium: TextStyle(
-      fontSize: 14,
-      fontWeight: FontWeight.normal,
-      color: NordColors.nord4,
-    ),
-    bodySmall: TextStyle(
-      fontSize: 12, // Muted subtext
-      fontWeight: FontWeight.normal,
-      color: NordColors.nord4,
+    listTileTheme: ListTileThemeData(
+      tileColor: Colors.transparent,
+      selectedTileColor: NordColors.nord2,
+      iconColor: NordColors.nord4,
+      selectedColor: NordColors.nord8,
+      titleTextStyle: TextStyle(
+        fontFamily: resolvedFont,
+        inherit: false,
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+        color: NordColors.nord6,
+        height: 1.4,
+        letterSpacing: 0.15,
+      ),
+      subtitleTextStyle: TextStyle(
+        fontFamily: resolvedFont,
+        inherit: false,
+        fontSize: 14,
+        fontWeight: FontWeight.normal,
+        color: Color.lerp(NordColors.nord3, NordColors.nord4, 0.8),
+        height: 1.4,
+        letterSpacing: 0.25,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      visualDensity: VisualDensity.standard,
     ),
 
-    // --- LABEL (Buttons, chips, and small captions) ---
-    labelLarge: TextStyle(
-      fontSize: 13, // Compact button text
-      fontWeight: FontWeight.w600,
-      color: NordColors.nord6,
-    ),
-    labelSmall: TextStyle(
-      fontSize: 11,
-      fontWeight: FontWeight.w500,
-      color: NordColors.nord4,
-    ),
-  ),
+    textTheme: TextTheme(
+      // --- DISPLAY (Used sparingly for hero numbers or large branding) ---
+      displayLarge: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 48,
+        fontWeight: FontWeight.bold,
+        color: NordColors.nord6,
+      ),
+      displayMedium: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 36,
+        fontWeight: FontWeight.bold,
+        color: NordColors.nord6,
+      ),
 
-  cardTheme: CardThemeData(
-    color: NordColors.nord1,
-    shadowColor: Colors.black26,
-    elevation: 4,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-  ),
-);
+      // --- HEADLINE (Main Page Titles, e.g., "Settings") ---
+      headlineLarge: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 28,
+        fontWeight: FontWeight.w600,
+        color: NordColors.nord6,
+      ),
+      headlineMedium: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 24,
+        fontWeight: FontWeight.w600,
+        color: NordColors.nord6,
+      ),
+
+      // --- TITLE (Section Headers & List Labels) ---
+      titleLarge: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        color: NordColors.nord6,
+      ),
+      titleMedium: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 15,
+        fontWeight: FontWeight.w500,
+        color: NordColors.nord5,
+      ),
+      titleSmall: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
+        color: NordColors.nord5,
+      ),
+
+      // --- BODY (Reading text and descriptions) ---
+      bodyLarge: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 15,
+        fontWeight: FontWeight.normal,
+        color: NordColors.nord4,
+      ),
+      bodyMedium: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 14,
+        fontWeight: FontWeight.normal,
+        color: NordColors.nord4,
+      ),
+      bodySmall: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 12, // Muted subtext
+        fontWeight: FontWeight.normal,
+        color: NordColors.nord4,
+      ),
+
+      // --- LABEL (Buttons, chips, and small captions) ---
+      labelLarge: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 13, // Compact button text
+        fontWeight: FontWeight.w600,
+        color: NordColors.nord6,
+      ),
+      labelSmall: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+        color: NordColors.nord4,
+      ),
+    ),
+
+    cardTheme: CardThemeData(
+      color: NordColors.nord1,
+      shadowColor: Colors.black26,
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    ),
+  );
+}

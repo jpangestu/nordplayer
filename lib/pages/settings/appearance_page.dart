@@ -148,6 +148,45 @@ class AppearancePage extends ConsumerWidget {
           const Divider(),
           const SectionHeader(label: 'Typography', labelType: LabelType.h1),
 
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: ListTile(
+              leading: const Icon(Icons.text_fields),
+              title: const Text('Font Family'),
+              trailing: DropdownMenu<String>(
+                initialSelection: appConfig.fontFamily,
+                inputDecorationTheme: const InputDecorationTheme(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                ),
+                dropdownMenuEntries: AppTheme.availableFonts.entries.map((
+                  entry,
+                ) {
+                  final fontName = entry.key == 'System' ? null : entry.key;
+
+                  return DropdownMenuEntry(
+                    value: entry.key,
+                    label: entry.value,
+                    style: MenuItemButton.styleFrom(
+                      textStyle: TextStyle(
+                        fontFamily: fontName,
+                        fontSize:
+                            16, // Slightly larger size makes the preview clearer
+                      ),
+                    ),
+                  );
+                }).toList(),
+                onSelected: (selectedFont) {
+                  if (selectedFont == null) return;
+                  ref
+                      .read(configServiceProvider.notifier)
+                      .updateConfig(fontFamily: selectedFont);
+                },
+              ),
+            ),
+          ),
+
           SliderTile(
             label: 'Font Scale',
             value: appConfig.textScale,

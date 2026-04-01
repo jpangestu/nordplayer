@@ -51,254 +51,286 @@ class CatppuccinMochaColors {
   static const Color green = Color(0xFFa6e3a1); // Success
 }
 
-final ThemeData catppuccinMochaTheme = ThemeData(
-  useMaterial3: true,
-  brightness: Brightness.dark,
+ThemeData buildCatppuccinMochaTheme({String? fontFamily}) {
+  final String? resolvedFont =
+      (fontFamily == null || fontFamily == 'System' || fontFamily.isEmpty)
+      ? null
+      : fontFamily;
 
-  // SCAFFOLD (The Base)
-  // Guideline: Base is the primary app background.
-  scaffoldBackgroundColor: CatppuccinMochaColors.base,
-
-  colorScheme: const ColorScheme(
+  return ThemeData(
+    useMaterial3: true,
     brightness: Brightness.dark,
 
-    // --- PRIMARY ---
-    // Guideline: Mauve is the signature Catppuccin accent.
-    primary: CatppuccinMochaColors.mauve,
-    onPrimary:
-        CatppuccinMochaColors.crust, // Dark text on Mauve for readability
-    // --- SECONDARY ---
-    secondary: CatppuccinMochaColors.blue,
-    onSecondary: CatppuccinMochaColors.crust,
+    // SCAFFOLD (The Base)
+    // Guideline: Base is the primary app background.
+    scaffoldBackgroundColor: CatppuccinMochaColors.base,
 
-    // --- TERTIARY ---
-    tertiary: CatppuccinMochaColors.lavender,
-    onTertiary: CatppuccinMochaColors.crust,
+    colorScheme: const ColorScheme(
+      brightness: Brightness.dark,
 
-    // --- SURFACES ---
-    // Surface: The "Sheet" of paper.
-    surface: CatppuccinMochaColors.base,
-    onSurface: CatppuccinMochaColors.text, // Main text
-    // Surface Container: "Elevated" elements (Cards, Dialogs).
-    surfaceContainer: CatppuccinMochaColors.surface0,
-    onSurfaceVariant: CatppuccinMochaColors.subtext0, // Muted text
-    // Highlight/Active States
-    // Guideline: Surface1/Surface2 are for active states and highlights.
-    secondaryContainer: CatppuccinMochaColors.surface1,
-    onSecondaryContainer: CatppuccinMochaColors.mauve,
+      // --- PRIMARY ---
+      // Guideline: Mauve is the signature Catppuccin accent.
+      primary: CatppuccinMochaColors.mauve,
+      onPrimary:
+          CatppuccinMochaColors.crust, // Dark text on Mauve for readability
+      // --- SECONDARY ---
+      secondary: CatppuccinMochaColors.blue,
+      onSecondary: CatppuccinMochaColors.crust,
 
-    // --- ERRORS ---
-    error: CatppuccinMochaColors.red,
-    onError: CatppuccinMochaColors.crust,
-  ),
+      // --- TERTIARY ---
+      tertiary: CatppuccinMochaColors.lavender,
+      onTertiary: CatppuccinMochaColors.crust,
 
-  appBarTheme: const AppBarTheme(
-    backgroundColor: CatppuccinMochaColors.base,
-    foregroundColor: CatppuccinMochaColors.text,
-    elevation: 0,
-  ),
+      // --- SURFACES ---
+      // Surface: The "Sheet" of paper.
+      surface: CatppuccinMochaColors.base,
+      onSurface: CatppuccinMochaColors.text, // Main text
+      // Surface Container: "Elevated" elements (Cards, Dialogs).
+      surfaceContainer: CatppuccinMochaColors.surface0,
+      onSurfaceVariant: CatppuccinMochaColors.subtext0, // Muted text
+      // Highlight/Active States
+      // Guideline: Surface1/Surface2 are for active states and highlights.
+      secondaryContainer: CatppuccinMochaColors.surface1,
+      onSecondaryContainer: CatppuccinMochaColors.mauve,
 
-  navigationRailTheme: const NavigationRailThemeData(
-    // Guideline: Mantle is used for sidebars.
-    backgroundColor: CatppuccinMochaColors.mantle,
-    indicatorColor: CatppuccinMochaColors.surface1,
-
-    selectedIconTheme: IconThemeData(color: CatppuccinMochaColors.mauve),
-    unselectedIconTheme: IconThemeData(color: CatppuccinMochaColors.overlay1),
-
-    selectedLabelTextStyle: TextStyle(
-      color: CatppuccinMochaColors.mauve,
-      fontWeight: FontWeight.bold,
-    ),
-    unselectedLabelTextStyle: TextStyle(color: CatppuccinMochaColors.subtext0),
-  ),
-
-  dividerTheme: const DividerThemeData(
-    color: CatppuccinMochaColors.surface1,
-    thickness: 2,
-    space: 2,
-  ),
-
-  sliderTheme: SliderThemeData(
-    trackHeight: 5,
-    trackShape: const RoundedRectSliderTrackShape(),
-    activeTrackColor: CatppuccinMochaColors.mauve,
-    inactiveTrackColor: CatppuccinMochaColors.surface1,
-    secondaryActiveTrackColor: CatppuccinMochaColors.mauve.withValues(
-      alpha: 0.38,
+      // --- ERRORS ---
+      error: CatppuccinMochaColors.red,
+      onError: CatppuccinMochaColors.crust,
     ),
 
-    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
-    thumbColor: CatppuccinMochaColors.mauve,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: CatppuccinMochaColors.base,
+      foregroundColor: CatppuccinMochaColors.text,
+      elevation: 0,
+    ),
 
-    overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
-    overlayColor: CatppuccinMochaColors.mauve.withValues(alpha: 0.24),
+    navigationRailTheme: NavigationRailThemeData(
+      // Guideline: Mantle is used for sidebars.
+      backgroundColor: CatppuccinMochaColors.mantle,
+      indicatorColor: CatppuccinMochaColors.surface1,
 
-    valueIndicatorColor: CatppuccinMochaColors.surface1,
-    valueIndicatorTextStyle: const TextStyle(color: CatppuccinMochaColors.text),
-  ),
+      selectedIconTheme: IconThemeData(color: CatppuccinMochaColors.mauve),
+      unselectedIconTheme: IconThemeData(color: CatppuccinMochaColors.overlay1),
 
-  iconButtonTheme: IconButtonThemeData(
-    style: ButtonStyle(
-      foregroundColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected) ||
-            states.contains(WidgetState.pressed)) {
-          return CatppuccinMochaColors.mauve;
-        }
-        if (states.contains(WidgetState.disabled)) {
-          return CatppuccinMochaColors.overlay0;
-        }
-        return CatppuccinMochaColors.subtext0;
-      }),
-
-      overlayColor: WidgetStateProperty.all(
-        CatppuccinMochaColors.mauve.withValues(alpha: 0.12),
+      selectedLabelTextStyle: TextStyle(
+        fontFamily: resolvedFont,
+        color: CatppuccinMochaColors.mauve,
+        fontWeight: FontWeight.bold,
+      ),
+      unselectedLabelTextStyle: TextStyle(
+        fontFamily: resolvedFont,
+        color: CatppuccinMochaColors.subtext0,
       ),
     ),
-  ),
 
-  tooltipTheme: TooltipThemeData(
-    decoration: BoxDecoration(
+    dividerTheme: const DividerThemeData(
       color: CatppuccinMochaColors.surface1,
-      borderRadius: BorderRadius.circular(4),
+      thickness: 2,
+      space: 2,
     ),
 
-    textStyle: const TextStyle(
-      color: CatppuccinMochaColors.text,
-      fontSize: 12,
-      fontWeight: FontWeight.w500,
-    ),
-  ),
+    sliderTheme: SliderThemeData(
+      trackHeight: 5,
+      trackShape: const RoundedRectSliderTrackShape(),
+      activeTrackColor: CatppuccinMochaColors.mauve,
+      inactiveTrackColor: CatppuccinMochaColors.surface1,
+      secondaryActiveTrackColor: CatppuccinMochaColors.mauve.withValues(
+        alpha: 0.38,
+      ),
 
-  dropdownMenuTheme: DropdownMenuThemeData(
-    menuStyle: MenuStyle(
-      backgroundColor: WidgetStatePropertyAll(CatppuccinMochaColors.surface0),
-      side: WidgetStatePropertyAll(
-        const BorderSide(color: CatppuccinMochaColors.surface1, width: 2),
+      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
+      thumbColor: CatppuccinMochaColors.mauve,
+
+      overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
+      overlayColor: CatppuccinMochaColors.mauve.withValues(alpha: 0.24),
+
+      valueIndicatorColor: CatppuccinMochaColors.surface1,
+      valueIndicatorTextStyle: TextStyle(
+        fontFamily: resolvedFont,
+        color: CatppuccinMochaColors.text,
       ),
     ),
 
-    textStyle: const TextStyle(color: CatppuccinMochaColors.text),
+    iconButtonTheme: IconButtonThemeData(
+      style: ButtonStyle(
+        foregroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected) ||
+              states.contains(WidgetState.pressed)) {
+            return CatppuccinMochaColors.mauve;
+          }
+          if (states.contains(WidgetState.disabled)) {
+            return CatppuccinMochaColors.overlay0;
+          }
+          return CatppuccinMochaColors.subtext0;
+        }),
 
-    inputDecorationTheme: InputDecorationTheme(
-      filled: true,
-      fillColor: CatppuccinMochaColors.surface0,
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(
-          color: CatppuccinMochaColors.surface1,
-          width: 1,
+        overlayColor: WidgetStateProperty.all(
+          CatppuccinMochaColors.mauve.withValues(alpha: 0.12),
         ),
       ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(
-          color: CatppuccinMochaColors.mauve,
-          width: 2,
+    ),
+
+    tooltipTheme: TooltipThemeData(
+      decoration: BoxDecoration(
+        color: CatppuccinMochaColors.surface1,
+        borderRadius: BorderRadius.circular(4),
+      ),
+
+      textStyle: TextStyle(
+        fontFamily: resolvedFont,
+        color: CatppuccinMochaColors.text,
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+
+    dropdownMenuTheme: DropdownMenuThemeData(
+      menuStyle: MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(CatppuccinMochaColors.surface0),
+        side: WidgetStatePropertyAll(
+          const BorderSide(color: CatppuccinMochaColors.surface1, width: 2),
         ),
       ),
 
-      iconColor: CatppuccinMochaColors.text,
-      suffixIconColor: CatppuccinMochaColors.text,
-    ),
-  ),
+      textStyle: TextStyle(
+        fontFamily: resolvedFont,
+        color: CatppuccinMochaColors.text,
+      ),
 
-  listTileTheme: ListTileThemeData(
-    tileColor: Colors.transparent,
-    selectedTileColor: CatppuccinMochaColors.surface1,
-    iconColor: CatppuccinMochaColors.subtext0,
-    selectedColor: CatppuccinMochaColors.mauve,
-    titleTextStyle: const TextStyle(
-      inherit: false,
-      fontSize: 16,
-      fontWeight: FontWeight.w500,
-      color: CatppuccinMochaColors.text,
-      height: 1.4,
-      letterSpacing: 0.15,
-    ),
-    subtitleTextStyle: TextStyle(
-      inherit: false,
-      fontSize: 14,
-      fontWeight: FontWeight.normal,
-      color: CatppuccinMochaColors.subtext0,
-      height: 1.4,
-      letterSpacing: 0.25,
-    ),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-    visualDensity: VisualDensity.standard,
-  ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: CatppuccinMochaColors.surface0,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(
+            color: CatppuccinMochaColors.surface1,
+            width: 1,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(
+            color: CatppuccinMochaColors.mauve,
+            width: 2,
+          ),
+        ),
 
-  textTheme: const TextTheme(
-    displayLarge: TextStyle(
-      fontSize: 48,
-      fontWeight: FontWeight.bold,
-      color: CatppuccinMochaColors.text,
-    ),
-    displayMedium: TextStyle(
-      fontSize: 36,
-      fontWeight: FontWeight.bold,
-      color: CatppuccinMochaColors.text,
+        iconColor: CatppuccinMochaColors.text,
+        suffixIconColor: CatppuccinMochaColors.text,
+      ),
     ),
 
-    headlineLarge: TextStyle(
-      fontSize: 28,
-      fontWeight: FontWeight.w600,
-      color: CatppuccinMochaColors.text,
-    ),
-    headlineMedium: TextStyle(
-      fontSize: 24,
-      fontWeight: FontWeight.w600,
-      color: CatppuccinMochaColors.text,
-    ),
-
-    titleLarge: TextStyle(
-      fontSize: 18,
-      fontWeight: FontWeight.w600,
-      color: CatppuccinMochaColors.text,
-    ),
-    titleMedium: TextStyle(
-      fontSize: 15,
-      fontWeight: FontWeight.w500,
-      color: CatppuccinMochaColors.subtext1,
-    ),
-    titleSmall: TextStyle(
-      fontSize: 13,
-      fontWeight: FontWeight.w500,
-      color: CatppuccinMochaColors.subtext1,
-    ),
-
-    bodyLarge: TextStyle(
-      fontSize: 15,
-      fontWeight: FontWeight.normal,
-      color: CatppuccinMochaColors.subtext0,
-    ),
-    bodyMedium: TextStyle(
-      fontSize: 14,
-      fontWeight: FontWeight.normal,
-      color: CatppuccinMochaColors.subtext0,
-    ),
-    bodySmall: TextStyle(
-      fontSize: 12,
-      fontWeight: FontWeight.normal,
-      color: CatppuccinMochaColors.overlay1, // Muted further
+    listTileTheme: ListTileThemeData(
+      tileColor: Colors.transparent,
+      selectedTileColor: CatppuccinMochaColors.surface1,
+      iconColor: CatppuccinMochaColors.subtext0,
+      selectedColor: CatppuccinMochaColors.mauve,
+      titleTextStyle: TextStyle(
+        fontFamily: resolvedFont,
+        inherit: false,
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+        color: CatppuccinMochaColors.text,
+        height: 1.4,
+        letterSpacing: 0.15,
+      ),
+      subtitleTextStyle: TextStyle(
+        fontFamily: resolvedFont,
+        inherit: false,
+        fontSize: 14,
+        fontWeight: FontWeight.normal,
+        color: CatppuccinMochaColors.subtext0,
+        height: 1.4,
+        letterSpacing: 0.25,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      visualDensity: VisualDensity.standard,
     ),
 
-    labelLarge: TextStyle(
-      fontSize: 13,
-      fontWeight: FontWeight.w600,
-      color: CatppuccinMochaColors.text,
-    ),
-    labelSmall: TextStyle(
-      fontSize: 11,
-      fontWeight: FontWeight.w500,
-      color: CatppuccinMochaColors.subtext0,
-    ),
-  ),
+    textTheme: TextTheme(
+      displayLarge: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 48,
+        fontWeight: FontWeight.bold,
+        color: CatppuccinMochaColors.text,
+      ),
+      displayMedium: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 36,
+        fontWeight: FontWeight.bold,
+        color: CatppuccinMochaColors.text,
+      ),
 
-  cardTheme: CardThemeData(
-    color: CatppuccinMochaColors.surface0,
-    shadowColor: Colors.black26,
-    elevation: 4,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-  ),
-);
+      headlineLarge: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 28,
+        fontWeight: FontWeight.w600,
+        color: CatppuccinMochaColors.text,
+      ),
+      headlineMedium: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 24,
+        fontWeight: FontWeight.w600,
+        color: CatppuccinMochaColors.text,
+      ),
+
+      titleLarge: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        color: CatppuccinMochaColors.text,
+      ),
+      titleMedium: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 15,
+        fontWeight: FontWeight.w500,
+        color: CatppuccinMochaColors.subtext1,
+      ),
+      titleSmall: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
+        color: CatppuccinMochaColors.subtext1,
+      ),
+
+      bodyLarge: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 15,
+        fontWeight: FontWeight.normal,
+        color: CatppuccinMochaColors.subtext0,
+      ),
+      bodyMedium: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 14,
+        fontWeight: FontWeight.normal,
+        color: CatppuccinMochaColors.subtext0,
+      ),
+      bodySmall: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 12,
+        fontWeight: FontWeight.normal,
+        color: CatppuccinMochaColors.overlay1, // Muted further
+      ),
+
+      labelLarge: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: CatppuccinMochaColors.text,
+      ),
+      labelSmall: TextStyle(
+        fontFamily: resolvedFont,
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+        color: CatppuccinMochaColors.subtext0,
+      ),
+    ),
+
+    cardTheme: CardThemeData(
+      color: CatppuccinMochaColors.surface0,
+      shadowColor: Colors.black26,
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    ),
+  );
+}
