@@ -17,17 +17,20 @@ class SectionHeader extends StatelessWidget {
     final theme = Theme.of(context);
 
     final textStyle = switch (labelType) {
-      LabelType.h1 => theme.textTheme.titleLarge!.copyWith(color: theme.colorScheme.primary),
-      LabelType.h2 => theme.textTheme.titleMedium!.copyWith(color: theme.colorScheme.primary),
-      LabelType.h3 => theme.textTheme.titleSmall!.copyWith(color: theme.colorScheme.primary),
+      LabelType.h1 => theme.textTheme.titleLarge!.copyWith(
+        color: theme.colorScheme.onSurface,
+      ),
+      LabelType.h2 => theme.textTheme.titleMedium!.copyWith(
+        color: theme.colorScheme.onSurface,
+      ),
+      LabelType.h3 => theme.textTheme.titleSmall!.copyWith(
+        color: theme.colorScheme.onSurface,
+      ),
     };
 
     return Padding(
       padding: const .symmetric(vertical: 8),
-      child: Text(
-        label,
-        style: textStyle,
-      ),
+      child: Text(label, style: textStyle),
     );
   }
 }

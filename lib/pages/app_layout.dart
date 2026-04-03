@@ -88,10 +88,7 @@ class AppLayout extends ConsumerWidget {
                               ? VerticalDivider(
                                   width: 2,
                                   thickness: 2,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .surfaceContainer
-                                      .withValues(alpha: 0.4),
+                                  color: Colors.transparent,
                                 )
                               : const VerticalDivider(width: 2, thickness: 2),
 
@@ -114,10 +111,7 @@ class AppLayout extends ConsumerWidget {
                                           ? VerticalDivider(
                                               width: 2,
                                               thickness: 2,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .surfaceContainer
-                                                  .withValues(alpha: 0.4),
+                                              color: Colors.transparent,
                                             )
                                           : const VerticalDivider(
                                               width: 2,
@@ -162,10 +156,7 @@ class AppLayout extends ConsumerWidget {
                         ? Divider(
                             height: 2,
                             thickness: 2,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .surfaceContainer
-                                .withValues(alpha: 0.4),
+                            color: Colors.transparent,
                           )
                         : const Divider(height: 2, thickness: 2),
 

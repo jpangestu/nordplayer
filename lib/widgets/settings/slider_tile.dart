@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 class SliderTile extends StatefulWidget {
+  final Widget? leading;
   final String label;
   final double value;
   final double min;
@@ -11,6 +12,7 @@ class SliderTile extends StatefulWidget {
 
   const SliderTile({
     super.key,
+    this.leading,
     required this.label,
     required this.value,
     required this.min,
@@ -45,13 +47,16 @@ class _SliderTileState extends State<SliderTile> {
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-
+      leading: widget.leading,
       title: Row(
         crossAxisAlignment: .center,
         children: [
-          Text(
-            widget.label,
-            style: const TextStyle(fontWeight: FontWeight.w500, height: 1.0),
+          SizedBox(
+            width: widget.leading != null ? 160 - 40 : 160, // 40 is the width of the leading icon
+            child: Text(
+              widget.label,
+              style: const TextStyle(fontWeight: FontWeight.w500, height: 1.0),
+            ),
           ),
 
           const SizedBox(width: 8),
@@ -74,13 +79,18 @@ class _SliderTileState extends State<SliderTile> {
           ),
 
           const SizedBox(width: 8),
-          Text(
-            widget.labelBuilder(_localValue),
-            style: const TextStyle(
-              fontFeatures: [FontFeature.tabularFigures()],
-              height: 1.0,
+
+          SizedBox(
+            width: 48,
+            child: Text(
+              widget.labelBuilder(_localValue),
+              textAlign: TextAlign.left,
+              style: const TextStyle(
+                fontFeatures: [FontFeature.tabularFigures()],
+                height: 1.0,
+              ),
+              maxLines: 1,
             ),
-            maxLines: 1,
           ),
         ],
       ),

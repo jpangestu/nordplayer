@@ -36,16 +36,10 @@ class PlaylistsPage extends ConsumerWidget {
                   'Your Playlists',
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
-                ElevatedButton.icon(
+                OutlinedButton.icon(
                   onPressed: () => showCreatePlaylistDialog(context, db),
                   icon: const Icon(Icons.add),
                   label: const Text('New Playlist'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 16,
-                    ),
-                  ),
                 ),
               ],
             ),

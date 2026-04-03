@@ -3,12 +3,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/services/preference_service.dart';
+import 'package:nordplayer/widgets/settings/section_card.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/logger.dart';
-import 'package:nordplayer/widgets/section_header.dart';
+import 'package:nordplayer/widgets/settings/section_header.dart';
 
 class AdvancedPage extends ConsumerWidget with LoggerMixin {
   const AdvancedPage({super.key});
@@ -20,7 +21,7 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
 
     return Scaffold(
       backgroundColor: appConfig.adaptiveBg
-          ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.5)
+          ? Colors.transparent
           : theme.colorScheme.surface,
 
       body: ListView(
@@ -28,52 +29,53 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
         children: [
           SectionHeader(label: 'Reset', labelType: .h1),
 
-          ListTile(
-            leading: Icon(
-              Icons.refresh_rounded,
-              color: theme.colorScheme.error,
-            ),
-            title: Text(
-              'Reset app settings',
-              style: TextStyle(
-                color: theme.colorScheme.error,
-                fontWeight: FontWeight.w600,
+          SectionWrapper(
+            child: ListTile(
+              leading: Icon(
+                Icons.refresh_rounded,
+                // color: theme.colorScheme.error,
               ),
-            ),
-            subtitle: Text(
-              'Theme, music paths, and player preferences',
-              style: TextStyle(
-                color: theme.colorScheme.error.withValues(alpha: 0.74),
+              title: Text(
+                'Reset app settings',
+                style: TextStyle(
+                  // color: theme.colorScheme.error,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
+              subtitle: Text(
+                'Theme, music paths, and player preferences',
+                style: TextStyle(
+                  // color: theme.colorScheme.error.withValues(alpha: 0.74),
+                ),
+              ),
+              onTap: () => _showResetSettingsDialog(context, ref),
             ),
-            onTap: () => _showResetSettingsDialog(context, ref),
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
 
-          ListTile(
-            leading: Icon(
-              Icons.delete_forever_outlined,
-              color: theme.colorScheme.error,
-            ),
-            title: Text(
-              'Clear music library',
-              style: TextStyle(
-                color: theme.colorScheme.error,
-                fontWeight: FontWeight.w600,
+          SectionWrapper(
+            child: ListTile(
+              leading: Icon(
+                Icons.delete_forever_outlined,
+                // color: theme.colorScheme.error,
               ),
-            ),
-            subtitle: Text(
-              'Wipes database and album art (does not delete music files)',
-              style: TextStyle(
-                color: theme.colorScheme.error.withValues(alpha: 0.74),
+              title: Text(
+                'Clear music library',
+                // style: TextStyle(
+                //   color: theme.colorScheme.error,
+                //   fontWeight: FontWeight.w600,
+                // ),
               ),
+              subtitle: Text(
+                'Wipes database and album art (does not delete music files)',
+                // style: TextStyle(
+                //   color: theme.colorScheme.error.withValues(alpha: 0.74),
+                // ),
+              ),
+              onTap: () => _showDeleteDataDialog(context, ref),
             ),
-            onTap: () => _showDeleteDataDialog(context, ref),
           ),
-
-          SizedBox(height: 8),
-          Divider(),
         ],
       ),
     );

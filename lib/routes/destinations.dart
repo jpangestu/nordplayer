@@ -33,19 +33,19 @@ class Destinations {
           icon: Icon(Icons.palette_outlined),
           selectedIcon: Icon(Icons.palette),
           label: Text('Appearance'),
-          subLabel: Text('Themes, fonts, layout, and visual styles'),
+          // subLabel: Text('Themes, fonts, layout, and visual styles'),
         ),
         SidebarDestination(
           icon: Icon(Icons.my_library_music_outlined),
           selectedIcon: Icon(Icons.my_library_music),
           label: Text('Library Management'),
-          subLabel: Text('Manage folders, parsing options'),
+          // subLabel: Text('Manage folders, parsing options'),
         ),
         SidebarDestination(
           icon: Icon(Icons.handyman_outlined),
           selectedIcon: Icon(Icons.handyman),
           label: Text('Advanced'),
-          subLabel: Text('Reset settings'),
+          // subLabel: Text('Reset settings'),
         ),
       ];
 }
