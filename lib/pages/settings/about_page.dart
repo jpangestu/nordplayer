@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:nordplayer/utils/string_extensions.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 Widget aboutPage(BuildContext context, bool? isExpanded) {
   final theme = Theme.of(context);
@@ -11,16 +13,18 @@ Widget aboutPage(BuildContext context, bool? isExpanded) {
       borderRadius: BorderRadius.circular(8.0),
     ),
     child: InkWell(
-      onTap: () {
+      onTap: () async {
+        PackageInfo packageInfo = await PackageInfo.fromPlatform();
+
+        // If the user closed the page while we were waiting, abort!
+        if (!context.mounted) return;
+
         showAboutDialog(
           context: context,
-          applicationName: 'Nordplayer',
-          applicationVersion: '1.0.0',
+          applicationName: packageInfo.appName.pascalCase,
+          applicationVersion: packageInfo.version,
           applicationIcon: const Icon(Icons.music_note, size: 50),
-          applicationLegalese:
-              '© 2026 Penguins Lab\n\n'
-              'This application is licensed under the MIT License. '
-              'Source code available on GitHub.',
+          applicationLegalese: 'Copyright (c) 2025 Nordplayer',
         );
       },
       borderRadius: BorderRadius.circular(10.0),
