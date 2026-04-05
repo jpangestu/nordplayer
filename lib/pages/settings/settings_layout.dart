@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:nordplayer/pages/settings/about_page.dart';
 import 'package:nordplayer/routes/destinations.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
@@ -41,7 +40,6 @@ class SettingsLayout extends ConsumerWidget {
               onDestinationSelected: navigationShell.goBranch,
               showExtendedToggle: false,
               isExtended: isExtended,
-              trailing: aboutPage(context, isExtended),
               width: 220,
             ),
           ),

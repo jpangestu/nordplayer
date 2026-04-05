@@ -47,5 +47,11 @@ class Destinations {
           label: Text('Advanced'),
           // subLabel: Text('Reset settings'),
         ),
+        SidebarDestination(
+          icon: Icon(Icons.info_outline),
+          selectedIcon: Icon(Icons.info),
+          label: Text('About'),
+          // subLabel: Text('Reset settings'),
+        ),
       ];
 }

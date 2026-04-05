@@ -44,9 +44,13 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
           ? Colors.transparent
           : theme.colorScheme.surface,
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
         children: [
-          const SectionHeader(label: 'Library', labelType: .h1),
+          const SectionHeader(
+            label: 'Library',
+            labelType: .h1,
+            padding: .only(bottom: 8),
+          ),
           SectionWrapper(
             child: Column(
               children: [

@@ -36,7 +36,11 @@ class _NordplayerAppBarState extends ConsumerState<NordplayerAppBar> {
       scrolledUnderElevation: 0,
       flexibleSpace: ClipRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0, tileMode: .mirror),
+          filter: ImageFilter.blur(
+            sigmaX: 10.0,
+            sigmaY: 10.0,
+            tileMode: .mirror,
+          ),
           child: Container(
             color: Theme.of(
               context,
@@ -46,15 +50,13 @@ class _NordplayerAppBarState extends ConsumerState<NordplayerAppBar> {
       ),
       leading: (isSettingsRoute || canPop)
           ? IconButton(
-              icon: const Icon(Icons.arrow_back),
+              icon: const Icon(Icons.keyboard_arrow_left),
               onPressed: () {
-                if (isSettingsRoute) {
-                  // Your custom settings exit logic
+                if (canPop) {
+                  context.pop();
+                } else if (isSettingsRoute) {
                   final lastRoute = ref.read(lastMainRouteProvider);
                   context.go(lastRoute);
-                } else if (canPop) {
-                  // Standard back navigation for playlists, albums, etc.
-                  context.pop();
                 }
               },
             )

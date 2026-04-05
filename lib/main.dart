@@ -28,7 +28,7 @@ void main() async {
     skipTaskbar: false,
     windowButtonVisibility: true,
     title: 'Nordplayer',
-    titleBarStyle: .normal,
+    titleBarStyle: .hidden,
   );
 
   windowManager.waitUntilReadyToShow(windowOptions, () async {

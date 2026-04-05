@@ -7,9 +7,11 @@ import 'package:nordplayer/pages/library_page.dart';
 import 'package:nordplayer/pages/app_layout.dart';
 import 'package:nordplayer/pages/playlists_page.dart';
 import 'package:nordplayer/pages/playlist_details_page.dart';
+import 'package:nordplayer/pages/settings/about_page.dart';
 import 'package:nordplayer/pages/settings/advanced_page.dart';
 import 'package:nordplayer/pages/settings/appearance_page.dart';
 import 'package:nordplayer/pages/settings/library_management_page.dart';
+import 'package:nordplayer/pages/settings/license_page.dart';
 import 'package:nordplayer/pages/settings/settings_layout.dart';
 import 'package:nordplayer/routes/routes.dart';
 
@@ -115,6 +117,38 @@ final router = GoRouter(
                         GoRoute(
                           path: Routes.advancePage,
                           builder: (context, state) => const AdvancedPage(),
+                        ),
+                      ],
+                    ),
+                    StatefulShellBranch(
+                      routes: [
+                        GoRoute(
+                          path: Routes.aboutPage,
+                          builder: (context, state) => const AboutPage(),
+                          routes: [
+                            GoRoute(
+                              path: Routes.licensesPage,
+                              pageBuilder: (context, state) {
+                                return CustomTransitionPage(
+                                  key: state.pageKey,
+                                  opaque: false,
+                                  child: const LicensesPage(),
+                                  transitionsBuilder:
+                                      (
+                                        context,
+                                        animation,
+                                        secondaryAnimation,
+                                        child,
+                                      ) {
+                                        return FadeTransition(
+                                          opacity: animation,
+                                          child: child,
+                                        );
+                                      },
+                                );
+                              },
+                            ),
+                          ],
                         ),
                       ],
                     ),

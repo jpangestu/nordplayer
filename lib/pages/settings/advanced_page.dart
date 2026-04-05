@@ -25,9 +25,13 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
           : theme.colorScheme.surface,
 
       body: ListView(
-        padding: .all(16),
+        padding: .all(24),
         children: [
-          SectionHeader(label: 'Reset', labelType: .h1),
+          const SectionHeader(
+            label: 'Reset',
+            labelType: .h1,
+            padding: .only(bottom: 8),
+          ),
 
           SectionWrapper(
             child: ListTile(

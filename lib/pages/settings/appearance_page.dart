@@ -21,9 +21,13 @@ class AppearancePage extends ConsumerWidget {
           ? Colors.transparent
           : theme.colorScheme.surface,
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
         children: [
-          const SectionHeader(label: 'Theme', labelType: LabelType.h1),
+          const SectionHeader(
+            label: 'Theme',
+            labelType: LabelType.h1,
+            padding: .only(bottom: 8),
+          ),
           Column(
             children: [
               SectionWrapper(

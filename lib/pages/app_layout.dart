@@ -8,6 +8,7 @@ import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/nordplayer_app_bar.dart';
+import 'package:nordplayer/widgets/nordplayer_title_bar.dart';
 import 'package:nordplayer/widgets/player_bar/player_bar.dart';
 import 'package:nordplayer/widgets/shortcuts.dart';
 import 'package:nordplayer/widgets/sidebar.dart';
@@ -59,6 +60,16 @@ class AppLayout extends ConsumerWidget {
                 backgroundColor: Colors.transparent,
                 body: Column(
                   children: [
+                    NordplayerTitleBar(),
+
+                    appConfig.adaptiveBg
+                        ? Divider(
+                            height: 2,
+                            thickness: 2,
+                            color: Colors.transparent,
+                          )
+                        : const Divider(height: 2, thickness: 2),
+
                     Expanded(
                       child: Row(
                         children: [

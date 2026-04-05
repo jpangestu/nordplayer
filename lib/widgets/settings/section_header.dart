@@ -5,11 +5,13 @@ enum LabelType { h1, h2, h3 }
 class SectionHeader extends StatelessWidget {
   final String label;
   final LabelType labelType;
+  final EdgeInsetsGeometry padding;
 
   const SectionHeader({
     super.key,
     required this.label,
     required this.labelType,
+    this.padding = const .symmetric(vertical: 8),
   });
 
   @override
@@ -29,7 +31,7 @@ class SectionHeader extends StatelessWidget {
     };
 
     return Padding(
-      padding: const .symmetric(vertical: 8),
+      padding: padding,
       child: Text(label, style: textStyle),
     );
   }
