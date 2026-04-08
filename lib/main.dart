@@ -131,6 +131,7 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp>
 
       data: (config) {
         return MaterialApp.router(
+          color: Colors.transparent,
           routerConfig: router,
           title: 'Nordplayer',
           theme: AppTheme.getTheme(config.theme, config.fontFamily),

@@ -118,18 +118,17 @@ class AppLayout extends ConsumerWidget {
                                     children: [
                                       Expanded(child: navigationShell),
 
-                                      appConfig.adaptiveBg
-                                          ? VerticalDivider(
-                                              width: 2,
-                                              thickness: 2,
-                                              color: Colors.transparent,
-                                            )
-                                          : const VerticalDivider(
-                                              width: 2,
-                                              thickness: 2,
-                                            ),
-
-                                      if (showQueue && isWideScreen)
+                                      if (showQueue && isWideScreen) ...[
+                                        appConfig.adaptiveBg
+                                            ? VerticalDivider(
+                                                width: 2,
+                                                thickness: 2,
+                                                color: Colors.transparent,
+                                              )
+                                            : const VerticalDivider(
+                                                width: 2,
+                                                thickness: 2,
+                                              ),
                                         QueuePage(
                                           isWideScreen: isWideScreen,
                                           isAppBarAllowContentBehindIt:
@@ -137,6 +136,7 @@ class AppLayout extends ConsumerWidget {
                                               ? true
                                               : false,
                                         ),
+                                      ],
                                     ],
                                   ),
 

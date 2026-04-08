@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:nordplayer/pages/settings/license_page.dart';
 import 'package:nordplayer/routes/routes.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/utils/string_extensions.dart';

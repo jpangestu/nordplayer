@@ -34,22 +34,25 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
           ),
 
           SectionWrapper(
+            backgroundColor: theme.colorScheme.errorContainer,
             child: ListTile(
               leading: Icon(
                 Icons.refresh_rounded,
-                // color: theme.colorScheme.error,
+                color: theme.colorScheme.onErrorContainer,
               ),
               title: Text(
                 'Reset app settings',
                 style: TextStyle(
-                  // color: theme.colorScheme.error,
+                  color: theme.colorScheme.onErrorContainer,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               subtitle: Text(
                 'Theme, music paths, and player preferences',
                 style: TextStyle(
-                  // color: theme.colorScheme.error.withValues(alpha: 0.74),
+                  color: theme.colorScheme.onErrorContainer.withValues(
+                    alpha: 0.74,
+                  ),
                 ),
               ),
               onTap: () => _showResetSettingsDialog(context, ref),
@@ -59,23 +62,26 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
           const SizedBox(height: 4),
 
           SectionWrapper(
+            backgroundColor: theme.colorScheme.errorContainer,
             child: ListTile(
               leading: Icon(
                 Icons.delete_forever_outlined,
-                // color: theme.colorScheme.error,
+                color: theme.colorScheme.onErrorContainer,
               ),
               title: Text(
                 'Clear music library',
-                // style: TextStyle(
-                //   color: theme.colorScheme.error,
-                //   fontWeight: FontWeight.w600,
-                // ),
+                style: TextStyle(
+                  color: theme.colorScheme.onErrorContainer,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               subtitle: Text(
                 'Wipes database and album art (does not delete music files)',
-                // style: TextStyle(
-                //   color: theme.colorScheme.error.withValues(alpha: 0.74),
-                // ),
+                style: TextStyle(
+                  color: theme.colorScheme.onErrorContainer.withValues(
+                    alpha: 0.74,
+                  ),
+                ),
               ),
               onTap: () => _showDeleteDataDialog(context, ref),
             ),
