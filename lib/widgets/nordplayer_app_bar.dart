@@ -33,6 +33,7 @@ class _NordplayerAppBarState extends ConsumerState<NordplayerAppBar> {
           ? Colors.transparent
           : theme.colorScheme.surfaceContainer,
       toolbarHeight: 60,
+      elevation: 0,
       scrolledUnderElevation: 0,
       flexibleSpace: ClipRect(
         child: BackdropFilter(
@@ -42,9 +43,14 @@ class _NordplayerAppBarState extends ConsumerState<NordplayerAppBar> {
             tileMode: .mirror,
           ),
           child: Container(
-            color: Theme.of(
-              context,
-            ).colorScheme.surfaceContainer.withValues(alpha: 0.6),
+            color: Theme.of(context).colorScheme.surfaceContainer.withValues(
+              alpha: appConfig.adaptiveBgDimmer,
+            ),
+            child: Container(
+              color: Theme.of(context).colorScheme.surfaceContainer.withValues(
+                alpha: appConfig.adaptiveBgDimmer,
+              ),
+            ),
           ),
         ),
       ),

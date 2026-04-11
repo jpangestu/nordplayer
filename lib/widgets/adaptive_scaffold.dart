@@ -23,8 +23,41 @@ class AdaptiveScaffold extends ConsumerWidget {
       type: MaterialType.transparency,
       child: Stack(
         children: [
-          // LAYER 1: The Album Artwork
+          // LAYER 0: The background
+
+          // LAYER 1: The Album Art
           if (appConfig.adaptiveBg) ...[
+            // Show stretched album art to fill the gap. The edget of BoxFit.cover
+            // and fill if blur == 100 will be transparent, hence need this layer
+            RepaintBoundary(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 600),
+                switchInCurve: Curves.easeOut,
+                switchOutCurve: Curves.easeIn,
+                child: currentAlbumArtPath != null
+                    ? SizedBox.expand(
+                        key: ValueKey(currentAlbumArtPath),
+                        child: ImageFiltered(
+                          imageFilter: ImageFilter.blur(
+                            sigmaX: 80,
+                            sigmaY: 80,
+                            tileMode: TileMode.mirror,
+                          ),
+                          child: Image.file(
+                            File(currentAlbumArtPath),
+                            fit: .fill,
+                            cacheWidth: cacheW,
+                            gaplessPlayback: true,
+                            errorBuilder: (_, _, _) =>
+                                getFallbackBackground(context),
+                          ),
+                        ),
+                      )
+                    : getFallbackBackground(context),
+              ),
+            ),
+
+            // Album Art
             RepaintBoundary(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 600),
@@ -37,13 +70,13 @@ class AdaptiveScaffold extends ConsumerWidget {
                           imageFilter: ImageFilter.blur(
                             sigmaX: appConfig.adaptiveBgBlur,
                             sigmaY: appConfig.adaptiveBgBlur,
-                            // tileMode: TileMode.clamp,
+                            // tileMode not set to make sure the blur of the main album art
+                            // is bound to the image size. Important for BoxFit.contain
                           ),
                           child: Image.file(
                             File(currentAlbumArtPath),
                             fit: appConfig.adaptiveBgBoxFit,
                             cacheWidth: cacheW,
-                            // colorBlendMode: BlendMode.darken,
                             gaplessPlayback: true,
                             errorBuilder: (_, _, _) =>
                                 getFallbackBackground(context),
@@ -55,7 +88,7 @@ class AdaptiveScaffold extends ConsumerWidget {
             ),
 
             // LAYER 2: Textured Layer
-            // if (appConfig.textureLayer)
+            // if (true)
             //   Positioned.fill(
             //     child: IgnorePointer(
             //       child: Container(
@@ -70,10 +103,12 @@ class AdaptiveScaffold extends ConsumerWidget {
             //           ),
             //         ),
             //         child: Opacity(
-            //           opacity: texturedLayer.opacity,
-            //           child: _buildTextureImage(
-            //             activeTexture,
-            //             texturedLayer.fit,
+            //           opacity: 0.4,
+            //           child: Image.file(
+            //             File('assets/texture_preset/rain.png'),
+            //             repeat: ImageRepeat.noRepeat,
+            //             fit: .fill,
+            //             errorBuilder: (_, __, ___) => const SizedBox(),
             //           ),
             //         ),
             //       ),
@@ -103,19 +138,10 @@ class AdaptiveScaffold extends ConsumerWidget {
   }
 
   Widget getFallbackBackground(BuildContext context) {
-    return Container(
-      key: const ValueKey('empty'),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
-            Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-            // Colors.transparent,
-            // Theme.of(context).scaffoldBackgroundColor,
-          ],
-        ),
+    return SizedBox.expand(
+      child: Image.asset(
+        'assets/images/default_background.png',
+        fit: BoxFit.cover,
       ),
     );
   }

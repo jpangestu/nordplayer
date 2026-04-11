@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 
-class SectionWrapper extends ConsumerWidget {
-  const SectionWrapper({super.key, this.backgroundColor, required this.child});
+class SectionCard extends ConsumerWidget {
+  const SectionCard({super.key, this.backgroundColor, required this.child});
 
   final Color? backgroundColor;
   final Widget child;
@@ -12,16 +12,17 @@ class SectionWrapper extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final appConfig = ref.watch(configServiceProvider).requireValue;
+    final surfaceContainer = Theme.of(context).colorScheme.surfaceContainer;
 
     final defaultBackgroundColor = appConfig.adaptiveBg
-        ? Theme.of(context).colorScheme.surfaceContainer.withValues(alpha: 0.5)
-        : Theme.of(context).colorScheme.surfaceContainer;
+        ? surfaceContainer.withValues(alpha: appConfig.adaptiveBgDimmer)
+        : surfaceContainer;
 
     return FrostedGlass(
-      blurSigma: 5,
+      blurSigma: 10,
       backgroundColor: backgroundColor != null
           ? appConfig.adaptiveBg
-                ? backgroundColor!.withValues(alpha: 0.5)
+                ? backgroundColor!.withValues(alpha: appConfig.adaptiveBgDimmer)
                 : backgroundColor!
           : defaultBackgroundColor,
       borderRadius: 8,

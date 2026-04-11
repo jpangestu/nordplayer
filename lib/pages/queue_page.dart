@@ -128,14 +128,10 @@ class _QueuePageState extends ConsumerState<QueuePage> {
           width: widget.isWideScreen ? 350 : 300,
           child: Scaffold(
             backgroundColor: appConfig.adaptiveBg
-                ? widget.isWideScreen
-                      ? theme.colorScheme.surfaceContainer.withValues(
-                          alpha: 0.6,
-                        )
-                      : theme.colorScheme.surfaceContainer.withValues(
-                          alpha: 0.4,
-                        )
-                : Theme.of(context).colorScheme.surfaceContainer,
+                ? theme.colorScheme.surfaceContainer.withValues(
+                    alpha: appConfig.adaptiveBgDimmer,
+                  )
+                : theme.colorScheme.surfaceContainer,
             // MediaQuery.removePadding ensure tracks list doesn't leave blank space
             // when scrolling up the first track in the list
             body: MediaQuery.removePadding(

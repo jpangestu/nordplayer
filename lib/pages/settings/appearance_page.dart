@@ -30,7 +30,7 @@ class AppearancePage extends ConsumerWidget {
           ),
           Column(
             children: [
-              SectionWrapper(
+              SectionCard(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: ListTile(
@@ -75,7 +75,7 @@ class AppearancePage extends ConsumerWidget {
 
               SizedBox(height: 4),
 
-              SectionWrapper(
+              SectionCard(
                 child: Column(
                   children: [
                     SwitchListTile(
@@ -93,47 +93,6 @@ class AppearancePage extends ConsumerWidget {
                     ),
 
                     if (appConfig.adaptiveBg) ...[
-                      SectionDivider(),
-
-                      SliderTile(
-                        label: 'Blur Intensity',
-                        value: appConfig.adaptiveBgBlur,
-                        min: 0.0,
-                        max:
-                            100.0, // Adjust max based on how intense you want the blur
-                        labelBuilder: (val) => val.toInt().toString(),
-                        onChanged: (val) {
-                          ref
-                              .read(configServiceProvider.notifier)
-                              .updateConfig(blur: val, save: false);
-                        },
-                        onChangeEnd: (val) {
-                          ref
-                              .read(configServiceProvider.notifier)
-                              .updateConfig(blur: val);
-                        },
-                      ),
-
-                      SectionDivider(),
-
-                      SliderTile(
-                        label: 'Background Dimmer',
-                        value: appConfig.adaptiveBgDimmer,
-                        min: 0.0,
-                        max: 1.0,
-                        labelBuilder: (val) => "${(val * 100).toInt()}%",
-                        onChanged: (val) {
-                          ref
-                              .read(configServiceProvider.notifier)
-                              .updateConfig(dimmer: val, save: false);
-                        },
-                        onChangeEnd: (val) {
-                          ref
-                              .read(configServiceProvider.notifier)
-                              .updateConfig(dimmer: val);
-                        },
-                      ),
-
                       SectionDivider(),
 
                       Padding(
@@ -161,24 +120,16 @@ class AppearancePage extends ConsumerWidget {
                             ),
                             dropdownMenuEntries: const [
                               DropdownMenuEntry(
+                                value: BoxFit.contain,
+                                label: 'Contain (Fit inside)',
+                              ),
+                              DropdownMenuEntry(
                                 value: BoxFit.cover,
                                 label: 'Cover (Crop to fill)',
                               ),
                               DropdownMenuEntry(
                                 value: BoxFit.fill,
                                 label: 'Fill (Stretch)',
-                              ),
-                              DropdownMenuEntry(
-                                value: BoxFit.contain,
-                                label: 'Contain (Fit inside)',
-                              ),
-                              DropdownMenuEntry(
-                                value: BoxFit.fitHeight,
-                                label: 'Fit Height',
-                              ),
-                              DropdownMenuEntry(
-                                value: BoxFit.fitWidth,
-                                label: 'Fit Width',
                               ),
                             ],
                             onSelected: (selectedFit) {
@@ -189,6 +140,47 @@ class AppearancePage extends ConsumerWidget {
                             },
                           ),
                         ),
+                      ),
+
+                      SectionDivider(),
+
+                      SliderTile(
+                        label: 'Blur Intensity',
+                        value: appConfig.adaptiveBgBlur,
+                        min: 0.0,
+                        max:
+                            100.0, // Adjust max based on how intense you want the blur
+                        labelBuilder: (val) => val.toInt().toString(),
+                        onChanged: (val) {
+                          ref
+                              .read(configServiceProvider.notifier)
+                              .updateConfig(blur: val, save: false);
+                        },
+                        onChangeEnd: (val) {
+                          ref
+                              .read(configServiceProvider.notifier)
+                              .updateConfig(blur: val);
+                        },
+                      ),
+
+                      SectionDivider(),
+
+                      SliderTile(
+                        label: 'Background Tint',
+                        value: appConfig.adaptiveBgDimmer,
+                        min: 0.0,
+                        max: 1.0,
+                        labelBuilder: (val) => "${(val * 100).toInt()}%",
+                        onChanged: (val) {
+                          ref
+                              .read(configServiceProvider.notifier)
+                              .updateConfig(dimmer: val, save: false);
+                        },
+                        onChangeEnd: (val) {
+                          ref
+                              .read(configServiceProvider.notifier)
+                              .updateConfig(dimmer: val);
+                        },
                       ),
                     ],
                   ],
@@ -201,7 +193,7 @@ class AppearancePage extends ConsumerWidget {
 
           const SectionHeader(label: 'Typography', labelType: LabelType.h1),
 
-          SectionWrapper(
+          SectionCard(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: ListTile(
@@ -255,7 +247,7 @@ class AppearancePage extends ConsumerWidget {
 
           SizedBox(height: 4),
 
-          SectionWrapper(
+          SectionCard(
             child: SliderTile(
               leading: Icon(Icons.format_size_outlined),
               label: 'Font Scale',

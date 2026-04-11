@@ -6,7 +6,6 @@ import 'package:nordplayer/pages/queue_page.dart';
 import 'package:nordplayer/routes/destinations.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
-import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/nordplayer_app_bar.dart';
 import 'package:nordplayer/widgets/nordplayer_title_bar.dart';
 import 'package:nordplayer/widgets/player_bar/player_bar.dart';
@@ -23,6 +22,7 @@ class AppLayout extends ConsumerWidget {
     bool isExtended = ref.watch(preferenceServiceProvider).sidebarExtended;
     bool showQueue = ref.watch(preferenceServiceProvider).showQueue;
     final appConfig = ref.watch(configServiceProvider).requireValue;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Shortcuts(
       shortcuts: <ShortcutActivator, Intent>{
@@ -60,21 +60,22 @@ class AppLayout extends ConsumerWidget {
                 backgroundColor: Colors.transparent,
                 body: Column(
                   children: [
-                    NordplayerTitleBar(),
+                    Container(
+                      color: colorScheme.surfaceContainer.withValues(
+                        alpha: appConfig.adaptiveBgDimmer,
+                      ),
+                      child: NordplayerTitleBar(),
+                    ),
 
-                    appConfig.adaptiveBg
-                        ? Divider(
-                            height: 2,
-                            thickness: 2,
-                            color: Colors.transparent,
-                          )
-                        : const Divider(height: 2, thickness: 2),
+                    const AdaptiveDivider(),
 
                     Expanded(
                       child: Row(
                         children: [
-                          FrostedGlass(
-                            blurSigma: 10,
+                          Container(
+                            color: colorScheme.surface.withValues(
+                              alpha: appConfig.adaptiveBgDimmer,
+                            ),
                             child: Sidebar(
                               isAdaptive: appConfig.adaptiveBg,
                               selectedIndex:
@@ -95,13 +96,7 @@ class AppLayout extends ConsumerWidget {
                             ),
                           ),
 
-                          appConfig.adaptiveBg
-                              ? VerticalDivider(
-                                  width: 2,
-                                  thickness: 2,
-                                  color: Colors.transparent,
-                                )
-                              : const VerticalDivider(width: 2, thickness: 2),
+                          const AdaptiveVerticalDivider(),
 
                           Expanded(
                             child: Scaffold(
@@ -111,51 +106,71 @@ class AppLayout extends ConsumerWidget {
                                   ? true
                                   : false,
                               backgroundColor: Colors.transparent,
-                              body: Stack(
-                                children: [
-                                  // --- LAYER 1: PAGES + PINNED QUEUE---
-                                  Row(
-                                    children: [
-                                      Expanded(child: navigationShell),
+                              body: LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final double pageWidth = constraints.maxWidth;
 
-                                      if (showQueue && isWideScreen) ...[
-                                        appConfig.adaptiveBg
-                                            ? VerticalDivider(
-                                                width: 2,
-                                                thickness: 2,
-                                                color: Colors.transparent,
-                                              )
-                                            : const VerticalDivider(
-                                                width: 2,
-                                                thickness: 2,
-                                              ),
-                                        QueuePage(
-                                          isWideScreen: isWideScreen,
-                                          isAppBarAllowContentBehindIt:
-                                              navigationShell.currentIndex == 0
-                                              ? true
-                                              : false,
+                                  if (showQueue && isWideScreen) {
+                                    return Stack(
+                                      children: [
+                                        Container(
+                                          width: pageWidth,
+                                          color: colorScheme.surface.withValues(
+                                            alpha: appConfig.adaptiveBgDimmer,
+                                          ),
+                                        ),
+
+                                        Row(
+                                          children: [
+                                            Expanded(child: navigationShell),
+
+                                            const AdaptiveVerticalDivider(),
+
+                                            QueuePage(
+                                              isWideScreen: isWideScreen,
+                                              isAppBarAllowContentBehindIt:
+                                                  navigationShell
+                                                          .currentIndex ==
+                                                      0
+                                                  ? true
+                                                  : false,
+                                            ),
+                                          ],
                                         ),
                                       ],
-                                    ],
-                                  ),
+                                    );
+                                  }
 
-                                  // --- LAYER 2: FLOATING QUEUE ---
-                                  if (showQueue && !isWideScreen) ...[
-                                    Positioned(
-                                      top: 0,
-                                      bottom: 0,
-                                      right: 0,
-                                      child: QueuePage(
-                                        isWideScreen: isWideScreen,
-                                        isAppBarAllowContentBehindIt:
-                                            navigationShell.currentIndex == 0
-                                            ? true
-                                            : false,
+                                  return Stack(
+                                    children: [
+                                      // Middle Layer: The Scrim/Dimmer (Only if Queue is open)
+                                      Container(
+                                        width: showQueue
+                                            ? pageWidth - 300
+                                            : pageWidth,
+                                        color: colorScheme.surface.withValues(
+                                          alpha: appConfig.adaptiveBgDimmer,
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ],
+
+                                      navigationShell,
+
+                                      // Top Layer: The Floating Queue (Only if Queue is open)
+                                      if (showQueue)
+                                        Positioned(
+                                          top: 0,
+                                          bottom: 0,
+                                          right: 0,
+                                          child: QueuePage(
+                                            isWideScreen: isWideScreen,
+                                            isAppBarAllowContentBehindIt:
+                                                navigationShell.currentIndex ==
+                                                0,
+                                          ),
+                                        ),
+                                    ],
+                                  );
+                                },
                               ),
                             ),
                           ),
@@ -163,15 +178,14 @@ class AppLayout extends ConsumerWidget {
                       ),
                     ),
 
-                    appConfig.adaptiveBg
-                        ? Divider(
-                            height: 2,
-                            thickness: 2,
-                            color: Colors.transparent,
-                          )
-                        : const Divider(height: 2, thickness: 2),
+                    const AdaptiveDivider(),
 
-                    FrostedGlass(blurSigma: 10, child: PlayerBar()),
+                    Container(
+                      color: colorScheme.surfaceContainer.withValues(
+                        alpha: appConfig.adaptiveBgDimmer,
+                      ),
+                      child: PlayerBar(),
+                    ),
                   ],
                 ),
               );
@@ -179,6 +193,52 @@ class AppLayout extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class AdaptiveDivider extends ConsumerWidget {
+  const AdaptiveDivider({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appConfig = ref.watch(configServiceProvider).requireValue;
+
+    if (!appConfig.adaptiveBg) {
+      return const Divider(height: 2, thickness: 2);
+    }
+
+    return Divider(
+      height: 2,
+      thickness: 2,
+      color: appConfig.adaptiveBgDimmer != 1.0
+          ? Colors.transparent
+          : Theme.of(
+              context,
+            ).dividerTheme.color!.withValues(alpha: appConfig.adaptiveBgDimmer),
+    );
+  }
+}
+
+class AdaptiveVerticalDivider extends ConsumerWidget {
+  const AdaptiveVerticalDivider({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appConfig = ref.watch(configServiceProvider).requireValue;
+
+    if (!appConfig.adaptiveBg) {
+      return const VerticalDivider(width: 2, thickness: 2);
+    }
+
+    return VerticalDivider(
+      width: 2,
+      thickness: 2,
+      color: appConfig.adaptiveBgDimmer != 1.0
+          ? Colors.transparent
+          : Theme.of(
+              context,
+            ).dividerTheme.color!.withValues(alpha: appConfig.adaptiveBgDimmer),
     );
   }
 }

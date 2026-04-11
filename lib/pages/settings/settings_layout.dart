@@ -33,6 +33,9 @@ class SettingsLayout extends ConsumerWidget {
           FrostedGlass(
             blurSigma: 5,
             child: Sidebar(
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerLow,
               isAdaptive: appConfig.adaptiveBg,
               leading: SizedBox(height: 16),
               selectedIndex: navigationShell.currentIndex,

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nordplayer/services/config_service.dart';
+import 'package:nordplayer/widgets/frosted_glass.dart';
 
-class Sidebar extends StatefulWidget {
+class Sidebar extends ConsumerStatefulWidget {
   final Widget? leading;
   final int? selectedIndex;
   final List<SidebarDestination> destinations;
@@ -15,6 +18,7 @@ class Sidebar extends StatefulWidget {
   /// Width when expanded
   final double? width;
   final bool isAdaptive;
+  final Color? backgroundColor;
 
   const Sidebar({
     super.key,
@@ -28,69 +32,73 @@ class Sidebar extends StatefulWidget {
     this.trailing,
     this.width,
     this.isAdaptive = false,
+    this.backgroundColor,
   }) : assert(
          selectedIndex == null ||
              (0 <= selectedIndex && selectedIndex < destinations.length),
        );
 
   @override
-  State<Sidebar> createState() => _SidebarState();
+  ConsumerState<Sidebar> createState() => _SidebarState();
 }
 
-class _SidebarState extends State<Sidebar> {
+class _SidebarState extends ConsumerState<Sidebar> {
   static const double collapsedWidth = 64.0;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final appConfig = ref.watch(configServiceProvider).requireValue;
     final navTheme = theme.navigationRailTheme;
-    final double expandedWidth = widget.width ?? 180;
+    final expandedWidth = widget.width ?? 180.0;
+    final defaultBgColor = widget.isAdaptive
+        ? (navTheme.backgroundColor ?? theme.colorScheme.surfaceContainer)
+              .withValues(alpha: appConfig.adaptiveBgDimmer)
+        : navTheme.backgroundColor ?? theme.colorScheme.surfaceContainer;
 
-    return AnimatedContainer(
-      duration: Duration.zero,
-      width: widget.isExtended ?? true ? expandedWidth : collapsedWidth,
-      color: widget.isAdaptive
-          ? (navTheme.backgroundColor ?? theme.colorScheme.surfaceContainer)
-                .withValues(alpha: 0.6)
-          : navTheme.backgroundColor ?? theme.colorScheme.surfaceContainer,
+    return FrostedGlass(
+      blurSigma: 10,
+      child: AnimatedContainer(
+        duration: Duration.zero,
+        width: widget.isExtended ?? true ? expandedWidth : collapsedWidth,
+        color: widget.backgroundColor != null
+            ? widget.isAdaptive
+                  ? widget.backgroundColor!.withValues(
+                      alpha: appConfig.adaptiveBgDimmer,
+                    )
+                  : widget.backgroundColor!
+            : defaultBgColor,
 
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (widget.showExtendedToggle)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: IconButton(
-                icon: const Icon(Icons.menu),
-                onPressed: widget.onExtendedToggle,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                style: IconButton.styleFrom(
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  foregroundColor: navTheme.unselectedIconTheme?.color,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (widget.showExtendedToggle)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.menu),
+                  onPressed: widget.onExtendedToggle,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  style: IconButton.styleFrom(
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    foregroundColor: navTheme.unselectedIconTheme?.color,
+                  ),
                 ),
               ),
-            ),
 
-          if (widget.leading != null) widget.leading!,
+            if (widget.leading != null) widget.leading!,
 
-          Expanded(
-            child: ListView(
-              children: [
-                for (final (index, destination) in widget.destinations.indexed)
-                  if (index != widget.destinations.length) ...[
-                    _buildItem(
-                      context,
-                      index,
-                      destination.icon,
-                      destination.selectedIcon,
-                      destination.label,
-                      destination.subLabel,
-                    ),
-                  ] else ...[
-                    Align(
-                      alignment: .bottomLeft,
-                      child: _buildItem(
+            Expanded(
+              child: ListView(
+                children: [
+                  for (final (index, destination)
+                      in widget.destinations.indexed)
+                    if (index != widget.destinations.length) ...[
+                      _buildItem(
                         context,
                         index,
                         destination.icon,
@@ -98,14 +106,26 @@ class _SidebarState extends State<Sidebar> {
                         destination.label,
                         destination.subLabel,
                       ),
-                    ),
-                  ],
-              ],
+                    ] else ...[
+                      Align(
+                        alignment: .bottomLeft,
+                        child: _buildItem(
+                          context,
+                          index,
+                          destination.icon,
+                          destination.selectedIcon,
+                          destination.label,
+                          destination.subLabel,
+                        ),
+                      ),
+                    ],
+                ],
+              ),
             ),
-          ),
 
-          if (widget.trailing != null) widget.trailing!,
-        ],
+            if (widget.trailing != null) widget.trailing!,
+          ],
+        ),
       ),
     );
   }
@@ -142,7 +162,6 @@ class _SidebarState extends State<Sidebar> {
               theme.textTheme.bodyLarge!
         : theme.navigationRailTheme.unselectedLabelTextStyle ??
               theme.textTheme.bodyLarge!;
-
 
     final iconWidget = IconTheme(
       data: IconThemeData(color: foregroundColor, size: 24),

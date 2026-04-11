@@ -33,7 +33,7 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
             padding: .only(bottom: 8),
           ),
 
-          SectionWrapper(
+          SectionCard(
             backgroundColor: theme.colorScheme.errorContainer,
             child: ListTile(
               leading: Icon(
@@ -61,7 +61,7 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
 
           const SizedBox(height: 4),
 
-          SectionWrapper(
+          SectionCard(
             backgroundColor: theme.colorScheme.errorContainer,
             child: ListTile(
               leading: Icon(

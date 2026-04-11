@@ -1,7 +1,7 @@
 name: nordplayer
 description: "A simple, modern music player."
 publish_to: "none"
-version: 0.1.2-beta+1
+version: 0.1.3-alpha+1
 
 environment:
   sdk: ^3.10.4
@@ -50,6 +50,7 @@ flutter:
   assets:
     - assets/icons/
     - assets/icons/window_control/breeze/
+    - assets/images/
 
   fonts:
     - family: Inter

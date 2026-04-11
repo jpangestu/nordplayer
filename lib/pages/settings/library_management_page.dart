@@ -51,7 +51,7 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
             labelType: .h1,
             padding: .only(bottom: 8),
           ),
-          SectionWrapper(
+          SectionCard(
             child: Column(
               children: [
                 ListTile(
@@ -98,7 +98,7 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
           const SizedBox(height: 8),
 
           const SectionHeader(label: 'Multi-artist parsing', labelType: .h1),
-          SectionWrapper(
+          SectionCard(
             child: Column(
               children: [
                 Padding(

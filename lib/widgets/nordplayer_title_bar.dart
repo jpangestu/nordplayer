@@ -41,7 +41,7 @@ class _NordplayerTitleBarState extends ConsumerState<NordplayerTitleBar> {
       child: FrostedGlass(
         blurSigma: 50,
         backgroundColor: appConfig.adaptiveBg
-            ? colorScheme.surfaceContainer.withValues(alpha: 0.6)
+            ? colorScheme.surfaceContainer.withValues(alpha: appConfig.adaptiveBgDimmer)
             : colorScheme.surfaceContainer,
         child: SizedBox(
           height: 34,
@@ -49,15 +49,20 @@ class _NordplayerTitleBarState extends ConsumerState<NordplayerTitleBar> {
             children: [
               const SizedBox(width: 0),
 
-              Padding(
-                padding: const EdgeInsets.only(left: 8.0, right: 4),
-                child: SvgPicture.asset(
-                  'assets/icons/nordplayer_logo_white_transparent.svg',
-                  width: 22,
-                  height: 22,
-                  colorFilter: ColorFilter.mode(
-                    colorScheme.onSurface,
-                    BlendMode.srcIn,
+              GestureDetector(
+                onTap: () async {
+                  await windowManager.popUpWindowMenu();
+                },
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 8.0, right: 4),
+                  child: SvgPicture.asset(
+                    'assets/icons/nordplayer_logo_white_transparent.svg',
+                    width: 22,
+                    height: 22,
+                    colorFilter: ColorFilter.mode(
+                      colorScheme.onSurface,
+                      BlendMode.srcIn,
+                    ),
                   ),
                 ),
               ),

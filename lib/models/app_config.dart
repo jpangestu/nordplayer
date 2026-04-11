@@ -18,9 +18,9 @@ class AppConfig {
   static const List<String> defaultArtistDelimiters = [',', ';', '/', '+', '&'];
   static const String _defaultTheme = 'nord';
   static const bool _defaultAdaptiveBg = false;
-  static const double _defaultAdaptiveBgBlur = 40;
-  static const double _defaultAdaptiveBgDimmer = 0.4;
-  static const BoxFit _defaultAdaptiveBgBoxFit = BoxFit.cover;
+  static const double _defaultAdaptiveBgBlur = 0;
+  static const double _defaultAdaptiveBgDimmer = 0.3;
+  static const BoxFit _defaultAdaptiveBgBoxFit = BoxFit.contain;
   static const String _defaultFontFamily = 'system';
   static const double _defaultTextScale = 1.0;
 
@@ -153,7 +153,7 @@ class AppConfig {
   static BoxFit _parseBoxFit(dynamic value, {required Logger logger}) {
     if (value is! String) {
       logger.w(
-        "Invalid boxFit type: $value. Fallback to '$_defaultAdaptiveBgBoxFit'.",
+        "Invalid BoxFit type: $value. Fallback to '$_defaultAdaptiveBgBoxFit'.",
       );
       return _defaultAdaptiveBgBoxFit;
     }
@@ -196,7 +196,7 @@ class AppConfig {
       'adaptiveBg': adaptiveBg,
       'blur': adaptiveBgBlur,
       'dimmer': adaptiveBgDimmer,
-      'boxfit': adaptiveBgBoxFit.name,
+      'boxFit': adaptiveBgBoxFit.name,
       'fontFamily': fontFamily,
       'textScale': textScale,
     };

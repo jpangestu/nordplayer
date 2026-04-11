@@ -4,6 +4,7 @@ import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
+import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
 import 'package:nordplayer/widgets/player_bar/playback.dart';
 import 'package:nordplayer/widgets/player_bar/progress_bar.dart';
@@ -19,6 +20,9 @@ class PlayerBar extends ConsumerStatefulWidget {
 class _PlayerBarState extends ConsumerState<PlayerBar> with LoggerMixin {
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final appConfig = ref.watch(configServiceProvider).requireValue;
+
     final player = ref.watch(playerServiceProvider);
     final currentTrack = ref.watch(currentTrackProvider);
     final adaptiveBg =
@@ -30,84 +34,87 @@ class _PlayerBarState extends ConsumerState<PlayerBar> with LoggerMixin {
     final int rightFlex = isLargeScreen ? 25 : 30;
     final int centerFlex = isLargeScreen ? 50 : 35;
 
-    final backgroundColor = Theme.of(context).colorScheme.surfaceContainer;
+    final backgroundColor = theme.colorScheme.surfaceContainer;
 
-    return Container(
-      height: 90,
-      color: adaptiveBg
-          ? backgroundColor.withValues(alpha: 0.6)
-          : backgroundColor,
-      child: Row(
-        children: [
-          if (currentTrack == null) ...[
-            Expanded(flex: lefttFlex, child: const SizedBox()),
-          ] else ...[
+    return FrostedGlass(
+      blurSigma: 10,
+      child: Container(
+        height: 90,
+        color: adaptiveBg
+            ? backgroundColor.withValues(alpha: appConfig.adaptiveBgDimmer)
+            : backgroundColor,
+        child: Row(
+          children: [
+            if (currentTrack == null) ...[
+              Expanded(flex: lefttFlex, child: const SizedBox()),
+            ] else ...[
+              Expanded(
+                flex: lefttFlex,
+                child: MusicTile(
+                  title: currentTrack.track.title,
+                  artists: currentTrack.artists.map((a) => a.name).toList(),
+                  albumArtPath: currentTrack.album.albumArtPath,
+                  albumArtSize: 60,
+                  onTap: () {},
+                  padding: const .only(left: 16),
+                  marqueeEffect: true,
+                ),
+              ),
+            ],
+      
             Expanded(
-              flex: lefttFlex,
-              child: MusicTile(
-                title: currentTrack.track.title,
-                artists: currentTrack.artists.map((a) => a.name).toList(),
-                albumArtPath: currentTrack.album.albumArtPath,
-                albumArtSize: 60,
-                onTap: () {},
-                padding: const .only(left: 16),
-                marqueeEffect: true,
+              flex: centerFlex,
+              child: Column(
+                mainAxisAlignment: .center,
+                children: [
+                  Playback(),
+                  Padding(
+                    padding: .fromLTRB(20, 0, 20, 6),
+                    child: ProgressBarSection(),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              flex: rightFlex,
+              child: Row(
+                mainAxisAlignment: .end,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.lyrics_outlined),
+                    iconSize: 24,
+                    tooltip: 'Show Lyrics',
+                    onPressed: () {},
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.queue_music_outlined),
+                    iconSize: 24,
+                    tooltip: 'Show Queue',
+                    // isSelected: true,
+                    onPressed: () {
+                      final showQueue = ref
+                          .read(preferenceServiceProvider)
+                          .showQueue;
+                      ref
+                          .read(preferenceServiceProvider.notifier)
+                          .setShowQueue(!showQueue);
+                    },
+                  ),
+                  VolumeSlider(
+                    volume: ref.watch(preferenceServiceProvider).volume,
+                    isMuted: ref.watch(preferenceServiceProvider).isMuted,
+                    onChanged: (value) {
+                      player.setVolume(value.roundToDouble());
+                    },
+                    onMute: () {
+                      player.toggleMute();
+                    },
+                  ),
+                ],
               ),
             ),
           ],
-
-          Expanded(
-            flex: centerFlex,
-            child: Column(
-              mainAxisAlignment: .center,
-              children: [
-                Playback(),
-                Padding(
-                  padding: .fromLTRB(20, 0, 20, 6),
-                  child: ProgressBarSection(),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            flex: rightFlex,
-            child: Row(
-              mainAxisAlignment: .end,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.lyrics_outlined),
-                  iconSize: 24,
-                  tooltip: 'Show Lyrics',
-                  onPressed: () {},
-                ),
-                IconButton(
-                  icon: const Icon(Icons.queue_music_outlined),
-                  iconSize: 24,
-                  tooltip: 'Show Queue',
-                  // isSelected: true,
-                  onPressed: () {
-                    final showQueue = ref
-                        .read(preferenceServiceProvider)
-                        .showQueue;
-                    ref
-                        .read(preferenceServiceProvider.notifier)
-                        .setShowQueue(!showQueue);
-                  },
-                ),
-                VolumeSlider(
-                  volume: ref.watch(preferenceServiceProvider).volume,
-                  isMuted: ref.watch(preferenceServiceProvider).isMuted,
-                  onChanged: (value) {
-                    player.setVolume(value.roundToDouble());
-                  },
-                  onMute: () {
-                    player.toggleMute();
-                  },
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

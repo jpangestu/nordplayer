@@ -47,7 +47,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
       body: ListView(
         padding: const EdgeInsets.all(24.0),
         children: [
-          SectionWrapper(
+          SectionCard(
             child: Column(
               children: [
                 Row(
@@ -63,7 +63,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
                           ),
                         ),
                         child: SvgPicture.asset(
-                          'assets/icons/nordplayer_logo_72.svg',
+                          'assets/icons/nordplayer_logo.svg',
                           width: 72,
                           height: 72,
                         ),

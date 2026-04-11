@@ -61,7 +61,7 @@ ThemeData buildNordTheme({String? fontFamily}) {
     // Guideline: Nord0 is for "background and area coloring".
     scaffoldBackgroundColor: NordColors.nord0,
 
-    colorScheme: const ColorScheme(
+    colorScheme: ColorScheme(
       brightness: Brightness.dark,
 
       // --- PRIMARY ---
@@ -81,10 +81,21 @@ ThemeData buildNordTheme({String? fontFamily}) {
       // --- SURFACES ---
       // Surface: The "Sheet" of paper. Nord0 is base.
       surface: NordColors.nord0,
-      onSurface: NordColors.nord6, // Main text (Nord6)
       // Surface Container: "Elevated" elements (Sidebars, Cards).
       // Guideline: Nord1 is for "panels, modals, and floating popups".
-      surfaceContainer: NordColors.nord1,
+      surfaceContainerLow: Color.lerp(
+        NordColors.nord1,
+        NordColors.nord0,
+        0.5,
+      ), // Slight elevation
+      surfaceContainer: NordColors.nord1, // Standard elevation (Cards, Dialogs)
+      surfaceContainerHigh: Color.lerp(
+        NordColors.nord1,
+        NordColors.nord2,
+        0.5,
+      ), // Higher elevation (Hover states)
+      onSurface: NordColors.nord6, // Main text (Nord6)
+
       onSurfaceVariant: NordColors.nord4, // Muted text (Nord4)
       // Highlight/Active States
       // Guideline: Nord2 is for "active text... and text highlighting".
