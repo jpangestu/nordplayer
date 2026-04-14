@@ -14,11 +14,7 @@ import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
 
 class QueuePage extends ConsumerStatefulWidget {
-  const QueuePage({
-    super.key,
-    required this.isWideScreen,
-    required this.isAppBarAllowContentBehindIt,
-  });
+  const QueuePage({super.key, required this.isWideScreen, required this.isAppBarAllowContentBehindIt});
   final bool isWideScreen;
   final bool isAppBarAllowContentBehindIt;
 
@@ -29,7 +25,7 @@ class QueuePage extends ConsumerStatefulWidget {
 class _QueuePageState extends ConsumerState<QueuePage> {
   late ScrollController _scrollController;
 
-  /// The height of your MusicTile + padding (50 + 8 + 8).
+  /// The height of MusicTile + padding (50 + 8 + 8).
   final double _itemHeight = 66.0;
   bool _isHeaderHovered = false;
 
@@ -72,9 +68,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
     final currentTracks = ref.watch(currentTracksInQueueProvider);
     final currentTrackIndex = ref.watch(currentTrackIndexProvider);
     final currentPlaybackContext = ref.watch(playbackContextProvider);
-    final selectedIndices = ref.watch(
-      selectedTracksIndexProvider('queue_page'),
-    );
+    final selectedIndices = ref.watch(selectedTracksIndexProvider('queue_page'));
 
     final isShuffleMode = ref.watch(preferenceServiceProvider).shuffleMode;
 
@@ -82,12 +76,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
     final appConfig = ref.watch(configServiceProvider).requireValue;
 
     // Listen to shuffle mode change
-    ref.listen<
-      bool
-    >(preferenceServiceProvider.select((prefs) => prefs.shuffleMode), (
-      previous,
-      next,
-    ) {
+    ref.listen<bool>(preferenceServiceProvider.select((prefs) => prefs.shuffleMode), (previous, next) {
       if (previous != next) {
         _isShuffling = true;
         _shuffleTimer?.cancel();
@@ -119,18 +108,14 @@ class _QueuePageState extends ConsumerState<QueuePage> {
     });
 
     return FrostedGlass(
-      blurSigma: 10,
+      blurSigma: appConfig.adaptiveBgPanelBlur,
       child: Padding(
-        padding: EdgeInsets.only(
-          top: widget.isAppBarAllowContentBehindIt ? 60.0 : 0.0,
-        ),
+        padding: EdgeInsets.only(top: widget.isAppBarAllowContentBehindIt ? 60.0 : 0.0),
         child: SizedBox(
           width: widget.isWideScreen ? 350 : 300,
           child: Scaffold(
             backgroundColor: appConfig.adaptiveBg
-                ? theme.colorScheme.surfaceContainer.withValues(
-                    alpha: appConfig.adaptiveBgDimmer,
-                  )
+                ? theme.colorScheme.surfaceContainer.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
                 : theme.colorScheme.surfaceContainer,
             // MediaQuery.removePadding ensure tracks list doesn't leave blank space
             // when scrolling up the first track in the list
@@ -142,9 +127,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                 slivers: [
                   SliverAppBar(
                     pinned: true,
-                    backgroundColor: appConfig.adaptiveBg
-                        ? Colors.transparent
-                        : theme.colorScheme.secondaryContainer,
+                    backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.secondaryContainer,
                     // Disable app bar changing color when tracks list scrolls below it
                     surfaceTintColor: Colors.transparent,
                     elevation: 0,
@@ -154,16 +137,9 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                     flexibleSpace: appConfig.adaptiveBg
                         ? ClipRect(
                             child: BackdropFilter(
-                              filter: ImageFilter.blur(
-                                sigmaX: 10.0,
-                                sigmaY: 10.0,
-                                tileMode: .mirror,
-                              ),
+                              filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0, tileMode: .mirror),
                               child: Container(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainer
-                                    .withValues(alpha: 0.6),
+                                color: Theme.of(context).colorScheme.surfaceContainer.withValues(alpha: 0.6),
                               ),
                             ),
                           )
@@ -175,17 +151,13 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                         width: double.infinity,
                         height: kToolbarHeight,
                         alignment: Alignment.centerLeft,
-                        padding: .symmetric(
-                          horizontal: _isHeaderHovered ? 8 : 16.0,
-                        ),
+                        padding: .symmetric(horizontal: _isHeaderHovered ? 8 : 16.0),
                         child: Row(
                           children: [
                             if (_isHeaderHovered) ...[
                               IconButton(
                                 onPressed: () {
-                                  ref
-                                      .read(preferenceServiceProvider.notifier)
-                                      .setShowQueue(false);
+                                  ref.read(preferenceServiceProvider.notifier).setShowQueue(false);
                                 },
                                 icon: Icon(Icons.keyboard_arrow_right),
                                 tooltip: 'Close Queue',
@@ -208,9 +180,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                     // the new one from scratch, completely bypassing the expensive animation diffing.
                     key: ValueKey('queue_list_$isShuffleMode'),
                     onReorder: (oldIndex, newIndex) {
-                      ref
-                          .read(playerServiceProvider)
-                          .moveTrack(oldIndex, newIndex);
+                      ref.read(playerServiceProvider).moveTrack(oldIndex, newIndex);
                     },
                     itemCount: currentTracks.length,
                     itemExtent: _itemHeight,
@@ -230,79 +200,50 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                           onRemove: () {
                             ref.read(playerServiceProvider).removeTrack(index);
                           },
-                          onClick:
-                              (index, {required isCtrl, required isShift}) {
-                                ref
-                                    .read(
-                                      selectedTracksIndexProvider(
-                                        'queue_page',
-                                      ).notifier,
-                                    )
-                                    .selectTrack(
-                                      index,
-                                      isCtrlSelect: isCtrl,
-                                      isShiftSelect: isShift,
-                                    );
-                              },
+                          onClick: (index, {required isCtrl, required isShift}) {
+                            ref
+                                .read(selectedTracksIndexProvider('queue_page').notifier)
+                                .selectTrack(index, isCtrlSelect: isCtrl, isShiftSelect: isShift);
+                          },
                           onDoubleClick: (index) {
                             ref
                                 .read(playerServiceProvider)
                                 .setPlaylist(
                                   tracksToPlay: currentTracks.nonNulls.toList(),
                                   initialIndex: index,
-                                  playbackContextType:
-                                      currentPlaybackContext?.type ?? 'library',
+                                  playbackContextType: currentPlaybackContext?.type ?? 'library',
                                   playbackContextId: currentPlaybackContext?.id,
                                 );
                           },
                           onRightClick: (index, globalPosition) {
-                            final selectionNotifier = ref.read(
-                              selectedTracksIndexProvider(
-                                'queue_page',
-                              ).notifier,
-                            );
-                            final currentSelection = ref.read(
-                              selectedTracksIndexProvider('queue_page'),
-                            );
+                            final selectionNotifier = ref.read(selectedTracksIndexProvider('queue_page').notifier);
+                            final currentSelection = ref.read(selectedTracksIndexProvider('queue_page'));
 
                             // If right-clicking an unselected item, select it first and clear others
                             if (!currentSelection.contains(index)) {
-                              selectionNotifier.selectTrack(
-                                index,
-                                isCtrlSelect: false,
-                                isShiftSelect: false,
-                              );
+                              selectionNotifier.selectTrack(index, isCtrlSelect: false, isShiftSelect: false);
                             }
 
-                            final updatedSelection = ref.read(
-                              selectedTracksIndexProvider('queue_page'),
-                            );
+                            final updatedSelection = ref.read(selectedTracksIndexProvider('queue_page'));
 
                             // Convert to list and sort the indices
-                            final sortedIndices = updatedSelection.toList()
-                              ..sort();
+                            final sortedIndices = updatedSelection.toList()..sort();
 
                             // Safely map the selected tracks
-                            final List<TrackWithArtists> selectedTracks =
-                                sortedIndices
-                                    .map((i) => currentTracks[i])
-                                    .nonNulls
-                                    .toList();
+                            final List<TrackWithArtists> selectedTracks = sortedIndices
+                                .map((i) => currentTracks[i])
+                                .nonNulls
+                                .toList();
 
                             TrackContextMenu.show(
                               context: context,
                               ref: ref,
-                              isAdaptive: ref
-                                  .watch(configServiceProvider)
-                                  .requireValue
-                                  .adaptiveBg,
+                              isAdaptive: ref.watch(configServiceProvider).requireValue.adaptiveBg,
                               globalPosition: globalPosition,
                               allTracks: currentTracks.nonNulls.toList(),
-                              clickedIndex:
-                                  index, // Assuming no nulls skewing the index
+                              clickedIndex: index, // Assuming no nulls skewing the index
                               selectedTracks: selectedTracks,
-                              playbackContextType:
-                                  'queue', // Explicitly pass 'queue'
+                              playbackContextType: 'queue', // Explicitly pass 'queue'
                               playbackContextId: null,
                             );
                           },
@@ -333,8 +274,7 @@ class _QueueItem extends ConsumerStatefulWidget {
   final bool isSelected;
   final bool isCurrentlyPlaying;
   final VoidCallback onRemove;
-  final void Function(int index, {required bool isCtrl, required bool isShift})?
-  onClick;
+  final void Function(int index, {required bool isCtrl, required bool isShift})? onClick;
   final void Function(int index)? onDoubleClick;
   final void Function(int index, Offset globalPosition)? onRightClick;
 
@@ -365,16 +305,10 @@ class _QueueItemState extends ConsumerState<_QueueItem> {
       child: Listener(
         onPointerDown: (event) {
           if (event.buttons == kPrimaryMouseButton) {
-            final isCtrl =
-                HardwareKeyboard.instance.isControlPressed ||
-                HardwareKeyboard.instance.isMetaPressed;
+            final isCtrl = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
             final isShift = HardwareKeyboard.instance.isShiftPressed;
 
-            widget.onClick?.call(
-              widget.index,
-              isCtrl: isCtrl,
-              isShift: isShift,
-            );
+            widget.onClick?.call(widget.index, isCtrl: isCtrl, isShift: isShift);
           } else if (event.buttons == kSecondaryMouseButton) {
             widget.onRightClick?.call(widget.index, event.position);
           }
@@ -386,25 +320,16 @@ class _QueueItemState extends ConsumerState<_QueueItem> {
             color: widget.isSelected
                 ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
                 : _isHovered
-                ? Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.05)
+                ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05)
                 : Colors.transparent,
             child: Stack(
               alignment: Alignment.centerRight,
               children: [
                 MusicTile(
                   selected: widget.isCurrentlyPlaying,
-                  padding: EdgeInsets.only(
-                    left: 16,
-                    top: 8,
-                    bottom: 8,
-                    right: _isHovered ? 90.0 : 16.0,
-                  ),
+                  padding: EdgeInsets.only(left: 16, top: 8, bottom: 8, right: _isHovered ? 90.0 : 16.0),
                   title: widget.trackItem.track.title,
-                  artists: widget.trackItem.artists
-                      .map<String>((artist) => artist.name)
-                      .toList(),
+                  artists: widget.trackItem.artists.map<String>((artist) => artist.name).toList(),
                   albumArtPath: widget.trackItem.album.albumArtPath,
                 ),
 
@@ -428,9 +353,7 @@ class _QueueItemState extends ConsumerState<_QueueItem> {
                             icon: const Icon(Icons.drag_indicator, size: 20),
                             onPressed: () {}, // Handled by the drag listener
                             mouseCursor: SystemMouseCursors.grab,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],

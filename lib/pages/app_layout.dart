@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:nordplayer/pages/queue_page.dart';
 import 'package:nordplayer/routes/destinations.dart';
 import 'package:nordplayer/services/config_service.dart';
@@ -27,16 +28,12 @@ class AppLayout extends ConsumerWidget {
     return Shortcuts(
       shortcuts: <ShortcutActivator, Intent>{
         SingleActivator(LogicalKeyboardKey.space): const PlayOrPauseIntent(),
-        SingleActivator(LogicalKeyboardKey.arrowRight, control: true):
-            const SkipToNextIntent(),
-        SingleActivator(LogicalKeyboardKey.arrowLeft, control: true):
-            const SkipToPreviousIntent(),
+        SingleActivator(LogicalKeyboardKey.arrowRight, control: true): const SkipToNextIntent(),
+        SingleActivator(LogicalKeyboardKey.arrowLeft, control: true): const SkipToPreviousIntent(),
         CharacterActivator('s', control: true): const ToggleShuffleIntent(),
         CharacterActivator('l', control: true): const CycleLoopIntent(),
-        SingleActivator(LogicalKeyboardKey.arrowUp, control: true):
-            const VolumeUpIntent(),
-        SingleActivator(LogicalKeyboardKey.arrowDown, control: true):
-            const VolumeDownIntent(),
+        SingleActivator(LogicalKeyboardKey.arrowUp, control: true): const VolumeUpIntent(),
+        SingleActivator(LogicalKeyboardKey.arrowDown, control: true): const VolumeDownIntent(),
         CharacterActivator('m'): const MuteIntent(),
       },
       child: Actions(
@@ -61,9 +58,7 @@ class AppLayout extends ConsumerWidget {
                 body: Column(
                   children: [
                     Container(
-                      color: colorScheme.surfaceContainer.withValues(
-                        alpha: appConfig.adaptiveBgDimmer,
-                      ),
+                      color: colorScheme.surfaceContainer.withValues(alpha: appConfig.adaptiveBgThemeOverlay),
                       child: NordplayerTitleBar(),
                     ),
 
@@ -73,26 +68,29 @@ class AppLayout extends ConsumerWidget {
                       child: Row(
                         children: [
                           Container(
-                            color: colorScheme.surface.withValues(
-                              alpha: appConfig.adaptiveBgDimmer,
-                            ),
+                            color: colorScheme.surface.withValues(alpha: appConfig.adaptiveBgThemeOverlay),
                             child: Sidebar(
-                              isAdaptive: appConfig.adaptiveBg,
-                              selectedIndex:
-                                  navigationShell.currentIndex <
-                                      Destinations.mainDestinations.length
-                                  ? navigationShell.currentIndex
-                                  : null,
+                              isExtended: isExtended,
                               destinations: Destinations.mainDestinations,
                               onDestinationSelected: navigationShell.goBranch,
-                              showExtendedToggle: true,
-                              isExtended: isExtended,
-                              onExtendedToggle: () {
-                                isExtended = !isExtended;
-                                ref
-                                    .read(preferenceServiceProvider.notifier)
-                                    .setSidebarExtended(isExtended);
-                              },
+                              selectedIndex: navigationShell.currentIndex,
+                              leading: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                                child: IconButton(
+                                  padding: .zero,
+                                  constraints: const BoxConstraints(),
+                                  onPressed: () {
+                                    isExtended = !isExtended;
+                                    ref.read(preferenceServiceProvider.notifier).setSidebarExtended(isExtended);
+                                  },
+                                  icon: isExtended ? Icon(LucideIcons.panelLeftClose) : Icon(LucideIcons.panelLeftOpen),
+                                  style: IconButton.styleFrom(tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                                ),
+                              ),
+                              extendedWidth: 200,
+                              isAdaptiveBgOn: appConfig.adaptiveBg,
+                              adaptiveBgPanelBlur: appConfig.adaptiveBgPanelBlur,
+                              adaptiveBgThemeOverlay: appConfig.adaptiveBgThemeOverlay,
                             ),
                           ),
 
@@ -101,10 +99,7 @@ class AppLayout extends ConsumerWidget {
                           Expanded(
                             child: Scaffold(
                               appBar: NordplayerAppBar(),
-                              extendBodyBehindAppBar:
-                                  navigationShell.currentIndex == 0
-                                  ? true
-                                  : false,
+                              extendBodyBehindAppBar: navigationShell.currentIndex == 0 ? true : false,
                               backgroundColor: Colors.transparent,
                               body: LayoutBuilder(
                                 builder: (context, constraints) {
@@ -116,7 +111,7 @@ class AppLayout extends ConsumerWidget {
                                         Container(
                                           width: pageWidth,
                                           color: colorScheme.surface.withValues(
-                                            alpha: appConfig.adaptiveBgDimmer,
+                                            alpha: appConfig.adaptiveBgThemeOverlay,
                                           ),
                                         ),
 
@@ -128,10 +123,7 @@ class AppLayout extends ConsumerWidget {
 
                                             QueuePage(
                                               isWideScreen: isWideScreen,
-                                              isAppBarAllowContentBehindIt:
-                                                  navigationShell
-                                                          .currentIndex ==
-                                                      0
+                                              isAppBarAllowContentBehindIt: navigationShell.currentIndex == 0
                                                   ? true
                                                   : false,
                                             ),
@@ -145,12 +137,8 @@ class AppLayout extends ConsumerWidget {
                                     children: [
                                       // Middle Layer: The Scrim/Dimmer (Only if Queue is open)
                                       Container(
-                                        width: showQueue
-                                            ? pageWidth - 300
-                                            : pageWidth,
-                                        color: colorScheme.surface.withValues(
-                                          alpha: appConfig.adaptiveBgDimmer,
-                                        ),
+                                        width: showQueue ? pageWidth - 300 : pageWidth,
+                                        color: colorScheme.surface.withValues(alpha: appConfig.adaptiveBgThemeOverlay),
                                       ),
 
                                       navigationShell,
@@ -163,9 +151,7 @@ class AppLayout extends ConsumerWidget {
                                           right: 0,
                                           child: QueuePage(
                                             isWideScreen: isWideScreen,
-                                            isAppBarAllowContentBehindIt:
-                                                navigationShell.currentIndex ==
-                                                0,
+                                            isAppBarAllowContentBehindIt: navigationShell.currentIndex == 0,
                                           ),
                                         ),
                                     ],
@@ -181,9 +167,7 @@ class AppLayout extends ConsumerWidget {
                     const AdaptiveDivider(),
 
                     Container(
-                      color: colorScheme.surfaceContainer.withValues(
-                        alpha: appConfig.adaptiveBgDimmer,
-                      ),
+                      color: colorScheme.surfaceContainer.withValues(alpha: appConfig.adaptiveBgThemeOverlay),
                       child: PlayerBar(),
                     ),
                   ],
@@ -211,11 +195,9 @@ class AdaptiveDivider extends ConsumerWidget {
     return Divider(
       height: 2,
       thickness: 2,
-      color: appConfig.adaptiveBgDimmer != 1.0
+      color: appConfig.adaptiveBgThemeOverlay != 1.0
           ? Colors.transparent
-          : Theme.of(
-              context,
-            ).dividerTheme.color!.withValues(alpha: appConfig.adaptiveBgDimmer),
+          : Theme.of(context).dividerTheme.color!.withValues(alpha: appConfig.adaptiveBgThemeOverlay),
     );
   }
 }
@@ -234,11 +216,9 @@ class AdaptiveVerticalDivider extends ConsumerWidget {
     return VerticalDivider(
       width: 2,
       thickness: 2,
-      color: appConfig.adaptiveBgDimmer != 1.0
+      color: appConfig.adaptiveBgThemeOverlay != 1.0
           ? Colors.transparent
-          : Theme.of(
-              context,
-            ).dividerTheme.color!.withValues(alpha: appConfig.adaptiveBgDimmer),
+          : Theme.of(context).dividerTheme.color!.withValues(alpha: appConfig.adaptiveBgThemeOverlay),
     );
   }
 }

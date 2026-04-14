@@ -1,18 +1,16 @@
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/services/logger.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
-final configServiceProvider = AsyncNotifierProvider<ConfigService, AppConfig>(
-  () {
-    return ConfigService();
-  },
-);
+final configServiceProvider = AsyncNotifierProvider<ConfigService, AppConfig>(() {
+  return ConfigService();
+});
 
 class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
   File? _configFile;
@@ -36,9 +34,7 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
       final decodedJson = jsonDecode(configString);
 
       if (decodedJson is! Map<String, dynamic>) {
-        throw const FormatException(
-          "Config JSON is not a valid object structure",
-        );
+        throw const FormatException("Config JSON is not a valid object structure");
       }
 
       final loadedConfig = AppConfig.fromJson(decodedJson, logger: log);
@@ -46,9 +42,7 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
       // Validate and clean JSON
       final cleanJson = loadedConfig.toJson();
       if (jsonEncode(decodedJson) != jsonEncode(cleanJson)) {
-        log.w(
-          "Config contained invalid values. Overwriting with corrected version.",
-        );
+        log.w("Config contained invalid values. Overwriting with corrected version.");
         await _backupInvalidConfig();
         await _saveToDisk(loadedConfig);
       } else {
@@ -57,11 +51,7 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
 
       return loadedConfig;
     } catch (e, s) {
-      log.e(
-        "Failed to load existing config. Resetting to defaults.",
-        error: e,
-        stackTrace: s,
-      );
+      log.e("Failed to load existing config. Resetting to defaults.", error: e, stackTrace: s);
       await _backupInvalidConfig();
       final backupConfig = AppConfig();
       await _saveToDisk(backupConfig);
@@ -74,9 +64,10 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
     List<String>? artistDelimiters,
     String? theme,
     bool? adaptiveBg,
-    double? blur,
-    double? dimmer,
-    BoxFit? boxFit,
+    BoxFit? albumFit,
+    double? albumBlur,
+    double? panelBlur,
+    double? tinter,
     String? fontFamily,
     double? textScale,
     bool save = true,
@@ -89,9 +80,10 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
       artistDelimiters: artistDelimiters,
       theme: theme,
       adaptiveBg: adaptiveBg,
-      adaptiveBgBlur: blur,
-      adaptiveBgDimmer: dimmer,
-      adaptiveBgBoxFit: boxFit,
+      adaptiveBgAlbumFit: albumFit,
+      adaptiveBgAlbumBlur: albumBlur,
+      adaptiveBgPanelBlur: panelBlur,
+      adaptiveBgThemeOverlay: tinter,
       fontFamily: fontFamily,
       textScale: textScale,
     );
@@ -104,9 +96,9 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
         if (artistDelimiters != null) 'artistDelimiters',
         if (theme != null) 'theme',
         if (adaptiveBg != null) 'adaptiveBg',
-        if (blur != null) 'blur',
-        if (dimmer != null) 'dimmer',
-        if (boxFit != null) 'boxFit',
+        if (albumBlur != null) 'blur',
+        if (tinter != null) 'dimmer',
+        if (albumFit != null) 'boxFit',
         if (fontFamily != null) 'fontFamily',
         if (textScale != null) 'textScale',
       ].join(', ');
@@ -138,11 +130,7 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
       await _configFile!.writeAsString(encoder.convert(configToSave.toJson()));
       log.d("Config saved to disk.");
     } catch (e, s) {
-      log.e(
-        "Failed to save config file ${reason != null ? '($reason)' : ''}",
-        error: e,
-        stackTrace: s,
-      );
+      log.e("Failed to save config file ${reason != null ? '($reason)' : ''}", error: e, stackTrace: s);
     }
   }
 
@@ -151,10 +139,7 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
     try {
       final configDir = await getApplicationSupportDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final backupPath = p.join(
-        configDir.path,
-        'invalid_config.$timestamp.json',
-      );
+      final backupPath = p.join(configDir.path, 'invalid_config.$timestamp.json');
 
       await _configFile!.copy(backupPath);
       log.w("Invalid config backed up to: $backupPath");

@@ -17,7 +17,7 @@ class AdaptiveScaffold extends ConsumerWidget {
     final currentTrack = ref.watch(currentTrackProvider);
     final currentAlbumArtPath = currentTrack?.album.albumArtPath;
 
-    final cacheW = _getCacheWidth(appConfig.adaptiveBgBlur);
+    final cacheW = _getCacheWidth(appConfig.adaptiveBgAlbumBlur);
 
     return Material(
       type: MaterialType.transparency,
@@ -38,18 +38,13 @@ class AdaptiveScaffold extends ConsumerWidget {
                     ? SizedBox.expand(
                         key: ValueKey(currentAlbumArtPath),
                         child: ImageFiltered(
-                          imageFilter: ImageFilter.blur(
-                            sigmaX: 80,
-                            sigmaY: 80,
-                            tileMode: TileMode.mirror,
-                          ),
+                          imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80, tileMode: TileMode.mirror),
                           child: Image.file(
                             File(currentAlbumArtPath),
                             fit: .fill,
                             cacheWidth: cacheW,
                             gaplessPlayback: true,
-                            errorBuilder: (_, _, _) =>
-                                getFallbackBackground(context),
+                            errorBuilder: (_, _, _) => getFallbackBackground(context),
                           ),
                         ),
                       )
@@ -68,18 +63,17 @@ class AdaptiveScaffold extends ConsumerWidget {
                         key: ValueKey(currentAlbumArtPath),
                         child: ImageFiltered(
                           imageFilter: ImageFilter.blur(
-                            sigmaX: appConfig.adaptiveBgBlur,
-                            sigmaY: appConfig.adaptiveBgBlur,
+                            sigmaX: appConfig.adaptiveBgAlbumBlur,
+                            sigmaY: appConfig.adaptiveBgAlbumBlur,
                             // tileMode not set to make sure the blur of the main album art
                             // is bound to the image size. Important for BoxFit.contain
                           ),
                           child: Image.file(
                             File(currentAlbumArtPath),
-                            fit: appConfig.adaptiveBgBoxFit,
+                            fit: appConfig.adaptiveBgAlbumFit,
                             cacheWidth: cacheW,
                             gaplessPlayback: true,
-                            errorBuilder: (_, _, _) =>
-                                getFallbackBackground(context),
+                            errorBuilder: (_, _, _) => getFallbackBackground(context),
                           ),
                         ),
                       )
@@ -122,10 +116,8 @@ class AdaptiveScaffold extends ConsumerWidget {
                     // (dominantColorAsync.value != null
                     //         ? dominantColorAsync.value!
                     //         : Theme.of(context).colorScheme.surface)
-                    //     .withValues(alpha: appConfig.adaptiveBgDimmer),
-                    Theme.of(context).colorScheme.surface.withValues(
-                      alpha: appConfig.adaptiveBgDimmer,
-                    ),
+                    //     .withValues(alpha: appConfig.adaptiveBgThemeOverlay),
+                    Theme.of(context).colorScheme.surface.withValues(alpha: appConfig.adaptiveBgThemeOverlay),
               ),
             ),
           ],
@@ -138,12 +130,7 @@ class AdaptiveScaffold extends ConsumerWidget {
   }
 
   Widget getFallbackBackground(BuildContext context) {
-    return SizedBox.expand(
-      child: Image.asset(
-        'assets/images/default_background.png',
-        fit: BoxFit.cover,
-      ),
-    );
+    return SizedBox.expand(child: Image.asset('assets/images/default_background.png', fit: BoxFit.cover));
   }
 
   int? _getCacheWidth(double blur) {

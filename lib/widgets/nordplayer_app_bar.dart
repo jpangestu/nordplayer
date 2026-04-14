@@ -7,8 +7,7 @@ import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/routes/routes.dart';
 import 'package:nordplayer/services/config_service.dart';
 
-class NordplayerAppBar extends ConsumerStatefulWidget
-    implements PreferredSizeWidget {
+class NordplayerAppBar extends ConsumerStatefulWidget implements PreferredSizeWidget {
   const NordplayerAppBar({super.key});
 
   @override
@@ -29,27 +28,21 @@ class _NordplayerAppBarState extends ConsumerState<NordplayerAppBar> {
     final bool canPop = context.canPop();
 
     return AppBar(
-      backgroundColor: appConfig.adaptiveBg
-          ? Colors.transparent
-          : theme.colorScheme.surfaceContainer,
+      backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surfaceContainer,
       toolbarHeight: 60,
       elevation: 0,
       scrolledUnderElevation: 0,
       flexibleSpace: ClipRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(
-            sigmaX: 10.0,
-            sigmaY: 10.0,
+            sigmaX: appConfig.adaptiveBgPanelBlur,
+            sigmaY: appConfig.adaptiveBgPanelBlur,
             tileMode: .mirror,
           ),
           child: Container(
-            color: Theme.of(context).colorScheme.surfaceContainer.withValues(
-              alpha: appConfig.adaptiveBgDimmer,
-            ),
+            color: Theme.of(context).colorScheme.surfaceContainer.withValues(alpha: appConfig.adaptiveBgThemeOverlay),
             child: Container(
-              color: Theme.of(context).colorScheme.surfaceContainer.withValues(
-                alpha: appConfig.adaptiveBgDimmer,
-              ),
+              color: Theme.of(context).colorScheme.surfaceContainer.withValues(alpha: appConfig.adaptiveBgThemeOverlay),
             ),
           ),
         ),
@@ -69,9 +62,7 @@ class _NordplayerAppBarState extends ConsumerState<NordplayerAppBar> {
           : null,
       centerTitle: true,
       title: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: (MediaQuery.sizeOf(context).width * 0.4).clamp(200, 500),
-        ),
+        constraints: BoxConstraints(maxWidth: (MediaQuery.sizeOf(context).width * 0.4).clamp(200, 500)),
         child: Container(
           height: 44,
           decoration: BoxDecoration(
@@ -99,9 +90,7 @@ class _NordplayerAppBarState extends ConsumerState<NordplayerAppBar> {
               final lastRoute = ref.read(lastMainRouteProvider);
               context.go(lastRoute);
             } else {
-              ref
-                  .read(lastMainRouteProvider.notifier)
-                  .updateRoute(currentRoute);
+              ref.read(lastMainRouteProvider.notifier).updateRoute(currentRoute);
               context.go('/settings/appearance');
             }
           },

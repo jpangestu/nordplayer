@@ -27,6 +27,7 @@ dependencies:
   drift_flutter: ^0.2.8
   flutter_riverpod: ^3.2.1
   logger: ^2.6.2
+  lucide_icons_flutter: ^3.1.12
   media_kit: ^1.2.6
   media_kit_libs_audio: ^1.0.7
   metadata_god: ^1.1.0

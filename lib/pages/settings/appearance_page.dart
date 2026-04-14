@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/models/app_theme.dart';
 import 'package:nordplayer/services/config_service.dart';
-import 'package:nordplayer/widgets/settings/section_header.dart';
-import 'package:nordplayer/widgets/settings/section_divider.dart';
 import 'package:nordplayer/widgets/settings/section_card.dart';
+import 'package:nordplayer/widgets/settings/section_divider.dart';
+import 'package:nordplayer/widgets/settings/section_header.dart';
 import 'package:nordplayer/widgets/settings/slider_tile.dart';
 
 class AppearancePage extends ConsumerWidget {
@@ -17,17 +17,11 @@ class AppearancePage extends ConsumerWidget {
     final appConfig = ref.watch(configServiceProvider).requireValue;
 
     return Scaffold(
-      backgroundColor: appConfig.adaptiveBg
-          ? Colors.transparent
-          : theme.colorScheme.surface,
+      backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          const SectionHeader(
-            label: 'Theme',
-            labelType: LabelType.h1,
-            padding: .only(bottom: 8),
-          ),
+          const SectionHeader(label: 'Theme', labelType: LabelType.h1, padding: .only(bottom: 8)),
           Column(
             children: [
               SectionCard(
@@ -39,34 +33,23 @@ class AppearancePage extends ConsumerWidget {
                     trailing: DropdownMenu<String>(
                       initialSelection: appConfig.theme,
                       inputDecorationTheme: InputDecorationTheme(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                         isDense: true,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(6),
-                        ),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
                       ),
                       menuStyle: MenuStyle(
                         backgroundColor: WidgetStatePropertyAll(
                           appConfig.adaptiveBg
-                              ? theme.colorScheme.surfaceContainer.withValues(
-                                  alpha: 0.8,
-                                )
+                              ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.8)
                               : theme.colorScheme.surfaceContainer,
                         ),
                       ),
                       dropdownMenuEntries: keyLabel.entries.map((entry) {
-                        return DropdownMenuEntry(
-                          value: entry.key,
-                          label: entry.value,
-                        );
+                        return DropdownMenuEntry(value: entry.key, label: entry.value);
                       }).toList(),
                       onSelected: (selectedTheme) {
                         if (selectedTheme == null) return;
-                        ref
-                            .read(configServiceProvider.notifier)
-                            .updateConfig(theme: selectedTheme);
+                        ref.read(configServiceProvider.notifier).updateConfig(theme: selectedTheme);
                       },
                     ),
                   ),
@@ -81,14 +64,10 @@ class AppearancePage extends ConsumerWidget {
                     SwitchListTile(
                       secondary: const Icon(Icons.wallpaper_outlined),
                       title: const Text('Adaptive Background'),
-                      subtitle: const Text(
-                        "Use the currently played track's album art as the background",
-                      ),
+                      subtitle: const Text("Use the currently played track's album art as the background"),
                       value: appConfig.adaptiveBg,
                       onChanged: (val) {
-                        ref
-                            .read(configServiceProvider.notifier)
-                            .updateConfig(adaptiveBg: val);
+                        ref.read(configServiceProvider.notifier).updateConfig(adaptiveBg: val);
                       },
                     ),
 
@@ -100,43 +79,27 @@ class AppearancePage extends ConsumerWidget {
                         child: ListTile(
                           title: const Text('Album Art Fit'),
                           trailing: DropdownMenu<BoxFit>(
-                            initialSelection: appConfig.adaptiveBgBoxFit,
+                            initialSelection: appConfig.adaptiveBgAlbumFit,
                             inputDecorationTheme: InputDecorationTheme(
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                               isDense: true,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(6),
-                              ),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
                             ),
                             menuStyle: MenuStyle(
                               backgroundColor: WidgetStatePropertyAll(
                                 appConfig.adaptiveBg
-                                    ? theme.colorScheme.surfaceContainer
-                                          .withValues(alpha: 0.8)
+                                    ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.8)
                                     : theme.colorScheme.surfaceContainer,
                               ),
                             ),
                             dropdownMenuEntries: const [
-                              DropdownMenuEntry(
-                                value: BoxFit.contain,
-                                label: 'Contain (Fit inside)',
-                              ),
-                              DropdownMenuEntry(
-                                value: BoxFit.cover,
-                                label: 'Cover (Crop to fill)',
-                              ),
-                              DropdownMenuEntry(
-                                value: BoxFit.fill,
-                                label: 'Fill (Stretch)',
-                              ),
+                              DropdownMenuEntry(value: BoxFit.contain, label: 'Contain (Fit inside)'),
+                              DropdownMenuEntry(value: BoxFit.cover, label: 'Cover (Crop to fill)'),
+                              DropdownMenuEntry(value: BoxFit.fill, label: 'Fill (Stretch)'),
                             ],
                             onSelected: (selectedFit) {
                               if (selectedFit == null) return;
-                              ref
-                                  .read(configServiceProvider.notifier)
-                                  .updateConfig(boxFit: selectedFit);
+                              ref.read(configServiceProvider.notifier).updateConfig(albumFit: selectedFit);
                             },
                           ),
                         ),
@@ -145,41 +108,46 @@ class AppearancePage extends ConsumerWidget {
                       SectionDivider(),
 
                       SliderTile(
-                        label: 'Blur Intensity',
-                        value: appConfig.adaptiveBgBlur,
+                        label: 'Album Art Blur',
+                        value: appConfig.adaptiveBgAlbumBlur,
                         min: 0.0,
-                        max:
-                            100.0, // Adjust max based on how intense you want the blur
+                        max: 100.0,
                         labelBuilder: (val) => val.toInt().toString(),
                         onChanged: (val) {
-                          ref
-                              .read(configServiceProvider.notifier)
-                              .updateConfig(blur: val, save: false);
+                          ref.read(configServiceProvider.notifier).updateConfig(albumBlur: val, save: false);
                         },
                         onChangeEnd: (val) {
-                          ref
-                              .read(configServiceProvider.notifier)
-                              .updateConfig(blur: val);
+                          ref.read(configServiceProvider.notifier).updateConfig(albumBlur: val);
+                        },
+                      ),
+
+                      SliderTile(
+                        label: 'Panel Blur',
+                        value: appConfig.adaptiveBgPanelBlur,
+                        min: 0.0,
+                        max: 100.0,
+                        labelBuilder: (val) => val.toInt().toString(),
+                        onChanged: (val) {
+                          ref.read(configServiceProvider.notifier).updateConfig(panelBlur: val, save: false);
+                        },
+                        onChangeEnd: (val) {
+                          ref.read(configServiceProvider.notifier).updateConfig(panelBlur: val);
                         },
                       ),
 
                       SectionDivider(),
 
                       SliderTile(
-                        label: 'Background Tint',
-                        value: appConfig.adaptiveBgDimmer,
+                        label: 'Theme Overlay',
+                        value: appConfig.adaptiveBgThemeOverlay,
                         min: 0.0,
                         max: 1.0,
                         labelBuilder: (val) => "${(val * 100).toInt()}%",
                         onChanged: (val) {
-                          ref
-                              .read(configServiceProvider.notifier)
-                              .updateConfig(dimmer: val, save: false);
+                          ref.read(configServiceProvider.notifier).updateConfig(tinter: val, save: false);
                         },
                         onChangeEnd: (val) {
-                          ref
-                              .read(configServiceProvider.notifier)
-                              .updateConfig(dimmer: val);
+                          ref.read(configServiceProvider.notifier).updateConfig(tinter: val);
                         },
                       ),
                     ],
@@ -204,22 +172,16 @@ class AppearancePage extends ConsumerWidget {
                   inputDecorationTheme: InputDecorationTheme(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                     isDense: true,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6),
-                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
                   ),
                   menuStyle: MenuStyle(
                     backgroundColor: WidgetStatePropertyAll(
                       appConfig.adaptiveBg
-                          ? theme.colorScheme.surfaceContainer.withValues(
-                              alpha: 0.8,
-                            )
+                          ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.8)
                           : theme.colorScheme.surfaceContainer,
                     ),
                   ),
-                  dropdownMenuEntries: AppTheme.availableFonts.entries.map((
-                    entry,
-                  ) {
+                  dropdownMenuEntries: AppTheme.availableFonts.entries.map((entry) {
                     final fontName = entry.key == 'System' ? null : entry.key;
 
                     return DropdownMenuEntry(
@@ -228,17 +190,14 @@ class AppearancePage extends ConsumerWidget {
                       style: MenuItemButton.styleFrom(
                         textStyle: TextStyle(
                           fontFamily: fontName,
-                          fontSize:
-                              16, // Slightly larger size makes the preview clearer
+                          fontSize: 16, // Slightly larger size makes the preview clearer
                         ),
                       ),
                     );
                   }).toList(),
                   onSelected: (selectedFont) {
                     if (selectedFont == null) return;
-                    ref
-                        .read(configServiceProvider.notifier)
-                        .updateConfig(fontFamily: selectedFont);
+                    ref.read(configServiceProvider.notifier).updateConfig(fontFamily: selectedFont);
                   },
                 ),
               ),
@@ -257,15 +216,11 @@ class AppearancePage extends ConsumerWidget {
               labelBuilder: (val) => "${(val * 100).toInt()}%",
               onChanged: (val) {
                 double roundedValue = (val * 100).round() / 100;
-                ref
-                    .read(configServiceProvider.notifier)
-                    .updateConfig(textScale: roundedValue, save: false);
+                ref.read(configServiceProvider.notifier).updateConfig(textScale: roundedValue, save: false);
               },
               onChangeEnd: (val) {
                 double roundedValue = (val * 100).round() / 100;
-                ref
-                    .read(configServiceProvider.notifier)
-                    .updateConfig(textScale: roundedValue);
+                ref.read(configServiceProvider.notifier).updateConfig(textScale: roundedValue);
               },
             ),
           ),

@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:nordplayer/routes/destinations.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
-import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/sidebar.dart';
 
 class SettingsLayout extends ConsumerWidget {
@@ -15,9 +14,7 @@ class SettingsLayout extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final appConfig = ref.watch(configServiceProvider).requireValue;
-    bool mainSidebarExtended = ref
-        .watch(preferenceServiceProvider)
-        .sidebarExtended;
+    bool mainSidebarExtended = ref.watch(preferenceServiceProvider).sidebarExtended;
     bool isExtended = true;
     final double screenWidth = MediaQuery.sizeOf(context).width;
     if (screenWidth <= 850) {
@@ -30,21 +27,18 @@ class SettingsLayout extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       body: Row(
         children: [
-          FrostedGlass(
-            blurSigma: 5,
-            child: Sidebar(
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.surfaceContainerLow,
-              isAdaptive: appConfig.adaptiveBg,
-              leading: SizedBox(height: 16),
-              selectedIndex: navigationShell.currentIndex,
-              destinations: Destinations.settingsDestinations,
-              onDestinationSelected: navigationShell.goBranch,
-              showExtendedToggle: false,
-              isExtended: isExtended,
-              width: 220,
-            ),
+          Sidebar(
+            isExtended: isExtended,
+            destinations: Destinations.settingsDestinations,
+            onDestinationSelected: navigationShell.goBranch,
+            // selectedIndex: navigationShell.currentIndex,
+            selectedIndex: null,
+            leading: SizedBox(height: 16),
+            backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+            extendedWidth: 220,
+            isAdaptiveBgOn: appConfig.adaptiveBg,
+            adaptiveBgPanelBlur: appConfig.adaptiveBgPanelBlur,
+            adaptiveBgThemeOverlay: appConfig.adaptiveBgThemeOverlay,
           ),
           Expanded(child: navigationShell),
         ],

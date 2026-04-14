@@ -1,236 +1,156 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/services/config_service.dart';
-import 'package:nordplayer/widgets/frosted_glass.dart';
+import 'package:nordplayer/theme/theme-extension/sidebar_theme.dart';
 
-class Sidebar extends ConsumerStatefulWidget {
-  final Widget? leading;
-  final int? selectedIndex;
-  final List<SidebarDestination> destinations;
-  final void Function(int)? onDestinationSelected;
-  final bool showExtendedToggle;
-  final bool? isExtended;
-  final VoidCallback? onExtendedToggle;
-
-  /// Will be placed at the bottom
-  final Widget? trailing;
-
-  /// Width when expanded
-  final double? width;
-  final bool isAdaptive;
-  final Color? backgroundColor;
-
+class Sidebar extends StatelessWidget {
   const Sidebar({
     super.key,
-    this.leading,
-    required this.selectedIndex,
+    this.isExtended = true,
     required this.destinations,
     this.onDestinationSelected,
-    this.showExtendedToggle = true,
-    this.isExtended,
-    this.onExtendedToggle,
-    this.trailing,
-    this.width,
-    this.isAdaptive = false,
+    required this.selectedIndex,
+    this.leading,
     this.backgroundColor,
-  }) : assert(
-         selectedIndex == null ||
-             (0 <= selectedIndex && selectedIndex < destinations.length),
-       );
+    this.itemBackgroundColor,
+    this.itemForegroundColor,
+    this.collapseWidth = 64.0,
+    this.extendedWidth = 180.0,
+    this.sidebarBorderRadius = BorderRadius.zero,
+    this.isAdaptiveBgOn = false,
+    this.adaptiveBgPanelBlur = 10.0,
+    this.adaptiveBgThemeOverlay = 0.6,
+  });
+  // : assert(selectedIndex == null || (0 <= selectedIndex && selectedIndex < destinations.length));
 
-  @override
-  ConsumerState<Sidebar> createState() => _SidebarState();
-}
-
-class _SidebarState extends ConsumerState<Sidebar> {
-  static const double collapsedWidth = 64.0;
+  final bool isExtended;
+  final List<SidebarDestination> destinations;
+  final void Function(int)? onDestinationSelected;
+  final int? selectedIndex;
+  final Widget? leading;
+  final Color? backgroundColor;
+  final WidgetStateProperty<Color?>? itemBackgroundColor;
+  final WidgetStateProperty<Color?>? itemForegroundColor;
+  final double collapseWidth;
+  final double extendedWidth;
+  final BorderRadius sidebarBorderRadius;
+  final bool isAdaptiveBgOn;
+  final double adaptiveBgPanelBlur;
+  final double adaptiveBgThemeOverlay;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider).requireValue;
-    final navTheme = theme.navigationRailTheme;
-    final expandedWidth = widget.width ?? 180.0;
-    final defaultBgColor = widget.isAdaptive
-        ? (navTheme.backgroundColor ?? theme.colorScheme.surfaceContainer)
-              .withValues(alpha: appConfig.adaptiveBgDimmer)
-        : navTheme.backgroundColor ?? theme.colorScheme.surfaceContainer;
+    final sidebarTheme = Theme.of(context).extension<SidebarTheme>();
 
-    return FrostedGlass(
-      blurSigma: 10,
-      child: AnimatedContainer(
-        duration: Duration.zero,
-        width: widget.isExtended ?? true ? expandedWidth : collapsedWidth,
-        color: widget.backgroundColor != null
-            ? widget.isAdaptive
-                  ? widget.backgroundColor!.withValues(
-                      alpha: appConfig.adaptiveBgDimmer,
-                    )
-                  : widget.backgroundColor!
-            : defaultBgColor,
+    // Widget Prop -> Theme Extension -> Fallback color
+    final resolvedBgColor =
+        backgroundColor ?? sidebarTheme?.backgroundColor ?? Theme.of(context).colorScheme.surfaceContainer;
+    final finalBgColor = isAdaptiveBgOn ? resolvedBgColor.withValues(alpha: adaptiveBgThemeOverlay) : resolvedBgColor;
 
+    Widget sidebarContent = Container(
+      decoration: BoxDecoration(color: finalBgColor, borderRadius: sidebarBorderRadius),
+      child: SizedBox(
+        width: isExtended ? extendedWidth : collapseWidth,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: .start,
           children: [
-            if (widget.showExtendedToggle)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.menu),
-                  onPressed: widget.onExtendedToggle,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  style: IconButton.styleFrom(
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    foregroundColor: navTheme.unselectedIconTheme?.color,
-                  ),
-                ),
-              ),
-
-            if (widget.leading != null) widget.leading!,
-
+            leading ?? const SizedBox.shrink(),
             Expanded(
               child: ListView(
-                children: [
-                  for (final (index, destination)
-                      in widget.destinations.indexed)
-                    if (index != widget.destinations.length) ...[
-                      _buildItem(
-                        context,
-                        index,
-                        destination.icon,
-                        destination.selectedIcon,
-                        destination.label,
-                        destination.subLabel,
-                      ),
-                    ] else ...[
-                      Align(
-                        alignment: .bottomLeft,
-                        child: _buildItem(
-                          context,
-                          index,
-                          destination.icon,
-                          destination.selectedIcon,
-                          destination.label,
-                          destination.subLabel,
-                        ),
-                      ),
-                    ],
-                ],
+                children: [for (var (i, destination) in destinations.indexed) _buildItem(context, i, destination)],
               ),
             ),
-
-            if (widget.trailing != null) widget.trailing!,
           ],
         ),
       ),
     );
+
+    if (isAdaptiveBgOn && adaptiveBgPanelBlur > 0) {
+      return ClipRRect(
+        borderRadius: sidebarBorderRadius,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: adaptiveBgPanelBlur, sigmaY: adaptiveBgPanelBlur, tileMode: TileMode.mirror),
+          child: sidebarContent,
+        ),
+      );
+    }
+
+    if (sidebarBorderRadius != BorderRadius.zero) {
+      return ClipRRect(borderRadius: sidebarBorderRadius, child: sidebarContent);
+    }
+
+    return sidebarContent;
   }
 
-  Widget _buildItem(
-    BuildContext context,
-    int index,
-    Widget icon,
-    Widget? selectedIcon,
-    Widget label,
-    Widget? subLabel,
-  ) {
-    final bool isSelected = widget.selectedIndex == index;
+  Widget _buildItem(BuildContext context, int index, SidebarDestination destination) {
     final theme = Theme.of(context);
+    final sidebarTheme = theme.extension<SidebarTheme>();
 
-    final baseBackgroundColor =
-        theme.navigationRailTheme.indicatorColor ??
-        theme.colorScheme.secondaryContainer;
+    final bool isSelected = selectedIndex == index;
 
-    final backgroundColor = isSelected
-        ? widget.isAdaptive
-              ? baseBackgroundColor.withValues(alpha: 0.4)
-              : baseBackgroundColor
-        : Colors.transparent;
+    final states = <WidgetState>{if (isSelected) WidgetState.selected};
 
-    final foregroundColor = isSelected
-        ? theme.navigationRailTheme.selectedIconTheme?.color ??
-              theme.colorScheme.onSecondaryContainer
-        : theme.navigationRailTheme.unselectedIconTheme?.color ??
-              theme.colorScheme.onSurfaceVariant;
+    // Widget Prop -> Theme Extension -> Fallback color
+    final resolvedBgColor =
+        itemBackgroundColor?.resolve(states) ??
+        sidebarTheme?.itemBackgroundColor?.resolve(states) ??
+        (isSelected ? theme.colorScheme.secondaryContainer : Colors.transparent);
 
-    final baseLabelStyle = isSelected
-        ? theme.navigationRailTheme.selectedLabelTextStyle ??
-              theme.textTheme.bodyLarge!
-        : theme.navigationRailTheme.unselectedLabelTextStyle ??
-              theme.textTheme.bodyLarge!;
+    final resolvedFgColor =
+        itemForegroundColor?.resolve(states) ??
+        sidebarTheme?.itemForegroundColor?.resolve(states) ??
+        (isSelected ? theme.colorScheme.onSecondaryContainer : theme.colorScheme.onSurfaceVariant);
 
-    final iconWidget = IconTheme(
-      data: IconThemeData(color: foregroundColor, size: 24),
-      child: isSelected ? selectedIcon ?? icon : icon,
-    );
+    final resolvedHoverColor = isAdaptiveBgOn
+        ? theme.colorScheme.onSurface.withValues(alpha: 0.08)
+        : itemBackgroundColor?.resolve({WidgetState.hovered}) ??
+              sidebarTheme?.itemBackgroundColor?.resolve({WidgetState.hovered});
 
-    final labelWidget = DefaultTextStyle(
-      style: baseLabelStyle.copyWith(
-        color: foregroundColor,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        overflow: TextOverflow.ellipsis,
-      ),
-      child: label,
-    );
+    final resolvedFocusColor = isAdaptiveBgOn
+        ? theme.colorScheme.onSurface.withValues(alpha: 0.12)
+        : itemBackgroundColor?.resolve({WidgetState.focused}) ??
+              sidebarTheme?.itemBackgroundColor?.resolve({WidgetState.focused});
 
-    final secondaryColor =
-        theme.navigationRailTheme.unselectedIconTheme?.color ??
-        theme.colorScheme.onSurfaceVariant;
-    final subLabelColor =
-        (theme.listTileTheme.subtitleTextStyle ?? theme.textTheme.bodyMedium)!
-            .color;
+    final resolvedPressedColor = isAdaptiveBgOn
+        ? theme.colorScheme.onSurface.withValues(alpha: 0.16)
+        : itemBackgroundColor?.resolve({WidgetState.pressed}) ??
+              sidebarTheme?.itemBackgroundColor?.resolve({WidgetState.pressed});
 
-    final textScale = MediaQuery.textScalerOf(context);
-    final double minHeight = subLabel != null ? 56.0 : 48.0;
+    final finalBgColor = isSelected
+        ? (isAdaptiveBgOn ? theme.colorScheme.primary.withValues(alpha: 0.15) : resolvedBgColor)
+        : resolvedBgColor;
 
     return Container(
-      constraints: BoxConstraints(minHeight: textScale.scale(minHeight)),
       margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(8.0),
-      ),
+      decoration: BoxDecoration(color: finalBgColor, borderRadius: BorderRadius.circular(8.0)),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {
-            if (widget.onDestinationSelected != null) {
-              widget.onDestinationSelected!(index);
-            }
-          },
-          borderRadius: BorderRadius.circular(10.0),
+          hoverColor: resolvedHoverColor,
+          focusColor: resolvedFocusColor,
+          highlightColor: resolvedPressedColor,
+          // Disable splash color
+          splashColor: Colors.transparent,
+          borderRadius: BorderRadius.circular(8.0),
+          onTap: () => onDestinationSelected?.call(index),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
             child: Row(
               children: [
-                iconWidget,
-                if (widget.isExtended != null && widget.isExtended == true) ...[
+                IconTheme(
+                  data: IconThemeData(color: resolvedFgColor, size: 24),
+                  child: isSelected ? destination.selectedIcon : destination.icon,
+                ),
+                if (isExtended) ...[
                   const SizedBox(width: 16),
                   Expanded(
-                    child: Column(
-                      mainAxisAlignment: .center,
-                      crossAxisAlignment: .start,
-                      children: [
-                        labelWidget,
-                        if (subLabel != null) ...[
-                          DefaultTextStyle(
-                            style:
-                                (theme.listTileTheme.subtitleTextStyle ??
-                                        theme.textTheme.bodyMedium)!
-                                    .copyWith(
-                                      color: isSelected
-                                          ? secondaryColor
-                                          : subLabelColor,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                            child: subLabel,
-                          ),
-                        ],
-                      ],
+                    child: DefaultTextStyle(
+                      style: theme.textTheme.bodyLarge!.copyWith(
+                        color: resolvedFgColor,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      child: destination.label,
                     ),
                   ),
                 ],
@@ -244,15 +164,10 @@ class _SidebarState extends ConsumerState<Sidebar> {
 }
 
 class SidebarDestination {
-  const SidebarDestination({
-    required this.icon,
-    Widget? selectedIcon,
-    required this.label,
-    this.subLabel,
-  }) : selectedIcon = selectedIcon ?? icon;
+  const SidebarDestination({required this.icon, Widget? selectedIcon, required this.label})
+    : selectedIcon = selectedIcon ?? icon;
 
   final Widget icon;
   final Widget selectedIcon;
   final Widget label;
-  final Widget? subLabel;
 }

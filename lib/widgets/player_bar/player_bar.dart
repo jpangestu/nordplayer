@@ -25,8 +25,7 @@ class _PlayerBarState extends ConsumerState<PlayerBar> with LoggerMixin {
 
     final player = ref.watch(playerServiceProvider);
     final currentTrack = ref.watch(currentTrackProvider);
-    final adaptiveBg =
-        ref.watch(configServiceProvider).value?.adaptiveBg ?? false;
+    final adaptiveBg = ref.watch(configServiceProvider).value?.adaptiveBg ?? false;
 
     final double screenWidth = MediaQuery.sizeOf(context).width;
     bool isLargeScreen = screenWidth > 900;
@@ -37,12 +36,10 @@ class _PlayerBarState extends ConsumerState<PlayerBar> with LoggerMixin {
     final backgroundColor = theme.colorScheme.surfaceContainer;
 
     return FrostedGlass(
-      blurSigma: 10,
+      blurSigma: appConfig.adaptiveBgPanelBlur,
       child: Container(
         height: 90,
-        color: adaptiveBg
-            ? backgroundColor.withValues(alpha: appConfig.adaptiveBgDimmer)
-            : backgroundColor,
+        color: adaptiveBg ? backgroundColor.withValues(alpha: appConfig.adaptiveBgThemeOverlay) : backgroundColor,
         child: Row(
           children: [
             if (currentTrack == null) ...[
@@ -61,17 +58,14 @@ class _PlayerBarState extends ConsumerState<PlayerBar> with LoggerMixin {
                 ),
               ),
             ],
-      
+
             Expanded(
               flex: centerFlex,
               child: Column(
                 mainAxisAlignment: .center,
                 children: [
                   Playback(),
-                  Padding(
-                    padding: .fromLTRB(20, 0, 20, 6),
-                    child: ProgressBarSection(),
-                  ),
+                  Padding(padding: .fromLTRB(20, 0, 20, 6), child: ProgressBarSection()),
                 ],
               ),
             ),
@@ -92,12 +86,8 @@ class _PlayerBarState extends ConsumerState<PlayerBar> with LoggerMixin {
                     tooltip: 'Show Queue',
                     // isSelected: true,
                     onPressed: () {
-                      final showQueue = ref
-                          .read(preferenceServiceProvider)
-                          .showQueue;
-                      ref
-                          .read(preferenceServiceProvider.notifier)
-                          .setShowQueue(!showQueue);
+                      final showQueue = ref.read(preferenceServiceProvider).showQueue;
+                      ref.read(preferenceServiceProvider.notifier).setShowQueue(!showQueue);
                     },
                   ),
                   VolumeSlider(
@@ -128,9 +118,7 @@ class ProgressBarSection extends ConsumerWidget {
     final position = ref.watch(positionStreamProvider).value ?? Duration.zero;
     // final buffer = ref.watch(bufferStreamProvider).value ?? Duration.zero;
     final total = ref.watch(durationStreamProvider).value ?? Duration.zero;
-    TimeLabelType timeLabelType = ref
-        .watch(preferenceServiceProvider)
-        .timeLabelType;
+    TimeLabelType timeLabelType = ref.watch(preferenceServiceProvider).timeLabelType;
 
     return ProgressBar(
       progress: position,

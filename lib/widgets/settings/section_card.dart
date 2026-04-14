@@ -15,14 +15,14 @@ class SectionCard extends ConsumerWidget {
     final surfaceContainer = Theme.of(context).colorScheme.surfaceContainer;
 
     final defaultBackgroundColor = appConfig.adaptiveBg
-        ? surfaceContainer.withValues(alpha: appConfig.adaptiveBgDimmer)
+        ? surfaceContainer.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
         : surfaceContainer;
 
     return FrostedGlass(
       blurSigma: 10,
       backgroundColor: backgroundColor != null
           ? appConfig.adaptiveBg
-                ? backgroundColor!.withValues(alpha: appConfig.adaptiveBgDimmer)
+                ? backgroundColor!.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
                 : backgroundColor!
           : defaultBackgroundColor,
       borderRadius: 8,

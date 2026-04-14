@@ -39,9 +39,9 @@ class _NordplayerTitleBarState extends ConsumerState<NordplayerTitleBar> {
 
     return DragToMoveArea(
       child: FrostedGlass(
-        blurSigma: 50,
+        blurSigma: (appConfig.adaptiveBgPanelBlur + 30).clamp(0, 100),
         backgroundColor: appConfig.adaptiveBg
-            ? colorScheme.surfaceContainer.withValues(alpha: appConfig.adaptiveBgDimmer)
+            ? colorScheme.surfaceContainer.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
             : colorScheme.surfaceContainer,
         child: SizedBox(
           height: 34,
@@ -59,10 +59,7 @@ class _NordplayerTitleBarState extends ConsumerState<NordplayerTitleBar> {
                     'assets/icons/nordplayer_logo_white_transparent.svg',
                     width: 22,
                     height: 22,
-                    colorFilter: ColorFilter.mode(
-                      colorScheme.onSurface,
-                      BlendMode.srcIn,
-                    ),
+                    colorFilter: ColorFilter.mode(colorScheme.onSurface, BlendMode.srcIn),
                   ),
                 ),
               ),
@@ -78,10 +75,7 @@ class _NordplayerTitleBarState extends ConsumerState<NordplayerTitleBar> {
                   },
                   child: Text(
                     _packageInfo!.version,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: colorScheme.onSurface.withValues(alpha: 0.5),
-                    ),
+                    style: TextStyle(fontSize: 12, color: colorScheme.onSurface.withValues(alpha: 0.5)),
                   ),
                 ),
 
@@ -113,8 +107,7 @@ class BreezeWindowControl extends StatefulWidget {
   State<BreezeWindowControl> createState() => _BreezeWindowControlState();
 }
 
-class _BreezeWindowControlState extends State<BreezeWindowControl>
-    with WindowListener {
+class _BreezeWindowControlState extends State<BreezeWindowControl> with WindowListener {
   bool _isMaximized = false;
 
   Future<void> _initWindowState() async {

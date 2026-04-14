@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nordplayer/theme/theme-extension/sidebar_theme.dart';
 
 // Source: https://www.nordtheme.com/docs/colors-and-palettes
 class NordColors {
@@ -48,10 +49,7 @@ class NordColors {
 
 ThemeData buildNordTheme({String? fontFamily}) {
   // Resolve the font (null means it will use the default system font)
-  final String? resolvedFont =
-      (fontFamily == null || fontFamily == 'System' || fontFamily.isEmpty)
-      ? null
-      : fontFamily;
+  final String? resolvedFont = (fontFamily == null || fontFamily == 'System' || fontFamily.isEmpty) ? null : fontFamily;
 
   return ThemeData(
     useMaterial3: true,
@@ -83,17 +81,9 @@ ThemeData buildNordTheme({String? fontFamily}) {
       surface: NordColors.nord0,
       // Surface Container: "Elevated" elements (Sidebars, Cards).
       // Guideline: Nord1 is for "panels, modals, and floating popups".
-      surfaceContainerLow: Color.lerp(
-        NordColors.nord1,
-        NordColors.nord0,
-        0.5,
-      ), // Slight elevation
+      surfaceContainerLow: Color.lerp(NordColors.nord1, NordColors.nord0, 0.5), // Slight elevation
       surfaceContainer: NordColors.nord1, // Standard elevation (Cards, Dialogs)
-      surfaceContainerHigh: Color.lerp(
-        NordColors.nord1,
-        NordColors.nord2,
-        0.5,
-      ), // Higher elevation (Hover states)
+      surfaceContainerHigh: Color.lerp(NordColors.nord1, NordColors.nord2, 0.5), // Higher elevation (Hover states)
       onSurface: NordColors.nord6, // Main text (Nord6)
 
       onSurfaceVariant: NordColors.nord4, // Muted text (Nord4)
@@ -106,35 +96,53 @@ ThemeData buildNordTheme({String? fontFamily}) {
       onError: NordColors.nord6,
     ),
 
-    appBarTheme: const AppBarTheme(
-      backgroundColor: NordColors.nord0,
-      foregroundColor: NordColors.nord6,
-      elevation: 0,
-    ),
-
-    navigationRailTheme: NavigationRailThemeData(
-      backgroundColor: NordColors.nord1,
-      indicatorColor: NordColors.nord2,
-
-      selectedIconTheme: IconThemeData(color: NordColors.nord8),
-      unselectedIconTheme: IconThemeData(color: NordColors.nord4),
-
-      selectedLabelTextStyle: TextStyle(
-        fontFamily: resolvedFont,
-        color: NordColors.nord8,
-        fontWeight: FontWeight.bold,
+    extensions: <ThemeExtension<dynamic>>[
+      SidebarTheme(
+        backgroundColor: NordColors.nord1,
+        itemBackgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.pressed)) {
+            // When actively clicking down (highlightColor).
+            // A slightly deeper or more distinct color than hover.
+            return NordColors.nord3.withValues(alpha: 0.8);
+          }
+          if (states.contains(WidgetState.selected)) {
+            // Highlighting the active menu item
+            return NordColors.nord2;
+          }
+          if (states.contains(WidgetState.focused)) {
+            // Keyboard navigation focus.
+            // Often similar to hover, but slightly more opaque to be obvious.
+            return NordColors.nord3.withValues(alpha: 0.5);
+          }
+          if (states.contains(WidgetState.hovered)) {
+            // A subtle highlight when the mouse is over it
+            return NordColors.nord3.withValues(alpha: 0.3);
+          }
+          // Transparent when it's just sitting there normally
+          return Colors.transparent;
+        }),
+        itemForegroundColor: WidgetStateProperty.resolveWith((states) {
+          // Foreground colors usually don't need to change for pressed/focused,
+          // they just need to stay bright while the background changes behind them.
+          if (states.contains(WidgetState.selected)) {
+            // Bright cyan when selected
+            return NordColors.nord8;
+          }
+          if (states.contains(WidgetState.pressed) ||
+              states.contains(WidgetState.focused) ||
+              states.contains(WidgetState.hovered)) {
+            // Bright white when interacting
+            return NordColors.nord6;
+          }
+          // Muted text when unselected
+          return NordColors.nord4;
+        }),
       ),
-      unselectedLabelTextStyle: TextStyle(
-        fontFamily: resolvedFont,
-        color: NordColors.nord4,
-      ),
-    ),
+    ],
 
-    dividerTheme: const DividerThemeData(
-      color: NordColors.nord2,
-      thickness: 2,
-      space: 2,
-    ),
+    appBarTheme: const AppBarTheme(backgroundColor: NordColors.nord0, foregroundColor: NordColors.nord6, elevation: 0),
+
+    dividerTheme: const DividerThemeData(color: NordColors.nord2, thickness: 2, space: 2),
 
     sliderTheme: SliderThemeData(
       trackHeight: 5,
@@ -150,17 +158,13 @@ ThemeData buildNordTheme({String? fontFamily}) {
       overlayColor: NordColors.nord8.withValues(alpha: 0.24),
 
       valueIndicatorColor: NordColors.nord3,
-      valueIndicatorTextStyle: TextStyle(
-        fontFamily: resolvedFont,
-        color: NordColors.nord6,
-      ),
+      valueIndicatorTextStyle: TextStyle(fontFamily: resolvedFont, color: NordColors.nord6),
     ),
 
     iconButtonTheme: IconButtonThemeData(
       style: ButtonStyle(
         foregroundColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected) ||
-              states.contains(WidgetState.pressed)) {
+          if (states.contains(WidgetState.selected) || states.contains(WidgetState.pressed)) {
             return NordColors.nord8;
           }
           if (states.contains(WidgetState.disabled)) {
@@ -169,17 +173,12 @@ ThemeData buildNordTheme({String? fontFamily}) {
           return NordColors.nord4;
         }),
 
-        overlayColor: WidgetStateProperty.all(
-          NordColors.nord8.withValues(alpha: 0.12),
-        ),
+        overlayColor: WidgetStateProperty.all(NordColors.nord8.withValues(alpha: 0.12)),
       ),
     ),
 
     tooltipTheme: TooltipThemeData(
-      decoration: BoxDecoration(
-        color: NordColors.nord3,
-        borderRadius: BorderRadius.circular(4),
-      ),
+      decoration: BoxDecoration(color: NordColors.nord3, borderRadius: BorderRadius.circular(4)),
 
       textStyle: TextStyle(
         fontFamily: resolvedFont,
@@ -192,9 +191,7 @@ ThemeData buildNordTheme({String? fontFamily}) {
     dropdownMenuTheme: DropdownMenuThemeData(
       menuStyle: MenuStyle(
         backgroundColor: WidgetStatePropertyAll(NordColors.nord3),
-        side: WidgetStatePropertyAll(
-          const BorderSide(color: NordColors.nord2, width: 2),
-        ),
+        side: WidgetStatePropertyAll(const BorderSide(color: NordColors.nord2, width: 2)),
       ),
 
       textStyle: TextStyle(fontFamily: resolvedFont, color: NordColors.nord6),
@@ -327,13 +324,6 @@ ThemeData buildNordTheme({String? fontFamily}) {
         fontWeight: FontWeight.w500,
         color: NordColors.nord4,
       ),
-    ),
-
-    cardTheme: CardThemeData(
-      color: NordColors.nord1,
-      shadowColor: Colors.black26,
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     ),
   );
 }
