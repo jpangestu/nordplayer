@@ -73,7 +73,7 @@ class _NordplayerTitleBarState extends ConsumerState<NordplayerTitleBar> {
               if (_packageInfo != null)
                 TextButton(
                   onPressed: () {
-                    context.go('${Routes.appearancePage}/${Routes.aboutPage}');
+                    context.go(Routes.aboutPage);
                   },
                   child: Text(
                     _packageInfo!.version,

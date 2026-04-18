@@ -54,6 +54,7 @@ class _PlaybackState extends ConsumerState<Playback> with LoggerMixin {
             PlaylistMode.loop => appIconSet.repeat,
             PlaylistMode.single => appIconSet.repeatOne,
           }, color: loopMode != PlaylistMode.none ? colorScheme.primary : null),
+          iconSize: 24,
           onPressed: () => ref.read(playerServiceProvider).cycleLoopMode(),
         ),
       ],

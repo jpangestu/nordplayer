@@ -5,9 +5,11 @@ class MaterialIconSet implements AppIconSet {
   @override
   double get opticalScale => 1.0;
 
-  // Title Bar
+  // Top Bar
   @override
   IconData get keyboardShortcut => Icons.bolt;
+  @override
+  IconData get search => Icons.search;
 
   // Sidebar
   @override
@@ -51,7 +53,7 @@ class MaterialIconSet implements AppIconSet {
 
   // Settings
   @override
-  IconData get settings => Icons.settings;
+  IconData get settings => Icons.settings_outlined;
   @override
   IconData get appearanceSettings => Icons.palette;
   @override

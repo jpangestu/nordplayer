@@ -9,8 +9,9 @@ abstract class AppIconSet {
   // Use material icon set as the default scale (material = 1.0)
   double get opticalScale;
 
-  // Title Bar
+  // Top Bar
   IconData get keyboardShortcut;
+  IconData get search;
 
   // Sidebar
   IconData get sidebarClose;

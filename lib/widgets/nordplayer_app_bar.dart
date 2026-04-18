@@ -92,7 +92,7 @@ class _NordplayerAppBarState extends ConsumerState<NordplayerAppBar> {
               hintStyle: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
-              prefixIcon: const AppIcon(Icons.search, size: 20),
+              prefixIcon: AppIcon(appIconSet.search, size: 20),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(vertical: 10),
             ),
@@ -111,9 +111,9 @@ class _NordplayerAppBarState extends ConsumerState<NordplayerAppBar> {
               context.go('/settings/appearance');
             }
           },
-          icon: const AppIcon(Icons.settings_outlined),
-          selectedIcon: AppIcon(Icons.settings),
-          isSelected: isSettingsRoute,
+          icon: AppIcon(appIconSet.settings, color: isSettingsRoute ? theme.colorScheme.primary : null),
+          // selectedIcon: AppIcon(Icons.settings),
+          // isSelected: isSettingsRoute,
         ),
         const SizedBox(width: 8),
       ],

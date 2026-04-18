@@ -48,79 +48,90 @@ class _AboutPageState extends ConsumerState<AboutPage> {
           SectionCard(
             child: Column(
               children: [
-                Row(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.0),
-                        ),
-                        child: SvgPicture.asset('assets/icons/nordplayer_logo.svg', width: 72, height: 72),
-                      ),
-                    ),
+                // 1. Force the Wrap to take up the full width so spaceBetween works
+                SizedBox(
+                  width: double.infinity,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 16.0, bottom: 8.0),
+                    child: Wrap(
+                      alignment: WrapAlignment.spaceBetween, // Pushes Button to the right
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      runSpacing: 8.0, // Vertical gap when wrapped
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.0),
+                                ),
+                                child: SvgPicture.asset('assets/icons/nordplayer_logo.svg', width: 72, height: 72),
+                              ),
+                            ),
 
-                    if (_packageInfo != null)
-                      Column(
-                        crossAxisAlignment: .start,
-                        children: [
-                          SizedBox(height: 4),
-                          Text(
-                            _packageInfo!.appName.pascalCase,
-                            style: theme.textTheme.titleLarge!.copyWith(
-                              color: theme.colorScheme.onSurface,
-                              // color: Color(0xFF88C0D0),
+                            if (_packageInfo != null)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _packageInfo!.appName.pascalCase,
+                                    style: theme.textTheme.titleLarge!.copyWith(color: theme.colorScheme.onSurface),
+                                  ),
+                                  Text(
+                                    "v${_packageInfo!.version}",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
+
+                        Padding(
+                          padding: const EdgeInsets.only(left: 12.0, bottom: 8.0),
+                          child: FilledButton.tonalIcon(
+                            onPressed: () async {
+                              final Uri url = Uri.parse('https://github.com/jpangestu/nordplayer');
+
+                              if (await canLaunchUrl(url)) {
+                                await launchUrl(url, mode: LaunchMode.externalApplication);
+                              } else {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(
+                                    context,
+                                  ).showSnackBar(const SnackBar(content: Text('Could not open GitHub link.')));
+                                }
+                              }
+                            },
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.only(left: 8, right: 10.0, top: 16.0, bottom: 16.0),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                            ),
+                            icon: SvgPicture.asset(
+                              'assets/icons/github_logo.svg',
+                              width: 24,
+                              height: 24,
+                              colorFilter: ColorFilter.mode(theme.colorScheme.onSurface, BlendMode.srcIn),
+                            ),
+                            label: Text(
+                              'See Project on GitHub',
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurface,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                              ),
                             ),
                           ),
-                          Text(
-                            "v${_packageInfo!.version}",
-                            style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
-                          ),
-                        ],
-                      ),
-
-                    Spacer(),
-
-                    FilledButton.tonalIcon(
-                      onPressed: () async {
-                        final Uri url = Uri.parse('https://github.com/jpangestu/nordplayer');
-
-                        // Safely opens the default web browser
-                        if (await canLaunchUrl(url)) {
-                          await launchUrl(url, mode: LaunchMode.externalApplication);
-                        } else {
-                          // Show a Snackbar if the user's OS fails to open the browser
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(
-                              context,
-                            ).showSnackBar(const SnackBar(content: Text('Could not open GitHub link.')));
-                          }
-                        }
-                      },
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.only(left: 8, right: 10.0, top: 16.0, bottom: 16.0),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-                      ),
-                      icon: SvgPicture.asset(
-                        'assets/icons/github_logo.svg',
-                        width: 24,
-                        height: 24,
-                        // Dynamically colors the SVG to match the text color of the tonal button
-                        colorFilter: ColorFilter.mode(theme.colorScheme.onSurface, BlendMode.srcIn),
-                      ),
-                      label: Text(
-                        'See Project on GitHub',
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurface,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
                         ),
-                      ),
+                      ],
                     ),
-
-                    SizedBox(width: 16),
-                  ],
+                  ),
                 ),
 
                 SectionDivider(),

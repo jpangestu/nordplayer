@@ -6,7 +6,6 @@ import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/preference_service.dart';
-import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/settings/section_card.dart';
 import 'package:nordplayer/widgets/settings/section_header.dart';
 import 'package:path/path.dart' as p;
@@ -31,7 +30,6 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
           SectionCard(
             backgroundColor: theme.colorScheme.errorContainer,
             child: ListTile(
-              leading: AppIcon(Icons.refresh_rounded, color: theme.colorScheme.onErrorContainer),
               title: Text(
                 'Reset app settings',
                 style: TextStyle(color: theme.colorScheme.onErrorContainer, fontWeight: FontWeight.w600),
@@ -49,7 +47,6 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
           SectionCard(
             backgroundColor: theme.colorScheme.errorContainer,
             child: ListTile(
-              leading: AppIcon(Icons.delete_forever_outlined, color: theme.colorScheme.onErrorContainer),
               title: Text(
                 'Clear music library',
                 style: TextStyle(color: theme.colorScheme.onErrorContainer, fontWeight: FontWeight.w600),

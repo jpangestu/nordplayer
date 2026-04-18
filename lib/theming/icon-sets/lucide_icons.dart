@@ -6,9 +6,11 @@ class LucideIconSet implements AppIconSet {
   @override
   double get opticalScale => 0.9;
 
-  // Title Bar
+  // Top Bar
   @override
   IconData get keyboardShortcut => LucideIcons.zap;
+  @override
+  IconData get search => LucideIcons.search;
 
   // Sidebar
   @override
