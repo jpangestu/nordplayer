@@ -2,10 +2,13 @@ import 'dart:io';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/services/logger.dart';
+import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
+import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/scrolling_text.dart';
 
-class MusicTile extends StatefulWidget {
+class MusicTile extends ConsumerStatefulWidget {
   const MusicTile({
     super.key,
     required this.title,
@@ -38,10 +41,10 @@ class MusicTile extends StatefulWidget {
   }
 
   @override
-  State<MusicTile> createState() => _MusicTileState();
+  ConsumerState<MusicTile> createState() => _MusicTileState();
 }
 
-class _MusicTileState extends State<MusicTile> with LoggerMixin {
+class _MusicTileState extends ConsumerState<MusicTile> with LoggerMixin {
   int _hoveredIndex = -1;
   final List<TapGestureRecognizer> _recognizers = [];
 
@@ -88,36 +91,30 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
 
   @override
   Widget build(BuildContext context) {
+    final appIconSet = ref.watch(appIconProvider);
     final theme = Theme.of(context);
     final listTileTheme = Theme.of(context).listTileTheme;
     final textScaler = MediaQuery.textScalerOf(context);
     final double baseSize = widget.albumArtSize ?? 50.0;
-    final double responsiveSize = (baseSize * textScaler.scale(1)).clamp(
-      40.0,
-      80.0,
-    );
+    final double responsiveSize = (baseSize * textScaler.scale(1)).clamp(40.0, 80.0);
 
     final double displaySize = widget.albumArtSize ?? responsiveSize;
     // Calculate the exact pixel size needed for the screen
     // Multiply by devicePixelRatio (e.g., x2 or x3) to keep it crisp on Retina screens
-    final int pixelSize =
-        (displaySize * MediaQuery.of(context).devicePixelRatio).toInt();
+    final int pixelSize = (displaySize * MediaQuery.of(context).devicePixelRatio).toInt();
 
-    final TextStyle titleStyle =
-        listTileTheme.titleTextStyle ?? theme.textTheme.titleMedium!;
+    final TextStyle titleStyle = listTileTheme.titleTextStyle ?? theme.textTheme.titleMedium!;
     final Color titleSelectedColor = widget.selected
         ? (listTileTheme.selectedColor ?? theme.colorScheme.primary)
         : (listTileTheme.textColor ?? theme.colorScheme.onSurface);
-    final TextStyle subtitleStyle =
-        listTileTheme.subtitleTextStyle ?? theme.textTheme.bodyMedium!;
+    final TextStyle subtitleStyle = listTileTheme.subtitleTextStyle ?? theme.textTheme.bodyMedium!;
 
     return SizedBox(
       child: Material(
         color: Colors.transparent,
         child: Stack(
           children: [
-            if (widget.onTap != null)
-              Positioned.fill(child: InkWell(onTap: widget.onTap)),
+            if (widget.onTap != null) Positioned.fill(child: InkWell(onTap: widget.onTap)),
             Padding(
               padding: widget.padding,
               child: Row(
@@ -135,14 +132,12 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
                                 fit: BoxFit.cover,
                                 cacheWidth: pixelSize,
                                 gaplessPlayback: true,
-                                errorBuilder: (_, _, _) => Icon(
-                                  Icons.music_note,
-                                  size: widget.albumArtSize ?? responsiveSize,
-                                ),
+                                errorBuilder: (_, _, _) =>
+                                    AppIcon(appIconSet.musicTile, size: widget.albumArtSize ?? responsiveSize),
                               ),
                             )
-                          : Icon(
-                              Icons.music_note,
+                          : AppIcon(
+                              appIconSet.musicTile,
                               size: widget.albumArtSize ?? responsiveSize,
                               color: listTileTheme.iconColor,
                             ),
@@ -161,36 +156,24 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
                             child: ScrollingText(
                               textSpan: TextSpan(
                                 text: widget.title,
-                                style: titleStyle.copyWith(
-                                  color: titleSelectedColor,
-                                  height: 1.0,
-                                ),
+                                style: titleStyle.copyWith(color: titleSelectedColor, height: 1.0),
                               ),
                             ),
                           ),
-                          ScrollingText(
-                            textSpan: TextSpan(
-                              children: _buildArtistsSpan(subtitleStyle),
-                            ),
-                          ),
+                          ScrollingText(textSpan: TextSpan(children: _buildArtistsSpan(subtitleStyle))),
                         ] else ...[
                           IgnorePointer(
                             child: RichText(
                               text: TextSpan(
                                 text: widget.title,
-                                style: titleStyle.copyWith(
-                                  color: titleSelectedColor,
-                                  height: 1.0,
-                                ),
+                                style: titleStyle.copyWith(color: titleSelectedColor, height: 1.0),
                               ),
                               maxLines: 1,
                               overflow: .ellipsis,
                             ),
                           ),
                           RichText(
-                            text: TextSpan(
-                              children: _buildArtistsSpan(subtitleStyle),
-                            ),
+                            text: TextSpan(children: _buildArtistsSpan(subtitleStyle)),
                             maxLines: 1,
                             overflow: .ellipsis,
                           ),
@@ -213,17 +196,13 @@ class _MusicTileState extends State<MusicTile> with LoggerMixin {
     for (int i = 0; i < widget.artists.length; i++) {
       if (i >= _recognizers.length) break;
       if (i > 0) {
-        artistSpan.add(
-          TextSpan(text: ', ', style: baseStyle.copyWith(height: 1.0)),
-        );
+        artistSpan.add(TextSpan(text: ', ', style: baseStyle.copyWith(height: 1.0)));
       }
 
       artistSpan.add(
         TextSpan(
           text: widget.artists[i],
-          style: baseStyle.copyWith(
-            decoration: _hoveredIndex == i ? .underline : .none,
-          ),
+          style: baseStyle.copyWith(decoration: _hoveredIndex == i ? .underline : .none),
           onEnter: (_) {
             if (mounted) setState(() => _hoveredIndex = i);
           },

@@ -12,7 +12,7 @@ class ArtistsPage extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: appConfig.adaptiveBg
-          ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.5)
+          ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.0)
           : theme.colorScheme.surface,
       body: Center(child: Text('Artists')),
     );

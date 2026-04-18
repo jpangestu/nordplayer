@@ -1,14 +1,19 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
 
-class AlbumArtWall extends StatelessWidget {
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
+import 'package:nordplayer/widgets/app_icon.dart';
+
+class AlbumArtWall extends ConsumerWidget {
   final List<String> imageUrls;
 
   const AlbumArtWall({super.key, required this.imageUrls});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final appIconSet = ref.watch(appIconProvider);
 
     if (imageUrls.isEmpty) {
       return Container(color: theme.colorScheme.surface);
@@ -47,16 +52,9 @@ class AlbumArtWall extends StatelessWidget {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(6),
                       color: theme.colorScheme.surfaceContainerHigh,
-                      image: file.existsSync()
-                          ? DecorationImage(
-                              image: FileImage(file),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
+                      image: file.existsSync() ? DecorationImage(image: FileImage(file), fit: BoxFit.cover) : null,
                     ),
-                    child: !file.existsSync()
-                        ? const Icon(Icons.music_note, color: Colors.white24)
-                        : null,
+                    child: !file.existsSync() ? AppIcon(appIconSet.musicTile, color: Colors.white24) : null,
                   );
                 },
               ),

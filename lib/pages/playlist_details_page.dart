@@ -3,14 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nordplayer/database/app_database.dart';
+import 'package:nordplayer/pages/library_page.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/widgets/album_art_stack.dart';
 import 'package:nordplayer/widgets/album_art_wall.dart';
+import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
 import 'package:nordplayer/widgets/shortcuts.dart';
 import 'package:nordplayer/widgets/sliver_resizable_table_layout.dart';
-import 'package:nordplayer/pages/library_page.dart';
 
 class PlaylistDetailPage extends ConsumerWidget {
   final int playlistId;
@@ -32,8 +33,7 @@ class PlaylistDetailPage extends ConsumerWidget {
     return Shortcuts(
       shortcuts: <ShortcutActivator, Intent>{
         SingleActivator(LogicalKeyboardKey.enter): const PlaySelectedIntent(),
-        SingleActivator(LogicalKeyboardKey.numpadEnter):
-            const PlaySelectedIntent(),
+        SingleActivator(LogicalKeyboardKey.numpadEnter): const PlaySelectedIntent(),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
@@ -42,12 +42,7 @@ class PlaylistDetailPage extends ConsumerWidget {
             tableId: tableId,
             playbackContextType: 'playlist',
             playbackContextId: playlistId,
-            getTracks: () =>
-                ref
-                    .read(playlistWithTracksProvider(playlistId))
-                    .value
-                    ?.tracks ??
-                [],
+            getTracks: () => ref.read(playlistWithTracksProvider(playlistId)).value?.tracks ?? [],
           ),
         },
         child: Focus(
@@ -66,10 +61,7 @@ class PlaylistDetailPage extends ConsumerWidget {
                     SliverToBoxAdapter(
                       child: SizedBox(
                         height: 280,
-                        child: PlaylistHeroHeader(
-                          playlist: playlist,
-                          tracks: tracks,
-                        ),
+                        child: PlaylistHeroHeader(playlist: playlist, tracks: tracks),
                       ),
                     ),
 
@@ -81,23 +73,19 @@ class PlaylistDetailPage extends ConsumerWidget {
                             children: [
                               Text(
                                 "This playlist is empty",
-                                style: theme.textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(height: 8),
                               Text(
                                 "Right-click tracks in your Library to add them here.",
                                 style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.onSurface.withValues(
-                                    alpha: 0.6,
-                                  ),
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                 ),
                               ),
                               const SizedBox(height: 24),
                               FilledButton.icon(
                                 onPressed: () => context.go('/library'),
-                                icon: const Icon(Icons.music_note),
+                                icon: const AppIcon(Icons.music_note),
                                 label: const Text("Go to Library"),
                               ),
                             ],
@@ -111,35 +99,20 @@ class PlaylistDetailPage extends ConsumerWidget {
                         selectedIndices: selectedIndices,
                         rowHeight: 66.0,
                         onColumnsResized: (newWidths) {
-                          ref
-                              .read(libraryTableColumnsProvider.notifier)
-                              .updateColumnWidths(newWidths);
+                          ref.read(libraryTableColumnsProvider.notifier).updateColumnWidths(newWidths);
                         },
                         onHeaderRightClick: (globalPosition) {
                           ContextMenu.show(
                             context: context,
                             globalPosition: globalPosition,
-                            actionMenus: [
-                              ContextMenuCustomWidget(
-                                child: ColumnToggleContextMenu(),
-                              ),
-                            ],
+                            actionMenus: [ContextMenuCustomWidget(child: ColumnToggleContextMenu())],
                           );
                         },
-                        onRowClick:
-                            (index, {required isCtrl, required isShift}) {
-                              ref
-                                  .read(
-                                    selectedTracksIndexProvider(
-                                      tableId,
-                                    ).notifier,
-                                  )
-                                  .selectTrack(
-                                    index,
-                                    isCtrlSelect: isCtrl,
-                                    isShiftSelect: isShift,
-                                  );
-                            },
+                        onRowClick: (index, {required isCtrl, required isShift}) {
+                          ref
+                              .read(selectedTracksIndexProvider(tableId).notifier)
+                              .selectTrack(index, isCtrlSelect: isCtrl, isShiftSelect: isShift);
+                        },
                         onRowDoubleClick: (index) {
                           ref
                               .read(playerServiceProvider)
@@ -151,36 +124,21 @@ class PlaylistDetailPage extends ConsumerWidget {
                               );
                         },
                         onRowRightClick: (index, globalPosition) {
-                          final selectionNotifier = ref.read(
-                            selectedTracksIndexProvider(tableId).notifier,
-                          );
-                          final currentSelection = ref.read(
-                            selectedTracksIndexProvider(tableId),
-                          );
+                          final selectionNotifier = ref.read(selectedTracksIndexProvider(tableId).notifier);
+                          final currentSelection = ref.read(selectedTracksIndexProvider(tableId));
 
                           if (!currentSelection.contains(index)) {
-                            selectionNotifier.selectTrack(
-                              index,
-                              isCtrlSelect: false,
-                              isShiftSelect: false,
-                            );
+                            selectionNotifier.selectTrack(index, isCtrlSelect: false, isShiftSelect: false);
                           }
 
-                          final updatedSelection = ref.read(
-                            selectedTracksIndexProvider(tableId),
-                          );
-                          final sortedIndices = updatedSelection.toList()
-                            ..sort();
-                          final List<TrackWithArtists> selectedTracks =
-                              sortedIndices.map((i) => tracks[i]).toList();
+                          final updatedSelection = ref.read(selectedTracksIndexProvider(tableId));
+                          final sortedIndices = updatedSelection.toList()..sort();
+                          final List<TrackWithArtists> selectedTracks = sortedIndices.map((i) => tracks[i]).toList();
 
                           TrackContextMenu.show(
                             context: context,
                             ref: ref,
-                            isAdaptive: ref
-                                .watch(configServiceProvider)
-                                .requireValue
-                                .adaptiveBg,
+                            isAdaptive: ref.watch(configServiceProvider).requireValue.adaptiveBg,
                             globalPosition: globalPosition,
                             allTracks: tracks,
                             clickedIndex: index,
@@ -206,11 +164,7 @@ class PlaylistHeroHeader extends ConsumerWidget {
   final PlaylistData playlist;
   final List<TrackWithArtists> tracks;
 
-  const PlaylistHeroHeader({
-    super.key,
-    required this.playlist,
-    required this.tracks,
-  });
+  const PlaylistHeroHeader({super.key, required this.playlist, required this.tracks});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -228,16 +182,9 @@ class PlaylistHeroHeader extends ConsumerWidget {
     final playlistCovers = uniqueCovers.toList();
 
     // Check if this playlist is the one currently playing
-    final isPlayingThisPlaylist =
-        ref
-            .watch(playbackContextProvider)
-            ?.isPlaying('playlist', playlist.id) ??
-        false;
+    final isPlayingThisPlaylist = ref.watch(playbackContextProvider)?.isPlaying('playlist', playlist.id) ?? false;
 
-    final int totalMs = tracks.fold(
-      0,
-      (sum, track) => sum + track.track.durationMs,
-    );
+    final int totalMs = tracks.fold(0, (sum, track) => sum + track.track.durationMs);
     final Duration totalDuration = Duration(milliseconds: totalMs);
 
     String formatTotalDuration(Duration d) {
@@ -265,9 +212,7 @@ class PlaylistHeroHeader extends ConsumerWidget {
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: AlbumArtStack(
-                      imageUrls: isPlayingThisPlaylist
-                          ? nowPlayingAlbumArt
-                          : playlistCovers,
+                      imageUrls: isPlayingThisPlaylist ? nowPlayingAlbumArt : playlistCovers,
                       size: 180,
                       maxLayers: 5,
                       sliceWidth: 16,
@@ -282,19 +227,14 @@ class PlaylistHeroHeader extends ConsumerWidget {
                   children: [
                     Text(
                       playlist.name,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '${tracks.length} Tracks - ${formatTotalDuration(totalDuration)}',
-                      style: TextStyle(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+                      style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:nordplayer/routes/routes.dart';
+import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/utils/string_extensions.dart';
 import 'package:nordplayer/widgets/settings/section_card.dart';
@@ -41,9 +41,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
     final appConfig = ref.watch(configServiceProvider).requireValue;
 
     return Scaffold(
-      backgroundColor: appConfig.adaptiveBg
-          ? Colors.transparent
-          : theme.colorScheme.surface,
+      backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
       body: ListView(
         padding: const EdgeInsets.all(24.0),
         children: [
@@ -57,16 +55,9 @@ class _AboutPageState extends ConsumerState<AboutPage> {
                       child: Container(
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(
-                            color: theme.colorScheme.outlineVariant,
-                            width: 1.0,
-                          ),
+                          border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.0),
                         ),
-                        child: SvgPicture.asset(
-                          'assets/icons/nordplayer_logo.svg',
-                          width: 72,
-                          height: 72,
-                        ),
+                        child: SvgPicture.asset('assets/icons/nordplayer_logo.svg', width: 72, height: 72),
                       ),
                     ),
 
@@ -84,12 +75,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
                           ),
                           Text(
                             "v${_packageInfo!.version}",
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: theme.colorScheme.onSurface.withValues(
-                                alpha: 0.5,
-                              ),
-                            ),
+                            style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
                           ),
                         ],
                       ),
@@ -98,47 +84,30 @@ class _AboutPageState extends ConsumerState<AboutPage> {
 
                     FilledButton.tonalIcon(
                       onPressed: () async {
-                        final Uri url = Uri.parse(
-                          'https://github.com/jpangestu/nordplayer',
-                        );
+                        final Uri url = Uri.parse('https://github.com/jpangestu/nordplayer');
 
                         // Safely opens the default web browser
                         if (await canLaunchUrl(url)) {
-                          await launchUrl(
-                            url,
-                            mode: LaunchMode.externalApplication,
-                          );
+                          await launchUrl(url, mode: LaunchMode.externalApplication);
                         } else {
                           // Show a Snackbar if the user's OS fails to open the browser
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Could not open GitHub link.'),
-                              ),
-                            );
+                            ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(const SnackBar(content: Text('Could not open GitHub link.')));
                           }
                         }
                       },
                       style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.only(
-                          left: 8,
-                          right: 10.0,
-                          top: 16.0,
-                          bottom: 16.0,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.0),
-                        ),
+                        padding: const EdgeInsets.only(left: 8, right: 10.0, top: 16.0, bottom: 16.0),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
                       ),
                       icon: SvgPicture.asset(
                         'assets/icons/github_logo.svg',
                         width: 24,
                         height: 24,
                         // Dynamically colors the SVG to match the text color of the tonal button
-                        colorFilter: ColorFilter.mode(
-                          theme.colorScheme.onSurface,
-                          BlendMode.srcIn,
-                        ),
+                        colorFilter: ColorFilter.mode(theme.colorScheme.onSurface, BlendMode.srcIn),
                       ),
                       label: Text(
                         'See Project on GitHub',
@@ -162,9 +131,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
                   subtitle: Text('See all license used by Nordplayer'),
                   trailing: Icon(Icons.keyboard_arrow_right),
                   onTap: () {
-                    context.go(
-                      '/settings/${Routes.aboutPage}/${Routes.licensesPage}',
-                    );
+                    context.go('${Routes.aboutPage}/${Routes.licensesPage}');
                   },
                 ),
               ],

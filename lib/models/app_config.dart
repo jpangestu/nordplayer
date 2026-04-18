@@ -6,6 +6,7 @@ class AppConfig {
   final List<String> musicPaths;
   final List<String> artistDelimiters;
   final String theme;
+  final String iconSet;
   final bool adaptiveBg;
   final BoxFit adaptiveBgAlbumFit;
   final double adaptiveBgAlbumBlur;
@@ -18,11 +19,12 @@ class AppConfig {
   // Not private because settings page need access
   static const List<String> defaultArtistDelimiters = [',', ';', '/', '+', '&'];
   static const String _defaultTheme = 'nord';
+  static const String _defaultIconSet = 'lucide';
   static const bool _defaultAdaptiveBg = false;
   static const BoxFit _defaultAdaptiveBgAlbumFit = BoxFit.cover;
   static const double _defaultAdaptiveBgAlbumBlur = 20;
-  static const double _defaultAdaptiveBgPanelBlur = 10;
-  static const double _defaultAdaptiveBgThemeOverlay = 0.3;
+  static const double _defaultAdaptiveBgPanelBlur = 20;
+  static const double _defaultAdaptiveBgThemeOverlay = 0.4;
   static const String _defaultFontFamily = 'system';
   static const double _defaultTextScale = 1.0;
 
@@ -30,6 +32,7 @@ class AppConfig {
     this.musicPaths = _defaultMusicPaths,
     this.artistDelimiters = defaultArtistDelimiters,
     this.theme = _defaultTheme,
+    this.iconSet = _defaultIconSet,
     this.adaptiveBg = _defaultAdaptiveBg,
     this.adaptiveBgAlbumFit = _defaultAdaptiveBgAlbumFit,
     this.adaptiveBgAlbumBlur = _defaultAdaptiveBgAlbumBlur,
@@ -43,6 +46,7 @@ class AppConfig {
     List<String>? musicPaths,
     List<String>? artistDelimiters,
     String? theme,
+    String? iconSet,
     bool? adaptiveBg,
     BoxFit? adaptiveBgAlbumFit,
     double? adaptiveBgAlbumBlur,
@@ -55,6 +59,7 @@ class AppConfig {
       musicPaths: musicPaths ?? this.musicPaths,
       artistDelimiters: artistDelimiters ?? this.artistDelimiters,
       theme: theme ?? this.theme,
+      iconSet: iconSet ?? this.iconSet,
       adaptiveBg: adaptiveBg ?? this.adaptiveBg,
       adaptiveBgAlbumFit: adaptiveBgAlbumFit ?? this.adaptiveBgAlbumFit,
       adaptiveBgAlbumBlur: adaptiveBgAlbumBlur ?? this.adaptiveBgAlbumBlur,
@@ -70,6 +75,7 @@ class AppConfig {
       musicPaths: _parseMusicPaths(json['musicPaths'], logger: logger),
       artistDelimiters: _parseArtistDelimiters(json['artistDelimiters'], logger: logger),
       theme: _parseTheme(json['theme'], logger: logger),
+      iconSet: _parseIconSet(json['iconSet'], logger: logger),
       adaptiveBg: _parseAdaptiveBg(json['adaptiveBg'], logger: logger),
       adaptiveBgAlbumFit: _parseAlbumFit(json['albumFit'], logger: logger),
       adaptiveBgAlbumBlur: _parseAlbumBlur(json['albumBlur'], logger: logger),
@@ -79,6 +85,7 @@ class AppConfig {
       textScale: _parseTextScale(json['textScale'], logger: logger),
     );
   }
+
   static List<String> _parseMusicPaths(dynamic value, {required Logger logger}) {
     if (value is! List) {
       logger.w("Invalid music path(s): $value. Replaced with '$_defaultMusicPaths'.");
@@ -111,6 +118,14 @@ class AppConfig {
       return _defaultTheme;
     }
 
+    return value;
+  }
+
+  static String _parseIconSet(dynamic value, {required Logger logger}) {
+    if (value is! String || (value != 'lucide' && value != 'material')) {
+      logger.w("Invalid icon set: $value. Fallback to '$_defaultIconSet'.");
+      return _defaultIconSet;
+    }
     return value;
   }
 
@@ -187,6 +202,7 @@ class AppConfig {
       'musicPaths': musicPaths,
       'artistDelimiters': artistDelimiters,
       'theme': theme,
+      'iconSet': iconSet,
       'adaptiveBg': adaptiveBg,
       'albumFit': adaptiveBgAlbumFit.name,
       'albumBlur': adaptiveBgAlbumBlur,

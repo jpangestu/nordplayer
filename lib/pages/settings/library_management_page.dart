@@ -1,24 +1,23 @@
 import 'dart:async';
 
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/services/config_service.dart';
-import 'package:file_selector/file_selector.dart';
 import 'package:nordplayer/services/library_scanner.dart';
 import 'package:nordplayer/services/library_watcher.dart';
+import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
-
-import 'package:nordplayer/widgets/settings/section_header.dart';
-import 'package:nordplayer/widgets/settings/section_divider.dart';
 import 'package:nordplayer/widgets/settings/section_card.dart';
+import 'package:nordplayer/widgets/settings/section_divider.dart';
+import 'package:nordplayer/widgets/settings/section_header.dart';
 
 class LibraryManagementPage extends ConsumerStatefulWidget {
   const LibraryManagementPage({super.key});
 
   @override
-  ConsumerState<LibraryManagementPage> createState() =>
-      _LibraryManagementPageState();
+  ConsumerState<LibraryManagementPage> createState() => _LibraryManagementPageState();
 }
 
 class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
@@ -40,17 +39,11 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
     List<String> currentDelimiters = appConfig.artistDelimiters;
 
     return Scaffold(
-      backgroundColor: appConfig.adaptiveBg
-          ? Colors.transparent
-          : theme.colorScheme.surface,
+      backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          const SectionHeader(
-            label: 'Library',
-            labelType: .h1,
-            padding: .only(bottom: 8),
-          ),
+          const SectionHeader(label: 'Library', labelType: .h1, padding: .only(bottom: 8)),
           SectionCard(
             child: Column(
               children: [
@@ -59,31 +52,25 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
                   subtitle: const Text("Manage folders to scan for music"),
                   trailing: OutlinedButton.icon(
                     onPressed: () => _addFolder(),
-                    icon: const Icon(Icons.add),
+                    icon: const AppIcon(Icons.add),
                     label: const Text("Add Folders"),
                   ),
                 ),
                 if (musicPaths.isEmpty) ...[
                   SectionDivider(),
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0,
-                      vertical: 8,
-                    ),
-                    child: Text(
-                      "No folders added yet",
-                      style: TextStyle(color: theme.disabledColor),
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+                    child: Text("No folders added yet", style: TextStyle(color: theme.disabledColor)),
                   ),
                 ] else ...[
                   SectionDivider(),
                   ...musicPaths.map(
                     (path) => ListTile(
-                      leading: const Icon(Icons.folder_outlined),
+                      leading: const AppIcon(Icons.folder_outlined),
                       title: Text(path),
                       trailing: IconButton(
                         onPressed: () => _removeFolder(path),
-                        icon: const Icon(Icons.delete_outline),
+                        icon: const AppIcon(Icons.delete_outline),
                         tooltip: "Remove folder",
                       ),
                       dense: true,
@@ -106,10 +93,7 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
                   child: Column(
                     crossAxisAlignment: .start,
                     children: [
-                      Text(
-                        'Current Delimiters',
-                        style: theme.textTheme.titleMedium,
-                      ),
+                      Text('Current Delimiters', style: theme.textTheme.titleMedium),
                       const SizedBox(height: 12),
                       Row(
                         children: [
@@ -126,23 +110,15 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
                                 return FrostedGlass(
                                   borderRadius: 8.0,
                                   backgroundColor: isAdaptive
-                                      ? theme
-                                            .colorScheme
-                                            .surfaceContainerHighest
-                                            .withValues(alpha: 0.3)
-                                      : theme
-                                            .colorScheme
-                                            .surfaceContainerHighest,
+                                      ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)
+                                      : theme.colorScheme.surfaceContainerHighest,
                                   blurSigma: isAdaptive ? 8.0 : 0.0,
                                   child: Container(
                                     height: 32, // Matches VisualDensity.compact
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(8.0),
                                       border: Border.all(
-                                        color: theme.colorScheme.outline
-                                            .withValues(
-                                              alpha: isAdaptive ? 0.3 : 0.8,
-                                            ),
+                                        color: theme.colorScheme.outline.withValues(alpha: isAdaptive ? 0.3 : 0.8),
                                         width: 1,
                                       ),
                                     ),
@@ -154,37 +130,26 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           const SizedBox(width: 10),
-                                          Text(
-                                            '"$delimiter"',
-                                            style: theme.textTheme.labelLarge,
-                                          ),
+                                          Text('"$delimiter"', style: theme.textTheme.labelLarge),
 
                                           // Only show the delete button if there's more than 1 delimiter
                                           if (currentDelimiters.length > 1) ...[
                                             const SizedBox(width: 4),
                                             InkWell(
-                                              borderRadius:
-                                                  BorderRadius.circular(50),
-                                              onTap: () =>
-                                                  _removeDelimiter(delimiter),
+                                              borderRadius: BorderRadius.circular(50),
+                                              onTap: () => _removeDelimiter(delimiter),
                                               child: Padding(
-                                                padding: const EdgeInsets.all(
-                                                  4.0,
-                                                ),
-                                                child: Icon(
+                                                padding: const EdgeInsets.all(4.0),
+                                                child: AppIcon(
                                                   Icons.close,
                                                   size: 16,
-                                                  color: theme
-                                                      .colorScheme
-                                                      .onSurfaceVariant,
+                                                  color: theme.colorScheme.onSurfaceVariant,
                                                 ),
                                               ),
                                             ),
                                             const SizedBox(width: 4),
                                           ] else ...[
-                                            const SizedBox(
-                                              width: 10,
-                                            ), // Padding when no icon is present
+                                            const SizedBox(width: 10), // Padding when no icon is present
                                           ],
                                         ],
                                       ),
@@ -198,7 +163,7 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
                           SizedBox(
                             child: OutlinedButton.icon(
                               onPressed: _resetDelimitersToDefault,
-                              icon: const Icon(Icons.restore),
+                              icon: const AppIcon(Icons.restore),
                               label: const Text('Reset to Defaults'),
                             ),
                           ),
@@ -216,10 +181,7 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
                   child: Column(
                     crossAxisAlignment: .start,
                     children: [
-                      Text(
-                        'Add New Delimiter',
-                        style: theme.textTheme.titleMedium,
-                      ),
+                      Text('Add New Delimiter', style: theme.textTheme.titleMedium),
                       Text(
                         'Case insensitive ("Feat." and "feat." are considered the same)',
                         style: theme.textTheme.bodyMedium,
@@ -235,10 +197,7 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
                                 hintText: 'e.g., / or ;',
                                 border: OutlineInputBorder(),
                                 isDense: true,
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 14,
-                                ),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                               ),
                               onSubmitted: (_) => _addNewDelimiter(),
                             ),
@@ -250,7 +209,7 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
                               padding: const EdgeInsets.all(14),
                               shape: const CircleBorder(),
                             ),
-                            child: const Icon(Icons.add),
+                            child: const AppIcon(Icons.add),
                           ),
                         ],
                       ),
@@ -269,10 +228,7 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
     final selectedPaths = await getDirectoryPaths();
 
     if (selectedPaths.isNotEmpty) {
-      final currentPaths = ref
-          .read(configServiceProvider)
-          .requireValue
-          .musicPaths;
+      final currentPaths = ref.read(configServiceProvider).requireValue.musicPaths;
       final List<String> updatedPaths = List<String>.from(currentPaths);
 
       bool hasChanges = false;
@@ -285,9 +241,7 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
       }
 
       if (hasChanges) {
-        ref
-            .read(configServiceProvider.notifier)
-            .updateConfig(musicPaths: updatedPaths);
+        ref.read(configServiceProvider.notifier).updateConfig(musicPaths: updatedPaths);
 
         for (var path in updatedPaths) {
           ref.read(libraryWatcherProvider).watchFolder(path);
@@ -299,13 +253,9 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
   }
 
   Future<void> _removeFolder(String path) async {
-    List<String> updatedPaths = List<String>.from(
-      ref.read(configServiceProvider).requireValue.musicPaths,
-    );
+    List<String> updatedPaths = List<String>.from(ref.read(configServiceProvider).requireValue.musicPaths);
     updatedPaths.remove(path);
-    ref
-        .read(configServiceProvider.notifier)
-        .updateConfig(musicPaths: updatedPaths);
+    ref.read(configServiceProvider.notifier).updateConfig(musicPaths: updatedPaths);
 
     ref.read(libraryWatcherProvider).stopWatchingFolder(path);
 
@@ -315,39 +265,27 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
   void _addNewDelimiter() {
     final newDelimiter = _addDelimiterController.text.trim().toLowerCase();
     if (newDelimiter.isNotEmpty) {
-      final currentDelimiters = ref
-          .read(configServiceProvider)
-          .requireValue
-          .artistDelimiters;
+      final currentDelimiters = ref.read(configServiceProvider).requireValue.artistDelimiters;
       if (!currentDelimiters.contains(newDelimiter)) {
-        final updatedDelimiters = List<String>.from(currentDelimiters)
-          ..add(newDelimiter);
-        ref
-            .read(configServiceProvider.notifier)
-            .updateConfig(artistDelimiters: updatedDelimiters);
+        final updatedDelimiters = List<String>.from(currentDelimiters)..add(newDelimiter);
+        ref.read(configServiceProvider.notifier).updateConfig(artistDelimiters: updatedDelimiters);
         _addDelimiterController.clear();
         _addDelimiterFocusNode.requestFocus();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Delimiter "$newDelimiter" already exists.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Delimiter "$newDelimiter" already exists.')));
       }
     }
   }
 
   void _removeDelimiter(String delimiter) {
-    final updatedDelimiters = List<String>.from(
-      ref.read(configServiceProvider).requireValue.artistDelimiters,
-    );
+    final updatedDelimiters = List<String>.from(ref.read(configServiceProvider).requireValue.artistDelimiters);
     updatedDelimiters.remove(delimiter);
-    ref
-        .read(configServiceProvider.notifier)
-        .updateConfig(artistDelimiters: updatedDelimiters);
+    ref.read(configServiceProvider.notifier).updateConfig(artistDelimiters: updatedDelimiters);
   }
 
   void _resetDelimitersToDefault() {
-    ref
-        .read(configServiceProvider.notifier)
-        .updateConfig(artistDelimiters: AppConfig.defaultArtistDelimiters);
+    ref.read(configServiceProvider.notifier).updateConfig(artistDelimiters: AppConfig.defaultArtistDelimiters);
   }
 }

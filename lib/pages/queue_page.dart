@@ -10,6 +10,7 @@ import 'package:nordplayer/pages/library_page.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
+import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
 
@@ -159,7 +160,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                                 onPressed: () {
                                   ref.read(preferenceServiceProvider.notifier).setShowQueue(false);
                                 },
-                                icon: Icon(Icons.keyboard_arrow_right),
+                                icon: AppIcon(Icons.keyboard_arrow_right),
                                 tooltip: 'Close Queue',
                               ),
                               SizedBox(width: 8),
@@ -259,7 +260,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
               onPressed: _scrollToCurrentTrack,
               mini: true,
               tooltip: 'Show currently playing',
-              child: const Icon(Icons.keyboard_arrow_up),
+              child: const AppIcon(Icons.keyboard_arrow_up),
             ),
           ),
         ),
@@ -341,7 +342,7 @@ class _QueueItemState extends ConsumerState<_QueueItem> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.close, size: 20),
+                          icon: const AppIcon(Icons.close, size: 20),
                           onPressed: widget.onRemove,
                           tooltip: 'Remove from queue',
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -350,7 +351,7 @@ class _QueueItemState extends ConsumerState<_QueueItem> {
                         ReorderableDragStartListener(
                           index: widget.index,
                           child: IconButton(
-                            icon: const Icon(Icons.drag_indicator, size: 20),
+                            icon: const AppIcon(Icons.drag_indicator, size: 20),
                             onPressed: () {}, // Handled by the drag listener
                             mouseCursor: SystemMouseCursors.grab,
                             color: Theme.of(context).colorScheme.onSurfaceVariant,

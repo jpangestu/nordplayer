@@ -21,14 +21,13 @@ class AppearancePage extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          const SectionHeader(label: 'Theme', labelType: LabelType.h1, padding: .only(bottom: 8)),
+          const SectionHeader(label: 'Theme', labelType: LabelType.h1, padding: EdgeInsets.only(bottom: 8)),
           Column(
             children: [
               SectionCard(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: ListTile(
-                    leading: const Icon(Icons.settings_display_outlined),
                     title: const Text('Color Theme'),
                     trailing: DropdownMenu<String>(
                       initialSelection: appConfig.theme,
@@ -56,13 +55,46 @@ class AppearancePage extends ConsumerWidget {
                 ),
               ),
 
-              SizedBox(height: 4),
+              const SizedBox(height: 4),
+
+              SectionCard(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: ListTile(
+                    title: const Text('Icon Set'),
+                    trailing: DropdownMenu<String>(
+                      initialSelection: appConfig.iconSet,
+                      inputDecorationTheme: InputDecorationTheme(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                        isDense: true,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                      ),
+                      menuStyle: MenuStyle(
+                        backgroundColor: WidgetStatePropertyAll(
+                          appConfig.adaptiveBg
+                              ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.8)
+                              : theme.colorScheme.surfaceContainer,
+                        ),
+                      ),
+                      dropdownMenuEntries: const [
+                        DropdownMenuEntry(value: 'lucide', label: 'Lucide'),
+                        DropdownMenuEntry(value: 'material', label: 'Material'),
+                      ],
+                      onSelected: (selectedIconSet) {
+                        if (selectedIconSet == null) return;
+                        ref.read(configServiceProvider.notifier).updateConfig(iconSet: selectedIconSet);
+                      },
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 4),
 
               SectionCard(
                 child: Column(
                   children: [
                     SwitchListTile(
-                      secondary: const Icon(Icons.wallpaper_outlined),
                       title: const Text('Adaptive Background'),
                       subtitle: const Text("Use the currently played track's album art as the background"),
                       value: appConfig.adaptiveBg,
@@ -72,7 +104,7 @@ class AppearancePage extends ConsumerWidget {
                     ),
 
                     if (appConfig.adaptiveBg) ...[
-                      SectionDivider(),
+                      const SectionDivider(),
 
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -105,7 +137,7 @@ class AppearancePage extends ConsumerWidget {
                         ),
                       ),
 
-                      SectionDivider(),
+                      const SectionDivider(),
 
                       SliderTile(
                         label: 'Album Art Blur',
@@ -135,7 +167,7 @@ class AppearancePage extends ConsumerWidget {
                         },
                       ),
 
-                      SectionDivider(),
+                      const SectionDivider(),
 
                       SliderTile(
                         label: 'Theme Overlay',
@@ -165,7 +197,6 @@ class AppearancePage extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: ListTile(
-                leading: const Icon(Icons.font_download_outlined),
                 title: const Text('Font Family'),
                 trailing: DropdownMenu<String>(
                   initialSelection: appConfig.fontFamily,
@@ -204,11 +235,10 @@ class AppearancePage extends ConsumerWidget {
             ),
           ),
 
-          SizedBox(height: 4),
+          const SizedBox(height: 4),
 
           SectionCard(
             child: SliderTile(
-              leading: Icon(Icons.format_size_outlined),
               label: 'Font Scale',
               value: appConfig.textScale,
               min: 0.75,

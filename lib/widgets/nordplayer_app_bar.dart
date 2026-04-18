@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nordplayer/routes/router.dart';
-import 'package:nordplayer/routes/routes.dart';
 import 'package:nordplayer/services/config_service.dart';
+import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
+import 'package:nordplayer/widgets/app_icon.dart';
 
 class NordplayerAppBar extends ConsumerStatefulWidget implements PreferredSizeWidget {
   const NordplayerAppBar({super.key});
@@ -20,12 +21,25 @@ class NordplayerAppBar extends ConsumerStatefulWidget implements PreferredSizeWi
 class _NordplayerAppBarState extends ConsumerState<NordplayerAppBar> {
   @override
   Widget build(BuildContext context) {
+    final appIconSet = ref.watch(appIconProvider);
     final theme = Theme.of(context);
     final appConfig = ref.watch(configServiceProvider).requireValue;
 
-    final currentRoute = GoRouterState.of(context).uri.toString();
-    final bool isSettingsRoute = currentRoute.startsWith(Routes.settingsPage);
-    final bool canPop = context.canPop();
+    final currentRoute = GoRouterState.of(context).uri.path;
+    final bool isMainTabRoot =
+        currentRoute == Routes.libraryPage ||
+        currentRoute == Routes.playlistsPage ||
+        currentRoute == Routes.albumsPage ||
+        currentRoute == Routes.artistsPage;
+    final bool isSettingsRoute = currentRoute.startsWith('/settings');
+    final bool isSettingsRoot =
+        currentRoute == Routes.appearancePage ||
+        currentRoute == Routes.aboutPage ||
+        currentRoute == Routes.advancePage ||
+        currentRoute == Routes.libraryManagementPage;
+    final bool isNestedPage = !isMainTabRoot && !isSettingsRoot;
+
+    final bool showBackButton = isSettingsRoute || isNestedPage;
 
     return AppBar(
       backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surfaceContainer,
@@ -41,21 +55,24 @@ class _NordplayerAppBarState extends ConsumerState<NordplayerAppBar> {
           ),
           child: Container(
             color: Theme.of(context).colorScheme.surfaceContainer.withValues(alpha: appConfig.adaptiveBgThemeOverlay),
-            child: Container(
-              color: Theme.of(context).colorScheme.surfaceContainer.withValues(alpha: appConfig.adaptiveBgThemeOverlay),
-            ),
           ),
         ),
       ),
-      leading: (isSettingsRoute || canPop)
+      leading: (showBackButton)
           ? IconButton(
-              icon: const Icon(Icons.keyboard_arrow_left),
+              icon: AppIcon(appIconSet.navigationBack),
               onPressed: () {
-                if (canPop) {
-                  context.pop();
-                } else if (isSettingsRoute) {
+                if (isSettingsRoot) {
+                  // We are at the base of a settings tab. Go back to the main app.
                   final lastRoute = ref.read(lastMainRouteProvider);
                   context.go(lastRoute);
+                } else {
+                  // We are deep in a tab (e.g., /playlists/123 OR /settings/about/licenses).
+                  // Dynamically slice the URL to go up one parent folder!
+                  final parentRoute = currentRoute.substring(0, currentRoute.lastIndexOf('/'));
+
+                  // Safety fallback: if string manipulation results in empty string, go to library
+                  context.go(parentRoute.isEmpty ? Routes.libraryPage : parentRoute);
                 }
               },
             )
@@ -75,7 +92,7 @@ class _NordplayerAppBarState extends ConsumerState<NordplayerAppBar> {
               hintStyle: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
-              prefixIcon: const Icon(Icons.search, size: 20),
+              prefixIcon: const AppIcon(Icons.search, size: 20),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(vertical: 10),
             ),
@@ -94,8 +111,8 @@ class _NordplayerAppBarState extends ConsumerState<NordplayerAppBar> {
               context.go('/settings/appearance');
             }
           },
-          icon: const Icon(Icons.settings_outlined),
-          selectedIcon: Icon(Icons.settings),
+          icon: const AppIcon(Icons.settings_outlined),
+          selectedIcon: AppIcon(Icons.settings),
           isSelected: isSettingsRoute,
         ),
         const SizedBox(width: 8),

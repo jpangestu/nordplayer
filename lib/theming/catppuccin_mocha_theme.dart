@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nordplayer/theming/theme-extension/sidebar_theme.dart';
 
 // Source: https://catppuccin.com/palette
 class CatppuccinMochaColors {
@@ -52,10 +53,7 @@ class CatppuccinMochaColors {
 }
 
 ThemeData buildCatppuccinMochaTheme({String? fontFamily}) {
-  final String? resolvedFont =
-      (fontFamily == null || fontFamily == 'System' || fontFamily.isEmpty)
-      ? null
-      : fontFamily;
+  final String? resolvedFont = (fontFamily == null || fontFamily == 'System' || fontFamily.isEmpty) ? null : fontFamily;
 
   return ThemeData(
     useMaterial3: true,
@@ -71,8 +69,7 @@ ThemeData buildCatppuccinMochaTheme({String? fontFamily}) {
       // --- PRIMARY ---
       // Guideline: Mauve is the signature Catppuccin accent.
       primary: CatppuccinMochaColors.mauve,
-      onPrimary:
-          CatppuccinMochaColors.crust, // Dark text on Mauve for readability
+      onPrimary: CatppuccinMochaColors.crust, // Dark text on Mauve for readability
       // --- SECONDARY ---
       secondary: CatppuccinMochaColors.blue,
       onSecondary: CatppuccinMochaColors.crust,
@@ -98,45 +95,59 @@ ThemeData buildCatppuccinMochaTheme({String? fontFamily}) {
       onError: CatppuccinMochaColors.crust,
     ),
 
+    extensions: <ThemeExtension<dynamic>>[
+      SidebarTheme(
+        backgroundColor: CatppuccinMochaColors.mantle, // Mantle is used for sidebars
+        itemBackgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.pressed)) {
+            // When actively clicking down
+            return CatppuccinMochaColors.surface2.withValues(alpha: 0.8);
+          }
+          if (states.contains(WidgetState.selected)) {
+            // Highlighting the active menu item
+            return CatppuccinMochaColors.surface1;
+          }
+          if (states.contains(WidgetState.focused)) {
+            // Keyboard navigation focus
+            return CatppuccinMochaColors.surface2.withValues(alpha: 0.5);
+          }
+          if (states.contains(WidgetState.hovered)) {
+            // Subtle highlight when hovering
+            return CatppuccinMochaColors.surface2.withValues(alpha: 0.3);
+          }
+          return Colors.transparent;
+        }),
+        itemForegroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            // Signature Catppuccin Mauve when selected
+            return CatppuccinMochaColors.mauve;
+          }
+          if (states.contains(WidgetState.pressed) ||
+              states.contains(WidgetState.focused) ||
+              states.contains(WidgetState.hovered)) {
+            // Bright white/text color when interacting
+            return CatppuccinMochaColors.text;
+          }
+          // Muted subtext when unselected
+          return CatppuccinMochaColors.subtext0;
+        }),
+      ),
+    ],
+
     appBarTheme: const AppBarTheme(
       backgroundColor: CatppuccinMochaColors.base,
       foregroundColor: CatppuccinMochaColors.text,
       elevation: 0,
     ),
 
-    navigationRailTheme: NavigationRailThemeData(
-      // Guideline: Mantle is used for sidebars.
-      backgroundColor: CatppuccinMochaColors.mantle,
-      indicatorColor: CatppuccinMochaColors.surface1,
-
-      selectedIconTheme: IconThemeData(color: CatppuccinMochaColors.mauve),
-      unselectedIconTheme: IconThemeData(color: CatppuccinMochaColors.overlay1),
-
-      selectedLabelTextStyle: TextStyle(
-        fontFamily: resolvedFont,
-        color: CatppuccinMochaColors.mauve,
-        fontWeight: FontWeight.bold,
-      ),
-      unselectedLabelTextStyle: TextStyle(
-        fontFamily: resolvedFont,
-        color: CatppuccinMochaColors.subtext0,
-      ),
-    ),
-
-    dividerTheme: const DividerThemeData(
-      color: CatppuccinMochaColors.surface1,
-      thickness: 2,
-      space: 2,
-    ),
+    dividerTheme: const DividerThemeData(color: CatppuccinMochaColors.surface1, thickness: 2, space: 2),
 
     sliderTheme: SliderThemeData(
       trackHeight: 5,
       trackShape: const RoundedRectSliderTrackShape(),
       activeTrackColor: CatppuccinMochaColors.mauve,
       inactiveTrackColor: CatppuccinMochaColors.surface1,
-      secondaryActiveTrackColor: CatppuccinMochaColors.mauve.withValues(
-        alpha: 0.38,
-      ),
+      secondaryActiveTrackColor: CatppuccinMochaColors.mauve.withValues(alpha: 0.38),
 
       thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
       thumbColor: CatppuccinMochaColors.mauve,
@@ -145,17 +156,13 @@ ThemeData buildCatppuccinMochaTheme({String? fontFamily}) {
       overlayColor: CatppuccinMochaColors.mauve.withValues(alpha: 0.24),
 
       valueIndicatorColor: CatppuccinMochaColors.surface1,
-      valueIndicatorTextStyle: TextStyle(
-        fontFamily: resolvedFont,
-        color: CatppuccinMochaColors.text,
-      ),
+      valueIndicatorTextStyle: TextStyle(fontFamily: resolvedFont, color: CatppuccinMochaColors.text),
     ),
 
     iconButtonTheme: IconButtonThemeData(
       style: ButtonStyle(
         foregroundColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected) ||
-              states.contains(WidgetState.pressed)) {
+          if (states.contains(WidgetState.selected) || states.contains(WidgetState.pressed)) {
             return CatppuccinMochaColors.mauve;
           }
           if (states.contains(WidgetState.disabled)) {
@@ -164,17 +171,12 @@ ThemeData buildCatppuccinMochaTheme({String? fontFamily}) {
           return CatppuccinMochaColors.subtext0;
         }),
 
-        overlayColor: WidgetStateProperty.all(
-          CatppuccinMochaColors.mauve.withValues(alpha: 0.12),
-        ),
+        overlayColor: WidgetStateProperty.all(CatppuccinMochaColors.mauve.withValues(alpha: 0.12)),
       ),
     ),
 
     tooltipTheme: TooltipThemeData(
-      decoration: BoxDecoration(
-        color: CatppuccinMochaColors.surface1,
-        borderRadius: BorderRadius.circular(4),
-      ),
+      decoration: BoxDecoration(color: CatppuccinMochaColors.surface1, borderRadius: BorderRadius.circular(4)),
 
       textStyle: TextStyle(
         fontFamily: resolvedFont,
@@ -187,32 +189,21 @@ ThemeData buildCatppuccinMochaTheme({String? fontFamily}) {
     dropdownMenuTheme: DropdownMenuThemeData(
       menuStyle: MenuStyle(
         backgroundColor: WidgetStatePropertyAll(CatppuccinMochaColors.surface0),
-        side: WidgetStatePropertyAll(
-          const BorderSide(color: CatppuccinMochaColors.surface1, width: 2),
-        ),
+        side: WidgetStatePropertyAll(const BorderSide(color: CatppuccinMochaColors.surface1, width: 2)),
       ),
 
-      textStyle: TextStyle(
-        fontFamily: resolvedFont,
-        color: CatppuccinMochaColors.text,
-      ),
+      textStyle: TextStyle(fontFamily: resolvedFont, color: CatppuccinMochaColors.text),
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: CatppuccinMochaColors.surface0,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(
-            color: CatppuccinMochaColors.surface1,
-            width: 1,
-          ),
+          borderSide: const BorderSide(color: CatppuccinMochaColors.surface1, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(
-            color: CatppuccinMochaColors.mauve,
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: CatppuccinMochaColors.mauve, width: 2),
         ),
 
         iconColor: CatppuccinMochaColors.text,

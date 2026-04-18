@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:nordplayer/theme/theme-extension/sidebar_theme.dart';
+import 'package:nordplayer/theming/theme-extension/sidebar_theme.dart';
 
 // Source: https://www.nordtheme.com/docs/colors-and-palettes
 class NordColors {

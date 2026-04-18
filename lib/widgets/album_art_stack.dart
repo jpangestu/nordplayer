@@ -1,8 +1,12 @@
 import 'dart:io';
 import 'dart:math' as math;
-import 'package:flutter/material.dart';
 
-class AlbumArtStack extends StatelessWidget {
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
+import 'package:nordplayer/widgets/app_icon.dart';
+
+class AlbumArtStack extends ConsumerWidget {
   final List<String> imageUrls;
 
   // 1. Make size optional. If null, it adapts dynamically.
@@ -19,21 +23,18 @@ class AlbumArtStack extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final appIconSet = ref.watch(appIconProvider);
 
     return LayoutBuilder(
       builder: (context, constraints) {
         // Calculate layer count and the extra width they take up
-        final int count = imageUrls.isEmpty
-            ? 1
-            : math.min(imageUrls.length, maxLayers);
+        final int count = imageUrls.isEmpty ? 1 : math.min(imageUrls.length, maxLayers);
         final double extraWidth = (count - 1) * sliceWidth;
 
         // Find the largest square that fits in BOTH the height and width limits.
-        double squareSize =
-            size ??
-            math.min(constraints.maxHeight, constraints.maxWidth - extraWidth);
+        double squareSize = size ?? math.min(constraints.maxHeight, constraints.maxWidth - extraWidth);
 
         if (squareSize < 0) squareSize = 0;
 
@@ -50,7 +51,7 @@ class AlbumArtStack extends StatelessWidget {
                 colors: [theme.colorScheme.primary, theme.colorScheme.tertiary],
               ),
             ),
-            child: Icon(
+            child: AppIcon(
               Icons.queue_music,
               color: theme.colorScheme.onPrimary,
               size: squareSize * 0.25, // Dynamically scale the icon
@@ -59,11 +60,7 @@ class AlbumArtStack extends StatelessWidget {
         }
 
         // -- POPULATED STATE --
-        final List<String> displayUrls = imageUrls
-            .take(count)
-            .toList()
-            .reversed
-            .toList();
+        final List<String> displayUrls = imageUrls.take(count).toList().reversed.toList();
 
         return Center(
           // Center the entire stack within the Expanded card bounds
@@ -90,29 +87,17 @@ class AlbumArtStack extends StatelessWidget {
                     duration: const Duration(milliseconds: 400),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(4),
-                      image: hasImage
-                          ? DecorationImage(
-                              image: FileImage(file),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
+                      image: hasImage ? DecorationImage(image: FileImage(file), fit: BoxFit.cover) : null,
                       gradient: !hasImage
                           ? LinearGradient(
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
-                              colors: [
-                                theme.colorScheme.primary,
-                                theme.colorScheme.tertiary,
-                              ],
+                              colors: [theme.colorScheme.primary, theme.colorScheme.tertiary],
                             )
                           : null,
                     ),
                     child: !hasImage
-                        ? Icon(
-                            Icons.music_note,
-                            color: theme.colorScheme.onPrimary,
-                            size: squareSize * 0.3,
-                          )
+                        ? AppIcon(appIconSet.musicTile, color: theme.colorScheme.onPrimary, size: squareSize * 0.3)
                         : null,
                   ),
                 );

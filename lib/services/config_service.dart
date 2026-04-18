@@ -70,6 +70,7 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
     double? tinter,
     String? fontFamily,
     double? textScale,
+    String? iconSet,
     bool save = true,
   }) {
     if (!state.hasValue) return;
@@ -86,6 +87,7 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
       adaptiveBgThemeOverlay: tinter,
       fontFamily: fontFamily,
       textScale: textScale,
+      iconSet: iconSet,
     );
 
     state = AsyncData(newConfig);
@@ -101,6 +103,7 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
         if (albumFit != null) 'boxFit',
         if (fontFamily != null) 'fontFamily',
         if (textScale != null) 'textScale',
+        if (iconSet != null) 'iconSet',
       ].join(', ');
 
       log.d("Updating Config -> $changes");

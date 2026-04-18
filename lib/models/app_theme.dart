@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:nordplayer/theme/nord_theme.dart';
-import 'package:nordplayer/theme/catppuccin_mocha_theme.dart';
+import 'package:nordplayer/theming/catppuccin_mocha_theme.dart';
+import 'package:nordplayer/theming/nord_theme.dart';
 
 class AppTheme {
   AppTheme._();
@@ -30,14 +30,10 @@ class AppTheme {
     } else if (key == 'catpuccin_mocha') {
       return buildCatppuccinMochaTheme(fontFamily: fontFamily);
     } else if (key == 'light') {
-      return defaultLight.copyWith(
-        textTheme: defaultLight.textTheme.apply(fontFamily: fontFamily),
-      );
+      return defaultLight.copyWith(textTheme: defaultLight.textTheme.apply(fontFamily: fontFamily));
     }
 
     // Default fallback
-    return defaultDark.copyWith(
-      textTheme: defaultDark.textTheme.apply(fontFamily: fontFamily),
-    );
+    return defaultDark.copyWith(textTheme: defaultDark.textTheme.apply(fontFamily: fontFamily));
   }
 }

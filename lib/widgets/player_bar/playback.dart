@@ -4,6 +4,8 @@ import 'package:media_kit/media_kit.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
+import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
+import 'package:nordplayer/widgets/app_icon.dart';
 
 class Playback extends ConsumerStatefulWidget {
   const Playback({super.key});
@@ -16,43 +18,41 @@ class _PlaybackState extends ConsumerState<Playback> with LoggerMixin {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final appIconSet = ref.watch(appIconProvider);
 
     final isPlaying = ref.watch(isPlayingProvider);
     final isShuffled = ref.watch(preferenceServiceProvider).shuffleMode;
     final loopMode = ref.watch(preferenceServiceProvider).loopMode;
 
     return Row(
-      mainAxisAlignment: .center,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         IconButton(
-          icon: Icon(
-            Icons.shuffle,
-            color: isShuffled ? colorScheme.primary : null,
-          ),
+          icon: AppIcon(appIconSet.shuffle, color: isShuffled ? colorScheme.primary : null),
           iconSize: 24,
           onPressed: () => ref.read(playerServiceProvider).toggleShuffle(),
         ),
         IconButton(
-          icon: Icon(Icons.skip_previous),
+          icon: AppIcon(appIconSet.previous),
           iconSize: 24,
           onPressed: () => ref.read(playerServiceProvider).previous(),
         ),
         IconButton(
           isSelected: true,
-          icon: Icon(isPlaying ? Icons.pause_circle : Icons.play_circle),
+          icon: AppIcon(isPlaying ? appIconSet.pause : appIconSet.play),
           iconSize: 36,
           onPressed: () => ref.read(playerServiceProvider).playOrPause(),
         ),
         IconButton(
-          icon: Icon(Icons.skip_next),
+          icon: AppIcon(appIconSet.next),
           iconSize: 24,
           onPressed: () => ref.read(playerServiceProvider).next(),
         ),
         IconButton(
-          icon: Icon(switch (loopMode) {
-            PlaylistMode.none => Icons.repeat,
-            PlaylistMode.loop => Icons.repeat,
-            PlaylistMode.single => Icons.repeat_one,
+          icon: AppIcon(switch (loopMode) {
+            PlaylistMode.none => appIconSet.repeat,
+            PlaylistMode.loop => appIconSet.repeat,
+            PlaylistMode.single => appIconSet.repeatOne,
           }, color: loopMode != PlaylistMode.none ? colorScheme.primary : null),
           onPressed: () => ref.read(playerServiceProvider).cycleLoopMode(),
         ),

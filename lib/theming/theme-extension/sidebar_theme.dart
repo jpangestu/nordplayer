@@ -2,11 +2,7 @@ import 'package:flutter/material.dart';
 
 @immutable
 class SidebarTheme extends ThemeExtension<SidebarTheme> {
-  const SidebarTheme({
-    this.backgroundColor,
-    this.itemBackgroundColor,
-    this.itemForegroundColor,
-  });
+  const SidebarTheme({this.backgroundColor, this.itemBackgroundColor, this.itemForegroundColor});
 
   /// The background of the sidebar itself
   final Color? backgroundColor;

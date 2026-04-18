@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:nordplayer/widgets/app_icon.dart';
 
 class TitleBarButton extends StatefulWidget {
   final IconData? icon;
@@ -39,9 +40,7 @@ class _TitleBarButtonState extends State<TitleBarButton> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final baseIconColor = (widget.fixedIconColor != null)
-        ? widget.fixedIconColor!
-        : colorScheme.surface;
+    final baseIconColor = (widget.fixedIconColor != null) ? widget.fixedIconColor! : colorScheme.surface;
 
     Widget button = MouseRegion(
       onEnter: (_) => setState(() => _isHovering = true),
@@ -63,14 +62,12 @@ class _TitleBarButtonState extends State<TitleBarButton> {
                 color: _isHovering
                     ? (widget.isClose
                           ? colorScheme.error.withValues(alpha: 0.9)
-                          : colorScheme.onSurface.withValues(
-                              alpha: widget.hoverOverlayOpacity,
-                            ))
+                          : colorScheme.onSurface.withValues(alpha: widget.hoverOverlayOpacity))
                     : Colors.transparent,
               ),
               child: widget.icon != null
-                  ? Icon(
-                      widget.icon,
+                  ? AppIcon(
+                      widget.icon!,
                       size: widget.iconSize,
                       color: _isHovering
                           ? widget.isClose
@@ -100,11 +97,7 @@ class _TitleBarButtonState extends State<TitleBarButton> {
     );
 
     if (widget.tooltip != null) {
-      return Tooltip(
-        message: widget.tooltip!,
-        waitDuration: const Duration(milliseconds: 500),
-        child: button,
-      );
+      return Tooltip(message: widget.tooltip!, waitDuration: const Duration(milliseconds: 500), child: button);
     }
 
     return button;

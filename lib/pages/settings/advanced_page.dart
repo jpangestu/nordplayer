@@ -1,15 +1,16 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:nordplayer/database/app_database.dart';
-import 'package:nordplayer/services/preference_service.dart';
-import 'package:nordplayer/widgets/settings/section_card.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/logger.dart';
+import 'package:nordplayer/services/preference_service.dart';
+import 'package:nordplayer/widgets/app_icon.dart';
+import 'package:nordplayer/widgets/settings/section_card.dart';
 import 'package:nordplayer/widgets/settings/section_header.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 class AdvancedPage extends ConsumerWidget with LoggerMixin {
   const AdvancedPage({super.key});
@@ -20,40 +21,24 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
     final appConfig = ref.watch(configServiceProvider).requireValue;
 
     return Scaffold(
-      backgroundColor: appConfig.adaptiveBg
-          ? Colors.transparent
-          : theme.colorScheme.surface,
+      backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
 
       body: ListView(
         padding: .all(24),
         children: [
-          const SectionHeader(
-            label: 'Reset',
-            labelType: .h1,
-            padding: .only(bottom: 8),
-          ),
+          const SectionHeader(label: 'Reset', labelType: .h1, padding: .only(bottom: 8)),
 
           SectionCard(
             backgroundColor: theme.colorScheme.errorContainer,
             child: ListTile(
-              leading: Icon(
-                Icons.refresh_rounded,
-                color: theme.colorScheme.onErrorContainer,
-              ),
+              leading: AppIcon(Icons.refresh_rounded, color: theme.colorScheme.onErrorContainer),
               title: Text(
                 'Reset app settings',
-                style: TextStyle(
-                  color: theme.colorScheme.onErrorContainer,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(color: theme.colorScheme.onErrorContainer, fontWeight: FontWeight.w600),
               ),
               subtitle: Text(
                 'Theme, music paths, and player preferences',
-                style: TextStyle(
-                  color: theme.colorScheme.onErrorContainer.withValues(
-                    alpha: 0.74,
-                  ),
-                ),
+                style: TextStyle(color: theme.colorScheme.onErrorContainer.withValues(alpha: 0.74)),
               ),
               onTap: () => _showResetSettingsDialog(context, ref),
             ),
@@ -64,24 +49,14 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
           SectionCard(
             backgroundColor: theme.colorScheme.errorContainer,
             child: ListTile(
-              leading: Icon(
-                Icons.delete_forever_outlined,
-                color: theme.colorScheme.onErrorContainer,
-              ),
+              leading: AppIcon(Icons.delete_forever_outlined, color: theme.colorScheme.onErrorContainer),
               title: Text(
                 'Clear music library',
-                style: TextStyle(
-                  color: theme.colorScheme.onErrorContainer,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(color: theme.colorScheme.onErrorContainer, fontWeight: FontWeight.w600),
               ),
               subtitle: Text(
                 'Wipes database and album art (does not delete music files)',
-                style: TextStyle(
-                  color: theme.colorScheme.onErrorContainer.withValues(
-                    alpha: 0.74,
-                  ),
-                ),
+                style: TextStyle(color: theme.colorScheme.onErrorContainer.withValues(alpha: 0.74)),
               ),
               onTap: () => _showDeleteDataDialog(context, ref),
             ),
@@ -92,10 +67,7 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
   }
 
   /// Dialog for resetting preferences only
-  Future<void> _showResetSettingsDialog(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
+  Future<void> _showResetSettingsDialog(BuildContext context, WidgetRef ref) async {
     final confirmed = await _confirmAction(
       context,
       title: 'Reset Settings?',
@@ -112,10 +84,7 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
   }
 
   /// Dialog for wiping the database and cache
-  Future<void> _showDeleteDataDialog(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
+  Future<void> _showDeleteDataDialog(BuildContext context, WidgetRef ref) async {
     final confirmed = await _confirmAction(
       context,
       title: 'Delete All Library Data?',
@@ -176,10 +145,7 @@ Future<bool?> _confirmAction(
       title: Text(title),
       content: Text(content),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancel'),
-        ),
+        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
         FilledButton(
           style: FilledButton.styleFrom(
             backgroundColor: Theme.of(context).colorScheme.error,

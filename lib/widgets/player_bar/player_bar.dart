@@ -4,6 +4,8 @@ import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
+import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
+import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
 import 'package:nordplayer/widgets/player_bar/playback.dart';
@@ -25,7 +27,8 @@ class _PlayerBarState extends ConsumerState<PlayerBar> with LoggerMixin {
 
     final player = ref.watch(playerServiceProvider);
     final currentTrack = ref.watch(currentTrackProvider);
-    final adaptiveBg = ref.watch(configServiceProvider).value?.adaptiveBg ?? false;
+    final isAdaptiveBgOn = ref.watch(configServiceProvider).value?.adaptiveBg ?? false;
+    final appIconSet = ref.watch(appIconProvider);
 
     final double screenWidth = MediaQuery.sizeOf(context).width;
     bool isLargeScreen = screenWidth > 900;
@@ -39,7 +42,7 @@ class _PlayerBarState extends ConsumerState<PlayerBar> with LoggerMixin {
       blurSigma: appConfig.adaptiveBgPanelBlur,
       child: Container(
         height: 90,
-        color: adaptiveBg ? backgroundColor.withValues(alpha: appConfig.adaptiveBgThemeOverlay) : backgroundColor,
+        color: isAdaptiveBgOn ? backgroundColor.withValues(alpha: appConfig.adaptiveBgThemeOverlay) : backgroundColor,
         child: Row(
           children: [
             if (currentTrack == null) ...[
@@ -74,14 +77,9 @@ class _PlayerBarState extends ConsumerState<PlayerBar> with LoggerMixin {
               child: Row(
                 mainAxisAlignment: .end,
                 children: [
+                  IconButton(icon: AppIcon(appIconSet.lyrics), iconSize: 24, tooltip: 'Show Lyrics', onPressed: () {}),
                   IconButton(
-                    icon: const Icon(Icons.lyrics_outlined),
-                    iconSize: 24,
-                    tooltip: 'Show Lyrics',
-                    onPressed: () {},
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.queue_music_outlined),
+                    icon: AppIcon(appIconSet.queue),
                     iconSize: 24,
                     tooltip: 'Show Queue',
                     // isSelected: true,

@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +11,7 @@ import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/widgets/album_art_stack.dart';
 import 'package:nordplayer/widgets/album_art_wall.dart';
 import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
+import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
@@ -26,15 +28,12 @@ class LibraryPage extends ConsumerWidget {
 
     final libraryAsync = ref.watch(libraryStreamProvider);
     final tableColumns = ref.watch(libraryTableColumnsProvider);
-    final selectedIndices = ref.watch(
-      selectedTracksIndexProvider('library_page'),
-    );
+    final selectedIndices = ref.watch(selectedTracksIndexProvider('library_page'));
 
     return Shortcuts(
       shortcuts: <ShortcutActivator, Intent>{
         SingleActivator(LogicalKeyboardKey.enter): const PlaySelectedIntent(),
-        SingleActivator(LogicalKeyboardKey.numpadEnter):
-            const PlaySelectedIntent(),
+        SingleActivator(LogicalKeyboardKey.numpadEnter): const PlaySelectedIntent(),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
@@ -48,18 +47,14 @@ class LibraryPage extends ConsumerWidget {
         child: Focus(
           autofocus: true,
           child: Scaffold(
-            backgroundColor: appConfig.adaptiveBg
-                ? Colors.transparent
-                : theme.colorScheme.surface,
+            backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
             body: libraryAsync.when(
               loading: () => Center(child: CircularProgressIndicator()),
               error: (error, stack) => Center(child: Text('Error: $error')),
               data: (tracks) {
                 return FrostedGlass(
                   backgroundColor: appConfig.adaptiveBg
-                      ? theme.colorScheme.surfaceContainer.withValues(
-                          alpha: 0.5,
-                        )
+                      ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.5)
                       : theme.colorScheme.surfaceContainer,
                   child: CustomScrollView(
                     slivers: [
@@ -85,16 +80,14 @@ class LibraryPage extends ConsumerWidget {
                               children: [
                                 Text(
                                   "Your library is empty",
-                                  style: theme.textTheme.headlineSmall
-                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                  style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   "Scan your local folders to set up your music library.",
                                   textAlign: TextAlign.center,
                                   style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurface
-                                        .withValues(alpha: 0.6),
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                   ),
                                 ),
                                 const SizedBox(height: 24),
@@ -102,7 +95,7 @@ class LibraryPage extends ConsumerWidget {
                                   onPressed: () {
                                     context.go('/settings/library-management');
                                   },
-                                  icon: const Icon(Icons.create_new_folder),
+                                  icon: const AppIcon(Icons.create_new_folder),
                                   label: const Text("Add Music Folders"),
                                 ),
                               ],
@@ -117,36 +110,21 @@ class LibraryPage extends ConsumerWidget {
                           rowHeight: 66.0,
                           isAdaptive: appConfig.adaptiveBg,
                           onColumnsResized: (newWidths) {
-                            ref
-                                .read(libraryTableColumnsProvider.notifier)
-                                .updateColumnWidths(newWidths);
+                            ref.read(libraryTableColumnsProvider.notifier).updateColumnWidths(newWidths);
                           },
                           onHeaderRightClick: (globalPosition) {
                             ContextMenu.show(
                               isAdaptive: appConfig.adaptiveBg,
                               context: context,
                               globalPosition: globalPosition,
-                              actionMenus: [
-                                ContextMenuCustomWidget(
-                                  child: const ColumnToggleContextMenu(),
-                                ),
-                              ],
+                              actionMenus: [ContextMenuCustomWidget(child: const ColumnToggleContextMenu())],
                             );
                           },
-                          onRowClick:
-                              (index, {required isCtrl, required isShift}) {
-                                ref
-                                    .read(
-                                      selectedTracksIndexProvider(
-                                        'library_page',
-                                      ).notifier,
-                                    )
-                                    .selectTrack(
-                                      index,
-                                      isCtrlSelect: isCtrl,
-                                      isShiftSelect: isShift,
-                                    );
-                              },
+                          onRowClick: (index, {required isCtrl, required isShift}) {
+                            ref
+                                .read(selectedTracksIndexProvider('library_page').notifier)
+                                .selectTrack(index, isCtrlSelect: isCtrl, isShiftSelect: isShift);
+                          },
                           onRowDoubleClick: (index) {
                             ref
                                 .read(playerServiceProvider)
@@ -158,33 +136,19 @@ class LibraryPage extends ConsumerWidget {
                                 );
                           },
                           onRowRightClick: (index, globalPosition) {
-                            final selectionNotifier = ref.read(
-                              selectedTracksIndexProvider(
-                                'library_page',
-                              ).notifier,
-                            );
-                            final currentSelection = ref.read(
-                              selectedTracksIndexProvider('library_page'),
-                            );
+                            final selectionNotifier = ref.read(selectedTracksIndexProvider('library_page').notifier);
+                            final currentSelection = ref.read(selectedTracksIndexProvider('library_page'));
 
                             // If right-clicking an unselected item, select it first and clear others
                             if (!currentSelection.contains(index)) {
-                              selectionNotifier.selectTrack(
-                                index,
-                                isCtrlSelect: false,
-                                isShiftSelect: false,
-                              );
+                              selectionNotifier.selectTrack(index, isCtrlSelect: false, isShiftSelect: false);
                             }
 
-                            final updatedSelection = ref.read(
-                              selectedTracksIndexProvider('library_page'),
-                            );
+                            final updatedSelection = ref.read(selectedTracksIndexProvider('library_page'));
 
                             // Convert to list and sort the indices first
-                            final sortedIndices = updatedSelection.toList()
-                              ..sort();
-                            final List<TrackWithArtists> selectedTracks =
-                                sortedIndices.map((i) => tracks[i]).toList();
+                            final sortedIndices = updatedSelection.toList()..sort();
+                            final List<TrackWithArtists> selectedTracks = sortedIndices.map((i) => tracks[i]).toList();
 
                             TrackContextMenu.show(
                               context: context,
@@ -222,10 +186,7 @@ class LibraryHeroHeader extends ConsumerWidget {
     final nowPlayingAlbumArt = ref.watch(current5TracksAlbumArtInQueueProvider);
 
     final libraryTracks = ref.watch(libraryStreamProvider).value ?? [];
-    final int totalMs = libraryTracks.fold(
-      0,
-      (sum, track) => sum + track.track.durationMs,
-    );
+    final int totalMs = libraryTracks.fold(0, (sum, track) => sum + track.track.durationMs);
 
     final Duration totalDuration = Duration(milliseconds: totalMs);
 
@@ -268,8 +229,7 @@ class LibraryHeroHeader extends ConsumerWidget {
                   child: Align(
                     alignment: .centerLeft,
                     child: AlbumArtStack(
-                      imageUrls:
-                          ref.read(playbackContextProvider)?.type == 'library'
+                      imageUrls: ref.read(playbackContextProvider)?.type == 'library'
                           ? nowPlayingAlbumArt
                           : libraryAlbumArt,
                       size: 180,
@@ -286,19 +246,14 @@ class LibraryHeroHeader extends ConsumerWidget {
                     children: [
                       Text(
                         'Library',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
 
                       const SizedBox(height: 4),
 
-                      Text(
-                        '${libraryTracks.length} Tracks - ${formatTotalDuration(totalDuration)}',
-                      ),
+                      Text('${libraryTracks.length} Tracks - ${formatTotalDuration(totalDuration)}'),
                     ],
                   ),
                 ),
@@ -334,12 +289,7 @@ class ColumnToggleContextMenu extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
-                Icon(
-                  col.isVisible
-                      ? Icons.check_box
-                      : Icons.check_box_outline_blank,
-                  size: 18,
-                ),
+                AppIcon(col.isVisible ? Icons.check_box : Icons.check_box_outline_blank, size: 18),
                 const SizedBox(width: 12),
                 Text(col.label, style: const TextStyle(fontSize: 14)),
               ],
@@ -389,8 +339,7 @@ class TrackContextMenu {
 
               // Find where the right-clicked track lives inside this sorted list
               final startingQueueIndex = playlistToPlay.indexWhere(
-                (t) =>
-                    t.track.filePath == allTracks[clickedIndex].track.filePath,
+                (t) => t.track.filePath == allTracks[clickedIndex].track.filePath,
               );
 
               // Pass the sorted list, but tell the player to start at the clicked track
@@ -400,9 +349,7 @@ class TrackContextMenu {
                     playbackContextType: playbackContextType,
                     playbackContextId: playbackContextId,
                     tracksToPlay: playlistToPlay,
-                    initialIndex: startingQueueIndex == -1
-                        ? 0
-                        : startingQueueIndex,
+                    initialIndex: startingQueueIndex == -1 ? 0 : startingQueueIndex,
                   );
             }
           },
@@ -416,23 +363,15 @@ class TrackContextMenu {
               final playbackContext = ref.read(playbackContextProvider);
               ref
                   .read(playerServiceProvider)
-                  .addToQueue(
-                    selectedTracks,
-                    playbackContext?.type ?? 'library',
-                    playbackContext?.id,
-                  );
+                  .addToQueue(selectedTracks, playbackContext?.type ?? 'library', playbackContext?.id);
 
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(
-                      'Added ${selectedTracks.length} tracks to queue',
-                    ),
+                    content: Text('Added ${selectedTracks.length} tracks to queue'),
                     behavior: SnackBarBehavior.floating,
                     width: 300,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
                   ),
                 );
               }
@@ -445,13 +384,10 @@ class TrackContextMenu {
             icon: Icons.playlist_remove_outlined,
             label: 'Remove from queue',
             onTap: () {
-              final selectionSet = ref.read(
-                selectedTracksIndexProvider('queue_page'),
-              );
+              final selectionSet = ref.read(selectedTracksIndexProvider('queue_page'));
 
               // Convert to list and sort descending for safe remove
-              final indicesToRemove = selectionSet.toList()
-                ..sort((a, b) => b.compareTo(a));
+              final indicesToRemove = selectionSet.toList()..sort((a, b) => b.compareTo(a));
 
               // Remove from highest index to lowest so the queue shifting doesn't break the math
               for (final index in indicesToRemove) {
@@ -459,21 +395,13 @@ class TrackContextMenu {
               }
 
               // Clear the selection so the UI doesn't hold onto invalid, out-of-bounds highlighted rows
-              ref
-                  .read(selectedTracksIndexProvider('queue_page').notifier)
-                  .clear();
+              ref.read(selectedTracksIndexProvider('queue_page').notifier).clear();
             },
           ),
         ContextSubMenuAction(
           icon: Icons.add,
           label: 'Add to playlist',
-          children: [
-            ContextMenuCustomWidget(
-              child: SearchablePlaylistContextSubMenu(
-                tracksToAdd: selectedTracks,
-              ),
-            ),
-          ],
+          children: [ContextMenuCustomWidget(child: SearchablePlaylistContextSubMenu(tracksToAdd: selectedTracks))],
         ),
         ContextMenuDivider(),
         ContextMenuActions(
@@ -498,18 +426,13 @@ class TrackContextMenu {
 class SearchablePlaylistContextSubMenu extends ConsumerStatefulWidget {
   final List<TrackWithArtists> tracksToAdd;
 
-  const SearchablePlaylistContextSubMenu({
-    super.key,
-    required this.tracksToAdd,
-  });
+  const SearchablePlaylistContextSubMenu({super.key, required this.tracksToAdd});
 
   @override
-  ConsumerState<SearchablePlaylistContextSubMenu> createState() =>
-      _SearchablePlaylistMenuState();
+  ConsumerState<SearchablePlaylistContextSubMenu> createState() => _SearchablePlaylistMenuState();
 }
 
-class _SearchablePlaylistMenuState
-    extends ConsumerState<SearchablePlaylistContextSubMenu> {
+class _SearchablePlaylistMenuState extends ConsumerState<SearchablePlaylistContextSubMenu> {
   String _query = '';
 
   @override
@@ -531,16 +454,11 @@ class _SearchablePlaylistMenuState
               style: const TextStyle(fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Find a playlist',
-                prefixIcon: const Icon(Icons.search, size: 16),
+                prefixIcon: const AppIcon(Icons.search, size: 16),
                 contentPadding: EdgeInsets.zero,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4),
-                  borderSide: BorderSide.none,
-                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide.none),
                 filled: true,
-                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.5,
-                ),
+                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
               ),
               onChanged: (val) => setState(() => _query = val),
             ),
@@ -554,10 +472,8 @@ class _SearchablePlaylistMenuState
 
             await showDialog(
               context: context,
-              builder: (context) => CreatePlaylistDialog(
-                database: ref.read(appDatabaseProvider),
-                tracksToAdd: widget.tracksToAdd,
-              ),
+              builder: (context) =>
+                  CreatePlaylistDialog(database: ref.read(appDatabaseProvider), tracksToAdd: widget.tracksToAdd),
             );
           },
           child: Container(
@@ -565,21 +481,15 @@ class _SearchablePlaylistMenuState
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
-                const Icon(Icons.add, size: 20),
+                const AppIcon(Icons.add, size: 20),
                 const SizedBox(width: 12),
-                const Text(
-                  'New playlist',
-                  style: TextStyle(fontWeight: FontWeight.w500),
-                ),
+                const Text('New playlist', style: TextStyle(fontWeight: FontWeight.w500)),
               ],
             ),
           ),
         ),
 
-        Divider(
-          height: 9,
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
-        ),
+        Divider(height: 9, color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
 
         // -- PLAYLIST LISTS --
         playlistsWithDetails.when(
@@ -587,17 +497,10 @@ class _SearchablePlaylistMenuState
             padding: EdgeInsets.all(16),
             child: Center(child: CircularProgressIndicator()),
           ),
-          error: (e, st) => const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('Error loading playlists'),
-          ),
+          error: (e, st) => const Padding(padding: EdgeInsets.all(16), child: Text('Error loading playlists')),
           data: (playlistsWithDetailsData) {
             final filtered = playlistsWithDetailsData
-                .where(
-                  (p) => p.playlist.name.toLowerCase().contains(
-                    _query.toLowerCase(),
-                  ),
-                )
+                .where((p) => p.playlist.name.toLowerCase().contains(_query.toLowerCase()))
                 .toList();
 
             if (filtered.isEmpty) {
@@ -605,11 +508,7 @@ class _SearchablePlaylistMenuState
                 padding: EdgeInsets.all(16),
                 child: Text(
                   'No playlists found.',
-                  style: TextStyle(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                 ),
               );
             }
@@ -626,28 +525,22 @@ class _SearchablePlaylistMenuState
                     onTap: () async {
                       // ADD TO DATABASE
                       final db = ref.read(appDatabaseProvider);
-                      final trackIds = widget.tracksToAdd
-                          .map((t) => t.track.id)
-                          .toList();
+                      final trackIds = widget.tracksToAdd.map((t) => t.track.id).toList();
                       await db.addTracksToPlaylist(playlist.id, trackIds);
 
                       ContextMenu.closeAll();
 
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Added to ${playlist.name}')),
-                        );
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text('Added to ${playlist.name}')));
                       }
                     },
                     child: Container(
                       height: 36,
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       alignment: Alignment.centerLeft,
-                      child: Text(
-                        playlist.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      child: Text(playlist.name, maxLines: 1, overflow: TextOverflow.ellipsis),
                     ),
                   );
                 },
@@ -664,19 +557,13 @@ class CreatePlaylistDialog extends ConsumerStatefulWidget {
   final AppDatabase database;
   final List<TrackWithArtists> tracksToAdd;
 
-  const CreatePlaylistDialog({
-    super.key,
-    required this.database,
-    this.tracksToAdd = const [],
-  });
+  const CreatePlaylistDialog({super.key, required this.database, this.tracksToAdd = const []});
 
   @override
-  ConsumerState<CreatePlaylistDialog> createState() =>
-      _CreatePlaylistDialogState();
+  ConsumerState<CreatePlaylistDialog> createState() => _CreatePlaylistDialogState();
 }
 
-class _CreatePlaylistDialogState extends ConsumerState<CreatePlaylistDialog>
-    with LoggerMixin {
+class _CreatePlaylistDialogState extends ConsumerState<CreatePlaylistDialog> with LoggerMixin {
   late final TextEditingController _textController;
 
   @override
@@ -699,15 +586,11 @@ class _CreatePlaylistDialogState extends ConsumerState<CreatePlaylistDialog>
       return;
     }
 
-    final newPlaylistId = await widget.database.addPlaylist(
-      PlaylistsCompanion.insert(name: name),
-    );
+    final newPlaylistId = await widget.database.addPlaylist(PlaylistsCompanion.insert(name: name));
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('$name created successfully')));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$name created successfully')));
 
     log.i('$name created successfully');
 
@@ -719,9 +602,7 @@ class _CreatePlaylistDialogState extends ConsumerState<CreatePlaylistDialog>
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Added to $name')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Added to $name')));
     }
 
     Navigator.pop(context);
@@ -734,17 +615,11 @@ class _CreatePlaylistDialogState extends ConsumerState<CreatePlaylistDialog>
       content: TextField(
         controller: _textController,
         autofocus: true,
-        decoration: const InputDecoration(
-          hintText: 'Playlist Name',
-          border: OutlineInputBorder(),
-        ),
+        decoration: const InputDecoration(hintText: 'Playlist Name', border: OutlineInputBorder()),
         onSubmitted: (_) => _submit(),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
         FilledButton(onPressed: _submit, child: const Text('Create')),
       ],
     );
@@ -797,9 +672,7 @@ final libraryAlbumArtProvider = Provider<List<String>>((ref) {
 
   for (final track in randomLibrary) {
     final artPath = track.album.albumArtPath;
-    if (artPath != null &&
-        artPath.isNotEmpty &&
-        !seenWallCovers.contains(artPath)) {
+    if (artPath != null && artPath.isNotEmpty && !seenWallCovers.contains(artPath)) {
       seenWallCovers.add(artPath);
       wallCovers.add(artPath);
     }
@@ -809,14 +682,11 @@ final libraryAlbumArtProvider = Provider<List<String>>((ref) {
   return wallCovers;
 });
 
-final libraryTableColumnsProvider =
-    NotifierProvider<
-      LibraryTableColumnsNotifier,
-      List<TableColumn<TrackWithArtists>>
-    >(LibraryTableColumnsNotifier.new);
+final libraryTableColumnsProvider = NotifierProvider<LibraryTableColumnsNotifier, List<TableColumn<TrackWithArtists>>>(
+  LibraryTableColumnsNotifier.new,
+);
 
-class LibraryTableColumnsNotifier
-    extends Notifier<List<TableColumn<TrackWithArtists>>> {
+class LibraryTableColumnsNotifier extends Notifier<List<TableColumn<TrackWithArtists>>> {
   @override
   List<TableColumn<TrackWithArtists>> build() {
     return [
@@ -829,9 +699,7 @@ class LibraryTableColumnsNotifier
         cellBuilder: (context, track, index) {
           return Consumer(
             builder: (context, ref, child) {
-              final isActiveTrack =
-                  ref.watch(currentTrackProvider)?.track.filePath ==
-                  track.track.filePath;
+              final isActiveTrack = ref.watch(currentTrackProvider)?.track.filePath == track.track.filePath;
 
               if (isActiveTrack) {
                 final isAudioPlaying = ref.watch(isPlayingProvider);
@@ -844,11 +712,7 @@ class LibraryTableColumnsNotifier
               }
               return Text(
                 "${index + 1}",
-                style: TextStyle(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                ),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
               );
             },
           );
@@ -862,9 +726,7 @@ class LibraryTableColumnsNotifier
         cellBuilder: (context, track, index) {
           return Consumer(
             builder: (context, ref, child) {
-              final isPlaying =
-                  ref.watch(currentTrackProvider)?.track.filePath ==
-                  track.track.filePath;
+              final isPlaying = ref.watch(currentTrackProvider)?.track.filePath == track.track.filePath;
               return MusicTile(
                 selected: isPlaying,
                 albumArtPath: track.album.albumArtPath,
@@ -882,11 +744,7 @@ class LibraryTableColumnsNotifier
         flex: 3,
         minWidth: 100,
         cellBuilder: (context, track, index) {
-          return Text(
-            track.album.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          );
+          return Text(track.album.title, maxLines: 1, overflow: TextOverflow.ellipsis);
         },
       ),
       TableColumn<TrackWithArtists>(
@@ -896,11 +754,7 @@ class LibraryTableColumnsNotifier
         minWidth: 100,
         isVisible: false,
         cellBuilder: (context, track, index) {
-          return Text(
-            track.track.filePath,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          );
+          return Text(track.track.filePath, maxLines: 1, overflow: TextOverflow.ellipsis);
         },
       ),
       TableColumn<TrackWithArtists>(
@@ -963,18 +817,16 @@ class LibraryTableColumnsNotifier
       } else {
         // Normalize the flex!
         // This converts the raw pixels back into the original single-digit scale.
-        double normalizedFlex =
-            (newWidth / totalNewFlexibleWidth) * currentVisibleFlexTotal;
+        double normalizedFlex = (newWidth / totalNewFlexibleWidth) * currentVisibleFlexTotal;
         return col.copyWith(flex: normalizedFlex);
       }
     }).toList();
   }
 }
 
-final selectedTracksIndexProvider =
-    NotifierProvider.family<SelectedTracksIndex, Set<int>, String>(
-      SelectedTracksIndex.new,
-    );
+final selectedTracksIndexProvider = NotifierProvider.family<SelectedTracksIndex, Set<int>, String>(
+  SelectedTracksIndex.new,
+);
 
 class SelectedTracksIndex extends Notifier<Set<int>> {
   SelectedTracksIndex(this.tableId);
@@ -987,11 +839,7 @@ class SelectedTracksIndex extends Notifier<Set<int>> {
 
   void clear() => state = {};
 
-  void selectTrack(
-    int index, {
-    required bool isCtrlSelect,
-    required bool isShiftSelect,
-  }) {
+  void selectTrack(int index, {required bool isCtrlSelect, required bool isShiftSelect}) {
     if (isShiftSelect) {
       final start = _anchorIndex ?? index;
       final minIdx = start < index ? start : index;

@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:nordplayer/routes/routes.dart';
+import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/config_service.dart';
+import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/title_bar_button.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -36,6 +37,7 @@ class _NordplayerTitleBarState extends ConsumerState<NordplayerTitleBar> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appIconSet = ref.watch(appIconProvider);
 
     return DragToMoveArea(
       child: FrostedGlass(
@@ -71,7 +73,7 @@ class _NordplayerTitleBarState extends ConsumerState<NordplayerTitleBar> {
               if (_packageInfo != null)
                 TextButton(
                   onPressed: () {
-                    context.go('${Routes.settingsPage}/${Routes.aboutPage}');
+                    context.go('${Routes.appearancePage}/${Routes.aboutPage}');
                   },
                   child: Text(
                     _packageInfo!.version,
@@ -80,7 +82,7 @@ class _NordplayerTitleBarState extends ConsumerState<NordplayerTitleBar> {
                 ),
 
               TitleBarButton(
-                icon: Icons.keyboard,
+                icon: appIconSet.keyboardShortcut,
                 iconSize: 18,
                 fixedIconColor: colorScheme.onSurface,
                 hoverOverlaySize: 28,

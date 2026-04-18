@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
+import 'package:nordplayer/widgets/app_icon.dart';
 
-class VolumeSlider extends StatelessWidget {
+class VolumeSlider extends ConsumerWidget {
   final double volume;
   final bool isMuted;
   final ValueChanged<double> onChanged;
@@ -15,16 +18,21 @@ class VolumeSlider extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final sliderTheme = Theme.of(context).sliderTheme;
+    final appIconSet = ref.watch(appIconProvider);
 
     return Flexible(
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
-            icon: Icon(
-              isMuted ? Icons.volume_off_outlined : Icons.volume_up_outlined,
+            icon: AppIcon(
+              isMuted
+                  ? appIconSet.volumeMute
+                  : volume > 50
+                  ? appIconSet.volumeHigh
+                  : appIconSet.volumeLow,
               size: 24,
             ),
             tooltip: isMuted ? "Unmute" : "Mute",
@@ -48,8 +56,7 @@ class VolumeSlider extends StatelessWidget {
                     overlayShape: sliderTheme.overlayShape,
                     showValueIndicator: .onDrag,
                     valueIndicatorColor: sliderTheme.valueIndicatorColor,
-                    valueIndicatorTextStyle:
-                        sliderTheme.valueIndicatorTextStyle,
+                    valueIndicatorTextStyle: sliderTheme.valueIndicatorTextStyle,
                   ),
                   child: Slider(
                     value: isMuted ? 0.0 : volume,
