@@ -11,7 +11,7 @@ import 'package:nordplayer/widgets/album_art_wall.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
 import 'package:nordplayer/widgets/shortcuts.dart';
-import 'package:nordplayer/widgets/sliver_resizable_table_layout.dart';
+import 'package:nordplayer/widgets/sliver_resizable_table.dart';
 
 class PlaylistDetailPage extends ConsumerWidget {
   final int playlistId;
@@ -93,7 +93,7 @@ class PlaylistDetailPage extends ConsumerWidget {
                         ),
                       )
                     else
-                      SliverInteractiveTable<TrackWithArtists>(
+                      SliverResizableTable<TrackWithArtists>(
                         items: tracks,
                         columns: tableColumns,
                         selectedIndices: selectedIndices,

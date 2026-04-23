@@ -13,10 +13,9 @@ import 'package:nordplayer/widgets/album_art_wall.dart';
 import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
-import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
 import 'package:nordplayer/widgets/shortcuts.dart';
-import 'package:nordplayer/widgets/sliver_resizable_table_layout.dart';
+import 'package:nordplayer/widgets/sliver_resizable_table.dart';
 
 class LibraryPage extends ConsumerWidget {
   const LibraryPage({super.key});
@@ -52,119 +51,114 @@ class LibraryPage extends ConsumerWidget {
               loading: () => Center(child: CircularProgressIndicator()),
               error: (error, stack) => Center(child: Text('Error: $error')),
               data: (tracks) {
-                return FrostedGlass(
-                  backgroundColor: appConfig.adaptiveBg
-                      ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.5)
-                      : theme.colorScheme.surfaceContainer,
-                  child: CustomScrollView(
-                    slivers: [
-                      SliverAppBar(
-                        pinned: true,
-                        expandedHeight: 220.0,
-                        collapsedHeight: 0.0,
-                        toolbarHeight: 0.0,
-                        backgroundColor: Colors.transparent,
-                        elevation: 0,
-                        scrolledUnderElevation: 0,
-                        flexibleSpace: FlexibleSpaceBar(
-                          background: const LibraryHeroHeader(),
-                          collapseMode: CollapseMode.parallax,
-                        ),
+                return CustomScrollView(
+                  slivers: [
+                    SliverAppBar(
+                      pinned: true,
+                      expandedHeight: 220.0,
+                      collapsedHeight: 0.0,
+                      toolbarHeight: 0.0,
+                      backgroundColor: Colors.transparent,
+                      elevation: 0,
+                      scrolledUnderElevation: 0,
+                      flexibleSpace: FlexibleSpaceBar(
+                        background: const LibraryHeroHeader(),
+                        collapseMode: CollapseMode.parallax,
                       ),
+                    ),
 
-                      if (tracks.isEmpty)
-                        SliverFillRemaining(
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  "Your library is empty",
-                                  style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                    if (tracks.isEmpty)
+                      SliverFillRemaining(
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                "Your library is empty",
+                                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                "Scan your local folders to set up your music library.",
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                 ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  "Scan your local folders to set up your music library.",
-                                  textAlign: TextAlign.center,
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                                  ),
-                                ),
-                                const SizedBox(height: 24),
-                                FilledButton.icon(
-                                  onPressed: () {
-                                    context.go('/settings/library-management');
-                                  },
-                                  icon: const AppIcon(Icons.create_new_folder),
-                                  label: const Text("Add Music Folders"),
-                                ),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(height: 24),
+                              FilledButton.icon(
+                                onPressed: () {
+                                  context.go('/settings/library-management');
+                                },
+                                icon: const AppIcon(Icons.create_new_folder),
+                                label: const Text("Add Music Folders"),
+                              ),
+                            ],
                           ),
-                        )
-                      else
-                        SliverInteractiveTable<TrackWithArtists>(
-                          items: tracks,
-                          columns: tableColumns,
-                          selectedIndices: selectedIndices,
-                          rowHeight: 66.0,
-                          isAdaptive: appConfig.adaptiveBg,
-                          onColumnsResized: (newWidths) {
-                            ref.read(libraryTableColumnsProvider.notifier).updateColumnWidths(newWidths);
-                          },
-                          onHeaderRightClick: (globalPosition) {
-                            ContextMenu.show(
-                              isAdaptive: appConfig.adaptiveBg,
-                              context: context,
-                              globalPosition: globalPosition,
-                              actionMenus: [ContextMenuCustomWidget(child: const ColumnToggleContextMenu())],
-                            );
-                          },
-                          onRowClick: (index, {required isCtrl, required isShift}) {
-                            ref
-                                .read(selectedTracksIndexProvider('library_page').notifier)
-                                .selectTrack(index, isCtrlSelect: isCtrl, isShiftSelect: isShift);
-                          },
-                          onRowDoubleClick: (index) {
-                            ref
-                                .read(playerServiceProvider)
-                                .setPlaylist(
-                                  playbackContextType: 'library',
-                                  playbackContextId: null,
-                                  tracksToPlay: tracks,
-                                  initialIndex: index,
-                                );
-                          },
-                          onRowRightClick: (index, globalPosition) {
-                            final selectionNotifier = ref.read(selectedTracksIndexProvider('library_page').notifier);
-                            final currentSelection = ref.read(selectedTracksIndexProvider('library_page'));
-
-                            // If right-clicking an unselected item, select it first and clear others
-                            if (!currentSelection.contains(index)) {
-                              selectionNotifier.selectTrack(index, isCtrlSelect: false, isShiftSelect: false);
-                            }
-
-                            final updatedSelection = ref.read(selectedTracksIndexProvider('library_page'));
-
-                            // Convert to list and sort the indices first
-                            final sortedIndices = updatedSelection.toList()..sort();
-                            final List<TrackWithArtists> selectedTracks = sortedIndices.map((i) => tracks[i]).toList();
-
-                            TrackContextMenu.show(
-                              context: context,
-                              ref: ref,
-                              isAdaptive: appConfig.adaptiveBg,
-                              globalPosition: globalPosition,
-                              allTracks: tracks,
-                              clickedIndex: index,
-                              selectedTracks: selectedTracks,
-                              playbackContextType: 'library',
-                              playbackContextId: null,
-                            );
-                          },
                         ),
-                    ],
-                  ),
+                      )
+                    else
+                      SliverResizableTable<TrackWithArtists>(
+                        items: tracks,
+                        columns: tableColumns,
+                        selectedIndices: selectedIndices,
+                        rowHeight: 66.0,
+                        isAdaptive: appConfig.adaptiveBg,
+                        onColumnsResized: (newWidths) {
+                          ref.read(libraryTableColumnsProvider.notifier).updateColumnWidths(newWidths);
+                        },
+                        onHeaderRightClick: (globalPosition) {
+                          ContextMenu.show(
+                            isAdaptive: appConfig.adaptiveBg,
+                            context: context,
+                            globalPosition: globalPosition,
+                            actionMenus: [ContextMenuCustomWidget(child: const ColumnToggleContextMenu())],
+                          );
+                        },
+                        onRowClick: (index, {required isCtrl, required isShift}) {
+                          ref
+                              .read(selectedTracksIndexProvider('library_page').notifier)
+                              .selectTrack(index, isCtrlSelect: isCtrl, isShiftSelect: isShift);
+                        },
+                        onRowDoubleClick: (index) {
+                          ref
+                              .read(playerServiceProvider)
+                              .setPlaylist(
+                                playbackContextType: 'library',
+                                playbackContextId: null,
+                                tracksToPlay: tracks,
+                                initialIndex: index,
+                              );
+                        },
+                        onRowRightClick: (index, globalPosition) {
+                          final selectionNotifier = ref.read(selectedTracksIndexProvider('library_page').notifier);
+                          final currentSelection = ref.read(selectedTracksIndexProvider('library_page'));
+
+                          // If right-clicking an unselected item, select it first and clear others
+                          if (!currentSelection.contains(index)) {
+                            selectionNotifier.selectTrack(index, isCtrlSelect: false, isShiftSelect: false);
+                          }
+
+                          final updatedSelection = ref.read(selectedTracksIndexProvider('library_page'));
+
+                          // Convert to list and sort the indices first
+                          final sortedIndices = updatedSelection.toList()..sort();
+                          final List<TrackWithArtists> selectedTracks = sortedIndices.map((i) => tracks[i]).toList();
+
+                          TrackContextMenu.show(
+                            context: context,
+                            ref: ref,
+                            isAdaptive: appConfig.adaptiveBg,
+                            globalPosition: globalPosition,
+                            allTracks: tracks,
+                            clickedIndex: index,
+                            selectedTracks: selectedTracks,
+                            playbackContextType: 'library',
+                            playbackContextId: null,
+                          );
+                        },
+                      ),
+                  ],
                 );
               },
             ),
