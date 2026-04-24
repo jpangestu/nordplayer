@@ -55,7 +55,7 @@ class _LicensesPageState extends ConsumerState<LicensesPage> {
 
     const String appLicenseText =
         'MIT License\n\n'
-        'Copyright (c) 2026 Nordplayer\n\n'
+        'Copyright (c) 2026 Tandang Pangestu\n\n'
         'Permission is hereby granted, free of charge, to any person obtaining a copy '
         'of this software and associated documentation files (the "Software"), to deal '
         'in the Software without restriction, including without limitation the rights '
@@ -90,22 +90,12 @@ class _LicensesPageState extends ConsumerState<LicensesPage> {
                       children: [
                         Text(
                           _packageInfo?.appName.pascalCase ?? 'Nordplayer',
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          _packageInfo != null ? _packageInfo!.version : '',
-                          style: theme.textTheme.bodyMedium,
-                        ),
+                        Text(_packageInfo != null ? _packageInfo!.version : '', style: theme.textTheme.bodyMedium),
                         const SizedBox(height: 16),
-                        Text(
-                          appLicenseText,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontFamily: 'monospace',
-                          ),
-                        ),
+                        Text(appLicenseText, style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace')),
                         const SizedBox(height: 48),
                         Divider(color: theme.colorScheme.outlineVariant),
                         const SizedBox(height: 16),
@@ -118,37 +108,21 @@ class _LicensesPageState extends ConsumerState<LicensesPage> {
                   final licenses = _packageLicenses[packageName]!;
 
                   return ExpansionTile(
-                    tilePadding: const EdgeInsets.symmetric(
-                      horizontal: 16.0,
-                      vertical: 8.0,
-                    ),
-                    title: Text(
-                      packageName,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                    tilePadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    title: Text(packageName, style: const TextStyle(fontWeight: FontWeight.bold)),
                     // Matches the flutter default layout text style
                     subtitle: Text(
                       '${licenses.length} license${licenses.length > 1 ? 's' : ''}.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                     ),
                     children: licenses.map((license) {
                       return Padding(
-                        padding: const EdgeInsets.only(
-                          left: 16.0,
-                          right: 16.0,
-                          bottom: 24.0,
-                        ),
+                        padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 24.0),
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            license.paragraphs
-                                .map((p) => p.text)
-                                .join('\n\n'),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontFamily: 'monospace',
-                            ),
+                            license.paragraphs.map((p) => p.text).join('\n\n'),
+                            style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
                           ),
                         ),
                       );
