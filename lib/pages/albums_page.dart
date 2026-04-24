@@ -11,9 +11,7 @@ class AlbumsPage extends ConsumerWidget {
     final appConfig = ref.watch(configServiceProvider).requireValue;
 
     return Scaffold(
-      backgroundColor: appConfig.adaptiveBg
-          ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.5)
-          : theme.colorScheme.surface,
+      backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
       body: Center(child: Text('Albums')),
     );
   }

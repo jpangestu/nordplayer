@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/database/app_database.dart';
-import 'package:nordplayer/pages/library_page.dart';
+import 'package:nordplayer/pages/all_tracks.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
@@ -15,9 +15,8 @@ import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
 
 class QueuePage extends ConsumerStatefulWidget {
-  const QueuePage({super.key, required this.isWideScreen, required this.isAppBarAllowContentBehindIt});
+  const QueuePage({super.key, required this.isWideScreen});
   final bool isWideScreen;
-  final bool isAppBarAllowContentBehindIt;
 
   @override
   ConsumerState<QueuePage> createState() => _QueuePageState();
@@ -110,158 +109,155 @@ class _QueuePageState extends ConsumerState<QueuePage> {
 
     return FrostedGlass(
       blurSigma: appConfig.adaptiveBgPanelBlur,
-      child: Padding(
-        padding: EdgeInsets.only(top: widget.isAppBarAllowContentBehindIt ? 60.0 : 0.0),
-        child: SizedBox(
-          width: widget.isWideScreen ? 350 : 300,
-          child: Scaffold(
-            backgroundColor: appConfig.adaptiveBg
-                ? theme.colorScheme.surfaceContainer.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
-                : theme.colorScheme.surfaceContainer,
-            // MediaQuery.removePadding ensure tracks list doesn't leave blank space
-            // when scrolling up the first track in the list
-            body: MediaQuery.removePadding(
-              context: context,
-              removeTop: true,
-              child: CustomScrollView(
-                controller: _scrollController,
-                slivers: [
-                  SliverAppBar(
-                    pinned: true,
-                    backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.secondaryContainer,
-                    // Disable app bar changing color when tracks list scrolls below it
-                    surfaceTintColor: Colors.transparent,
-                    elevation: 0,
-                    scrolledUnderElevation: 4.0,
-                    shadowColor: Colors.black,
-                    titleSpacing: 0,
-                    flexibleSpace: appConfig.adaptiveBg
-                        ? ClipRect(
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0, tileMode: .mirror),
-                              child: Container(
-                                color: Theme.of(context).colorScheme.surfaceContainer.withValues(alpha: 0.6),
-                              ),
+      child: SizedBox(
+        width: widget.isWideScreen ? 350 : 300,
+        child: Scaffold(
+          backgroundColor: appConfig.adaptiveBg
+              ? theme.colorScheme.surfaceContainer.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
+              : theme.colorScheme.surfaceContainer,
+          // MediaQuery.removePadding ensure tracks list doesn't leave blank space
+          // when scrolling up the first track in the list
+          body: MediaQuery.removePadding(
+            context: context,
+            removeTop: true,
+            child: CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                SliverAppBar(
+                  pinned: true,
+                  backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.secondaryContainer,
+                  // Disable app bar changing color when tracks list scrolls below it
+                  surfaceTintColor: Colors.transparent,
+                  elevation: 0,
+                  scrolledUnderElevation: 4.0,
+                  shadowColor: Colors.black,
+                  titleSpacing: 0,
+                  flexibleSpace: appConfig.adaptiveBg
+                      ? ClipRect(
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0, tileMode: .mirror),
+                            child: Container(
+                              color: Theme.of(context).colorScheme.surfaceContainer.withValues(alpha: 0.6),
                             ),
-                          )
-                        : null,
-                    title: MouseRegion(
-                      onEnter: (_) => setState(() => _isHeaderHovered = true),
-                      onExit: (_) => setState(() => _isHeaderHovered = false),
-                      child: Container(
-                        width: double.infinity,
-                        height: kToolbarHeight,
-                        alignment: Alignment.centerLeft,
-                        padding: .symmetric(horizontal: _isHeaderHovered ? 8 : 16.0),
-                        child: Row(
-                          children: [
-                            if (_isHeaderHovered) ...[
-                              IconButton(
-                                onPressed: () {
-                                  ref.read(preferenceServiceProvider.notifier).setShowQueue(false);
-                                },
-                                icon: AppIcon(Icons.keyboard_arrow_right),
-                                tooltip: 'Close Queue',
-                              ),
-                              SizedBox(width: 8),
-                            ],
-                            Text('Queue'),
+                          ),
+                        )
+                      : null,
+                  title: MouseRegion(
+                    onEnter: (_) => setState(() => _isHeaderHovered = true),
+                    onExit: (_) => setState(() => _isHeaderHovered = false),
+                    child: Container(
+                      width: double.infinity,
+                      height: kToolbarHeight,
+                      alignment: Alignment.centerLeft,
+                      padding: .symmetric(horizontal: _isHeaderHovered ? 8 : 16.0),
+                      child: Row(
+                        children: [
+                          if (_isHeaderHovered) ...[
+                            IconButton(
+                              onPressed: () {
+                                ref.read(preferenceServiceProvider.notifier).setShowQueue(false);
+                              },
+                              icon: AppIcon(Icons.keyboard_arrow_right),
+                              tooltip: 'Close Queue',
+                            ),
+                            SizedBox(width: 8),
                           ],
-                        ),
+                          Text('Queue'),
+                        ],
                       ),
                     ),
                   ),
+                ),
 
-                  SliverReorderableList(
-                    // PERFORMANCE OPTIMIZATION:
-                    // Bind the list's Key to the shuffle state (true/false).
-                    // If not do it this way, toggling shuffle forces SliverReorderableList to calculate
-                    // the animation paths for hundreds of tracks simultaneously, which freezes the UI.
-                    // Changing the key forces Flutter to instantly destroy the old list and paint
-                    // the new one from scratch, completely bypassing the expensive animation diffing.
-                    key: ValueKey('queue_list_$isShuffleMode'),
-                    onReorder: (oldIndex, newIndex) {
-                      ref.read(playerServiceProvider).moveTrack(oldIndex, newIndex);
-                    },
-                    itemCount: currentTracks.length,
-                    itemExtent: _itemHeight,
-                    itemBuilder: (context, index) {
-                      final trackItem = currentTracks[index];
+                SliverReorderableList(
+                  // PERFORMANCE OPTIMIZATION:
+                  // Bind the list's Key to the shuffle state (true/false).
+                  // If not do it this way, toggling shuffle forces SliverReorderableList to calculate
+                  // the animation paths for hundreds of tracks simultaneously, which freezes the UI.
+                  // Changing the key forces Flutter to instantly destroy the old list and paint
+                  // the new one from scratch, completely bypassing the expensive animation diffing.
+                  key: ValueKey('queue_list_$isShuffleMode'),
+                  onReorder: (oldIndex, newIndex) {
+                    ref.read(playerServiceProvider).moveTrack(oldIndex, newIndex);
+                  },
+                  itemCount: currentTracks.length,
+                  itemExtent: _itemHeight,
+                  itemBuilder: (context, index) {
+                    final trackItem = currentTracks[index];
 
-                      if (trackItem != null) {
-                        final isSelected = selectedIndices.contains(index);
-                        final isCurrentlyPlaying = index == currentTrackIndex;
+                    if (trackItem != null) {
+                      final isSelected = selectedIndices.contains(index);
+                      final isCurrentlyPlaying = index == currentTrackIndex;
 
-                        return _QueueItem(
-                          key: ObjectKey(trackItem),
-                          index: index,
-                          trackItem: trackItem,
-                          isSelected: isSelected,
-                          isCurrentlyPlaying: isCurrentlyPlaying,
-                          onRemove: () {
-                            ref.read(playerServiceProvider).removeTrack(index);
-                          },
-                          onClick: (index, {required isCtrl, required isShift}) {
-                            ref
-                                .read(selectedTracksIndexProvider('queue_page').notifier)
-                                .selectTrack(index, isCtrlSelect: isCtrl, isShiftSelect: isShift);
-                          },
-                          onDoubleClick: (index) {
-                            ref
-                                .read(playerServiceProvider)
-                                .setPlaylist(
-                                  tracksToPlay: currentTracks.nonNulls.toList(),
-                                  initialIndex: index,
-                                  playbackContextType: currentPlaybackContext?.type ?? 'library',
-                                  playbackContextId: currentPlaybackContext?.id,
-                                );
-                          },
-                          onRightClick: (index, globalPosition) {
-                            final selectionNotifier = ref.read(selectedTracksIndexProvider('queue_page').notifier);
-                            final currentSelection = ref.read(selectedTracksIndexProvider('queue_page'));
+                      return _QueueItem(
+                        key: ObjectKey(trackItem),
+                        index: index,
+                        trackItem: trackItem,
+                        isSelected: isSelected,
+                        isCurrentlyPlaying: isCurrentlyPlaying,
+                        onRemove: () {
+                          ref.read(playerServiceProvider).removeTrack(index);
+                        },
+                        onClick: (index, {required isCtrl, required isShift}) {
+                          ref
+                              .read(selectedTracksIndexProvider('queue_page').notifier)
+                              .selectTrack(index, isCtrlSelect: isCtrl, isShiftSelect: isShift);
+                        },
+                        onDoubleClick: (index) {
+                          ref
+                              .read(playerServiceProvider)
+                              .setPlaylist(
+                                tracksToPlay: currentTracks.nonNulls.toList(),
+                                initialIndex: index,
+                                playbackContextType: currentPlaybackContext?.type ?? 'library',
+                                playbackContextId: currentPlaybackContext?.id,
+                              );
+                        },
+                        onRightClick: (index, globalPosition) {
+                          final selectionNotifier = ref.read(selectedTracksIndexProvider('queue_page').notifier);
+                          final currentSelection = ref.read(selectedTracksIndexProvider('queue_page'));
 
-                            // If right-clicking an unselected item, select it first and clear others
-                            if (!currentSelection.contains(index)) {
-                              selectionNotifier.selectTrack(index, isCtrlSelect: false, isShiftSelect: false);
-                            }
+                          // If right-clicking an unselected item, select it first and clear others
+                          if (!currentSelection.contains(index)) {
+                            selectionNotifier.selectTrack(index, isCtrlSelect: false, isShiftSelect: false);
+                          }
 
-                            final updatedSelection = ref.read(selectedTracksIndexProvider('queue_page'));
+                          final updatedSelection = ref.read(selectedTracksIndexProvider('queue_page'));
 
-                            // Convert to list and sort the indices
-                            final sortedIndices = updatedSelection.toList()..sort();
+                          // Convert to list and sort the indices
+                          final sortedIndices = updatedSelection.toList()..sort();
 
-                            // Safely map the selected tracks
-                            final List<TrackWithArtists> selectedTracks = sortedIndices
-                                .map((i) => currentTracks[i])
-                                .nonNulls
-                                .toList();
+                          // Safely map the selected tracks
+                          final List<TrackWithArtists> selectedTracks = sortedIndices
+                              .map((i) => currentTracks[i])
+                              .nonNulls
+                              .toList();
 
-                            TrackContextMenu.show(
-                              context: context,
-                              ref: ref,
-                              isAdaptive: ref.watch(configServiceProvider).requireValue.adaptiveBg,
-                              globalPosition: globalPosition,
-                              allTracks: currentTracks.nonNulls.toList(),
-                              clickedIndex: index, // Assuming no nulls skewing the index
-                              selectedTracks: selectedTracks,
-                              playbackContextType: 'queue', // Explicitly pass 'queue'
-                              playbackContextId: null,
-                            );
-                          },
-                        );
-                      }
-                      return SizedBox.shrink(key: ValueKey('empty_$index'));
-                    },
-                  ),
-                ],
-              ),
+                          TrackContextMenu.show(
+                            context: context,
+                            ref: ref,
+                            isAdaptive: ref.watch(configServiceProvider).requireValue.adaptiveBg,
+                            globalPosition: globalPosition,
+                            allTracks: currentTracks.nonNulls.toList(),
+                            clickedIndex: index, // Assuming no nulls skewing the index
+                            selectedTracks: selectedTracks,
+                            playbackContextType: 'queue', // Explicitly pass 'queue'
+                            playbackContextId: null,
+                          );
+                        },
+                      );
+                    }
+                    return SizedBox.shrink(key: ValueKey('empty_$index'));
+                  },
+                ),
+              ],
             ),
-            floatingActionButton: FloatingActionButton(
-              onPressed: _scrollToCurrentTrack,
-              mini: true,
-              tooltip: 'Show currently playing',
-              child: const AppIcon(Icons.keyboard_arrow_up),
-            ),
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: _scrollToCurrentTrack,
+            mini: true,
+            tooltip: 'Show currently playing',
+            child: const AppIcon(Icons.keyboard_arrow_up),
           ),
         ),
       ),

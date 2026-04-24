@@ -28,6 +28,7 @@ class _NordplayerAppBarState extends ConsumerState<NordplayerAppBar> {
     final currentRoute = GoRouterState.of(context).uri.path;
     final bool isMainTabRoot =
         currentRoute == Routes.libraryPage ||
+        currentRoute == Routes.allTracksPage ||
         currentRoute == Routes.playlistsPage ||
         currentRoute == Routes.albumsPage ||
         currentRoute == Routes.artistsPage;
@@ -45,19 +46,24 @@ class _NordplayerAppBarState extends ConsumerState<NordplayerAppBar> {
       backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surfaceContainer,
       toolbarHeight: 60,
       elevation: 0,
+      // To disable the surface tint color when app bar is scrolled
       scrolledUnderElevation: 0,
-      flexibleSpace: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: appConfig.adaptiveBgPanelBlur,
-            sigmaY: appConfig.adaptiveBgPanelBlur,
-            tileMode: .mirror,
-          ),
-          child: Container(
-            color: Theme.of(context).colorScheme.surfaceContainer.withValues(alpha: appConfig.adaptiveBgThemeOverlay),
-          ),
-        ),
-      ),
+      flexibleSpace: appConfig.adaptiveBg
+          ? ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(
+                  sigmaX: appConfig.adaptiveBgPanelBlur,
+                  sigmaY: appConfig.adaptiveBgPanelBlur,
+                  tileMode: .mirror,
+                ),
+                child: Container(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainer.withValues(alpha: appConfig.adaptiveBgThemeOverlay),
+                ),
+              ),
+            )
+          : SizedBox.shrink(),
       leading: (showBackButton)
           ? IconButton(
               icon: AppIcon(appIconSet.navigationBack),

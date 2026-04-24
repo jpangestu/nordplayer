@@ -34,6 +34,11 @@ class AppLayout extends ConsumerWidget {
         label: const Text('Library'),
       ),
       SidebarDestination(
+        icon: AppIcon(appIconSet.musicTile),
+        selectedIcon: AppIcon(appIconSet.musicTile),
+        label: const Text('All Tracks'),
+      ),
+      SidebarDestination(
         icon: AppIcon(appIconSet.playlist),
         selectedIcon: AppIcon(appIconSet.playlist),
         label: const Text('Playlists'),
@@ -122,7 +127,6 @@ class AppLayout extends ConsumerWidget {
                           Expanded(
                             child: Scaffold(
                               appBar: NordplayerAppBar(),
-                              extendBodyBehindAppBar: navigationShell.currentIndex == 0 ? true : false,
                               backgroundColor: Colors.transparent,
                               body: Stack(
                                 children: [
@@ -131,10 +135,7 @@ class AppLayout extends ConsumerWidget {
                                       Expanded(child: navigationShell),
                                       if (showQueue && isWideScreen) ...[
                                         const AdaptiveVerticalDivider(),
-                                        QueuePage(
-                                          isWideScreen: isWideScreen,
-                                          isAppBarAllowContentBehindIt: navigationShell.currentIndex == 0,
-                                        ),
+                                        QueuePage(isWideScreen: isWideScreen),
                                       ],
                                     ],
                                   ),
@@ -143,10 +144,7 @@ class AppLayout extends ConsumerWidget {
                                       top: 0,
                                       bottom: 0,
                                       right: 0,
-                                      child: QueuePage(
-                                        isWideScreen: isWideScreen,
-                                        isAppBarAllowContentBehindIt: navigationShell.currentIndex == 0,
-                                      ),
+                                      child: QueuePage(isWideScreen: isWideScreen),
                                     ),
                                 ],
                               ),

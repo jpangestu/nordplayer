@@ -78,7 +78,8 @@ class SliverResizableTable<T> extends StatefulWidget {
     this.tablePadding = const EdgeInsets.only(left: 16, top: 8, bottom: 16, right: 16),
     this.cellPadding = const EdgeInsets.symmetric(horizontal: 16),
     this.isAdaptive = false,
-    this.blurSigma = 10,
+    this.headerBlur = 10,
+    this.headerThemeOverlay = 0.4,
   });
 
   /// The strongly-typed data set that populates the table.
@@ -152,7 +153,9 @@ class SliverResizableTable<T> extends StatefulWidget {
   final bool isAdaptive;
 
   /// The blur intensity when apdaptive mode isAdaptive == true
-  final double blurSigma;
+  final double headerBlur;
+
+  final double headerThemeOverlay;
 
   @override
   State<SliverResizableTable<T>> createState() => _SliverResizableTableState<T>();
@@ -190,51 +193,57 @@ class _SliverResizableTableState<T> extends State<SliverResizableTable<T>> {
                     child: _buildHeader(context, visibleColumns),
                   ),
                 ),
-                // -- SCROLLABLE DATA ROWS --
-                SliverPadding(
-                  padding: widget.tablePadding,
-                  sliver: SliverFixedExtentList.builder(
-                    itemExtent: widget.rowHeight,
-                    itemCount: widget.items.length,
-                    itemBuilder: (context, index) {
-                      final item = widget.items[index];
-                      final isSelected = widget.selectedIndices.contains(index);
-                      final isPreviousSelected = widget.selectedIndices.contains(index - 1);
-                      final isNextSelected = widget.selectedIndices.contains(index + 1);
 
-                      return _GenericTableRowInteractiveWrapper(
-                        isSelected: isSelected,
-                        isPreviousSelected: isPreviousSelected,
-                        isNextSelected: isNextSelected,
-                        height: widget.rowHeight,
-                        onPointerDown: (event) {
-                          if (event.buttons == kPrimaryMouseButton) {
-                            final isCtrl =
-                                HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
-                            final isShift = HardwareKeyboard.instance.isShiftPressed;
-                            widget.onRowClick?.call(index, isCtrl: isCtrl, isShift: isShift);
-                          } else if (event.buttons == kSecondaryMouseButton) {
-                            widget.onRowRightClick?.call(index, event.position);
-                          }
-                        },
-                        onDoubleTap: () => widget.onRowDoubleClick?.call(index),
-                        child: Row(
-                          children: [
-                            for (int i = 0; i < visibleColumns.length; i++)
-                              SizedBox(
-                                width: _controller.widths[i],
-                                child: Padding(
-                                  padding: widget.cellPadding,
-                                  child: Align(
-                                    alignment: visibleColumns[i].alignment,
-                                    child: visibleColumns[i].cellBuilder(context, item, index),
+                // -- SCROLLABLE DATA ROWS --
+                DecoratedSliver(
+                  decoration: BoxDecoration(
+                    color: widget.isAdaptive ? Colors.transparent : Theme.of(context).colorScheme.surface,
+                  ),
+                  sliver: SliverPadding(
+                    padding: widget.tablePadding,
+                    sliver: SliverFixedExtentList.builder(
+                      itemExtent: widget.rowHeight,
+                      itemCount: widget.items.length,
+                      itemBuilder: (context, index) {
+                        final item = widget.items[index];
+                        final isSelected = widget.selectedIndices.contains(index);
+                        final isPreviousSelected = widget.selectedIndices.contains(index - 1);
+                        final isNextSelected = widget.selectedIndices.contains(index + 1);
+
+                        return _GenericTableRowInteractiveWrapper(
+                          isSelected: isSelected,
+                          isPreviousSelected: isPreviousSelected,
+                          isNextSelected: isNextSelected,
+                          height: widget.rowHeight,
+                          onPointerDown: (event) {
+                            if (event.buttons == kPrimaryMouseButton) {
+                              final isCtrl =
+                                  HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
+                              final isShift = HardwareKeyboard.instance.isShiftPressed;
+                              widget.onRowClick?.call(index, isCtrl: isCtrl, isShift: isShift);
+                            } else if (event.buttons == kSecondaryMouseButton) {
+                              widget.onRowRightClick?.call(index, event.position);
+                            }
+                          },
+                          onDoubleTap: () => widget.onRowDoubleClick?.call(index),
+                          child: Row(
+                            children: [
+                              for (int i = 0; i < visibleColumns.length; i++)
+                                SizedBox(
+                                  width: _controller.widths[i],
+                                  child: Padding(
+                                    padding: widget.cellPadding,
+                                    child: Align(
+                                      alignment: visibleColumns[i].alignment,
+                                      child: visibleColumns[i].cellBuilder(context, item, index),
+                                    ),
                                   ),
                                 ),
-                              ),
-                          ],
-                        ),
-                      );
-                    },
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ],
@@ -250,7 +259,9 @@ class _SliverResizableTableState<T> extends State<SliverResizableTable<T>> {
     final defaultBorderColor = theme.dividerTheme.color ?? theme.colorScheme.outlineVariant;
 
     Widget headerContent = Container(
-      color: widget.isAdaptive ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.6) : theme.colorScheme.surface,
+      color: widget.isAdaptive
+          ? theme.colorScheme.surfaceContainer.withValues(alpha: widget.headerThemeOverlay)
+          : theme.colorScheme.surface,
       child: Padding(
         padding: EdgeInsets.only(left: widget.tablePadding.left, right: widget.tablePadding.right),
         child: Container(
@@ -276,7 +287,7 @@ class _SliverResizableTableState<T> extends State<SliverResizableTable<T>> {
     if (widget.isAdaptive) {
       return ClipRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: widget.blurSigma, sigmaY: widget.blurSigma, tileMode: TileMode.mirror),
+          filter: ImageFilter.blur(sigmaX: widget.headerBlur, sigmaY: widget.headerBlur, tileMode: TileMode.mirror),
           child: headerContent,
         ),
       );
