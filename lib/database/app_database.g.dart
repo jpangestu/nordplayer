@@ -2045,6 +2045,56 @@ class $QueueEntriesTable extends QueueEntries
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $QueueEntriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _originalQueueIndexMeta =
+      const VerificationMeta('originalQueueIndex');
+  @override
+  late final GeneratedColumn<int> originalQueueIndex = GeneratedColumn<int>(
+    'original_queue_index',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _trackIdMeta = const VerificationMeta(
+    'trackId',
+  );
+  @override
+  late final GeneratedColumn<int> trackId = GeneratedColumn<int>(
+    'track_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES tracks (id)',
+    ),
+  );
+  static const VerificationMeta _isCurrentlyPlayingMeta =
+      const VerificationMeta('isCurrentlyPlaying');
+  @override
+  late final GeneratedColumn<bool> isCurrentlyPlaying = GeneratedColumn<bool>(
+    'is_currently_playing',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_currently_playing" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _resumePositionMsMeta = const VerificationMeta(
+    'resumePositionMs',
+  );
+  @override
+  late final GeneratedColumn<int> resumePositionMs = GeneratedColumn<int>(
+    'resume_position_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _playbackContextTypeMeta =
       const VerificationMeta('playbackContextType');
   @override
@@ -2067,66 +2117,14 @@ class $QueueEntriesTable extends QueueEntries
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _positionMeta = const VerificationMeta(
-    'position',
-  );
-  @override
-  late final GeneratedColumn<int> position = GeneratedColumn<int>(
-    'position',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _trackIdMeta = const VerificationMeta(
-    'trackId',
-  );
-  @override
-  late final GeneratedColumn<int> trackId = GeneratedColumn<int>(
-    'track_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES tracks (id)',
-    ),
-  );
-  static const VerificationMeta _isLastPlayedMeta = const VerificationMeta(
-    'isLastPlayed',
-  );
-  @override
-  late final GeneratedColumn<bool> isLastPlayed = GeneratedColumn<bool>(
-    'is_last_played',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_last_played" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _lastPositionMeta = const VerificationMeta(
-    'lastPosition',
-  );
-  @override
-  late final GeneratedColumn<int> lastPosition = GeneratedColumn<int>(
-    'last_position',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0),
-  );
   @override
   List<GeneratedColumn> get $columns => [
+    originalQueueIndex,
+    trackId,
+    isCurrentlyPlaying,
+    resumePositionMs,
     playbackContextType,
     playbackContextId,
-    position,
-    trackId,
-    isLastPlayed,
-    lastPosition,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2140,6 +2138,41 @@ class $QueueEntriesTable extends QueueEntries
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('original_queue_index')) {
+      context.handle(
+        _originalQueueIndexMeta,
+        originalQueueIndex.isAcceptableOrUnknown(
+          data['original_queue_index']!,
+          _originalQueueIndexMeta,
+        ),
+      );
+    }
+    if (data.containsKey('track_id')) {
+      context.handle(
+        _trackIdMeta,
+        trackId.isAcceptableOrUnknown(data['track_id']!, _trackIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_trackIdMeta);
+    }
+    if (data.containsKey('is_currently_playing')) {
+      context.handle(
+        _isCurrentlyPlayingMeta,
+        isCurrentlyPlaying.isAcceptableOrUnknown(
+          data['is_currently_playing']!,
+          _isCurrentlyPlayingMeta,
+        ),
+      );
+    }
+    if (data.containsKey('resume_position_ms')) {
+      context.handle(
+        _resumePositionMsMeta,
+        resumePositionMs.isAcceptableOrUnknown(
+          data['resume_position_ms']!,
+          _resumePositionMsMeta,
+        ),
+      );
+    }
     if (data.containsKey('playback_context_type')) {
       context.handle(
         _playbackContextTypeMeta,
@@ -2160,47 +2193,31 @@ class $QueueEntriesTable extends QueueEntries
         ),
       );
     }
-    if (data.containsKey('position')) {
-      context.handle(
-        _positionMeta,
-        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
-      );
-    }
-    if (data.containsKey('track_id')) {
-      context.handle(
-        _trackIdMeta,
-        trackId.isAcceptableOrUnknown(data['track_id']!, _trackIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_trackIdMeta);
-    }
-    if (data.containsKey('is_last_played')) {
-      context.handle(
-        _isLastPlayedMeta,
-        isLastPlayed.isAcceptableOrUnknown(
-          data['is_last_played']!,
-          _isLastPlayedMeta,
-        ),
-      );
-    }
-    if (data.containsKey('last_position')) {
-      context.handle(
-        _lastPositionMeta,
-        lastPosition.isAcceptableOrUnknown(
-          data['last_position']!,
-          _lastPositionMeta,
-        ),
-      );
-    }
     return context;
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {position};
+  Set<GeneratedColumn> get $primaryKey => {originalQueueIndex};
   @override
   QueueEntry map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return QueueEntry(
+      originalQueueIndex: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}original_queue_index'],
+      )!,
+      trackId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}track_id'],
+      )!,
+      isCurrentlyPlaying: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_currently_playing'],
+      )!,
+      resumePositionMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}resume_position_ms'],
+      )!,
       playbackContextType: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}playback_context_type'],
@@ -2209,22 +2226,6 @@ class $QueueEntriesTable extends QueueEntries
         DriftSqlType.int,
         data['${effectivePrefix}playback_context_id'],
       ),
-      position: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}position'],
-      )!,
-      trackId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}track_id'],
-      )!,
-      isLastPlayed: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_last_played'],
-      )!,
-      lastPosition: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}last_position'],
-      )!,
     );
   }
 
@@ -2235,44 +2236,59 @@ class $QueueEntriesTable extends QueueEntries
 }
 
 class QueueEntry extends DataClass implements Insertable<QueueEntry> {
-  final String playbackContextType;
-  final int? playbackContextId;
-  final int position;
+  /// The exact current position of the track inside the native `media_kit` engine.
+  /// If shuffle is ON, this represents the track's place in the scrambled sequence.
+  /// The pure, unshuffled position of the track in the original list.
+  /// Fall back to this when the user clicks "Unshuffle".
+  final int originalQueueIndex;
+
+  /// Foreign key linking to the `Tracks` metadata table.
   final int trackId;
-  final bool isLastPlayed;
-  final int lastPosition;
+
+  /// Flags the single track that was actively playing when the app was last closed.
+  final bool isCurrentlyPlaying;
+
+  /// The exact timestamp (in milliseconds) to resume playback from on the active track.
+  final int resumePositionMs;
+
+  /// The origin of the queue (i.e. 'album', 'playlist', 'all_tracks').
+  final String playbackContextType;
+
+  /// The specific database ID of the origin (i.e. Playlist ID 5, Album ID 77).
+  /// Nullable because all_tracks don't have id
+  final int? playbackContextId;
   const QueueEntry({
+    required this.originalQueueIndex,
+    required this.trackId,
+    required this.isCurrentlyPlaying,
+    required this.resumePositionMs,
     required this.playbackContextType,
     this.playbackContextId,
-    required this.position,
-    required this.trackId,
-    required this.isLastPlayed,
-    required this.lastPosition,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    map['original_queue_index'] = Variable<int>(originalQueueIndex);
+    map['track_id'] = Variable<int>(trackId);
+    map['is_currently_playing'] = Variable<bool>(isCurrentlyPlaying);
+    map['resume_position_ms'] = Variable<int>(resumePositionMs);
     map['playback_context_type'] = Variable<String>(playbackContextType);
     if (!nullToAbsent || playbackContextId != null) {
       map['playback_context_id'] = Variable<int>(playbackContextId);
     }
-    map['position'] = Variable<int>(position);
-    map['track_id'] = Variable<int>(trackId);
-    map['is_last_played'] = Variable<bool>(isLastPlayed);
-    map['last_position'] = Variable<int>(lastPosition);
     return map;
   }
 
   QueueEntriesCompanion toCompanion(bool nullToAbsent) {
     return QueueEntriesCompanion(
+      originalQueueIndex: Value(originalQueueIndex),
+      trackId: Value(trackId),
+      isCurrentlyPlaying: Value(isCurrentlyPlaying),
+      resumePositionMs: Value(resumePositionMs),
       playbackContextType: Value(playbackContextType),
       playbackContextId: playbackContextId == null && nullToAbsent
           ? const Value.absent()
           : Value(playbackContextId),
-      position: Value(position),
-      trackId: Value(trackId),
-      isLastPlayed: Value(isLastPlayed),
-      lastPosition: Value(lastPosition),
     );
   }
 
@@ -2282,163 +2298,179 @@ class QueueEntry extends DataClass implements Insertable<QueueEntry> {
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return QueueEntry(
+      originalQueueIndex: serializer.fromJson<int>(json['originalQueueIndex']),
+      trackId: serializer.fromJson<int>(json['trackId']),
+      isCurrentlyPlaying: serializer.fromJson<bool>(json['isCurrentlyPlaying']),
+      resumePositionMs: serializer.fromJson<int>(json['resumePositionMs']),
       playbackContextType: serializer.fromJson<String>(
         json['playbackContextType'],
       ),
       playbackContextId: serializer.fromJson<int?>(json['playbackContextId']),
-      position: serializer.fromJson<int>(json['position']),
-      trackId: serializer.fromJson<int>(json['trackId']),
-      isLastPlayed: serializer.fromJson<bool>(json['isLastPlayed']),
-      lastPosition: serializer.fromJson<int>(json['lastPosition']),
     );
   }
   @override
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'originalQueueIndex': serializer.toJson<int>(originalQueueIndex),
+      'trackId': serializer.toJson<int>(trackId),
+      'isCurrentlyPlaying': serializer.toJson<bool>(isCurrentlyPlaying),
+      'resumePositionMs': serializer.toJson<int>(resumePositionMs),
       'playbackContextType': serializer.toJson<String>(playbackContextType),
       'playbackContextId': serializer.toJson<int?>(playbackContextId),
-      'position': serializer.toJson<int>(position),
-      'trackId': serializer.toJson<int>(trackId),
-      'isLastPlayed': serializer.toJson<bool>(isLastPlayed),
-      'lastPosition': serializer.toJson<int>(lastPosition),
     };
   }
 
   QueueEntry copyWith({
+    int? originalQueueIndex,
+    int? trackId,
+    bool? isCurrentlyPlaying,
+    int? resumePositionMs,
     String? playbackContextType,
     Value<int?> playbackContextId = const Value.absent(),
-    int? position,
-    int? trackId,
-    bool? isLastPlayed,
-    int? lastPosition,
   }) => QueueEntry(
+    originalQueueIndex: originalQueueIndex ?? this.originalQueueIndex,
+    trackId: trackId ?? this.trackId,
+    isCurrentlyPlaying: isCurrentlyPlaying ?? this.isCurrentlyPlaying,
+    resumePositionMs: resumePositionMs ?? this.resumePositionMs,
     playbackContextType: playbackContextType ?? this.playbackContextType,
     playbackContextId: playbackContextId.present
         ? playbackContextId.value
         : this.playbackContextId,
-    position: position ?? this.position,
-    trackId: trackId ?? this.trackId,
-    isLastPlayed: isLastPlayed ?? this.isLastPlayed,
-    lastPosition: lastPosition ?? this.lastPosition,
   );
   QueueEntry copyWithCompanion(QueueEntriesCompanion data) {
     return QueueEntry(
+      originalQueueIndex: data.originalQueueIndex.present
+          ? data.originalQueueIndex.value
+          : this.originalQueueIndex,
+      trackId: data.trackId.present ? data.trackId.value : this.trackId,
+      isCurrentlyPlaying: data.isCurrentlyPlaying.present
+          ? data.isCurrentlyPlaying.value
+          : this.isCurrentlyPlaying,
+      resumePositionMs: data.resumePositionMs.present
+          ? data.resumePositionMs.value
+          : this.resumePositionMs,
       playbackContextType: data.playbackContextType.present
           ? data.playbackContextType.value
           : this.playbackContextType,
       playbackContextId: data.playbackContextId.present
           ? data.playbackContextId.value
           : this.playbackContextId,
-      position: data.position.present ? data.position.value : this.position,
-      trackId: data.trackId.present ? data.trackId.value : this.trackId,
-      isLastPlayed: data.isLastPlayed.present
-          ? data.isLastPlayed.value
-          : this.isLastPlayed,
-      lastPosition: data.lastPosition.present
-          ? data.lastPosition.value
-          : this.lastPosition,
     );
   }
 
   @override
   String toString() {
     return (StringBuffer('QueueEntry(')
-          ..write('playbackContextType: $playbackContextType, ')
-          ..write('playbackContextId: $playbackContextId, ')
-          ..write('position: $position, ')
+          ..write('originalQueueIndex: $originalQueueIndex, ')
           ..write('trackId: $trackId, ')
-          ..write('isLastPlayed: $isLastPlayed, ')
-          ..write('lastPosition: $lastPosition')
+          ..write('isCurrentlyPlaying: $isCurrentlyPlaying, ')
+          ..write('resumePositionMs: $resumePositionMs, ')
+          ..write('playbackContextType: $playbackContextType, ')
+          ..write('playbackContextId: $playbackContextId')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode => Object.hash(
+    originalQueueIndex,
+    trackId,
+    isCurrentlyPlaying,
+    resumePositionMs,
     playbackContextType,
     playbackContextId,
-    position,
-    trackId,
-    isLastPlayed,
-    lastPosition,
   );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is QueueEntry &&
-          other.playbackContextType == this.playbackContextType &&
-          other.playbackContextId == this.playbackContextId &&
-          other.position == this.position &&
+          other.originalQueueIndex == this.originalQueueIndex &&
           other.trackId == this.trackId &&
-          other.isLastPlayed == this.isLastPlayed &&
-          other.lastPosition == this.lastPosition);
+          other.isCurrentlyPlaying == this.isCurrentlyPlaying &&
+          other.resumePositionMs == this.resumePositionMs &&
+          other.playbackContextType == this.playbackContextType &&
+          other.playbackContextId == this.playbackContextId);
 }
 
 class QueueEntriesCompanion extends UpdateCompanion<QueueEntry> {
+  final Value<int> originalQueueIndex;
+  final Value<int> trackId;
+  final Value<bool> isCurrentlyPlaying;
+  final Value<int> resumePositionMs;
   final Value<String> playbackContextType;
   final Value<int?> playbackContextId;
-  final Value<int> position;
-  final Value<int> trackId;
-  final Value<bool> isLastPlayed;
-  final Value<int> lastPosition;
   const QueueEntriesCompanion({
+    this.originalQueueIndex = const Value.absent(),
+    this.trackId = const Value.absent(),
+    this.isCurrentlyPlaying = const Value.absent(),
+    this.resumePositionMs = const Value.absent(),
     this.playbackContextType = const Value.absent(),
     this.playbackContextId = const Value.absent(),
-    this.position = const Value.absent(),
-    this.trackId = const Value.absent(),
-    this.isLastPlayed = const Value.absent(),
-    this.lastPosition = const Value.absent(),
   });
   QueueEntriesCompanion.insert({
+    this.originalQueueIndex = const Value.absent(),
+    required int trackId,
+    this.isCurrentlyPlaying = const Value.absent(),
+    this.resumePositionMs = const Value.absent(),
     required String playbackContextType,
     this.playbackContextId = const Value.absent(),
-    this.position = const Value.absent(),
-    required int trackId,
-    this.isLastPlayed = const Value.absent(),
-    this.lastPosition = const Value.absent(),
-  }) : playbackContextType = Value(playbackContextType),
-       trackId = Value(trackId);
+  }) : trackId = Value(trackId),
+       playbackContextType = Value(playbackContextType);
   static Insertable<QueueEntry> custom({
+    Expression<int>? originalQueueIndex,
+    Expression<int>? trackId,
+    Expression<bool>? isCurrentlyPlaying,
+    Expression<int>? resumePositionMs,
     Expression<String>? playbackContextType,
     Expression<int>? playbackContextId,
-    Expression<int>? position,
-    Expression<int>? trackId,
-    Expression<bool>? isLastPlayed,
-    Expression<int>? lastPosition,
   }) {
     return RawValuesInsertable({
+      if (originalQueueIndex != null)
+        'original_queue_index': originalQueueIndex,
+      if (trackId != null) 'track_id': trackId,
+      if (isCurrentlyPlaying != null)
+        'is_currently_playing': isCurrentlyPlaying,
+      if (resumePositionMs != null) 'resume_position_ms': resumePositionMs,
       if (playbackContextType != null)
         'playback_context_type': playbackContextType,
       if (playbackContextId != null) 'playback_context_id': playbackContextId,
-      if (position != null) 'position': position,
-      if (trackId != null) 'track_id': trackId,
-      if (isLastPlayed != null) 'is_last_played': isLastPlayed,
-      if (lastPosition != null) 'last_position': lastPosition,
     });
   }
 
   QueueEntriesCompanion copyWith({
+    Value<int>? originalQueueIndex,
+    Value<int>? trackId,
+    Value<bool>? isCurrentlyPlaying,
+    Value<int>? resumePositionMs,
     Value<String>? playbackContextType,
     Value<int?>? playbackContextId,
-    Value<int>? position,
-    Value<int>? trackId,
-    Value<bool>? isLastPlayed,
-    Value<int>? lastPosition,
   }) {
     return QueueEntriesCompanion(
+      originalQueueIndex: originalQueueIndex ?? this.originalQueueIndex,
+      trackId: trackId ?? this.trackId,
+      isCurrentlyPlaying: isCurrentlyPlaying ?? this.isCurrentlyPlaying,
+      resumePositionMs: resumePositionMs ?? this.resumePositionMs,
       playbackContextType: playbackContextType ?? this.playbackContextType,
       playbackContextId: playbackContextId ?? this.playbackContextId,
-      position: position ?? this.position,
-      trackId: trackId ?? this.trackId,
-      isLastPlayed: isLastPlayed ?? this.isLastPlayed,
-      lastPosition: lastPosition ?? this.lastPosition,
     );
   }
 
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (originalQueueIndex.present) {
+      map['original_queue_index'] = Variable<int>(originalQueueIndex.value);
+    }
+    if (trackId.present) {
+      map['track_id'] = Variable<int>(trackId.value);
+    }
+    if (isCurrentlyPlaying.present) {
+      map['is_currently_playing'] = Variable<bool>(isCurrentlyPlaying.value);
+    }
+    if (resumePositionMs.present) {
+      map['resume_position_ms'] = Variable<int>(resumePositionMs.value);
+    }
     if (playbackContextType.present) {
       map['playback_context_type'] = Variable<String>(
         playbackContextType.value,
@@ -2447,30 +2479,18 @@ class QueueEntriesCompanion extends UpdateCompanion<QueueEntry> {
     if (playbackContextId.present) {
       map['playback_context_id'] = Variable<int>(playbackContextId.value);
     }
-    if (position.present) {
-      map['position'] = Variable<int>(position.value);
-    }
-    if (trackId.present) {
-      map['track_id'] = Variable<int>(trackId.value);
-    }
-    if (isLastPlayed.present) {
-      map['is_last_played'] = Variable<bool>(isLastPlayed.value);
-    }
-    if (lastPosition.present) {
-      map['last_position'] = Variable<int>(lastPosition.value);
-    }
     return map;
   }
 
   @override
   String toString() {
     return (StringBuffer('QueueEntriesCompanion(')
-          ..write('playbackContextType: $playbackContextType, ')
-          ..write('playbackContextId: $playbackContextId, ')
-          ..write('position: $position, ')
+          ..write('originalQueueIndex: $originalQueueIndex, ')
           ..write('trackId: $trackId, ')
-          ..write('isLastPlayed: $isLastPlayed, ')
-          ..write('lastPosition: $lastPosition')
+          ..write('isCurrentlyPlaying: $isCurrentlyPlaying, ')
+          ..write('resumePositionMs: $resumePositionMs, ')
+          ..write('playbackContextType: $playbackContextType, ')
+          ..write('playbackContextId: $playbackContextId')
           ..write(')'))
         .toString();
   }
@@ -5172,21 +5192,21 @@ typedef $$PlaylistTrackTableProcessedTableManager =
     >;
 typedef $$QueueEntriesTableCreateCompanionBuilder =
     QueueEntriesCompanion Function({
+      Value<int> originalQueueIndex,
+      required int trackId,
+      Value<bool> isCurrentlyPlaying,
+      Value<int> resumePositionMs,
       required String playbackContextType,
       Value<int?> playbackContextId,
-      Value<int> position,
-      required int trackId,
-      Value<bool> isLastPlayed,
-      Value<int> lastPosition,
     });
 typedef $$QueueEntriesTableUpdateCompanionBuilder =
     QueueEntriesCompanion Function({
+      Value<int> originalQueueIndex,
+      Value<int> trackId,
+      Value<bool> isCurrentlyPlaying,
+      Value<int> resumePositionMs,
       Value<String> playbackContextType,
       Value<int?> playbackContextId,
-      Value<int> position,
-      Value<int> trackId,
-      Value<bool> isLastPlayed,
-      Value<int> lastPosition,
     });
 
 final class $$QueueEntriesTableReferences
@@ -5221,6 +5241,21 @@ class $$QueueEntriesTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<int> get originalQueueIndex => $composableBuilder(
+    column: $table.originalQueueIndex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isCurrentlyPlaying => $composableBuilder(
+    column: $table.isCurrentlyPlaying,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get resumePositionMs => $composableBuilder(
+    column: $table.resumePositionMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get playbackContextType => $composableBuilder(
     column: $table.playbackContextType,
     builder: (column) => ColumnFilters(column),
@@ -5228,21 +5263,6 @@ class $$QueueEntriesTableFilterComposer
 
   ColumnFilters<int> get playbackContextId => $composableBuilder(
     column: $table.playbackContextId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get position => $composableBuilder(
-    column: $table.position,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get isLastPlayed => $composableBuilder(
-    column: $table.isLastPlayed,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get lastPosition => $composableBuilder(
-    column: $table.lastPosition,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5279,6 +5299,21 @@ class $$QueueEntriesTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<int> get originalQueueIndex => $composableBuilder(
+    column: $table.originalQueueIndex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isCurrentlyPlaying => $composableBuilder(
+    column: $table.isCurrentlyPlaying,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get resumePositionMs => $composableBuilder(
+    column: $table.resumePositionMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get playbackContextType => $composableBuilder(
     column: $table.playbackContextType,
     builder: (column) => ColumnOrderings(column),
@@ -5286,21 +5321,6 @@ class $$QueueEntriesTableOrderingComposer
 
   ColumnOrderings<int> get playbackContextId => $composableBuilder(
     column: $table.playbackContextId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get position => $composableBuilder(
-    column: $table.position,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get isLastPlayed => $composableBuilder(
-    column: $table.isLastPlayed,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get lastPosition => $composableBuilder(
-    column: $table.lastPosition,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -5337,6 +5357,21 @@ class $$QueueEntriesTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<int> get originalQueueIndex => $composableBuilder(
+    column: $table.originalQueueIndex,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isCurrentlyPlaying => $composableBuilder(
+    column: $table.isCurrentlyPlaying,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get resumePositionMs => $composableBuilder(
+    column: $table.resumePositionMs,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get playbackContextType => $composableBuilder(
     column: $table.playbackContextType,
     builder: (column) => column,
@@ -5344,19 +5379,6 @@ class $$QueueEntriesTableAnnotationComposer
 
   GeneratedColumn<int> get playbackContextId => $composableBuilder(
     column: $table.playbackContextId,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get position =>
-      $composableBuilder(column: $table.position, builder: (column) => column);
-
-  GeneratedColumn<bool> get isLastPlayed => $composableBuilder(
-    column: $table.isLastPlayed,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get lastPosition => $composableBuilder(
-    column: $table.lastPosition,
     builder: (column) => column,
   );
 
@@ -5412,35 +5434,35 @@ class $$QueueEntriesTableTableManager
               $$QueueEntriesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
+                Value<int> originalQueueIndex = const Value.absent(),
+                Value<int> trackId = const Value.absent(),
+                Value<bool> isCurrentlyPlaying = const Value.absent(),
+                Value<int> resumePositionMs = const Value.absent(),
                 Value<String> playbackContextType = const Value.absent(),
                 Value<int?> playbackContextId = const Value.absent(),
-                Value<int> position = const Value.absent(),
-                Value<int> trackId = const Value.absent(),
-                Value<bool> isLastPlayed = const Value.absent(),
-                Value<int> lastPosition = const Value.absent(),
               }) => QueueEntriesCompanion(
+                originalQueueIndex: originalQueueIndex,
+                trackId: trackId,
+                isCurrentlyPlaying: isCurrentlyPlaying,
+                resumePositionMs: resumePositionMs,
                 playbackContextType: playbackContextType,
                 playbackContextId: playbackContextId,
-                position: position,
-                trackId: trackId,
-                isLastPlayed: isLastPlayed,
-                lastPosition: lastPosition,
               ),
           createCompanionCallback:
               ({
+                Value<int> originalQueueIndex = const Value.absent(),
+                required int trackId,
+                Value<bool> isCurrentlyPlaying = const Value.absent(),
+                Value<int> resumePositionMs = const Value.absent(),
                 required String playbackContextType,
                 Value<int?> playbackContextId = const Value.absent(),
-                Value<int> position = const Value.absent(),
-                required int trackId,
-                Value<bool> isLastPlayed = const Value.absent(),
-                Value<int> lastPosition = const Value.absent(),
               }) => QueueEntriesCompanion.insert(
+                originalQueueIndex: originalQueueIndex,
+                trackId: trackId,
+                isCurrentlyPlaying: isCurrentlyPlaying,
+                resumePositionMs: resumePositionMs,
                 playbackContextType: playbackContextType,
                 playbackContextId: playbackContextId,
-                position: position,
-                trackId: trackId,
-                isLastPlayed: isLastPlayed,
-                lastPosition: lastPosition,
               ),
           withReferenceMapper: (p0) => p0
               .map(

@@ -4,8 +4,8 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/database/schema.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 part 'app_database.g.dart';
 
@@ -26,17 +26,7 @@ LazyDatabase openConection() {
   });
 }
 
-@DriftDatabase(
-  tables: [
-    Tracks,
-    Artists,
-    Albums,
-    Playlists,
-    TrackArtist,
-    PlaylistTrack,
-    QueueEntries,
-  ],
-)
+@DriftDatabase(tables: [Tracks, Artists, Albums, Playlists, TrackArtist, PlaylistTrack, QueueEntries])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
@@ -75,21 +65,13 @@ class AppDatabase extends _$AppDatabase {
 
     final query =
         select(playlists).join([
-            leftOuterJoin(
-              playlistTrack,
-              playlistTrack.playlistId.equalsExp(playlists.id),
-            ),
+            leftOuterJoin(playlistTrack, playlistTrack.playlistId.equalsExp(playlists.id)),
             leftOuterJoin(tracks, tracks.id.equalsExp(playlistTrack.trackId)),
             leftOuterJoin(albums, albums.id.equalsExp(tracks.albumId)),
           ])
-          ..addColumns([
-            trackCount,
-            coverPaths,
-          ]) // Ask SQL for the concated string
+          ..addColumns([trackCount, coverPaths]) // Ask SQL for the concated string
           ..groupBy([playlists.id])
-          ..orderBy([
-            OrderingTerm(expression: playlists.name, mode: OrderingMode.asc),
-          ]);
+          ..orderBy([OrderingTerm(expression: playlists.name, mode: OrderingMode.asc)]);
 
     return query.watch().map((rows) {
       return rows.map((row) {
@@ -136,11 +118,7 @@ class AppDatabase extends _$AppDatabase {
       final artist = row.readTable(artists);
 
       if (!groupedTracks.containsKey(track.id)) {
-        groupedTracks[track.id] = TrackWithArtists(
-          track: track,
-          album: album,
-          artists: [],
-        );
+        groupedTracks[track.id] = TrackWithArtists(track: track, album: album, artists: []);
       }
 
       final currentArtists = groupedTracks[track.id]!.artists;
@@ -169,11 +147,7 @@ class AppDatabase extends _$AppDatabase {
         final artist = row.readTable(artists);
 
         if (!groupedTracks.containsKey(track.id)) {
-          groupedTracks[track.id] = TrackWithArtists(
-            track: track,
-            album: album,
-            artists: [],
-          );
+          groupedTracks[track.id] = TrackWithArtists(track: track, album: album, artists: []);
         }
 
         final currentArtists = groupedTracks[track.id]!.artists;
@@ -198,67 +172,78 @@ class AppDatabase extends _$AppDatabase {
     await batch((batch) {
       batch.insertAll(
         playlistTrack,
-        trackIds
-            .map(
-              (id) => PlaylistTrackCompanion.insert(
-                playlistId: playlistId,
-                trackId: id,
-              ),
-            )
-            .toList(),
+        trackIds.map((id) => PlaylistTrackCompanion.insert(playlistId: playlistId, trackId: id)).toList(),
         mode: InsertMode.insertOrIgnore,
       );
     });
   }
 
   Future<int> renamePlaylist(int playlistId, String newName) {
-    return (update(playlists)..where((p) => p.id.equals(playlistId))).write(
-      PlaylistsCompanion(name: Value(newName)),
-    );
+    return (update(playlists)..where((p) => p.id.equals(playlistId))).write(PlaylistsCompanion(name: Value(newName)));
   }
 
-  // -- QUEUE SAVING --
+  // =================================== Queue Saving & Restoration ===================================================
 
+  /// Saves the app current queue state to the database
+  ///
+  /// **Parameters:**
+  /// * [originalQueue]: The list of tracks in original, unshuffled order.
+  /// * [currentlyPlayedTrackPath]: The path of the currently playing track *inside the engine*.
+  /// * [resumePositionMs]: The exact playback timestamp.
+  /// * [playbackContextType]: E.g., 'album', 'playlist', 'all_tracks'.
+  /// * [playbackContextId]: The specific ID (null for 'all_tracks').
   Future<void> saveQueue(
+    List<TrackWithArtists> originalQueue,
+    String? currentlyPlayedTrackPath,
+    Duration resumePositionMs,
     String playbackContextType,
     int? playbackContextId,
-    List<TrackWithArtists> tracks,
-    int currentIndex,
-    Duration currentPosition,
   ) async {
     await transaction(() async {
       await delete(queueEntries).go();
-      await batch((b) {
-        b.insertAll(queueEntries, [
-          for (var i = 0; i < tracks.length; i++)
-            QueueEntriesCompanion.insert(
-              playbackContextType: playbackContextType,
-              playbackContextId: Value(playbackContextId),
-              position: Value(i),
-              trackId: tracks[i].track.id,
-              isLastPlayed: Value(i == currentIndex),
-              lastPosition: Value(
-                i == currentIndex ? currentPosition.inMilliseconds : 0,
-              ),
-            ),
-        ]);
+      final companions = <QueueEntriesCompanion>[];
+
+      for (var i = 0; i < originalQueue.length; i++) {
+        // Check if this specific track's file path matches the one actively playing in the engine
+        final isPlaying = originalQueue[i].track.filePath == currentlyPlayedTrackPath;
+
+        companions.add(
+          QueueEntriesCompanion.insert(
+            originalQueueIndex: Value(i),
+            trackId: originalQueue[i].track.id,
+            isCurrentlyPlaying: Value(isPlaying),
+            resumePositionMs: Value(isPlaying ? resumePositionMs.inMilliseconds : 0),
+            playbackContextType: playbackContextType,
+            playbackContextId: Value(playbackContextId),
+          ),
+        );
+      }
+
+      await batch((batch) {
+        batch.insertAll(queueEntries, companions);
       });
     });
   }
 
-  Future<(String, int?, List<TrackWithArtists>, int, Duration)>
-  loadQueue() async {
-    final entries = await (select(
-      queueEntries,
-    )..orderBy([(t) => OrderingTerm.asc(t.position)])).get();
+  /// Load last saved queue state from the database
+  ///
+  /// **Returns a Tuple containing:**
+  /// * `List<TrackWithArtists>`: The list of tracks in original, unshuffled order.
+  /// * `int`: The index of the track that was playing (relative to engine queue)
+  /// * `Duration`: The exact timestamp to resume playback from
+  /// * `String`: Context Type ('album', 'playlist')
+  /// * `int?`: Context ID
+  Future<(List<TrackWithArtists>, int, Duration, String, int?)> loadQueue() async {
+    final entries = await (select(queueEntries)..orderBy([(t) => OrderingTerm.asc(t.originalQueueIndex)])).get();
 
+    final originalQueue = <TrackWithArtists>[];
+    int lastPlayedIndex = 0;
+    Duration lastPosition = Duration.zero;
     String playbackContextType = '';
     int? playbackContextId;
-    final tracks = <TrackWithArtists>[];
-    int lastIndex = 0;
-    Duration lastPosition = Duration.zero;
 
     for (final entry in entries) {
+      // Grab the context metadata (only needs to be set once)
       if (playbackContextType.isEmpty) {
         playbackContextType = entry.playbackContextType;
       }
@@ -266,29 +251,31 @@ class AppDatabase extends _$AppDatabase {
         playbackContextId = entry.playbackContextId;
       }
 
+      // Reconstruct the actual track data from the metadata tables
       final track = await getTrackWithArtistsById(entry.trackId);
+
       if (track != null) {
-        if (entry.isLastPlayed) {
-          lastIndex = tracks.length;
-          lastPosition = Duration(milliseconds: entry.lastPosition);
+        originalQueue.add(track);
+        if (entry.isCurrentlyPlaying) {
+          lastPlayedIndex = originalQueue.length - 1;
+          lastPosition = Duration(milliseconds: entry.resumePositionMs);
         }
-        tracks.add(track);
       }
     }
 
-    return (
-      playbackContextType,
-      playbackContextId,
-      tracks,
-      lastIndex,
-      lastPosition,
-    );
+    return (originalQueue, lastPlayedIndex, lastPosition, playbackContextType, playbackContextId);
   }
 
-  /// Updates ONLY the position of the currently active track.
+  /// Updates the resume timestamp of the currently active track.
+  ///
+  /// **Use Case:**
+  /// Fired every 5 seconds by `PlayerService` during active playback. Only
+  /// update the `resumePositionMs` for the row flagged as `isCurrentlyPlaying`
+  /// to minimize database write times and prevent full table locks.
   Future<void> updateCurrentPosition(int positionInMs) async {
-    await (update(queueEntries)..where((t) => t.isLastPlayed.equals(true)))
-        .write(QueueEntriesCompanion(lastPosition: Value(positionInMs)));
+    await (update(queueEntries)..where((t) => t.isCurrentlyPlaying.equals(true))).write(
+      QueueEntriesCompanion(resumePositionMs: Value(positionInMs)),
+    );
   }
 }
 
@@ -297,11 +284,7 @@ class TrackWithArtists {
   final Album album;
   final List<Artist> artists;
 
-  TrackWithArtists({
-    required this.track,
-    required this.album,
-    required this.artists,
-  });
+  TrackWithArtists({required this.track, required this.album, required this.artists});
 }
 
 class PlaylistWithDetails {
@@ -309,11 +292,7 @@ class PlaylistWithDetails {
   final int trackCount;
   final List<String> imageUrls;
 
-  PlaylistWithDetails({
-    required this.playlist,
-    required this.trackCount,
-    required this.imageUrls,
-  });
+  PlaylistWithDetails({required this.playlist, required this.trackCount, required this.imageUrls});
 }
 
 class PlaylistWithTracks {
@@ -338,10 +317,7 @@ final libraryStreamProvider = StreamProvider<List<TrackWithArtists>>((ref) {
 
   final query = db.select(db.tracks).join([
     leftOuterJoin(db.albums, db.albums.id.equalsExp(db.tracks.albumId)),
-    leftOuterJoin(
-      db.trackArtist,
-      db.trackArtist.trackId.equalsExp(db.tracks.id),
-    ),
+    leftOuterJoin(db.trackArtist, db.trackArtist.trackId.equalsExp(db.tracks.id)),
     leftOuterJoin(db.artists, db.artists.id.equalsExp(db.trackArtist.artistId)),
   ]);
 
@@ -359,11 +335,7 @@ final libraryStreamProvider = StreamProvider<List<TrackWithArtists>>((ref) {
 
       // If track is new, create the entry
       if (!groupedTracks.containsKey(track.id)) {
-        groupedTracks[track.id] = TrackWithArtists(
-          track: track,
-          album: album,
-          artists: [],
-        );
+        groupedTracks[track.id] = TrackWithArtists(track: track, album: album, artists: []);
       }
 
       // Add the artist from this row to the artists list
@@ -378,57 +350,40 @@ final libraryStreamProvider = StreamProvider<List<TrackWithArtists>>((ref) {
   });
 });
 
-final playlistsStreamProvider = StreamProvider<List<PlaylistWithDetails>>((
-  ref,
-) {
+final playlistsStreamProvider = StreamProvider<List<PlaylistWithDetails>>((ref) {
   final db = ref.watch(appDatabaseProvider);
   return db.watchAllPlaylists();
 });
 
 // Watches just the playlist metadata (name, id)
-final singlePlaylistStreamProvider = StreamProvider.family<PlaylistData, int>((
-  ref,
-  playlistId,
-) {
+final singlePlaylistStreamProvider = StreamProvider.family<PlaylistData, int>((ref, playlistId) {
   final db = ref.watch(appDatabaseProvider);
-  return (db.select(
-    db.playlists,
-  )..where((p) => p.id.equals(playlistId))).watchSingle();
+  return (db.select(db.playlists)..where((p) => p.id.equals(playlistId))).watchSingle();
 });
 
 // Watches just the tracks for this playlist
-final playlistTracksStreamProvider =
-    StreamProvider.family<List<TrackWithArtists>, int>((ref, playlistId) {
-      final db = ref.watch(appDatabaseProvider);
-      return db.watchPlaylistTracks(playlistId);
-    });
+final playlistTracksStreamProvider = StreamProvider.family<List<TrackWithArtists>, int>((ref, playlistId) {
+  final db = ref.watch(appDatabaseProvider);
+  return db.watchPlaylistTracks(playlistId);
+});
 
-final playlistWithTracksProvider =
-    Provider.family<AsyncValue<PlaylistWithTracks>, int>((ref, playlistId) {
-      final playlistAsync = ref.watch(singlePlaylistStreamProvider(playlistId));
-      final tracksAsync = ref.watch(playlistTracksStreamProvider(playlistId));
+final playlistWithTracksProvider = Provider.family<AsyncValue<PlaylistWithTracks>, int>((ref, playlistId) {
+  final playlistAsync = ref.watch(singlePlaylistStreamProvider(playlistId));
+  final tracksAsync = ref.watch(playlistTracksStreamProvider(playlistId));
 
-      // Bubble up any errors
-      if (playlistAsync is AsyncError) {
-        return AsyncError(playlistAsync.error!, playlistAsync.stackTrace!);
-      }
-      if (tracksAsync is AsyncError) {
-        return AsyncError(tracksAsync.error!, tracksAsync.stackTrace!);
-      }
+  // Bubble up any errors
+  if (playlistAsync is AsyncError) {
+    return AsyncError(playlistAsync.error!, playlistAsync.stackTrace!);
+  }
+  if (tracksAsync is AsyncError) {
+    return AsyncError(tracksAsync.error!, tracksAsync.stackTrace!);
+  }
 
-      // Show loading state until BOTH streams have emitted their first value
-      if (playlistAsync.isLoading ||
-          tracksAsync.isLoading ||
-          !playlistAsync.hasValue ||
-          !tracksAsync.hasValue) {
-        return const AsyncLoading();
-      }
+  // Show loading state until BOTH streams have emitted their first value
+  if (playlistAsync.isLoading || tracksAsync.isLoading || !playlistAsync.hasValue || !tracksAsync.hasValue) {
+    return const AsyncLoading();
+  }
 
-      // Once both are ready, return the combined data
-      return AsyncData(
-        PlaylistWithTracks(
-          playlist: playlistAsync.value!,
-          tracks: tracksAsync.value!,
-        ),
-      );
-    });
+  // Once both are ready, return the combined data
+  return AsyncData(PlaylistWithTracks(playlist: playlistAsync.value!, tracks: tracksAsync.value!));
+});

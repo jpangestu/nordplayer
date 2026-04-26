@@ -38,31 +38,40 @@ class Playlists extends Table {
 }
 
 class TrackArtist extends Table {
-  IntColumn get trackId =>
-      integer().references(Tracks, #id, onDelete: KeyAction.cascade)();
-  IntColumn get artistId =>
-      integer().references(Artists, #id, onDelete: KeyAction.cascade)();
+  IntColumn get trackId => integer().references(Tracks, #id, onDelete: KeyAction.cascade)();
+  IntColumn get artistId => integer().references(Artists, #id, onDelete: KeyAction.cascade)();
 
   @override
   Set<Column> get primaryKey => {trackId, artistId};
 }
 
 class PlaylistTrack extends Table {
-  IntColumn get playlistId =>
-      integer().references(Playlists, #id, onDelete: KeyAction.cascade)();
-  IntColumn get trackId =>
-      integer().references(Tracks, #id, onDelete: KeyAction.cascade)();
+  IntColumn get playlistId => integer().references(Playlists, #id, onDelete: KeyAction.cascade)();
+  IntColumn get trackId => integer().references(Tracks, #id, onDelete: KeyAction.cascade)();
 }
 
-// For saving the last played track and its playlist/queue
+/// This table is used to save the current queue state so it never get removed when closing the app.
 class QueueEntries extends Table {
-  TextColumn get playbackContextType => text()();
-  IntColumn get playbackContextId => integer().nullable()();
-  IntColumn get position => integer()();
+  /// The pure, unshuffled position of the track in the original list.
+  /// Fall back to this when the user clicks "Unshuffle".
+  IntColumn get originalQueueIndex => integer()();
+
+  /// Foreign key linking to the `Tracks` metadata table.
   IntColumn get trackId => integer().references(Tracks, #id)();
-  BoolColumn get isLastPlayed => boolean().withDefault(const Constant(false))();
-  IntColumn get lastPosition => integer().withDefault(const Constant(0))();
+
+  /// Flags the single track that was actively playing when the app was last closed.
+  BoolColumn get isCurrentlyPlaying => boolean().withDefault(const Constant(false))();
+
+  /// The exact timestamp (in milliseconds) to resume playback from on the active track.
+  IntColumn get resumePositionMs => integer().withDefault(const Constant(0))();
+
+  /// The origin of the queue (i.e. 'album', 'playlist', 'all_tracks').
+  TextColumn get playbackContextType => text()();
+
+  /// The specific database ID of the origin (i.e. Playlist ID 5, Album ID 77).
+  /// Nullable because all_tracks don't have id
+  IntColumn get playbackContextId => integer().nullable()();
 
   @override
-  Set<Column> get primaryKey => {position};
+  Set<Column> get primaryKey => {originalQueueIndex};
 }
