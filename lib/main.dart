@@ -1,19 +1,19 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:metadata_god/metadata_god.dart';
 import 'package:nordplayer/models/app_config.dart';
+import 'package:nordplayer/models/app_theme.dart';
 import 'package:nordplayer/routes/router.dart';
+import 'package:nordplayer/services/config_service.dart';
+import 'package:nordplayer/services/library_scanner.dart';
 import 'package:nordplayer/services/library_watcher.dart';
 import 'package:nordplayer/services/player_service.dart';
+import 'package:nordplayer/services/preference_service.dart';
 import 'package:nordplayer/widgets/adaptive_scaffold.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:metadata_god/metadata_god.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:nordplayer/services/library_scanner.dart';
-import 'package:nordplayer/models/app_theme.dart';
-import 'package:nordplayer/services/config_service.dart';
-import 'package:nordplayer/services/preference_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,9 +41,7 @@ void main() async {
 
   // SharedPreferencesWithCache must be loaded once at startup
   final prefs = await SharedPreferencesWithCache.create(
-    cacheOptions: const SharedPreferencesWithCacheOptions(
-      allowList: PrefConstants.allowList,
-    ),
+    cacheOptions: const SharedPreferencesWithCacheOptions(allowList: PrefConstants.allowList),
   );
 
   // Set here because PlayerService and MediaKitAudioHandler need the same player instance
@@ -78,8 +76,7 @@ class NordplayerApp extends ConsumerStatefulWidget {
   ConsumerState<NordplayerApp> createState() => _NordplayerAppState();
 }
 
-class _NordplayerAppState extends ConsumerState<NordplayerApp>
-    with WindowListener {
+class _NordplayerAppState extends ConsumerState<NordplayerApp> with WindowListener {
   @override
   void initState() {
     super.initState();
@@ -96,8 +93,7 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp>
   void onWindowRestore() => windowManager.setMinimumSize(const Size(800, 600));
 
   @override
-  void onWindowUnmaximize() =>
-      windowManager.setMinimumSize(const Size(800, 600));
+  void onWindowUnmaximize() => windowManager.setMinimumSize(const Size(800, 600));
 
   @override
   void onWindowResize() => windowManager.setMinimumSize(const Size(800, 600));
@@ -131,15 +127,12 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp>
 
       data: (config) {
         return MaterialApp.router(
-          color: Colors.transparent,
           routerConfig: router,
           title: 'Nordplayer',
           theme: AppTheme.getTheme(config.theme, config.fontFamily),
           builder: (context, child) {
             return MediaQuery(
-              data: MediaQuery.of(
-                context,
-              ).copyWith(textScaler: TextScaler.linear(config.textScale)),
+              data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(config.textScale)),
               child: AdaptiveScaffold(body: child!),
             );
           },

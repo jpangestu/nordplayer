@@ -4,8 +4,11 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:nordplayer/database/app_database.dart';
+import 'package:nordplayer/pages/queue_page.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/preference_service.dart';
+import 'package:nordplayer/utils/debounce_time_extension.dart';
+import 'package:nordplayer/utils/debouncer.dart';
 
 class PlayerService with LoggerMixin {
   final Ref ref;
@@ -328,10 +331,19 @@ class PlayerService with LoggerMixin {
     await _mkPlayer.playOrPause();
   }
 
-  Future<void> next() async => await _mkPlayer.next();
-  Future<void> previous() async => await _mkPlayer.previous();
+  Future<void> next() async {
+    ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.animate);
+    await _mkPlayer.next();
+  }
+
+  Future<void> previous() async {
+    ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.animate);
+    await _mkPlayer.previous();
+  }
 
   Future<void> toggleShuffle() async {
+    ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.jump);
+
     if (_mkPlayer.state.playlist.medias.isEmpty) {
       final newState = !ref.read(preferenceServiceProvider).shuffleMode;
       ref.read(preferenceServiceProvider.notifier).setShuffleMode(newState);
@@ -344,10 +356,10 @@ class PlayerService with LoggerMixin {
     await _mkPlayer.setShuffle(newState);
 
     // Always put the current track at index 0 when shuffling
-    if (newState == true) {
-      final currentIndex = _mkPlayer.state.playlist.index;
-      await _mkPlayer.move(currentIndex, 0);
-    }
+    // if (newState == true) {
+    //   final currentIndex = _mkPlayer.state.playlist.index;
+    //   await _mkPlayer.move(currentIndex, 0);
+    // }
 
     _saveQueueState();
   }
@@ -547,12 +559,12 @@ final durationStreamProvider = StreamProvider<Duration>((ref) {
   return player.stream.duration;
 });
 
-/// Converted to riverpod to avoid flicker
-/// while switching to new playlist (new player)
+/// Return bool on whether media kit player is currently playing a track
 final isPlayingProvider = NotifierProvider<IsPlayingNotifier, bool>(IsPlayingNotifier.new);
 
 class IsPlayingNotifier extends Notifier<bool> {
-  Timer? _debounceTimer;
+  // Debounce to ignore rapid changes when feeding new playlist to mkPlayer
+  final _debouncer = Debouncer(Duration(milliseconds: 50));
 
   @override
   bool build() {
@@ -560,12 +572,9 @@ class IsPlayingNotifier extends Notifier<bool> {
 
     final subscription = player.stream.playing.listen((isPlaying) {
       if (isPlaying) {
-        _debounceTimer?.cancel();
         state = true;
       } else {
-        // Wait 150ms before telling the UI to show the "Play" icon.
-        _debounceTimer?.cancel();
-        _debounceTimer = Timer(const Duration(milliseconds: 150), () {
+        _debouncer(() {
           state = false;
         });
       }
@@ -573,9 +582,10 @@ class IsPlayingNotifier extends Notifier<bool> {
 
     ref.onDispose(() {
       subscription.cancel();
-      _debounceTimer?.cancel();
+      _debouncer.dispose();
     });
 
+    // Initial synchronous return for instant UI painting
     return player.state.playing;
   }
 }
@@ -607,74 +617,147 @@ class PlaybackContextNotifier extends Notifier<PlaybackContext?> {
 
 // ============================================== Current Queue =======================================================
 
-/// Return MediaKit playlist stream
-final rawPlaylistProvider = StreamProvider<Playlist>((ref) async* {
-  final player = ref.watch(playerServiceProvider).mkPlayer;
+/// Return curently played track
+final currentTrackProvider = NotifierProvider<CurrentTrackNotifier, TrackWithArtists?>(CurrentTrackNotifier.new);
 
-  yield player.state.playlist;
-  yield* player.stream.playlist;
-});
+class CurrentTrackNotifier extends Notifier<TrackWithArtists?> {
+  @override
+  TrackWithArtists? build() {
+    final player = ref.watch(playerServiceProvider).mkPlayer;
 
-/// Return currently playing track (single)
-final currentTrackProvider = Provider<TrackWithArtists?>((ref) {
-  final playlist = ref.watch(rawPlaylistProvider).value;
-  if (playlist == null || playlist.medias.isEmpty) return null;
+    final trackStream = player.stream.playlist
+        .map((playlist) {
+          // Synchronously extract the track from the incoming playlist state
+          if (playlist.medias.isEmpty || playlist.index < 0 || playlist.index >= playlist.medias.length) {
+            return null;
+          }
+          return playlist.medias[playlist.index].extras?['data'] as TrackWithArtists?;
+        })
+        .distinct((prev, next) {
+          // Only proceed if the track actually changed (comparing file paths)
+          return prev?.track.filePath == next?.track.filePath;
+        })
+        .debounceTime(Duration(milliseconds: 50));
 
-  final index = playlist.index;
-  if (index < 0 || index >= playlist.medias.length) return null;
+    final subscription = trackStream.listen((currentTrack) {
+      state = currentTrack;
+    });
 
-  return playlist.medias[index].extras?['data'] as TrackWithArtists?;
-});
+    ref.onDispose(() {
+      subscription.cancel();
+    });
 
-/// Return currently played track index in queue or -1 if no track played
-final currentTrackIndexProvider = Provider<int>((ref) {
-  final playlist = ref.watch(rawPlaylistProvider).value;
-  return playlist?.index ?? -1;
-});
+    final initialPlaylist = player.state.playlist;
+    if (initialPlaylist.medias.isEmpty ||
+        initialPlaylist.index < 0 ||
+        initialPlaylist.index >= initialPlaylist.medias.length) {
+      return null;
+    }
 
-/// Return all the tracks currently in queue
-final currentTracksInQueueProvider = Provider<List<TrackWithArtists?>>((ref) {
-  final playlist = ref.watch(rawPlaylistProvider).value;
-  if (playlist == null || playlist.medias.isEmpty) return [];
+    return initialPlaylist.medias[initialPlaylist.index].extras?['data'] as TrackWithArtists?;
+  }
+}
 
-  return playlist.medias.map((media) => media.extras?['data'] as TrackWithArtists?).toList();
-});
+/// Return currently played track index
+final currentTrackIndexProvider = NotifierProvider<CurrentTrackIndexNotifier, int>(CurrentTrackIndexNotifier.new);
 
-/// Return upcoming album arts for the queue (current and the next 4)
-final current5TracksAlbumArtInQueueProvider = Provider<List<String>>((ref) {
-  final playlist = ref.watch(rawPlaylistProvider).value;
-  final loopMode = ref.watch(preferenceServiceProvider.select((prefs) => prefs.loopMode));
+class CurrentTrackIndexNotifier extends Notifier<int> {
+  @override
+  int build() {
+    final player = ref.watch(playerServiceProvider).mkPlayer;
 
-  if (playlist == null || playlist.medias.isEmpty || playlist.index < 0) {
-    return [];
+    final subscription = player.stream.playlist.listen((playlist) {
+      final newIndex = playlist.index;
+
+      if (newIndex != state) {
+        state = newIndex;
+      }
+    });
+
+    ref.onDispose(() {
+      subscription.cancel();
+    });
+
+    return player.state.playlist.index;
+  }
+}
+
+/// Return all tracks that's currently in queue
+final currentTracksInQueueProvider = NotifierProvider<CurrentTracksInQueueNotifier, List<TrackWithArtists>>(
+  CurrentTracksInQueueNotifier.new,
+);
+
+class CurrentTracksInQueueNotifier extends Notifier<List<TrackWithArtists>> {
+  @override
+  List<TrackWithArtists> build() {
+    final player = ref.watch(playerServiceProvider).mkPlayer;
+
+    final subscription = player.stream.playlist.listen((playlist) {
+      // Drop any nulls just in case
+      state = playlist.medias.map((media) => media.extras?['data']).whereType<TrackWithArtists>().toList();
+    });
+
+    ref.onDispose(() {
+      subscription.cancel();
+    });
+
+    return player.state.playlist.medias.map((media) => media.extras?['data']).whereType<TrackWithArtists>().toList();
+  }
+}
+
+/// Return upcoming album art paths for the current and the next 4 tracks in queue
+final current5TracksAlbumArtInQueueProvider = NotifierProvider<Current5TracksAlbumArtNotifier, List<String>>(
+  Current5TracksAlbumArtNotifier.new,
+);
+
+class Current5TracksAlbumArtNotifier extends Notifier<List<String>> {
+  @override
+  List<String> build() {
+    final player = ref.watch(playerServiceProvider).mkPlayer;
+    final loopMode = ref.watch(preferenceServiceProvider.select((prefs) => prefs.loopMode));
+
+    final subscription = player.stream.playlist.listen((playlist) {
+      state = _calculateCovers(playlist, loopMode);
+    });
+
+    ref.onDispose(() {
+      subscription.cancel();
+    });
+
+    return _calculateCovers(player.state.playlist, loopMode);
   }
 
-  final int currentIndex = playlist.index;
-  final List<Media> allMedia = playlist.medias;
-  final List<String> stackCovers = [];
+  List<String> _calculateCovers(Playlist playlist, PlaylistMode loopMode) {
+    if (playlist.medias.isEmpty || playlist.index < 0) {
+      return [];
+    }
 
-  // Calculate up to 5 upcoming covers
-  for (int count = 0; count < allMedia.length && stackCovers.length < 5; count++) {
-    int targetIndex = currentIndex + count;
+    final int currentIndex = playlist.index;
+    final List<Media> allMedia = playlist.medias;
+    final List<String> stackCovers = [];
 
-    // Handle wrap-around logic
-    if (targetIndex >= allMedia.length) {
-      if (loopMode == PlaylistMode.loop) {
-        targetIndex = targetIndex % allMedia.length;
-      } else {
-        break; // Stop wrapping around if loop is off
+    // Calculate up to 5 upcoming covers
+    for (int count = 0; count < allMedia.length && stackCovers.length < 5; count++) {
+      int targetIndex = currentIndex + count;
+
+      // Handle wrap-around logic
+      if (targetIndex >= allMedia.length) {
+        if (loopMode == PlaylistMode.loop) {
+          targetIndex = targetIndex % allMedia.length;
+        } else {
+          break; // Stop wrapping around if loop is off
+        }
+      }
+
+      // Extract the track data
+      final track = allMedia[targetIndex].extras?['data'] as TrackWithArtists?;
+
+      if (track != null) {
+        final artPath = track.album.albumArtPath?.isNotEmpty == true ? track.album.albumArtPath! : "";
+        stackCovers.add(artPath);
       }
     }
 
-    // Extract the track data
-    final track = allMedia[targetIndex].extras?['data'] as TrackWithArtists?;
-
-    if (track != null) {
-      final artPath = track.album.albumArtPath?.isNotEmpty == true ? track.album.albumArtPath! : "";
-
-      stackCovers.add(artPath);
-    }
+    return stackCovers;
   }
-
-  return stackCovers;
-});
+}

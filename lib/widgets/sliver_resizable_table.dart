@@ -714,9 +714,13 @@ class _ResizableTableLayoutController extends ChangeNotifier {
     final List<int> shrinkIndices = [];
 
     if (isGrowingRight) {
-      for (int i = handleIndex + 1; i < _widths.length; i++) shrinkIndices.add(i);
+      for (int i = handleIndex + 1; i < _widths.length; i++) {
+        shrinkIndices.add(i);
+      }
     } else {
-      for (int i = handleIndex; i >= 0; i--) shrinkIndices.add(i);
+      for (int i = handleIndex; i >= 0; i--) {
+        shrinkIndices.add(i);
+      }
     }
 
     double available = 0;
