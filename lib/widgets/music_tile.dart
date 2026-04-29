@@ -144,7 +144,7 @@ class _MusicTileState extends ConsumerState<MusicTile> with LoggerMixin {
                     ),
                   ),
 
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       mainAxisSize: .min,

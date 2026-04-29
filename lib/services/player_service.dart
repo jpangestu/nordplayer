@@ -564,7 +564,7 @@ final isPlayingProvider = NotifierProvider<IsPlayingNotifier, bool>(IsPlayingNot
 
 class IsPlayingNotifier extends Notifier<bool> {
   // Debounce to ignore rapid changes when feeding new playlist to mkPlayer
-  final _debouncer = Debouncer(Duration(milliseconds: 50));
+  final _debouncer = Debouncer(const Duration(milliseconds: 50));
 
   @override
   bool build() {
@@ -637,7 +637,7 @@ class CurrentTrackNotifier extends Notifier<TrackWithArtists?> {
           // Only proceed if the track actually changed (comparing file paths)
           return prev?.track.filePath == next?.track.filePath;
         })
-        .debounceTime(Duration(milliseconds: 50));
+        .debounceTime(const Duration(milliseconds: 50));
 
     final subscription = trackStream.listen((currentTrack) {
       state = currentTrack;

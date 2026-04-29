@@ -189,9 +189,9 @@ ThemeData buildNordTheme({String? fontFamily}) {
     ),
 
     dropdownMenuTheme: DropdownMenuThemeData(
-      menuStyle: MenuStyle(
+      menuStyle: const MenuStyle(
         backgroundColor: WidgetStatePropertyAll(NordColors.nord3),
-        side: WidgetStatePropertyAll(const BorderSide(color: NordColors.nord2, width: 2)),
+        side: WidgetStatePropertyAll(BorderSide(color: NordColors.nord2, width: 2)),
       ),
 
       textStyle: TextStyle(fontFamily: resolvedFont, color: NordColors.nord6),

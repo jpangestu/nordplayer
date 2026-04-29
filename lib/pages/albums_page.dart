@@ -12,7 +12,7 @@ class AlbumsPage extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
-      body: Center(child: Text('Albums')),
+      body: const Center(child: Text('Albums')),
     );
   }
 }

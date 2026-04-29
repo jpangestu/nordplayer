@@ -81,7 +81,7 @@ class _LicensesPageState extends ConsumerState<LicensesPage> {
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : ListView.builder(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 itemCount: packageNames.length,
                 itemBuilder: (context, index) {
                   // --- HEADER BLOCK ---

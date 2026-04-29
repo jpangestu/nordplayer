@@ -57,14 +57,14 @@ class AppLayout extends ConsumerWidget {
 
     return Shortcuts(
       shortcuts: <ShortcutActivator, Intent>{
-        SingleActivator(LogicalKeyboardKey.space): const PlayOrPauseIntent(),
-        SingleActivator(LogicalKeyboardKey.arrowRight, control: true): const SkipToNextIntent(),
-        SingleActivator(LogicalKeyboardKey.arrowLeft, control: true): const SkipToPreviousIntent(),
-        CharacterActivator('s', control: true): const ToggleShuffleIntent(),
-        CharacterActivator('l', control: true): const CycleLoopIntent(),
-        SingleActivator(LogicalKeyboardKey.arrowUp, control: true): const VolumeUpIntent(),
-        SingleActivator(LogicalKeyboardKey.arrowDown, control: true): const VolumeDownIntent(),
-        CharacterActivator('m'): const MuteIntent(),
+        const SingleActivator(LogicalKeyboardKey.space): const PlayOrPauseIntent(),
+        const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): const SkipToNextIntent(),
+        const SingleActivator(LogicalKeyboardKey.arrowLeft, control: true): const SkipToPreviousIntent(),
+        const CharacterActivator('s', control: true): const ToggleShuffleIntent(),
+        const CharacterActivator('l', control: true): const CycleLoopIntent(),
+        const SingleActivator(LogicalKeyboardKey.arrowUp, control: true): const VolumeUpIntent(),
+        const SingleActivator(LogicalKeyboardKey.arrowDown, control: true): const VolumeDownIntent(),
+        const CharacterActivator('m'): const MuteIntent(),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
@@ -89,7 +89,7 @@ class AppLayout extends ConsumerWidget {
                   children: [
                     Container(
                       color: colorScheme.surfaceContainer.withValues(alpha: appConfig.adaptiveBgThemeOverlay),
-                      child: NordplayerTitleBar(),
+                      child: const NordplayerTitleBar(),
                     ),
 
                     const AdaptiveDivider(),
@@ -126,7 +126,7 @@ class AppLayout extends ConsumerWidget {
                           // --- MAIN PAGES
                           Expanded(
                             child: Scaffold(
-                              appBar: NordplayerAppBar(),
+                              appBar: const NordplayerAppBar(),
                               backgroundColor: Colors.transparent,
                               body: Stack(
                                 children: [
@@ -156,7 +156,7 @@ class AppLayout extends ConsumerWidget {
 
                     const AdaptiveDivider(),
 
-                    PlayerBar(),
+                    const PlayerBar(),
                   ],
                 ),
               );

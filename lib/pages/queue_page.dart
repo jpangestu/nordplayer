@@ -81,7 +81,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
             curve: Curves.easeInOut,
           );
         } else if (scrollBehavior == QueueScrollBehavior.jump) {
-          final debouncer = Debouncer(Duration(milliseconds: 0));
+          final debouncer = Debouncer(const Duration(milliseconds: 0));
 
           debouncer(() {
             _scrollController.jumpTo(next * _itemHeight);
@@ -134,12 +134,12 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                         onPressed: () {
                           ref.read(preferenceServiceProvider.notifier).setShowQueue(false);
                         },
-                        icon: AppIcon(Icons.keyboard_arrow_right),
+                        icon: const AppIcon(Icons.keyboard_arrow_right),
                         tooltip: 'Close Queue',
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                     ],
-                    Text('Queue'),
+                    const Text('Queue'),
                   ],
                 ),
               ),
@@ -149,7 +149,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
               ? theme.colorScheme.surfaceContainerLow.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
               : theme.colorScheme.surfaceContainerLow,
           body: ReorderableList(
-            padding: .only(top: 56),
+            padding: const .only(top: 56),
             controller: _scrollController,
             onReorder: (oldIndex, newIndex) {
               ref.read(playerServiceProvider).moveTrack(oldIndex, newIndex);

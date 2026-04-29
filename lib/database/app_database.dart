@@ -56,6 +56,8 @@ class AppDatabase extends _$AppDatabase {
     return TrackWithArtists(track: track, album: album, artists: artistList);
   }
 
+  // =========================================== Playlist Stuff =======================================================
+
   // -- PLAYLISTS TABLE CRUD --
   Stream<List<PlaylistWithDetails>> watchAllPlaylists() {
     final trackCount = playlistTrack.trackId.count();
@@ -348,6 +350,21 @@ final libraryStreamProvider = StreamProvider<List<TrackWithArtists>>((ref) {
 
     return groupedTracks.values.toList();
   });
+});
+
+final random6TracksProvider = Provider<List<TrackWithArtists>>((ref) {
+  final libraryAsync = ref.watch(libraryStreamProvider);
+
+  return libraryAsync.maybeWhen(
+    data: (allTracks) {
+      if (allTracks.isEmpty) return [];
+
+      // Create a copy of the list, shuffle it, and take the first 5
+      final shuffledTracks = List<TrackWithArtists>.from(allTracks)..shuffle();
+      return shuffledTracks.take(6).toList();
+    },
+    orElse: () => [],
+  );
 });
 
 final playlistsStreamProvider = StreamProvider<List<PlaylistWithDetails>>((ref) {

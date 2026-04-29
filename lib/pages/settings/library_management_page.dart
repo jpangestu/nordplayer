@@ -57,13 +57,13 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
                   ),
                 ),
                 if (musicPaths.isEmpty) ...[
-                  SectionDivider(),
+                  const SectionDivider(),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
                     child: Text("No folders added yet", style: TextStyle(color: theme.disabledColor)),
                   ),
                 ] else ...[
-                  SectionDivider(),
+                  const SectionDivider(),
                   ...musicPaths.map(
                     (path) => ListTile(
                       leading: const AppIcon(Icons.folder_outlined),
@@ -76,7 +76,7 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
                       dense: true,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                 ],
               ],
             ),
@@ -89,7 +89,7 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
             child: Column(
               children: [
                 Padding(
-                  padding: .only(left: 16, right: 16, top: 8, bottom: 16),
+                  padding: const .only(left: 16, right: 16, top: 8, bottom: 16),
                   child: Column(
                     crossAxisAlignment: .start,
                     children: [
@@ -159,7 +159,7 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
                               }).toList(),
                             ),
                           ),
-                          Spacer(flex: 1),
+                          const Spacer(flex: 1),
                           SizedBox(
                             child: OutlinedButton.icon(
                               onPressed: _resetDelimitersToDefault,
@@ -173,11 +173,11 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
                   ),
                 ),
 
-                SectionDivider(),
-                SizedBox(height: 8),
+                const SectionDivider(),
+                const SizedBox(height: 8),
 
                 Padding(
-                  padding: .only(left: 16, right: 16, top: 8, bottom: 16),
+                  padding: const .only(left: 16, right: 16, top: 8, bottom: 16),
                   child: Column(
                     crossAxisAlignment: .start,
                     children: [

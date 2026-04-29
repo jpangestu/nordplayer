@@ -187,9 +187,9 @@ ThemeData buildCatppuccinMochaTheme({String? fontFamily}) {
     ),
 
     dropdownMenuTheme: DropdownMenuThemeData(
-      menuStyle: MenuStyle(
+      menuStyle: const MenuStyle(
         backgroundColor: WidgetStatePropertyAll(CatppuccinMochaColors.surface0),
-        side: WidgetStatePropertyAll(const BorderSide(color: CatppuccinMochaColors.surface1, width: 2)),
+        side: WidgetStatePropertyAll(BorderSide(color: CatppuccinMochaColors.surface1, width: 2)),
       ),
 
       textStyle: TextStyle(fontFamily: resolvedFont, color: CatppuccinMochaColors.text),

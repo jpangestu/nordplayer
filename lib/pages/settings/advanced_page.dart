@@ -23,7 +23,7 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
       backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
 
       body: ListView(
-        padding: .all(24),
+        padding: const .all(24),
         children: [
           const SectionHeader(label: 'Reset', labelType: .h1, padding: .only(bottom: 8)),
 

@@ -134,13 +134,13 @@ class _AboutPageState extends ConsumerState<AboutPage> {
                   ),
                 ),
 
-                SectionDivider(),
+                const SectionDivider(),
 
                 ListTile(
-                  leading: Icon(Icons.description_outlined),
-                  title: Text('License'),
-                  subtitle: Text('See all license used by Nordplayer'),
-                  trailing: Icon(Icons.keyboard_arrow_right),
+                  leading: const Icon(Icons.description_outlined),
+                  title: const Text('License'),
+                  subtitle: const Text('See all license used by Nordplayer'),
+                  trailing: const Icon(Icons.keyboard_arrow_right),
                   onTap: () {
                     context.go('${Routes.aboutPage}/${Routes.licensesPage}');
                   },

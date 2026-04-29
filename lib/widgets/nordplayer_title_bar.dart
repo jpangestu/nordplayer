@@ -65,7 +65,7 @@ class _NordplayerTitleBarState extends ConsumerState<NordplayerTitleBar> {
                   ),
                 ),
               ),
-              Text('Nordplayer'),
+              const Text('Nordplayer'),
 
               const Spacer(),
 
@@ -91,9 +91,9 @@ class _NordplayerTitleBarState extends ConsumerState<NordplayerTitleBar> {
                 onTap: () {},
               ),
 
-              SizedBox(width: 16),
+              const SizedBox(width: 16),
 
-              BreezeWindowControl(),
+              const BreezeWindowControl(),
             ],
           ),
         ),
@@ -180,7 +180,7 @@ class _BreezeWindowControlState extends State<BreezeWindowControl> with WindowLi
             windowManager.close();
           },
         ),
-        SizedBox(width: 8),
+        const SizedBox(width: 8),
       ],
     );
   }

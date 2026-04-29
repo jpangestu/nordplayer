@@ -59,7 +59,7 @@ final router = GoRouter(
                     // final playlistIdStr = state.pathParameters['id']!;
                     // final playlistId = int.parse(playlistIdStr);
 
-                    return PlaylistDetailPage();
+                    return const PlaylistDetailPage();
                   },
                 ),
               ],

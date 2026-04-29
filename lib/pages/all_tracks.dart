@@ -36,7 +36,7 @@ class _AllTracksState extends ConsumerState<AllTracks> {
         SliverAppBar(
           backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
           expandedHeight: 228,
-          flexibleSpace: AllTracksHeader(),
+          flexibleSpace: const AllTracksHeader(),
         ),
         libraryAsync.when(
           loading: () => const SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
@@ -78,7 +78,7 @@ class _AllTracksState extends ConsumerState<AllTracks> {
               columns: allTracksColumns,
               selectedIndices: selectedIndices,
               rowHeight: 66.0,
-              tablePadding: EdgeInsets.only(left: 24, top: 8, bottom: 24, right: 24),
+              tablePadding: const EdgeInsets.only(left: 24, top: 8, bottom: 24, right: 24),
               isAdaptive: appConfig.adaptiveBg,
               headerBlur: appConfig.adaptiveBgPanelBlur,
               headerThemeOverlay: appConfig.adaptiveBgThemeOverlay,
@@ -174,7 +174,7 @@ class AllTracksHeader extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         decoration: appConfig.adaptiveBg
-            ? BoxDecoration()
+            ? const BoxDecoration()
             : BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
@@ -210,9 +210,9 @@ class AllTracksHeader extends ConsumerWidget {
                   mainAxisAlignment: .center,
                   crossAxisAlignment: .start,
                   children: [
-                    Text(
+                    const Text(
                       'All Tracks',
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -492,11 +492,11 @@ class _SearchablePlaylistMenuState extends ConsumerState<SearchablePlaylistConte
           child: Container(
             height: 36,
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
+            child: const Row(
               children: [
-                const AppIcon(Icons.add, size: 20),
-                const SizedBox(width: 12),
-                const Text('New playlist', style: TextStyle(fontWeight: FontWeight.w500)),
+                AppIcon(Icons.add, size: 20),
+                SizedBox(width: 12),
+                Text('New playlist', style: TextStyle(fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -518,7 +518,7 @@ class _SearchablePlaylistMenuState extends ConsumerState<SearchablePlaylistConte
 
             if (filtered.isEmpty) {
               return Padding(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 child: Text(
                   'No playlists found.',
                   style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),

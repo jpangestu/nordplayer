@@ -64,7 +64,7 @@ class _PlayerBarState extends ConsumerState<PlayerBar> with LoggerMixin {
 
             Expanded(
               flex: centerFlex,
-              child: Column(
+              child: const Column(
                 mainAxisAlignment: .center,
                 children: [
                   Playback(),
@@ -133,7 +133,7 @@ class ProgressBarSection extends ConsumerWidget {
       barHeight: 5,
       thumbRadius: 6,
       thumbGlowRadius: 14,
-      timeLabelTextStyle: TextStyle(fontSize: 14),
+      timeLabelTextStyle: const TextStyle(fontSize: 14),
       timeLabelType: timeLabelType,
     );
   }

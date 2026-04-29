@@ -58,7 +58,7 @@ class SettingsLayout extends ConsumerWidget {
             destinations: destinations,
             onDestinationSelected: navigationShell.goBranch,
             selectedIndex: navigationShell.currentIndex,
-            leading: SizedBox(height: 16),
+            leading: const SizedBox(height: 16),
             backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
             extendedWidth: 220,
             isAdaptiveBgOn: appConfig.adaptiveBg,

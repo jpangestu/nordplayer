@@ -353,7 +353,7 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
               children: [
                 if (isPlayingThisPlaylist && isAudioPlaying) ...[
                   AnimatedEqualizerIcon(color: theme.colorScheme.primary, size: 16, isPlaying: isAudioPlaying),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                 ],
                 Text(
                   widget.playlistWithDetails.playlist.name,
@@ -377,7 +377,7 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
                       fontSize: 14,
                     ),
                   )
-                : Text(''),
+                : const Text(''),
           ],
         ),
       ),

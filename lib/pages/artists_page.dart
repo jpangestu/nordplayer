@@ -14,7 +14,7 @@ class ArtistsPage extends ConsumerWidget {
       backgroundColor: appConfig.adaptiveBg
           ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.0)
           : theme.colorScheme.surface,
-      body: Center(child: Text('Artists')),
+      body: const Center(child: Text('Artists')),
     );
   }
 }

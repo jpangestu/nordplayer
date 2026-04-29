@@ -63,7 +63,7 @@ class _NordplayerAppBarState extends ConsumerState<NordplayerAppBar> {
                 ),
               ),
             )
-          : SizedBox.shrink(),
+          : const SizedBox.shrink(),
       leading: (showBackButton)
           ? IconButton(
               icon: AppIcon(appIconSet.navigationBack),
