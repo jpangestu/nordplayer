@@ -34,8 +34,8 @@ class AppLayout extends ConsumerWidget {
         label: const Text('Library'),
       ),
       SidebarDestination(
-        icon: AppIcon(appIconSet.musicTile),
-        selectedIcon: AppIcon(appIconSet.musicTile),
+        icon: AppIcon(appIconSet.allTracks),
+        selectedIcon: AppIcon(appIconSet.allTracks),
         label: const Text('All Tracks'),
       ),
       SidebarDestination(
@@ -44,8 +44,8 @@ class AppLayout extends ConsumerWidget {
         label: const Text('Playlists'),
       ),
       SidebarDestination(
-        icon: AppIcon(appIconSet.album),
-        selectedIcon: AppIcon(appIconSet.album),
+        icon: AppIcon(appIconSet.albums),
+        selectedIcon: AppIcon(appIconSet.albums),
         label: const Text('Albums'),
       ),
       SidebarDestination(

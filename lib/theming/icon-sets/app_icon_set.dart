@@ -16,9 +16,11 @@ abstract class AppIconSet {
   // Sidebar
   IconData get sidebarClose;
   IconData get sidebarOpen;
-  IconData get album;
-  IconData get artists;
   IconData get library;
+  IconData get albums;
+  IconData get allTracks;
+  IconData get artists;
+  IconData get genres;
   IconData get playlist;
 
   // Player Bar
@@ -43,8 +45,16 @@ abstract class AppIconSet {
   IconData get about;
 
   // Others
-  IconData get musicTile;
-  IconData get navigationBack;
+  IconData get contextMenu; // Horizontal
+  IconData get favorite; // Heart
+  IconData get navigationLeft;
+  IconData get navigationRight;
+  IconData get navigationUp;
+  IconData get navigationDown;
+  IconData get playtime;
+  IconData get preference;
+  IconData get statistic;
+  IconData get storage;
 }
 
 final appIconProvider = Provider<AppIconSet>((ref) {

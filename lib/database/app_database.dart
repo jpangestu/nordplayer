@@ -33,6 +33,42 @@ class AppDatabase extends _$AppDatabase {
   @override
   int get schemaVersion => 1;
 
+  // =========================================== Library Stats =======================================================
+
+  Stream<LibraryStats> watchLibraryStats() {
+    // We use a single raw SQL query to get all counts and sums at once for maximum performance.
+    const query = '''
+      SELECT
+        (SELECT COUNT(*) FROM tracks) AS trackCount,
+        (SELECT COUNT(*) FROM albums) AS albumCount,
+        (SELECT COUNT(*) FROM artists) AS artistCount,
+        (SELECT COUNT(*) FROM playlists) AS playlistCount,
+        (SELECT COUNT(DISTINCT genre) FROM tracks WHERE genre IS NOT NULL AND genre != '') AS genreCount,
+        (SELECT SUM(file_size) FROM tracks) AS totalSize,
+        (SELECT SUM(duration_ms) FROM tracks) AS totalDuration
+    ''';
+
+    return customSelect(
+      query,
+      // By passing the tables here, Drift knows to automatically push new stream events
+      // whenever ANY of these tables are modified (like adding a new track or playlist).
+      readsFrom: {tracks, albums, artists, playlists},
+    ).watchSingle().map((row) {
+      return LibraryStats(
+        trackCount: row.read<int>('trackCount'),
+        albumCount: row.read<int>('albumCount'),
+        artistCount: row.read<int>('artistCount'),
+        playlistCount: row.read<int>('playlistCount'),
+        genreCount: row.read<int>('genreCount'),
+        // SUM can return null if the table is completely empty, so we fallback to 0
+        totalSizeBytes: row.read<int?>('totalSize') ?? 0,
+        totalPlaytimeMs: row.read<int?>('totalDuration') ?? 0,
+      );
+    });
+  }
+
+  // ============================================= Tracks Stuff =======================================================
+
   Future<TrackWithArtists?> getTrackWithArtistsById(int id) async {
     final query = select(tracks).join([
       leftOuterJoin(albums, albums.id.equalsExp(tracks.albumId)),
@@ -54,6 +90,56 @@ class AppDatabase extends _$AppDatabase {
         });
 
     return TrackWithArtists(track: track, album: album, artists: artistList);
+  }
+
+  Stream<List<TrackWithArtists>> watchRecentlyAddedTracks({int limitAmount = 10}) {
+    final query = select(tracks).join([
+      leftOuterJoin(albums, albums.id.equalsExp(tracks.albumId)),
+      leftOuterJoin(trackArtist, trackArtist.trackId.equalsExp(tracks.id)),
+      leftOuterJoin(artists, artists.id.equalsExp(trackArtist.artistId)),
+    ]);
+
+    // Order by the date they were added, newest first
+    query.orderBy([OrderingTerm.desc(tracks.dateAdded)]);
+
+    // Buffer the SQL limit to account for tracks with multiple artists (e.g., 10 tracks * up to 4 artists = 40 rows max)
+    query.limit(limitAmount * 4);
+
+    return query.watch().map((rows) {
+      final Map<int, TrackWithArtists> groupedTracks = {};
+
+      for (final row in rows) {
+        final track = row.readTable(tracks);
+        final album = row.readTable(albums);
+        final artist = row.readTable(artists);
+
+        if (!groupedTracks.containsKey(track.id)) {
+          groupedTracks[track.id] = TrackWithArtists(track: track, album: album, artists: []);
+        }
+
+        final currentArtists = groupedTracks[track.id]!.artists;
+        if (!currentArtists.any((a) => a.id == artist.id)) {
+          currentArtists.add(artist);
+        }
+      }
+
+      // Enforce the strict limit after grouping the tracks
+      return groupedTracks.values.take(limitAmount).toList();
+    });
+  }
+
+  // ============================================= Albums Stuff =======================================================
+
+  /// Fetches a list of random albums.
+  /// Using a Future instead of a Stream prevents the UI from re-shuffling
+  /// every time the database receives an update.
+  Future<List<Album>> getRandomAlbums({int limitAmount = 10}) {
+    final query = select(albums)
+      // Use SQLite's native RANDOM() function to sort the rows arbitrarily
+      ..orderBy([(a) => OrderingTerm(expression: const CustomExpression('RANDOM()'))])
+      ..limit(limitAmount);
+
+    return query.get();
   }
 
   // =========================================== Playlist Stuff =======================================================
@@ -281,12 +367,62 @@ class AppDatabase extends _$AppDatabase {
   }
 }
 
+// ================================================= Class ============================================================
+
+class LibraryStats {
+  final int trackCount;
+  final int albumCount;
+  final int artistCount;
+  final int playlistCount;
+  final int genreCount;
+  final int totalSizeBytes;
+  final int totalPlaytimeMs;
+
+  LibraryStats({
+    required this.trackCount,
+    required this.albumCount,
+    required this.artistCount,
+    required this.playlistCount,
+    required this.genreCount,
+    required this.totalSizeBytes,
+    required this.totalPlaytimeMs,
+  });
+
+  // Helper to format the size (e.g., "24.1 GB")
+  String get formattedSize {
+    if (totalSizeBytes == 0) return '0 GB';
+    final gb = totalSizeBytes / (1024 * 1024 * 1024);
+    if (gb >= 1) return '${gb.toStringAsFixed(1)} GB';
+
+    // Fallback to MB if the library is small
+    final mb = totalSizeBytes / (1024 * 1024);
+    return '${mb.toStringAsFixed(1)} MB';
+  }
+
+  // Helper to format playtime (e.g., "8.4 Days" or "12.2 Hours")
+  String get formattedPlaytime {
+    if (totalPlaytimeMs == 0) return '0 Mins';
+    final days = totalPlaytimeMs / (1000 * 60 * 60 * 24);
+    if (days >= 1) return '${days.toStringAsFixed(1)} Days';
+
+    final hours = totalPlaytimeMs / (1000 * 60 * 60);
+    return '${hours.toStringAsFixed(1)} Hours';
+  }
+}
+
 class TrackWithArtists {
   final Track track;
   final Album album;
   final List<Artist> artists;
 
   TrackWithArtists({required this.track, required this.album, required this.artists});
+
+  // Helper to check whether this object is empty.
+  // Has to be set because dart won't know it otherwise since it's a custom object.
+  // TrackWithArtists is empty if it has no valid database ID (SQLite autoincrement start with 1) and filePath is empty
+  bool get isEmpty => track.id == 0 || track.filePath.isEmpty;
+
+  bool get isNotEmpty => !isEmpty;
 }
 
 class PlaylistWithDetails {
@@ -305,13 +441,19 @@ class PlaylistWithTracks {
 }
 
 //
-// =========================== Provider ==================================
+// ================================================== Provider ========================================================
 //
+
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
   final database = AppDatabase(openConection());
   ref.onDispose(() => database.close());
 
   return database;
+});
+
+final libraryStatsProvider = StreamProvider<LibraryStats>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return db.watchLibraryStats();
 });
 
 final libraryStreamProvider = StreamProvider<List<TrackWithArtists>>((ref) {
@@ -352,6 +494,11 @@ final libraryStreamProvider = StreamProvider<List<TrackWithArtists>>((ref) {
   });
 });
 
+final recentlyAddedTracksProvider = StreamProvider<List<TrackWithArtists>>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return db.watchRecentlyAddedTracks(limitAmount: 12);
+});
+
 final random6TracksProvider = Provider<List<TrackWithArtists>>((ref) {
   final libraryAsync = ref.watch(libraryStreamProvider);
 
@@ -365,6 +512,11 @@ final random6TracksProvider = Provider<List<TrackWithArtists>>((ref) {
     },
     orElse: () => [],
   );
+});
+
+final randomAlbumsProvider = FutureProvider<List<Album>>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return db.getRandomAlbums(limitAmount: 10);
 });
 
 final playlistsStreamProvider = StreamProvider<List<PlaylistWithDetails>>((ref) {

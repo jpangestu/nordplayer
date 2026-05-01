@@ -17,11 +17,15 @@ class MaterialIconSet implements AppIconSet {
   @override
   IconData get sidebarOpen => Icons.menu;
   @override
-  IconData get album => Icons.album;
+  IconData get library => Icons.library_music;
+  @override
+  IconData get albums => Icons.album;
+  @override
+  IconData get allTracks => Icons.music_note;
   @override
   IconData get artists => Icons.people;
   @override
-  IconData get library => Icons.library_music;
+  IconData get genres => Icons.label;
   @override
   IconData get playlist => Icons.queue_music;
 
@@ -65,7 +69,23 @@ class MaterialIconSet implements AppIconSet {
 
   // Others
   @override
-  IconData get musicTile => Icons.music_note;
+  IconData get contextMenu => Icons.more_horiz;
   @override
-  IconData get navigationBack => Icons.chevron_left;
+  IconData get favorite => Icons.favorite_outline;
+  @override
+  IconData get navigationLeft => Icons.chevron_left;
+  @override
+  IconData get navigationRight => Icons.chevron_right;
+  @override
+  IconData get navigationUp => Icons.keyboard_arrow_up;
+  @override
+  IconData get navigationDown => Icons.keyboard_arrow_down;
+  @override
+  IconData get playtime => Icons.schedule;
+  @override
+  IconData get preference => Icons.tune;
+  @override
+  IconData get statistic => Icons.bar_chart;
+  @override
+  IconData get storage => Icons.storage;
 }

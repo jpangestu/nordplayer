@@ -1,6 +1,6 @@
 import 'dart:async';
 
-extension DebounceStreamExt<T> on Stream<T> {
+extension StreamExtension<T> on Stream<T> {
   /// Emits an item from the stream only after a specified [duration] has passed
   /// without the stream emitting any other items.
   Stream<T> debounceTime(Duration duration) {

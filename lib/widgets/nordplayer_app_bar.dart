@@ -66,7 +66,7 @@ class _NordplayerAppBarState extends ConsumerState<NordplayerAppBar> {
           : const SizedBox.shrink(),
       leading: (showBackButton)
           ? IconButton(
-              icon: AppIcon(appIconSet.navigationBack),
+              icon: AppIcon(appIconSet.navigationLeft),
               onPressed: () {
                 if (isSettingsRoot) {
                   // We are at the base of a settings tab. Go back to the main app.

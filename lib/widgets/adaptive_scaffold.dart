@@ -23,8 +23,6 @@ class AdaptiveScaffold extends ConsumerWidget {
       type: MaterialType.transparency,
       child: Stack(
         children: [
-          // LAYER 0: The background
-
           // LAYER 1: The Album Art
           if (appConfig.adaptiveBg) ...[
             // Show stretched album art to fill the gap. The edget of BoxFit.cover
@@ -44,11 +42,12 @@ class AdaptiveScaffold extends ConsumerWidget {
                             fit: .fill,
                             cacheWidth: cacheW,
                             gaplessPlayback: true,
-                            errorBuilder: (_, _, _) => getFallbackBackground(context),
+                            errorBuilder: (_, _, _) =>
+                                getFallbackBackground(context, cacheW, appConfig.adaptiveBgAlbumBlur),
                           ),
                         ),
                       )
-                    : getFallbackBackground(context),
+                    : getFallbackBackground(context, cacheW, appConfig.adaptiveBgAlbumBlur),
               ),
             ),
 
@@ -73,11 +72,12 @@ class AdaptiveScaffold extends ConsumerWidget {
                             fit: appConfig.adaptiveBgAlbumFit,
                             cacheWidth: cacheW,
                             gaplessPlayback: true,
-                            errorBuilder: (_, _, _) => getFallbackBackground(context),
+                            errorBuilder: (_, _, _) =>
+                                getFallbackBackground(context, cacheW, appConfig.adaptiveBgAlbumBlur),
                           ),
                         ),
                       )
-                    : getFallbackBackground(context),
+                    : getFallbackBackground(context, cacheW, appConfig.adaptiveBgAlbumBlur),
               ),
             ),
 
@@ -129,8 +129,14 @@ class AdaptiveScaffold extends ConsumerWidget {
     );
   }
 
-  Widget getFallbackBackground(BuildContext context) {
-    return SizedBox.expand(child: Image.asset('assets/images/default_background.png', fit: BoxFit.cover));
+  Widget getFallbackBackground(BuildContext context, int? cacheW, double blurSigma) {
+    return SizedBox.expand(
+      child: ImageFiltered(
+        imageFilter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma, tileMode: TileMode.mirror),
+
+        child: Image.asset('assets/images/default_background.png', fit: BoxFit.cover, cacheWidth: cacheW),
+      ),
+    );
   }
 
   int? _getCacheWidth(double blur) {

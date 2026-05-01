@@ -4,7 +4,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/config_service.dart';
-import 'package:nordplayer/utils/string_extensions.dart';
+import 'package:nordplayer/utils/string_extension.dart';
 import 'package:nordplayer/widgets/settings/section_card.dart';
 import 'package:nordplayer/widgets/settings/section_divider.dart';
 import 'package:package_info_plus/package_info_plus.dart';

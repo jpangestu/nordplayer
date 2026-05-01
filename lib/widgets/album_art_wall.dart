@@ -54,7 +54,7 @@ class AlbumArtWall extends ConsumerWidget {
                       color: theme.colorScheme.surfaceContainerHigh,
                       image: file.existsSync() ? DecorationImage(image: FileImage(file), fit: BoxFit.cover) : null,
                     ),
-                    child: !file.existsSync() ? AppIcon(appIconSet.musicTile, color: Colors.white24) : null,
+                    child: !file.existsSync() ? AppIcon(appIconSet.allTracks, color: Colors.white24) : null,
                   );
                 },
               ),

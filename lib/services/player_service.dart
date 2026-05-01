@@ -7,8 +7,8 @@ import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/pages/queue_page.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/preference_service.dart';
-import 'package:nordplayer/utils/debounce_time_extension.dart';
 import 'package:nordplayer/utils/debouncer.dart';
+import 'package:nordplayer/utils/stream_extension.dart';
 
 class PlayerService with LoggerMixin {
   final Ref ref;

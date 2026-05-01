@@ -18,11 +18,15 @@ class LucideIconSet implements AppIconSet {
   @override
   IconData get sidebarOpen => LucideIcons.panelLeftOpen;
   @override
-  IconData get album => LucideIcons.disc3;
+  IconData get library => LucideIcons.library;
+  @override
+  IconData get albums => LucideIcons.disc3;
+  @override
+  IconData get allTracks => LucideIcons.music;
   @override
   IconData get artists => LucideIcons.users;
   @override
-  IconData get library => LucideIcons.library;
+  IconData get genres => LucideIcons.tags;
   @override
   IconData get playlist => LucideIcons.listMusic;
 
@@ -66,7 +70,23 @@ class LucideIconSet implements AppIconSet {
 
   // Others
   @override
-  IconData get musicTile => LucideIcons.music;
+  IconData get contextMenu => LucideIcons.ellipsis;
   @override
-  IconData get navigationBack => LucideIcons.chevronLeft;
+  IconData get favorite => LucideIcons.heart;
+  @override
+  IconData get navigationLeft => LucideIcons.chevronLeft;
+  @override
+  IconData get navigationRight => LucideIcons.chevronRight;
+  @override
+  IconData get navigationUp => LucideIcons.chevronUp;
+  @override
+  IconData get navigationDown => LucideIcons.chevronDown;
+  @override
+  IconData get playtime => LucideIcons.clock;
+  @override
+  IconData get preference => LucideIcons.settings2;
+  @override
+  IconData get statistic => LucideIcons.chartNoAxesColumn;
+  @override
+  IconData get storage => LucideIcons.hardDrive;
 }

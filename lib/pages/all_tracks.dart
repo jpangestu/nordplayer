@@ -7,6 +7,7 @@ import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
+import 'package:nordplayer/utils/int_extension.dart';
 import 'package:nordplayer/widgets/album_art_stack.dart';
 import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
@@ -306,10 +307,7 @@ List<TableColumn<TrackWithArtists>> allTracksColumns = <TableColumn<TrackWithArt
     minWidth: 90,
     alignment: Alignment.centerRight,
     cellBuilder: (context, track, index) {
-      final duration = Duration(milliseconds: track.track.durationMs);
-      final minutes = duration.inMinutes;
-      final seconds = duration.inSeconds % 60;
-      return Text('$minutes:${seconds.toString().padLeft(2, '0')}');
+      return Text(track.track.durationMs.toDurationString());
     },
   ),
 ];
