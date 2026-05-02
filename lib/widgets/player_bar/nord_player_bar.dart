@@ -5,6 +5,7 @@ import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
 import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
+import 'package:nordplayer/utils/unimplemented.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
@@ -12,14 +13,14 @@ import 'package:nordplayer/widgets/player_bar/playback.dart';
 import 'package:nordplayer/widgets/player_bar/progress_bar.dart';
 import 'package:nordplayer/widgets/player_bar/volume_slider.dart';
 
-class PlayerBar extends ConsumerStatefulWidget {
-  const PlayerBar({super.key});
+class NordPlayerBar extends ConsumerStatefulWidget {
+  const NordPlayerBar({super.key});
 
   @override
-  ConsumerState<PlayerBar> createState() => _PlayerBarState();
+  ConsumerState<NordPlayerBar> createState() => _PlayerBarState();
 }
 
-class _PlayerBarState extends ConsumerState<PlayerBar> with LoggerMixin {
+class _PlayerBarState extends ConsumerState<NordPlayerBar> with LoggerMixin {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -77,7 +78,14 @@ class _PlayerBarState extends ConsumerState<PlayerBar> with LoggerMixin {
               child: Row(
                 mainAxisAlignment: .end,
                 children: [
-                  IconButton(icon: AppIcon(appIconSet.lyrics), iconSize: 24, tooltip: 'Show Lyrics', onPressed: () {}),
+                  IconButton(
+                    icon: AppIcon(appIconSet.lyrics),
+                    iconSize: 24,
+                    tooltip: 'Show Lyrics',
+                    onPressed: () {
+                      unimplemented(context);
+                    },
+                  ),
                   IconButton(
                     icon: AppIcon(appIconSet.queue),
                     iconSize: 24,

@@ -10,14 +10,14 @@ import 'package:nordplayer/widgets/title_bar_button.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:window_manager/window_manager.dart';
 
-class NordplayerTitleBar extends ConsumerStatefulWidget {
-  const NordplayerTitleBar({super.key});
+class NordTitleBar extends ConsumerStatefulWidget {
+  const NordTitleBar({super.key});
 
   @override
-  ConsumerState<NordplayerTitleBar> createState() => _NordplayerTitleBarState();
+  ConsumerState<NordTitleBar> createState() => _NordplayerTitleBarState();
 }
 
-class _NordplayerTitleBarState extends ConsumerState<NordplayerTitleBar> {
+class _NordplayerTitleBarState extends ConsumerState<NordTitleBar> {
   PackageInfo? _packageInfo;
 
   void _loadPackageInfo() async {

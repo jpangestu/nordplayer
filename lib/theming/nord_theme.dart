@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:nordplayer/theming/theme-extension/sidebar_theme.dart';
+import 'package:nordplayer/theming/theme-extension/nord_sidebar_theme.dart';
+import 'package:nordplayer/theming/theme-extension/nord_snackbar_theme.dart';
 
 // Source: https://www.nordtheme.com/docs/colors-and-palettes
 class NordColors {
@@ -97,7 +98,7 @@ ThemeData buildNordTheme({String? fontFamily}) {
     ),
 
     extensions: <ThemeExtension<dynamic>>[
-      SidebarTheme(
+      NordSidebarTheme(
         backgroundColor: NordColors.nord1,
         itemBackgroundColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.pressed)) {
@@ -137,6 +138,14 @@ ThemeData buildNordTheme({String? fontFamily}) {
           // Muted text when unselected
           return NordColors.nord4;
         }),
+      ),
+
+      const NordSnackBarTheme(
+        generalColor: NordColors.nord6,
+        infoColor: NordColors.nord9,
+        successColor: NordColors.nord14,
+        warningColor: NordColors.nord13,
+        errorColor: NordColors.nord11,
       ),
     ],
 

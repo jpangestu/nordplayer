@@ -564,7 +564,7 @@ final isPlayingProvider = NotifierProvider<IsPlayingNotifier, bool>(IsPlayingNot
 
 class IsPlayingNotifier extends Notifier<bool> {
   // Debounce to ignore rapid changes when feeding new playlist to mkPlayer
-  final _debouncer = Debouncer(const Duration(milliseconds: 50));
+  final _debouncer = Debouncer(const Duration(milliseconds: 150));
 
   @override
   bool build() {
@@ -572,6 +572,8 @@ class IsPlayingNotifier extends Notifier<bool> {
 
     final subscription = player.stream.playing.listen((isPlaying) {
       if (isPlaying) {
+        // Cancel any pending "set to false" timers because we are officially playing again.
+        _debouncer.dispose();
         state = true;
       } else {
         _debouncer(() {

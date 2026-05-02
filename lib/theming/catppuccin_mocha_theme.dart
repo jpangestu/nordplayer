@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:nordplayer/theming/theme-extension/sidebar_theme.dart';
+import 'package:nordplayer/theming/theme-extension/nord_sidebar_theme.dart';
 
 // Source: https://catppuccin.com/palette
 class CatppuccinMochaColors {
@@ -96,7 +96,7 @@ ThemeData buildCatppuccinMochaTheme({String? fontFamily}) {
     ),
 
     extensions: <ThemeExtension<dynamic>>[
-      SidebarTheme(
+      NordSidebarTheme(
         backgroundColor: CatppuccinMochaColors.mantle, // Mantle is used for sidebars
         itemBackgroundColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.pressed)) {

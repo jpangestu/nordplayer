@@ -499,21 +499,6 @@ final recentlyAddedTracksProvider = StreamProvider<List<TrackWithArtists>>((ref)
   return db.watchRecentlyAddedTracks(limitAmount: 12);
 });
 
-final random6TracksProvider = Provider<List<TrackWithArtists>>((ref) {
-  final libraryAsync = ref.watch(libraryStreamProvider);
-
-  return libraryAsync.maybeWhen(
-    data: (allTracks) {
-      if (allTracks.isEmpty) return [];
-
-      // Create a copy of the list, shuffle it, and take the first 5
-      final shuffledTracks = List<TrackWithArtists>.from(allTracks)..shuffle();
-      return shuffledTracks.take(6).toList();
-    },
-    orElse: () => [],
-  );
-});
-
 final randomAlbumsProvider = FutureProvider<List<Album>>((ref) {
   final db = ref.watch(appDatabaseProvider);
   return db.getRandomAlbums(limitAmount: 10);

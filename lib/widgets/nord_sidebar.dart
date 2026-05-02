@@ -1,7 +1,7 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
-import 'package:nordplayer/theming/theme-extension/sidebar_theme.dart';
+import 'package:nordplayer/theming/theme-extension/nord_sidebar_theme.dart';
 
 class Sidebar extends StatelessWidget {
   const Sidebar({
@@ -40,7 +40,7 @@ class Sidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sidebarTheme = Theme.of(context).extension<SidebarTheme>();
+    final sidebarTheme = Theme.of(context).extension<NordSidebarTheme>();
 
     // Widget Prop -> Theme Extension -> Fallback color
     final resolvedBgColor =
@@ -84,7 +84,7 @@ class Sidebar extends StatelessWidget {
 
   Widget _buildItem(BuildContext context, int index, SidebarDestination destination) {
     final theme = Theme.of(context);
-    final sidebarTheme = theme.extension<SidebarTheme>();
+    final sidebarTheme = theme.extension<NordSidebarTheme>();
 
     final bool isSelected = selectedIndex == index;
 

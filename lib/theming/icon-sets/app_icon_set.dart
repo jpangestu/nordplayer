@@ -44,6 +44,13 @@ abstract class AppIconSet {
   IconData get advancedSettings;
   IconData get about;
 
+  // Snack Bar type
+  IconData get general;
+  IconData get info;
+  IconData get warning;
+  IconData get success;
+  IconData get error;
+
   // Others
   IconData get contextMenu; // Horizontal
   IconData get favorite; // Heart

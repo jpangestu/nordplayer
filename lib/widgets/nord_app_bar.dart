@@ -8,17 +8,17 @@ import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 
-class NordplayerAppBar extends ConsumerStatefulWidget implements PreferredSizeWidget {
-  const NordplayerAppBar({super.key});
+class NordAppBar extends ConsumerStatefulWidget implements PreferredSizeWidget {
+  const NordAppBar({super.key});
 
   @override
-  ConsumerState<NordplayerAppBar> createState() => _NordplayerAppBarState();
+  ConsumerState<NordAppBar> createState() => _NordplayerAppBarState();
 
   @override
   Size get preferredSize => const Size.fromHeight(60.0);
 }
 
-class _NordplayerAppBarState extends ConsumerState<NordplayerAppBar> {
+class _NordplayerAppBarState extends ConsumerState<NordAppBar> {
   @override
   Widget build(BuildContext context) {
     final appIconSet = ref.watch(appIconProvider);

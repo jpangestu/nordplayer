@@ -10,6 +10,7 @@ import 'package:nordplayer/widgets/album_art_stack.dart';
 import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
+import 'package:nordplayer/widgets/nord_snack_bar.dart';
 
 class PlaylistsPage extends ConsumerWidget {
   const PlaylistsPage({super.key});
@@ -137,7 +138,7 @@ class _CreatePlaylistDialogState extends ConsumerState<CreatePlaylistDialog> wit
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$name created successfully')));
+    showNordSnackBar(context: context, message: '$name created successfully', type: .success);
 
     log.i('$name created successfully');
 
@@ -148,8 +149,7 @@ class _CreatePlaylistDialogState extends ConsumerState<CreatePlaylistDialog> wit
       await db.addTracksToPlaylist(newPlaylistId, trackIds);
 
       if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Added to $name')));
+      showNordSnackBar(context: context, message: 'Added to $name', type: .success);
     }
 
     Navigator.pop(context);
@@ -212,9 +212,7 @@ class _RenamePlaylistDialogState extends ConsumerState<RenamePlaylistDialog> {
     await widget.database.renamePlaylist(widget.playlist.id, newName);
 
     if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Renamed to "$newName"')));
-
+    showNordSnackBar(context: context, message: 'Renamed to "$newName"', type: .success);
     Navigator.pop(context);
   }
 
@@ -419,9 +417,7 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
 
     if (tracks.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('This playlist is empty! Add some tracks first.')));
+        showNordSnackBar(context: context, message: 'This playlist is empty! Add some tracks first.', type: .info);
       }
       return;
     }
@@ -441,9 +437,7 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
 
     if (tracks.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('This playlist is empty! Add some tracks first.')));
+        showNordSnackBar(context: context, message: 'This playlist is empty! Add some tracks first.', type: .general);
       }
       return;
     }
@@ -452,14 +446,7 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
     ref.read(playerServiceProvider).addToQueue(tracks, playbackContext?.type ?? '', playbackContext?.id);
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Added ${tracks.length} tracks to queue'),
-          behavior: SnackBarBehavior.floating,
-          width: 300,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-        ),
-      );
+      showNordSnackBar(context: context, message: 'Added ${tracks.length} tracks to queue', type: .general);
     }
   }
 
@@ -485,19 +472,10 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
     if (confirmed == true && context.mounted) {
       await widget.database.deletePlaylist(widget.playlistWithDetails.playlist.id);
       if (context.mounted) {
-        final screenWidth = MediaQuery.of(context).size.width;
-        final horizontalMargin = screenWidth > 400 ? (screenWidth - 300) / 2 : 24.0;
-
-        // TODO: Create a reusable custom snackbar (shrink wrap text)
-        // showed asynchronously and stacked ton top of each other if
-        //there's multiple snackbar
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Deleted "${widget.playlistWithDetails.playlist.name}"', textAlign: TextAlign.center),
-            behavior: SnackBarBehavior.floating,
-            margin: EdgeInsets.only(bottom: 98.0, left: horizontalMargin, right: horizontalMargin),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-          ),
+        showNordSnackBar(
+          context: context,
+          message: 'Deleted "${widget.playlistWithDetails.playlist.name}"',
+          type: .success,
         );
       }
     }

@@ -14,6 +14,7 @@ import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
+import 'package:nordplayer/widgets/nord_snack_bar.dart';
 import 'package:nordplayer/widgets/sliver_resizable_table.dart';
 
 class AllTracks extends ConsumerStatefulWidget {
@@ -377,13 +378,10 @@ class TrackContextMenu {
                   .addToQueue(selectedTracks, playbackContext?.type ?? 'all_tracks', playbackContext?.id);
 
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Added ${selectedTracks.length} tracks to queue'),
-                    behavior: SnackBarBehavior.floating,
-                    width: 300,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-                  ),
+                showNordSnackBar(
+                  context: context,
+                  message: 'Added ${selectedTracks.length} tracks to queue',
+                  type: .general,
                 );
               }
             },
@@ -542,9 +540,7 @@ class _SearchablePlaylistMenuState extends ConsumerState<SearchablePlaylistConte
                       ContextMenu.closeAll();
 
                       if (context.mounted) {
-                        ScaffoldMessenger.of(
-                          context,
-                        ).showSnackBar(SnackBar(content: Text('Added to ${playlist.name}')));
+                        showNordSnackBar(context: context, message: 'Added to ${playlist.name}', type: .general);
                       }
                     },
                     child: Container(
@@ -601,8 +597,6 @@ class _CreatePlaylistDialogState extends ConsumerState<CreatePlaylistDialog> wit
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$name created successfully')));
-
     log.i('$name created successfully');
 
     if (widget.tracksToAdd.isNotEmpty) {
@@ -612,8 +606,9 @@ class _CreatePlaylistDialogState extends ConsumerState<CreatePlaylistDialog> wit
       await db.addTracksToPlaylist(newPlaylistId, trackIds);
 
       if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Added to $name')));
+      showNordSnackBar(context: context, message: 'Created "$name" with ${trackIds.length} tracks', type: .success);
+    } else {
+      showNordSnackBar(context: context, message: 'Playlist "$name" created', type: .success);
     }
 
     Navigator.pop(context);

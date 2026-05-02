@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 @immutable
-class SidebarTheme extends ThemeExtension<SidebarTheme> {
-  const SidebarTheme({this.backgroundColor, this.itemBackgroundColor, this.itemForegroundColor});
+class NordSidebarTheme extends ThemeExtension<NordSidebarTheme> {
+  const NordSidebarTheme({this.backgroundColor, this.itemBackgroundColor, this.itemForegroundColor});
 
   /// The background of the sidebar itself
   final Color? backgroundColor;
@@ -14,12 +14,12 @@ class SidebarTheme extends ThemeExtension<SidebarTheme> {
   final WidgetStateProperty<Color?>? itemForegroundColor;
 
   @override
-  SidebarTheme copyWith({
+  NordSidebarTheme copyWith({
     Color? backgroundColor,
     WidgetStateProperty<Color?>? itemBackgroundColor,
     WidgetStateProperty<Color?>? itemForegroundColor,
   }) {
-    return SidebarTheme(
+    return NordSidebarTheme(
       backgroundColor: backgroundColor ?? this.backgroundColor,
       itemBackgroundColor: itemBackgroundColor ?? this.itemBackgroundColor,
       itemForegroundColor: itemForegroundColor ?? this.itemForegroundColor,
@@ -27,12 +27,12 @@ class SidebarTheme extends ThemeExtension<SidebarTheme> {
   }
 
   @override
-  SidebarTheme lerp(SidebarTheme? other, double t) {
+  NordSidebarTheme lerp(NordSidebarTheme? other, double t) {
     if (other == null) {
       return this;
     }
 
-    return SidebarTheme(
+    return NordSidebarTheme(
       backgroundColor: Color.lerp(backgroundColor, other.backgroundColor, t),
       itemBackgroundColor: WidgetStateProperty.lerp<Color?>(
         itemBackgroundColor,

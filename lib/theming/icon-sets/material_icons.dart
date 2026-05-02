@@ -67,6 +67,18 @@ class MaterialIconSet implements AppIconSet {
   @override
   IconData get about => Icons.info;
 
+  // Snack Bar type
+  @override
+  IconData get general => Icons.info_rounded;
+  @override
+  IconData get info => Icons.info_rounded;
+  @override
+  IconData get warning => Icons.warning_amber_rounded;
+  @override
+  IconData get success => Icons.check_circle_rounded;
+  @override
+  IconData get error => Icons.error_rounded;
+
   // Others
   @override
   IconData get contextMenu => Icons.more_horiz;

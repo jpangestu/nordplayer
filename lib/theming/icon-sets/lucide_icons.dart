@@ -68,6 +68,18 @@ class LucideIconSet implements AppIconSet {
   @override
   IconData get about => LucideIcons.info;
 
+  // Snack Bar type
+  @override
+  IconData get general => LucideIcons.info;
+  @override
+  IconData get info => LucideIcons.info;
+  @override
+  IconData get warning => LucideIcons.triangleAlert;
+  @override
+  IconData get success => LucideIcons.circleCheck;
+  @override
+  IconData get error => LucideIcons.circleX;
+
   // Others
   @override
   IconData get contextMenu => LucideIcons.ellipsis;

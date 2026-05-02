@@ -6,9 +6,11 @@ import 'package:go_router/go_router.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/config_service.dart';
+import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/utils/datetime_extension.dart';
 import 'package:nordplayer/utils/int_extension.dart';
+import 'package:nordplayer/utils/unimplemented.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
@@ -52,6 +54,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
                 ),
 
                 CollapsibleSection(
+                  padding: const .only(left: 24, right: 24, top: 0, bottom: 24),
                   label: 'All Tracks',
                   onLabelClick: () {
                     context.go(Routes.allTracksPage);
@@ -457,41 +460,69 @@ class AllTracksPanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final sixTracks = ref.watch(random6TracksProvider);
+    final libraryAsync = ref.watch(libraryStreamProvider);
 
-    return sixTracks.isEmpty
-        ? const SizedBox.shrink()
-        : Row(
-            children: [
-              Expanded(
-                child: Column(
-                  children: [
-                    for (int i = 0; i < sixTracks.length; i += 2) ...[
-                      if (sixTracks[i].isNotEmpty)
-                        LibraryTrackTile(track: sixTracks[i], showDuration: true)
-                      else
-                        const SizedBox.shrink(),
-                    ],
-                  ],
-                ),
-              ),
-
-              const SizedBox(width: 8),
-
-              Expanded(
-                child: Column(
-                  children: [
-                    for (int i = 1; i < sixTracks.length; i += 2) ...[
-                      if (sixTracks[i].isNotEmpty)
-                        LibraryTrackTile(track: sixTracks[i], showDuration: true)
-                      else
-                        const SizedBox.shrink(),
-                    ],
-                  ],
-                ),
-              ),
-            ],
+    return libraryAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => Center(child: Text('Error: $error')),
+      data: (allTracks) {
+        if (allTracks.isEmpty) {
+          return Text(
+            "Your library is empty",
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           );
+        }
+
+        // Create a copy of the list, shuffle it, and take the first 6
+        // TODO: Implement top tracks features and replace this
+        final shuffledTracks = List<TrackWithArtists>.from(allTracks)..shuffle();
+        final sixTracks = shuffledTracks.take(6).toList();
+
+        return Row(
+          children: [
+            Expanded(
+              child: Column(
+                children: [
+                  for (int i = 0; i < sixTracks.length; i += 2) ...[
+                    if (sixTracks[i].isNotEmpty)
+                      LibraryTrackTile(
+                        track: sixTracks[i],
+                        showDuration: true,
+                        playbackContextType: 'top_tracks',
+                        tracksToPlay: shuffledTracks,
+                        indexToPlay: i,
+                      )
+                    else
+                      const SizedBox.shrink(),
+                  ],
+                ],
+              ),
+            ),
+
+            const SizedBox(width: 8),
+
+            Expanded(
+              child: Column(
+                children: [
+                  for (int i = 1; i < sixTracks.length; i += 2) ...[
+                    if (sixTracks[i].isNotEmpty)
+                      LibraryTrackTile(
+                        track: sixTracks[i],
+                        showDuration: true,
+                        playbackContextType: 'top_tracks',
+                        tracksToPlay: shuffledTracks,
+                        indexToPlay: i,
+                      )
+                    else
+                      const SizedBox.shrink(),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
 
@@ -531,7 +562,13 @@ class _RecentlyAddedPanelState extends ConsumerState<RecentlyAddedPanel> {
                     children: [
                       for (int i = 0; i < shownLength; i += 2) ...[
                         if (recentTracks[i].isNotEmpty)
-                          LibraryTrackTile(track: recentTracks[i], showDateAdded: true)
+                          LibraryTrackTile(
+                            track: recentTracks[i],
+                            showDateAdded: true,
+                            playbackContextType: 'recently_added',
+                            tracksToPlay: recentTracks,
+                            indexToPlay: i,
+                          )
                         else
                           const SizedBox.shrink(),
                       ],
@@ -546,7 +583,13 @@ class _RecentlyAddedPanelState extends ConsumerState<RecentlyAddedPanel> {
                     children: [
                       for (int i = 1; i < shownLength; i += 2) ...[
                         if (recentTracks[i].isNotEmpty)
-                          LibraryTrackTile(track: recentTracks[i], showDateAdded: true)
+                          LibraryTrackTile(
+                            track: recentTracks[i],
+                            showDateAdded: true,
+                            playbackContextType: 'recently_added',
+                            tracksToPlay: recentTracks,
+                            indexToPlay: i,
+                          )
                         else
                           const SizedBox.shrink(),
                       ],
@@ -577,11 +620,23 @@ class _RecentlyAddedPanelState extends ConsumerState<RecentlyAddedPanel> {
 }
 
 class LibraryTrackTile extends ConsumerWidget {
-  const LibraryTrackTile({super.key, required this.track, this.showDateAdded = false, this.showDuration = false});
+  const LibraryTrackTile({
+    super.key,
+    required this.track,
+    this.showDateAdded = false,
+    this.showDuration = false,
+    required this.playbackContextType,
+    required this.tracksToPlay,
+    required this.indexToPlay,
+  });
 
   final TrackWithArtists track;
   final bool showDateAdded;
   final bool showDuration;
+
+  final String playbackContextType;
+  final List<TrackWithArtists> tracksToPlay;
+  final int indexToPlay;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -591,7 +646,16 @@ class LibraryTrackTile extends ConsumerWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: .circular(6),
-        onTap: () {},
+        onDoubleTap: () {
+          ref
+              .read(playerServiceProvider)
+              .setPlaylist(
+                playbackContextType: playbackContextType,
+                playbackContextId: null,
+                tracksToPlay: tracksToPlay,
+                initialIndex: indexToPlay,
+              );
+        },
         child: SizedBox(
           height: 68,
           child: Row(
@@ -609,8 +673,18 @@ class LibraryTrackTile extends ConsumerWidget {
               if (showDateAdded) ...[Text(track.track.dateAdded.toRelativeTime()), const SizedBox(width: 24)],
               if (showDuration) ...[Text(track.track.durationMs.toDurationString()), const SizedBox(width: 24)],
 
-              IconButton(onPressed: () {}, icon: AppIcon(appIconSet.favorite)),
-              IconButton(onPressed: () {}, icon: AppIcon(appIconSet.contextMenu)),
+              IconButton(
+                onPressed: () {
+                  unimplemented(context);
+                },
+                icon: AppIcon(appIconSet.favorite),
+              ),
+              IconButton(
+                onPressed: () {
+                  unimplemented(context);
+                },
+                icon: AppIcon(appIconSet.contextMenu),
+              ),
               const SizedBox(width: 8),
             ],
           ),
