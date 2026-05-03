@@ -478,46 +478,39 @@ class AllTracksPanel extends ConsumerWidget {
         final shuffledTracks = List<TrackWithArtists>.from(allTracks)..shuffle();
         final sixTracks = shuffledTracks.take(6).toList();
 
-        return Row(
+        return Column(
           children: [
-            Expanded(
-              child: Column(
-                children: [
-                  for (int i = 0; i < sixTracks.length; i += 2) ...[
-                    if (sixTracks[i].isNotEmpty)
-                      LibraryTrackTile(
-                        track: sixTracks[i],
-                        showDuration: true,
-                        playbackContextType: 'top_tracks',
-                        tracksToPlay: shuffledTracks,
-                        indexToPlay: i,
-                      )
-                    else
-                      const SizedBox.shrink(),
-                  ],
-                ],
-              ),
-            ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                // The breakpoint for when it should switch to 2 columns
+                final bool useTwoColumns = constraints.maxWidth > 600;
+                const double spacing = 8.0;
 
-            const SizedBox(width: 8),
+                // Calculate the exact width each tile should take
+                final double itemWidth = useTwoColumns
+                    // Subtract spacing to prevent overflow
+                    ? (constraints.maxWidth - spacing) / 2
+                    : constraints.maxWidth;
 
-            Expanded(
-              child: Column(
-                children: [
-                  for (int i = 1; i < sixTracks.length; i += 2) ...[
-                    if (sixTracks[i].isNotEmpty)
-                      LibraryTrackTile(
-                        track: sixTracks[i],
-                        showDuration: true,
-                        playbackContextType: 'top_tracks',
-                        tracksToPlay: shuffledTracks,
-                        indexToPlay: i,
-                      )
-                    else
-                      const SizedBox.shrink(),
+                return Wrap(
+                  spacing: spacing,
+                  runSpacing: spacing,
+                  children: [
+                    for (int i = 0; i < sixTracks.length; i++)
+                      if (sixTracks[i].isNotEmpty)
+                        SizedBox(
+                          width: itemWidth,
+                          child: LibraryTrackTile(
+                            track: sixTracks[i],
+                            showDateAdded: true,
+                            playbackContextType: 'top_tracks',
+                            tracksToPlay: sixTracks,
+                            indexToPlay: i,
+                          ),
+                        ),
                   ],
-                ],
-              ),
+                );
+              },
             ),
           ],
         );
@@ -554,52 +547,40 @@ class _RecentlyAddedPanelState extends ConsumerState<RecentlyAddedPanel> {
 
         return Column(
           children: [
-            Row(
-              crossAxisAlignment: .start,
-              children: [
-                Expanded(
-                  child: Column(
-                    children: [
-                      for (int i = 0; i < shownLength; i += 2) ...[
-                        if (recentTracks[i].isNotEmpty)
-                          LibraryTrackTile(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                // The breakpoint for when it should switch to 2 columns
+                final bool useTwoColumns = constraints.maxWidth > 600;
+                const double spacing = 8.0;
+
+                // Calculate the exact width each tile should take
+                final double itemWidth = useTwoColumns
+                    // Subtract spacing to prevent overflow
+                    ? (constraints.maxWidth - spacing) / 2
+                    : constraints.maxWidth;
+
+                return Wrap(
+                  spacing: spacing,
+                  runSpacing: spacing,
+                  children: [
+                    for (int i = 0; i < shownLength; i++)
+                      if (recentTracks[i].isNotEmpty)
+                        SizedBox(
+                          width: itemWidth,
+                          child: LibraryTrackTile(
                             track: recentTracks[i],
                             showDateAdded: true,
                             playbackContextType: 'recently_added',
                             tracksToPlay: recentTracks,
                             indexToPlay: i,
-                          )
-                        else
-                          const SizedBox.shrink(),
-                      ],
-                    ],
-                  ),
-                ),
-
-                const SizedBox(width: 8),
-
-                Expanded(
-                  child: Column(
-                    children: [
-                      for (int i = 1; i < shownLength; i += 2) ...[
-                        if (recentTracks[i].isNotEmpty)
-                          LibraryTrackTile(
-                            track: recentTracks[i],
-                            showDateAdded: true,
-                            playbackContextType: 'recently_added',
-                            tracksToPlay: recentTracks,
-                            indexToPlay: i,
-                          )
-                        else
-                          const SizedBox.shrink(),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
+                          ),
+                        ),
+                  ],
+                );
+              },
             ),
 
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
 
             TextButton(
               onPressed: () {

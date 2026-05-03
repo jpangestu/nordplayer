@@ -9,14 +9,14 @@ import 'package:nordplayer/pages/all_tracks.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
+import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/utils/debouncer.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
 
 class QueuePage extends ConsumerStatefulWidget {
-  const QueuePage({super.key, required this.isWideScreen});
-  final bool isWideScreen;
+  const QueuePage({super.key});
 
   @override
   ConsumerState<QueuePage> createState() => _QueuePageState();
@@ -68,6 +68,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
 
     final theme = Theme.of(context);
     final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appIconSet = ref.watch(appIconProvider);
 
     ref.listen<int>(currentTrackIndexProvider, (previous, next) {
       if (next != previous && next >= 0 && _scrollController.hasClients) {
@@ -96,11 +97,12 @@ class _QueuePageState extends ConsumerState<QueuePage> {
     return FrostedGlass(
       blurSigma: appConfig.adaptiveBgPanelBlur,
       child: SizedBox(
-        width: widget.isWideScreen ? 350 : 300,
+        width: 300,
         child: Scaffold(
           extendBodyBehindAppBar: true,
           appBar: AppBar(
             backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surfaceContainer,
+            toolbarHeight: 60,
             // Disable app bar changing color when tracks list scrolls below it
             surfaceTintColor: Colors.transparent,
             elevation: 0,
@@ -110,12 +112,8 @@ class _QueuePageState extends ConsumerState<QueuePage> {
             flexibleSpace: appConfig.adaptiveBg
                 ? ClipRect(
                     child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0, tileMode: .mirror),
-                      child: Container(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainer.withValues(alpha: appConfig.adaptiveBgThemeOverlay),
-                      ),
+                      filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0, tileMode: .mirror),
+                      child: Container(color: Colors.transparent),
                     ),
                   )
                 : null,
@@ -134,7 +132,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                         onPressed: () {
                           ref.read(preferenceServiceProvider.notifier).setShowQueue(false);
                         },
-                        icon: const AppIcon(Icons.keyboard_arrow_right),
+                        icon: AppIcon(appIconSet.sidebarOpen),
                         tooltip: 'Close Queue',
                       ),
                       const SizedBox(width: 8),

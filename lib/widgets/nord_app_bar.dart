@@ -106,23 +106,24 @@ class _NordplayerAppBarState extends ConsumerState<NordAppBar> {
           ),
         ),
       ),
-      actions: [
-        IconButton(
-          onPressed: () {
-            if (isSettingsRoute) {
-              final lastRoute = ref.read(lastMainRouteProvider);
-              context.go(lastRoute);
-            } else {
-              ref.read(lastMainRouteProvider.notifier).updateRoute(currentRoute);
-              context.go('/settings/appearance');
-            }
-          },
-          icon: AppIcon(appIconSet.settings, color: isSettingsRoute ? theme.colorScheme.primary : null),
-          // selectedIcon: AppIcon(Icons.settings),
-          // isSelected: isSettingsRoute,
-        ),
-        const SizedBox(width: 8),
-      ],
+      // Settings button on app bar
+      // actions: [
+      //   IconButton(
+      //     onPressed: () {
+      //       if (isSettingsRoute) {
+      //         final lastRoute = ref.read(lastMainRouteProvider);
+      //         context.go(lastRoute);
+      //       } else {
+      //         ref.read(lastMainRouteProvider.notifier).updateRoute(currentRoute);
+      //         context.go('/settings/appearance');
+      //       }
+      //     },
+      //     icon: AppIcon(appIconSet.settings, color: isSettingsRoute ? theme.colorScheme.primary : null),
+      //     // selectedIcon: AppIcon(Icons.settings),
+      //     // isSelected: isSettingsRoute,
+      //   ),
+      //   const SizedBox(width: 8),
+      // ],
     );
   }
 }

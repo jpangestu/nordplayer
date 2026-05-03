@@ -47,21 +47,49 @@ class Sidebar extends StatelessWidget {
         backgroundColor ?? sidebarTheme?.backgroundColor ?? Theme.of(context).colorScheme.surfaceContainer;
     final finalBgColor = isAdaptiveBgOn ? resolvedBgColor.withValues(alpha: adaptiveBgThemeOverlay) : resolvedBgColor;
 
+    // Separate destinations while keeping original indices
+    final topIndices = <int>[];
+    final bottomIndices = <int>[];
+
+    for (int i = 0; i < destinations.length; i++) {
+      if (destinations[i].alignToBottom) {
+        bottomIndices.add(i);
+      } else {
+        topIndices.add(i);
+      }
+    }
+
     Widget sidebarContent = Container(
+      width: isExtended ? extendedWidth : collapseWidth,
       decoration: BoxDecoration(color: finalBgColor, borderRadius: sidebarBorderRadius),
-      child: SizedBox(
-        width: isExtended ? extendedWidth : collapseWidth,
-        child: Column(
-          crossAxisAlignment: .start,
-          children: [
-            leading ?? const SizedBox.shrink(),
-            Expanded(
-              child: ListView(
-                children: [for (var (i, destination) in destinations.indexed) _buildItem(context, i, destination)],
-              ),
+      child: Column(
+        crossAxisAlignment: .start,
+        children: [
+          leading ?? const SizedBox.shrink(),
+          Expanded(
+            child: CustomScrollView(
+              slivers: [
+                // Top items
+                SliverList(
+                  delegate: SliverChildListDelegate([
+                    for (var i in topIndices) _buildItem(context, i, destinations[i]),
+                  ]),
+                ),
+                // Bottom items pushed to the end
+                SliverFillRemaining(
+                  hasScrollBody: false, // Essential for pushing content to the bottom
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      for (var i in bottomIndices) _buildItem(context, i, destinations[i]),
+                      const SizedBox(height: 8.0),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
 
@@ -164,10 +192,11 @@ class Sidebar extends StatelessWidget {
 }
 
 class SidebarDestination {
-  const SidebarDestination({required this.icon, Widget? selectedIcon, required this.label})
+  const SidebarDestination({required this.icon, Widget? selectedIcon, required this.label, this.alignToBottom = false})
     : selectedIcon = selectedIcon ?? icon;
 
   final Widget icon;
   final Widget selectedIcon;
   final Widget label;
+  final bool alignToBottom;
 }

@@ -23,35 +23,40 @@ class AppLayout extends ConsumerWidget {
     bool isExtended = ref.watch(preferenceServiceProvider).sidebarExtended;
     bool showQueue = ref.watch(preferenceServiceProvider).showQueue;
     final appConfig = ref.watch(configServiceProvider).requireValue;
-    final colorScheme = Theme.of(context).colorScheme;
     final appIconSet = ref.watch(appIconProvider);
 
     // IMPORTANT: Orders matters! Should refer to router.dart
     final destinations = <SidebarDestination>[
       SidebarDestination(
         icon: AppIcon(appIconSet.library),
-        selectedIcon: AppIcon(appIconSet.library),
+        // selectedIcon: AppIcon(appIconSet.library),
         label: const Text('Library'),
       ),
       SidebarDestination(
         icon: AppIcon(appIconSet.allTracks),
-        selectedIcon: AppIcon(appIconSet.allTracks),
+        // selectedIcon: AppIcon(appIconSet.allTracks),
         label: const Text('All Tracks'),
       ),
       SidebarDestination(
         icon: AppIcon(appIconSet.playlist),
-        selectedIcon: AppIcon(appIconSet.playlist),
+        // selectedIcon: AppIcon(appIconSet.playlist),
         label: const Text('Playlists'),
       ),
       SidebarDestination(
         icon: AppIcon(appIconSet.albums),
-        selectedIcon: AppIcon(appIconSet.albums),
+        // selectedIcon: AppIcon(appIconSet.albums),
         label: const Text('Albums'),
       ),
       SidebarDestination(
         icon: AppIcon(appIconSet.artists),
-        selectedIcon: AppIcon(appIconSet.artists),
+        // selectedIcon: AppIcon(appIconSet.artists),
         label: const Text('Artists'),
+      ),
+      SidebarDestination(
+        icon: AppIcon(appIconSet.settings),
+        // selectedIcon: AppIcon(appIconSet.settings),
+        label: const Text('Settings'),
+        alignToBottom: true,
       ),
     ];
 
@@ -87,10 +92,7 @@ class AppLayout extends ConsumerWidget {
                 backgroundColor: Colors.transparent,
                 body: Column(
                   children: [
-                    Container(
-                      color: colorScheme.surfaceContainer.withValues(alpha: appConfig.adaptiveBgThemeOverlay),
-                      child: const NordTitleBar(),
-                    ),
+                    const NordTitleBar(),
 
                     const AdaptiveDivider(),
 
@@ -130,26 +132,23 @@ class AppLayout extends ConsumerWidget {
                               backgroundColor: Colors.transparent,
                               body: Stack(
                                 children: [
-                                  Row(
-                                    children: [
-                                      Expanded(child: navigationShell),
-                                      if (showQueue && isWideScreen) ...[
-                                        const AdaptiveVerticalDivider(),
-                                        QueuePage(isWideScreen: isWideScreen),
-                                      ],
-                                    ],
-                                  ),
+                                  navigationShell,
+                                  // Row(
+                                  //   children: [
+                                  //     Expanded(child: navigationShell),
+                                  //     if (showQueue && isWideScreen) ...[
+                                  //       const AdaptiveVerticalDivider(),
+                                  //       QueuePage(isWideScreen: isWideScreen),
+                                  //     ],
+                                  //   ],
+                                  // ),
                                   if (showQueue && !isWideScreen)
-                                    Positioned(
-                                      top: 0,
-                                      bottom: 0,
-                                      right: 0,
-                                      child: QueuePage(isWideScreen: isWideScreen),
-                                    ),
+                                    const Positioned(top: 0, bottom: 0, right: 0, child: QueuePage()),
                                 ],
                               ),
                             ),
                           ),
+                          if (showQueue && isWideScreen) ...[const AdaptiveVerticalDivider(), const QueuePage()],
                         ],
                       ),
                     ),
