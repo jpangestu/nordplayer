@@ -22,7 +22,7 @@ class LucideIconSet implements AppIconSet {
   @override
   IconData get albums => LucideIcons.disc3;
   @override
-  IconData get allTracks => LucideIcons.music;
+  IconData get tracks => LucideIcons.music;
   @override
   IconData get artists => LucideIcons.users;
   @override

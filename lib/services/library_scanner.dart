@@ -1,14 +1,14 @@
 import 'dart:io';
 
-import 'package:nordplayer/models/app_config.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:metadata_god/metadata_god.dart';
 import 'package:nordplayer/database/app_database.dart';
-import 'package:nordplayer/services/logger.dart';
+import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/services/config_service.dart';
+import 'package:nordplayer/services/logger.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 final libraryScannerProvider = Provider<LibraryScanner>((ref) {
   final appConfig = ref.watch(configServiceProvider).requireValue;
@@ -32,14 +32,10 @@ class LibraryScanner with LoggerMixin {
   final Map<String, int> _albumCache = {};
 
   Future<void> scanLibrary() async {
-    log.i(
-      "Initializing library scan for ${_appConfig.musicPaths.length} folders",
-    );
+    log.i("Initializing library scan for ${_appConfig.musicPaths.length} folders");
 
     final existingTracks = await _db.select(_db.tracks).get();
-    final Set<String> knownTrackPaths = existingTracks
-        .map((track) => track.filePath)
-        .toSet();
+    final Set<String> knownTrackPaths = existingTracks.map((track) => track.filePath).toSet();
     final Set<String> filesFoundOnDisk = {};
     List<File> newTrackToProcess = [];
 
@@ -47,17 +43,14 @@ class LibraryScanner with LoggerMixin {
       final musicDir = Directory(path);
 
       if (await musicDir.exists()) {
-        final Stream<FileSystemEntity> entities = musicDir
-            .list(recursive: true, followLinks: false)
-            .handleError((error) {
-              log.e('Could not access folder: $error');
-            });
+        final Stream<FileSystemEntity> entities = musicDir.list(recursive: true, followLinks: false).handleError((
+          error,
+        ) {
+          log.e('Could not access folder: $error');
+        });
 
         await for (FileSystemEntity entity in entities) {
-          if (entity is File &&
-              supportedExtensions.contains(
-                p.extension(entity.path).toLowerCase(),
-              )) {
+          if (entity is File && supportedExtensions.contains(p.extension(entity.path).toLowerCase())) {
             filesFoundOnDisk.add(entity.path);
 
             if (!knownTrackPaths.contains(entity.path)) {
@@ -75,9 +68,7 @@ class LibraryScanner with LoggerMixin {
       log.i('Found ${newTrackToProcess.length} new track(s). Processing...');
       int chunkSize = 50;
       for (var i = 0; i < newTrackToProcess.length; i += chunkSize) {
-        final end = (i + chunkSize < newTrackToProcess.length)
-            ? i + chunkSize
-            : newTrackToProcess.length;
+        final end = (i + chunkSize < newTrackToProcess.length) ? i + chunkSize : newTrackToProcess.length;
         await _processBatch(newTrackToProcess.sublist(i, end));
       }
     } else {
@@ -86,26 +77,18 @@ class LibraryScanner with LoggerMixin {
 
     final tracksToRemove = knownTrackPaths.difference(filesFoundOnDisk);
     if (tracksToRemove.isNotEmpty) {
-      log.i(
-        'Cleaning up ${tracksToRemove.length} removed tracks from database...',
-      );
-      await (_db.delete(
-        _db.tracks,
-      )..where((track) => track.filePath.isIn(tracksToRemove))).go();
+      log.i('Cleaning up ${tracksToRemove.length} removed tracks from database...');
+      await (_db.delete(_db.tracks)..where((track) => track.filePath.isIn(tracksToRemove))).go();
     }
   }
 
   Future<void> removeTrackByPath(String path) async {
-    await (_db.delete(
-      _db.tracks,
-    )..where((track) => track.filePath.equals(path))).go();
+    await (_db.delete(_db.tracks)..where((track) => track.filePath.equals(path))).go();
   }
 
   Future<void> removeTracksInDirectory(String directoryPath) async {
-    log.i("Removing all tracks under: $directoryPath");
-    await (_db.delete(
-      _db.tracks,
-    )..where((track) => track.filePath.like('$directoryPath%'))).go();
+    log.i("Removing tracks under: $directoryPath");
+    await (_db.delete(_db.tracks)..where((track) => track.filePath.like('$directoryPath%'))).go();
   }
 
   Future<void> processSingleFile(File file) async {
@@ -155,8 +138,9 @@ class LibraryScanner with LoggerMixin {
 
         final artPath = await _saveAlbumArt(meta, albumId);
         if (artPath != null) {
-          await (_db.update(_db.albums)..where((a) => a.id.equals(albumId)))
-              .write(AlbumsCompanion(albumArtPath: Value(artPath)));
+          await (_db.update(
+            _db.albums,
+          )..where((a) => a.id.equals(albumId))).write(AlbumsCompanion(albumArtPath: Value(artPath)));
         }
 
         final newTrackId = await _db
@@ -182,10 +166,7 @@ class LibraryScanner with LoggerMixin {
           await _db
               .into(_db.trackArtist)
               .insert(
-                TrackArtistCompanion(
-                  trackId: Value(newTrackId),
-                  artistId: Value(artistId),
-                ),
+                TrackArtistCompanion(trackId: Value(newTrackId), artistId: Value(artistId)),
                 mode: InsertMode.insertOrIgnore,
               );
         }
@@ -203,9 +184,7 @@ class LibraryScanner with LoggerMixin {
     }
 
     // Determine file extension from MIME type
-    final String ext = metadata.picture!.mimeType == 'image/png'
-        ? '.png'
-        : '.jpg';
+    final String ext = metadata.picture!.mimeType == 'image/png' ? '.png' : '.jpg';
 
     // Create a unique filename based on Album ID
     final String fileName = "album_$albumId$ext";
@@ -228,17 +207,10 @@ class LibraryScanner with LoggerMixin {
     final List<String> delimiters = _appConfig.artistDelimiters;
     final String pattern = delimiters.map((d) => RegExp.escape(d)).join('|');
 
-    final RegExp separator = RegExp(
-      '\\s*(?:$pattern)\\s*',
-      caseSensitive: false,
-    );
+    final RegExp separator = RegExp('\\s*(?:$pattern)\\s*', caseSensitive: false);
 
     // Split, trim whitespace, and remove empty strings
-    return rawArtist
-        .split(separator)
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList();
+    return rawArtist.split(separator).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
   }
 
   Future<int> _getOrCreateArtist(String artistName) async {
@@ -246,18 +218,14 @@ class LibraryScanner with LoggerMixin {
       return _artistCache[artistName]!;
     }
 
-    final existing = await (_db.select(
-      _db.artists,
-    )..where((a) => a.name.equals(artistName))).getSingleOrNull();
+    final existing = await (_db.select(_db.artists)..where((a) => a.name.equals(artistName))).getSingleOrNull();
 
     if (existing != null) {
       _artistCache[artistName] = existing.id;
       return existing.id;
     }
 
-    final newId = await _db
-        .into(_db.artists)
-        .insert(ArtistsCompanion(name: Value(artistName)));
+    final newId = await _db.into(_db.artists).insert(ArtistsCompanion(name: Value(artistName)));
     _artistCache[artistName] = newId;
     return newId;
   }
@@ -270,11 +238,9 @@ class LibraryScanner with LoggerMixin {
       return _albumCache[cacheKey]!;
     }
 
-    final existing =
-        await (_db.select(_db.albums)..where(
-              (a) => a.title.equals(albumTitle) & a.artistId.equals(artistId),
-            ))
-            .getSingleOrNull();
+    final existing = await (_db.select(
+      _db.albums,
+    )..where((a) => a.title.equals(albumTitle) & a.artistId.equals(artistId))).getSingleOrNull();
 
     if (existing != null) {
       _albumCache[cacheKey] = existing.id;

@@ -133,11 +133,11 @@ class _MusicTileState extends ConsumerState<MusicTile> with LoggerMixin {
                                 cacheWidth: pixelSize,
                                 gaplessPlayback: true,
                                 errorBuilder: (_, _, _) =>
-                                    AppIcon(appIconSet.allTracks, size: widget.albumArtSize ?? responsiveSize),
+                                    AppIcon(appIconSet.tracks, size: widget.albumArtSize ?? responsiveSize),
                               ),
                             )
                           : AppIcon(
-                              appIconSet.allTracks,
+                              appIconSet.tracks,
                               size: widget.albumArtSize ?? responsiveSize,
                               color: listTileTheme.iconColor,
                             ),

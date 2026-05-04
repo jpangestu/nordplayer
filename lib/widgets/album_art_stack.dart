@@ -97,7 +97,7 @@ class AlbumArtStack extends ConsumerWidget {
                           : null,
                     ),
                     child: !hasImage
-                        ? AppIcon(appIconSet.allTracks, color: theme.colorScheme.onPrimary, size: squareSize * 0.3)
+                        ? AppIcon(appIconSet.tracks, color: theme.colorScheme.onPrimary, size: squareSize * 0.3)
                         : null,
                   ),
                 );

@@ -33,9 +33,9 @@ class AppLayout extends ConsumerWidget {
         label: const Text('Library'),
       ),
       SidebarDestination(
-        icon: AppIcon(appIconSet.allTracks),
-        // selectedIcon: AppIcon(appIconSet.allTracks),
-        label: const Text('All Tracks'),
+        icon: AppIcon(appIconSet.tracks),
+        // selectedIcon: AppIcon(appIconSet.tracks),
+        label: const Text('Tracks'),
       ),
       SidebarDestination(
         icon: AppIcon(appIconSet.playlist),
@@ -86,7 +86,7 @@ class AppLayout extends ConsumerWidget {
           autofocus: true,
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final bool isWideScreen = constraints.maxWidth > 1080;
+              final bool isWideScreen = constraints.maxWidth >= 1080;
 
               return Scaffold(
                 backgroundColor: Colors.transparent,

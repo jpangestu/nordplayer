@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/database/app_database.dart';
-import 'package:nordplayer/pages/all_tracks.dart';
+import 'package:nordplayer/pages/pages_helper.dart';
 import 'package:nordplayer/services/player_service.dart';
 
 // =========================== Player Bar ================================
@@ -142,8 +142,8 @@ class PlaySelectedAction extends Action<PlaySelectedIntent> {
   @override
   void invoke(covariant PlaySelectedIntent intent) {
     // Fetch the latest tracks right when the key is pressed
-    final allTracks = getTracks();
-    if (allTracks.isEmpty) return;
+    final tracks = getTracks();
+    if (tracks.isEmpty) return;
 
     // Get the current selection for this specific table
     final selectedIndices = ref.read(selectedTracksIndexProvider(tableId));
@@ -156,7 +156,7 @@ class PlaySelectedAction extends Action<PlaySelectedIntent> {
       ref
           .read(playerServiceProvider)
           .setPlaylist(
-            tracksToPlay: allTracks,
+            tracksToPlay: tracks,
             initialIndex: targetIndex,
             playbackContextType: playbackContextType,
             playbackContextId: playbackContextId,
@@ -164,7 +164,7 @@ class PlaySelectedAction extends Action<PlaySelectedIntent> {
     } else {
       // Multiple Selection: Play only the selected tracks as a new playlist
       final sortedIndices = selectedIndices.toList()..sort();
-      final selectedTracks = sortedIndices.map((i) => allTracks[i]).toList();
+      final selectedTracks = sortedIndices.map((i) => tracks[i]).toList();
 
       ref
           .read(playerServiceProvider)

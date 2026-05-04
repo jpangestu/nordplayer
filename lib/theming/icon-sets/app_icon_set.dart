@@ -18,7 +18,7 @@ abstract class AppIconSet {
   IconData get sidebarOpen;
   IconData get library;
   IconData get albums;
-  IconData get allTracks;
+  IconData get tracks;
   IconData get artists;
   IconData get genres;
   IconData get playlist;

@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/database/app_database.dart';
-import 'package:nordplayer/pages/all_tracks.dart';
+import 'package:nordplayer/pages/pages_context_menu.dart';
+import 'package:nordplayer/pages/pages_helper.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
@@ -209,7 +210,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                     ref: ref,
                     isAdaptive: ref.watch(configServiceProvider).requireValue.adaptiveBg,
                     globalPosition: globalPosition,
-                    allTracks: currentTracks.nonNulls.toList(),
+                    tracks: currentTracks.nonNulls.toList(),
                     clickedIndex: index, // Assuming no nulls skewing the index
                     selectedTracks: selectedTracks,
                     playbackContextType: 'queue', // Explicitly pass 'queue'

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nordplayer/pages/albums_page.dart';
-import 'package:nordplayer/pages/all_tracks.dart';
 import 'package:nordplayer/pages/app_layout.dart';
 import 'package:nordplayer/pages/artists_page.dart';
 import 'package:nordplayer/pages/library_page.dart';
@@ -14,10 +13,11 @@ import 'package:nordplayer/pages/settings/appearance_page.dart';
 import 'package:nordplayer/pages/settings/library_management_page.dart';
 import 'package:nordplayer/pages/settings/license_page.dart';
 import 'package:nordplayer/pages/settings/settings_layout.dart';
+import 'package:nordplayer/pages/tracks.dart';
 
 class Routes {
   static const albumsPage = '/albums';
-  static const allTracksPage = '/all-tracks';
+  static const tracksPage = '/tracks';
   static const artistsPage = '/artists';
   static const libraryPage = '/library';
   static const playlistsPage = '/playlists';
@@ -45,7 +45,7 @@ final router = GoRouter(
           routes: [GoRoute(path: Routes.libraryPage, builder: (context, state) => const LibraryPage())],
         ),
         StatefulShellBranch(
-          routes: [GoRoute(path: Routes.allTracksPage, builder: (context, state) => const AllTracks())],
+          routes: [GoRoute(path: Routes.tracksPage, builder: (context, state) => const Tracks())],
         ),
         StatefulShellBranch(
           routes: [

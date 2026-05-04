@@ -55,11 +55,11 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
 
                 CollapsibleSection(
                   padding: const .only(left: 24, right: 24, top: 0, bottom: 24),
-                  label: 'All Tracks',
+                  label: 'Tracks',
                   onLabelClick: () {
-                    context.go(Routes.allTracksPage);
+                    context.go(Routes.tracksPage);
                   },
-                  content: const AllTracksPanel(),
+                  content: const TracksPanel(),
                 ),
 
                 // CollapsibleSection(
@@ -154,7 +154,7 @@ class _LibraryHeaderState extends ConsumerState<LibraryHeader> {
                           runSpacing: 16,
                           alignment: .spaceEvenly,
                           children: [
-                            LibraryStatItem(icon: appIconSet.allTracks, value: '${stats.trackCount}', label: 'Tracks'),
+                            LibraryStatItem(icon: appIconSet.tracks, value: '${stats.trackCount}', label: 'Tracks'),
                             LibraryStatItem(icon: appIconSet.artists, value: '${stats.artistCount}', label: 'Artists'),
                             LibraryStatItem(icon: appIconSet.albums, value: '${stats.albumCount}', label: 'Albums'),
                             LibraryStatItem(icon: appIconSet.genres, value: '${stats.genreCount}', label: 'Genres'),
@@ -455,8 +455,8 @@ class _AlbumsPanelState extends ConsumerState<AlbumsPanel> {
   }
 }
 
-class AllTracksPanel extends ConsumerWidget {
-  const AllTracksPanel({super.key});
+class TracksPanel extends ConsumerWidget {
+  const TracksPanel({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -465,8 +465,8 @@ class AllTracksPanel extends ConsumerWidget {
     return libraryAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => Center(child: Text('Error: $error')),
-      data: (allTracks) {
-        if (allTracks.isEmpty) {
+      data: (tracks) {
+        if (tracks.isEmpty) {
           return Text(
             "Your library is empty",
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
@@ -475,7 +475,7 @@ class AllTracksPanel extends ConsumerWidget {
 
         // Create a copy of the list, shuffle it, and take the first 6
         // TODO: Implement top tracks features and replace this
-        final shuffledTracks = List<TrackWithArtists>.from(allTracks)..shuffle();
+        final shuffledTracks = List<TrackWithArtists>.from(tracks)..shuffle();
         final sixTracks = shuffledTracks.take(6).toList();
 
         return Column(
@@ -502,7 +502,7 @@ class AllTracksPanel extends ConsumerWidget {
                           width: itemWidth,
                           child: LibraryTrackTile(
                             track: sixTracks[i],
-                            showDateAdded: true,
+                            showDuration: true,
                             playbackContextType: 'top_tracks',
                             tracksToPlay: sixTracks,
                             indexToPlay: i,

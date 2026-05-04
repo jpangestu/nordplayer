@@ -28,7 +28,7 @@ class _NordplayerAppBarState extends ConsumerState<NordAppBar> {
     final currentRoute = GoRouterState.of(context).uri.path;
     final bool isMainTabRoot =
         currentRoute == Routes.libraryPage ||
-        currentRoute == Routes.allTracksPage ||
+        currentRoute == Routes.tracksPage ||
         currentRoute == Routes.playlistsPage ||
         currentRoute == Routes.albumsPage ||
         currentRoute == Routes.artistsPage;

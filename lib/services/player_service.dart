@@ -205,7 +205,7 @@ class PlayerService with LoggerMixin {
   // =========================================== Queue Management =====================================================
 
   /// Inserts track(s) immediately after the currently playing track
-  Future<void> playNext(List<TrackWithArtists> tracksToAdd) async {
+  Future<void> playNext(List<TrackWithArtists> tracksToAdd, String contextType, int? contextId) async {
     if (tracksToAdd.isEmpty) return;
 
     // If nothing is currently in the playlist, just start playing these tracks
@@ -213,8 +213,8 @@ class PlayerService with LoggerMixin {
       await setPlaylist(
         tracksToPlay: tracksToAdd,
         initialIndex: 0,
-        playbackContextType: 'play_next',
-        playbackContextId: null,
+        playbackContextType: contextType,
+        playbackContextId: contextId,
       );
       return;
     }
@@ -684,7 +684,7 @@ class CurrentTrackIndexNotifier extends Notifier<int> {
   }
 }
 
-/// Return all tracks that's currently in queue
+/// Return atracks that's currently in queue
 final currentTracksInQueueProvider = NotifierProvider<CurrentTracksInQueueNotifier, List<TrackWithArtists>>(
   CurrentTracksInQueueNotifier.new,
 );

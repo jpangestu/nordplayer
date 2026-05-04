@@ -21,7 +21,7 @@ class MaterialIconSet implements AppIconSet {
   @override
   IconData get albums => Icons.album;
   @override
-  IconData get allTracks => Icons.music_note;
+  IconData get tracks => Icons.music_note;
   @override
   IconData get artists => Icons.people;
   @override

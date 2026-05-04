@@ -25,11 +25,11 @@ class _PlayerBarState extends ConsumerState<NordPlayerBar> with LoggerMixin {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final appConfig = ref.watch(configServiceProvider).requireValue;
-
-    final player = ref.watch(playerServiceProvider);
+    final appIconSet = ref.watch(appIconProvider);
     final currentTrack = ref.watch(currentTrackProvider);
     final isAdaptiveBgOn = ref.watch(configServiceProvider).value?.adaptiveBg ?? false;
-    final appIconSet = ref.watch(appIconProvider);
+    final player = ref.watch(playerServiceProvider);
+    final showQueue = ref.watch(preferenceServiceProvider).showQueue;
 
     final double screenWidth = MediaQuery.sizeOf(context).width;
     bool isLargeScreen = screenWidth > 900;
@@ -89,10 +89,9 @@ class _PlayerBarState extends ConsumerState<NordPlayerBar> with LoggerMixin {
                   IconButton(
                     icon: AppIcon(appIconSet.queue),
                     iconSize: 24,
+                    isSelected: showQueue,
                     tooltip: 'Show Queue',
-                    // isSelected: true,
                     onPressed: () {
-                      final showQueue = ref.read(preferenceServiceProvider).showQueue;
                       ref.read(preferenceServiceProvider.notifier).setShowQueue(!showQueue);
                     },
                   ),

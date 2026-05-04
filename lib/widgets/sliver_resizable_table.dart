@@ -176,8 +176,10 @@ class _SliverResizableTableState<T> extends State<SliverResizableTable<T>> {
 
     return SliverLayoutBuilder(
       builder: (context, constraints) {
-        // Use crossAxisExtent for sliver width constraints
-        final availableWidth = constraints.crossAxisExtent - widget.tablePadding.horizontal;
+        // Calculate the minimum width needed so the math doesn't break
+        final double totalMinWidth = visibleColumns.fold(0.0, (sum, col) => sum + col.minWidth);
+        final availableWidth = math.max(constraints.crossAxisExtent - widget.tablePadding.horizontal, totalMinWidth);
+
         _controller.init(visibleColumns, availableWidth);
 
         return AnimatedBuilder(
@@ -226,20 +228,26 @@ class _SliverResizableTableState<T> extends State<SliverResizableTable<T>> {
                             }
                           },
                           onDoubleTap: () => widget.onRowDoubleClick?.call(index),
-                          child: Row(
-                            children: [
-                              for (int i = 0; i < visibleColumns.length; i++)
-                                SizedBox(
-                                  width: _controller.widths[i],
-                                  child: Padding(
-                                    padding: widget.cellPadding,
-                                    child: Align(
-                                      alignment: visibleColumns[i].alignment,
-                                      child: visibleColumns[i].cellBuilder(context, item, index),
+                          child: ClipRect(
+                            child: OverflowBox(
+                              alignment: Alignment.centerLeft,
+                              maxWidth: double.infinity,
+                              child: Row(
+                                children: [
+                                  for (int i = 0; i < visibleColumns.length; i++)
+                                    SizedBox(
+                                      width: _controller.widths[i],
+                                      child: Padding(
+                                        padding: widget.cellPadding,
+                                        child: Align(
+                                          alignment: visibleColumns[i].alignment,
+                                          child: visibleColumns[i].cellBuilder(context, item, index),
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                            ],
+                                ],
+                              ),
+                            ),
                           ),
                         );
                       },
