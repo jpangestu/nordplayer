@@ -45,6 +45,9 @@ dev_dependencies:
   # Third parties
   drift_dev: ^2.31.0
 
+dependency_overrides:
+  flutter_rust_bridge: 2.11.1 # Metadatagod needs this specific version
+
 flutter:
   uses-material-design: true
 
