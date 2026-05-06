@@ -30,23 +30,21 @@ class _TracksState extends ConsumerState<Tracks> {
     final appConfig = ref.watch(configServiceProvider).requireValue;
 
     final libraryAsync = ref.watch(libraryStreamProvider);
-    final selectedIndices = ref.watch(selectedTracksIndexProvider('all_tracks_page'));
+    final selectedIndices = ref.watch(selectedTracksIndexProvider('all_tracks'));
     final tracksPageTableColumns = ref.watch(tracksPageColumnsProvider);
 
-    return CustomScrollView(
-      slivers: [
-        SliverAppBar(
-          backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
-          expandedHeight: 228,
-          flexibleSpace: const tracksPageHeader(),
-        ),
-        libraryAsync.when(
-          loading: () => const SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
-          error: (error, _) => SliverFillRemaining(child: Center(child: Text('Error: $error'))),
-          data: (tracks) {
-            if (tracks.isEmpty) {
-              return SliverFillRemaining(
-                child: Center(
+    return Scaffold(
+      backgroundColor: appConfig.adaptiveBg ? Colors.transparent : Theme.of(context).colorScheme.surface,
+      body: libraryAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => Center(child: Text('Error loading tracks: $error')),
+        data: (tracks) {
+          if (tracks.isEmpty) {
+            return Column(
+              children: [
+                TracksPageHeader(tracks: tracks),
+
+                Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -73,88 +71,85 @@ class _TracksState extends ConsumerState<Tracks> {
                     ],
                   ),
                 ),
-              );
-            }
-            return SliverResizableTable(
-              items: tracks,
-              columns: tracksPageTableColumns,
-              selectedIndices: selectedIndices,
-              rowHeight: 66.0,
-              tablePadding: const EdgeInsets.only(left: 24, top: 8, bottom: 24, right: 24),
-              isAdaptive: appConfig.adaptiveBg,
-              headerBlur: appConfig.adaptiveBgPanelBlur,
-              headerThemeOverlay: appConfig.adaptiveBgThemeOverlay,
-              onHeaderRightClick: (globalPosition) {
-                ContextMenu.show(
-                  context: context,
-                  isAdaptive: appConfig.adaptiveBg,
-                  globalPosition: globalPosition,
-                  actionMenus: [ContextMenuCustomWidget(child: const HeaderColumnSelectorMenu())],
-                );
-              },
-              onRowClick: (index, {required isCtrl, required isShift}) {
-                ref
-                    .read(selectedTracksIndexProvider('all_tracks_page').notifier)
-                    .selectTrack(index, isCtrlSelect: isCtrl, isShiftSelect: isShift);
-              },
-              onRowDoubleClick: (index) {
-                ref
-                    .read(playerServiceProvider)
-                    .setPlaylist(
-                      playbackContextType: 'all_tracks',
-                      playbackContextId: null,
-                      tracksToPlay: tracks,
-                      initialIndex: index,
-                    );
-              },
-              onRowRightClick: (index, globalPosition) {
-                final selectionNotifier = ref.read(selectedTracksIndexProvider('all_tracks_page').notifier);
-                final currentSelection = ref.read(selectedTracksIndexProvider('all_tracks_page'));
-
-                // If right-clicking an unselected item, select it first and clear others
-                if (!currentSelection.contains(index)) {
-                  selectionNotifier.selectTrack(index, isCtrlSelect: false, isShiftSelect: false);
-                }
-
-                final updatedSelection = ref.read(selectedTracksIndexProvider('all_tracks_page'));
-
-                // Convert to list and sort the indices first
-                final sortedIndices = updatedSelection.toList()..sort();
-                final List<TrackWithArtists> selectedTracks = sortedIndices.map((i) => tracks[i]).toList();
-
-                TrackContextMenu.show(
-                  context: context,
-                  ref: ref,
-                  isAdaptive: appConfig.adaptiveBg,
-                  globalPosition: globalPosition,
-                  tracks: tracks,
-                  clickedIndex: index,
-                  selectedTracks: selectedTracks,
-                  playbackContextType: 'all_tracks',
-                  playbackContextId: null,
-                );
-              },
+              ],
             );
-          },
-        ),
-      ],
+          }
+
+          return CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(child: TracksPageHeader(tracks: tracks)),
+
+              SliverResizableTable(
+                items: tracks,
+                columns: tracksPageTableColumns,
+                selectedIndices: selectedIndices,
+                rowHeight: 66.0,
+                tablePadding: const EdgeInsets.only(left: 24, top: 8, bottom: 24, right: 24),
+                isAdaptive: appConfig.adaptiveBg,
+                headerBlur: appConfig.adaptiveBgPanelBlur,
+                headerThemeOverlay: appConfig.adaptiveBgThemeOverlay,
+                onHeaderRightClick: (globalPosition) {
+                  ContextMenu.show(
+                    context: context,
+                    isAdaptive: appConfig.adaptiveBg,
+                    globalPosition: globalPosition,
+                    actionMenus: [ContextMenuCustomWidget(child: const HeaderColumnSelectorMenu())],
+                  );
+                },
+                onRowClick: (index, {required isCtrl, required isShift}) {
+                  ref
+                      .read(selectedTracksIndexProvider('all_tracks').notifier)
+                      .selectTrack(index, isCtrlSelect: isCtrl, isShiftSelect: isShift);
+                },
+                onRowDoubleClick: (index) {
+                  ref
+                      .read(playerServiceProvider)
+                      .setPlaylist(
+                        playbackContextType: 'all_tracks',
+                        playbackContextId: null,
+                        tracksToPlay: tracks,
+                        initialIndex: index,
+                      );
+                },
+                onRowRightClick: (index, globalPosition) {
+                  final selectionNotifier = ref.read(selectedTracksIndexProvider('all_tracks').notifier);
+                  final currentSelection = ref.read(selectedTracksIndexProvider('all_tracks'));
+
+                  // If right-clicking an unselected item, select it first and clear others
+                  if (!currentSelection.contains(index)) {
+                    selectionNotifier.selectTrack(index, isCtrlSelect: false, isShiftSelect: false);
+                  }
+
+                  final updatedSelection = ref.read(selectedTracksIndexProvider('all_tracks'));
+
+                  // Convert to list and sort the indices first
+                  final sortedIndices = updatedSelection.toList()..sort();
+                  final List<TrackWithArtists> selectedTracks = sortedIndices.map((i) => tracks[i]).toList();
+
+                  TrackContextMenu.show(
+                    context: context,
+                    ref: ref,
+                    isAdaptive: appConfig.adaptiveBg,
+                    globalPosition: globalPosition,
+                    tracks: tracks,
+                    clickedIndex: index,
+                    selectedTracks: selectedTracks,
+                    playbackContextType: 'all_tracks',
+                    playbackContextId: null,
+                  );
+                },
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }
 
-class tracksPageHeader extends ConsumerWidget {
-  const tracksPageHeader({super.key});
-
-  String formatTotalDuration(Duration d) {
-    final hours = d.inHours;
-    final minutes = d.inMinutes % 60;
-
-    if (hours > 0) {
-      return '$hours hr $minutes min';
-    } else {
-      return '$minutes min';
-    }
-  }
+class TracksPageHeader extends ConsumerWidget {
+  final List<TrackWithArtists> tracks;
+  const TracksPageHeader({super.key, required this.tracks});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -163,10 +158,7 @@ class tracksPageHeader extends ConsumerWidget {
     final libraryAlbumArt = ref.watch(libraryAlbumArtProvider);
     final nowPlayingAlbumArt = ref.watch(current5TracksAlbumArtInQueueProvider);
 
-    final libraryTracks = ref.watch(libraryStreamProvider).value ?? [];
-    final int totalMs = libraryTracks.fold(0, (sum, track) => sum + track.track.durationMs);
-
-    final Duration totalDuration = Duration(milliseconds: totalMs);
+    final int totalDurationMs = tracks.fold(0, (sum, track) => sum + track.track.durationMs);
 
     return FrostedGlass(
       backgroundColor: appConfig.adaptiveBg
@@ -193,6 +185,7 @@ class tracksPageHeader extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               SizedBox(
+                height: 220,
                 width: 244,
                 child: Align(
                   alignment: .centerLeft,
@@ -221,7 +214,7 @@ class tracksPageHeader extends ConsumerWidget {
 
                     const SizedBox(height: 4),
 
-                    Text('${libraryTracks.length} Tracks, ${formatTotalDuration(totalDuration)}'),
+                    Text('${tracks.length} Tracks, ${totalDurationMs.toTotalDurationString()}'),
                   ],
                 ),
               ),
@@ -274,7 +267,7 @@ class HeaderColumnSelectorMenu extends ConsumerWidget {
 
 // ============================================= Provider =============================================================
 
-/// Provider 5 album art for tracks in atracks page
+/// Provider 5 album art for tracks in tracks page
 final libraryAlbumArtProvider = Provider<List<String>>((ref) {
   final libraryAsync = ref.watch(libraryStreamProvider);
   final libraryTracks = libraryAsync.value ?? [];
@@ -390,6 +383,7 @@ class TracksPageColumnsNotifier extends Notifier<List<TableColumn<TrackWithArtis
       label: "Date Added",
       width: 110,
       minWidth: 110,
+      alignment: .centerRight,
       isVisible: false,
       cellBuilder: (context, track, index) {
         return Text(track.track.dateAdded.toRelativeTime(), maxLines: 1, overflow: TextOverflow.ellipsis);
@@ -417,13 +411,13 @@ class TracksPageColumnsNotifier extends Notifier<List<TableColumn<TrackWithArtis
             return Listener(
               onPointerDown: (event) {
                 // Sync Selection
-                final selectionNotifier = ref.read(selectedTracksIndexProvider('all_tracks_page').notifier);
-                if (!ref.read(selectedTracksIndexProvider('all_tracks_page')).contains(index)) {
+                final selectionNotifier = ref.read(selectedTracksIndexProvider('all_tracks').notifier);
+                if (!ref.read(selectedTracksIndexProvider('all_tracks')).contains(index)) {
                   selectionNotifier.selectTrack(index, isCtrlSelect: false, isShiftSelect: false);
                 }
 
                 final tracks = ref.read(libraryStreamProvider).value ?? [];
-                final selectedIndices = ref.read(selectedTracksIndexProvider('all_tracks_page')).toList()..sort();
+                final selectedIndices = ref.read(selectedTracksIndexProvider('all_tracks')).toList()..sort();
                 final selectedTracks = selectedIndices.map((i) => tracks[i]).toList();
 
                 TrackContextMenu.show(

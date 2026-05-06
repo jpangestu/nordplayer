@@ -42,19 +42,21 @@ class AlbumArtStack extends ConsumerWidget {
 
         // -- EMPTY STATE --
         if (imageUrls.isEmpty) {
-          return Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(4),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [theme.colorScheme.primary, theme.colorScheme.tertiary],
+          return Center(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(4),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [theme.colorScheme.primary, theme.colorScheme.tertiary],
+                ),
               ),
-            ),
-            child: AppIcon(
-              Icons.queue_music,
-              color: theme.colorScheme.onPrimary,
-              size: squareSize * 0.25, // Dynamically scale the icon
+              child: AppIcon(
+                Icons.queue_music,
+                color: theme.colorScheme.onPrimary,
+                size: squareSize * 0.5, // Dynamically scale the icon
+              ),
             ),
           );
         }

@@ -55,8 +55,8 @@ class TrackContextMenu {
               ref
                   .read(playerServiceProvider)
                   .setPlaylist(
-                    playbackContextType: playbackContextType,
-                    playbackContextId: playbackContextId,
+                    playbackContextType: 'play_as_playlist',
+                    playbackContextId: null,
                     tracksToPlay: playlistToPlay,
                     initialIndex: startingQueueIndex == -1 ? 0 : startingQueueIndex,
                   );

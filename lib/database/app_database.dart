@@ -196,12 +196,14 @@ class AppDatabase extends _$AppDatabase {
     ])..where(playlistTrack.playlistId.equals(playlistId));
 
     final rows = await query.get();
-
-    // Use a map to group artists back into their respective tracks
     final Map<int, TrackWithArtists> groupedTracks = {};
 
     for (final row in rows) {
-      final track = row.readTable(tracks);
+      var track = row.readTable(tracks);
+      final pt = row.readTable(playlistTrack);
+      // Overwrite the library date added with the playlist date added
+      track = track.copyWith(dateAdded: pt.dateAdded);
+
       final album = row.readTable(albums);
       final artist = row.readTable(artists);
 
@@ -230,7 +232,11 @@ class AppDatabase extends _$AppDatabase {
       final Map<int, TrackWithArtists> groupedTracks = {};
 
       for (final row in rows) {
-        final track = row.readTable(tracks);
+        var track = row.readTable(tracks);
+        final pt = row.readTable(playlistTrack);
+        // Overwrite the library date added with the playlist date added
+        track = track.copyWith(dateAdded: pt.dateAdded);
+
         final album = row.readTable(albums);
         final artist = row.readTable(artists);
 
@@ -387,27 +393,6 @@ class LibraryStats {
     required this.totalSizeBytes,
     required this.totalPlaytimeMs,
   });
-
-  // Helper to format the size (e.g., "24.1 GB")
-  String get formattedSize {
-    if (totalSizeBytes == 0) return '0 GB';
-    final gb = totalSizeBytes / (1024 * 1024 * 1024);
-    if (gb >= 1) return '${gb.toStringAsFixed(1)} GB';
-
-    // Fallback to MB if the library is small
-    final mb = totalSizeBytes / (1024 * 1024);
-    return '${mb.toStringAsFixed(1)} MB';
-  }
-
-  // Helper to format playtime (e.g., "8.4 Days" or "12.2 Hours")
-  String get formattedPlaytime {
-    if (totalPlaytimeMs == 0) return '0 Mins';
-    final days = totalPlaytimeMs / (1000 * 60 * 60 * 24);
-    if (days >= 1) return '${days.toStringAsFixed(1)} Days';
-
-    final hours = totalPlaytimeMs / (1000 * 60 * 60);
-    return '${hours.toStringAsFixed(1)} Hours';
-  }
 }
 
 class TrackWithArtists {
@@ -438,6 +423,10 @@ class PlaylistWithTracks {
   final List<TrackWithArtists> tracks;
 
   PlaylistWithTracks({required this.playlist, required this.tracks});
+
+  // Helper to check whether this object is empty.
+  bool get isEmpty => tracks.isEmpty;
+  bool get isNotEmpty => tracks.isNotEmpty;
 }
 
 //

@@ -27,60 +27,104 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final appConfig = ref.watch(configServiceProvider).requireValue;
+    final statsAsync = ref.watch(libraryStatsProvider);
 
     return Scaffold(
       backgroundColor: appConfig.adaptiveBg ? Colors.transparent : Theme.of(context).colorScheme.surface,
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView(
+      body: statsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Text('Error loading stats: $err'),
+        data: (stats) {
+          if (stats.trackCount == 0) {
+            return Column(
               children: [
                 const LibraryHeader(),
 
-                // const CollapsibleSection(
-                //   padding: .only(left: 24.0, right: 24.0, top: 0, bottom: 16),
-                //   label: 'Pinned',
-                //   content: Placeholder(fallbackHeight: 120),
-                // ),
-                const CollapsibleSection(label: 'Recently Added', content: RecentlyAddedPanel()),
-
-                CollapsibleSection(
-                  label: 'Albums',
-                  onLabelClick: () {
-                    context.go(Routes.albumsPage);
-                  },
-                  content: const AlbumsPanel(),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: .center,
+                    children: [
+                      Text(
+                        "Your library is empty",
+                        style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Scan your local folders to set up your music library.",
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      FilledButton.icon(
+                        onPressed: () {
+                          context.go('/settings/library-management');
+                        },
+                        icon: const AppIcon(Icons.create_new_folder),
+                        label: const Text("Add Music Folders"),
+                      ),
+                    ],
+                  ),
                 ),
-
-                CollapsibleSection(
-                  padding: const .only(left: 24, right: 24, top: 0, bottom: 24),
-                  label: 'Tracks',
-                  onLabelClick: () {
-                    context.go(Routes.tracksPage);
-                  },
-                  content: const TracksPanel(),
-                ),
-
-                // CollapsibleSection(
-                //   label: 'Playlists',
-                //   onLabelClick: () {
-                //     context.go(Routes.playlistsPage);
-                //   },
-                //   content: const Placeholder(fallbackHeight: 120),
-                // ),
-
-                // CollapsibleSection(
-                //   label: 'Genres',
-                //   onLabelClick: () {
-                //     // context.go(Routes.playlistsPage);
-                //   },
-                //   content: const Placeholder(fallbackHeight: 120),
-                // ),
               ],
-            ),
-          ),
-        ],
+            );
+          }
+
+          return Column(
+            children: [
+              Expanded(
+                child: ListView(
+                  children: [
+                    const LibraryHeader(),
+
+                    // const CollapsibleSection(
+                    //   padding: .only(left: 24.0, right: 24.0, top: 0, bottom: 16),
+                    //   label: 'Pinned',
+                    //   content: Placeholder(fallbackHeight: 120),
+                    // ),
+                    const CollapsibleSection(label: 'Recently Added', content: RecentlyAddedPanel()),
+
+                    CollapsibleSection(
+                      label: 'Albums',
+                      onLabelClick: () {
+                        context.go(Routes.albumsPage);
+                      },
+                      content: const AlbumsPanel(),
+                    ),
+
+                    CollapsibleSection(
+                      padding: const .only(left: 24, right: 24, top: 0, bottom: 24),
+                      label: 'Tracks',
+                      onLabelClick: () {
+                        context.go(Routes.tracksPage);
+                      },
+                      content: const TracksPanel(),
+                    ),
+
+                    // CollapsibleSection(
+                    //   label: 'Playlists',
+                    //   onLabelClick: () {
+                    //     context.go(Routes.playlistsPage);
+                    //   },
+                    //   content: const Placeholder(fallbackHeight: 120),
+                    // ),
+
+                    // CollapsibleSection(
+                    //   label: 'Genres',
+                    //   onLabelClick: () {
+                    //     // context.go(Routes.playlistsPage);
+                    //   },
+                    //   content: const Placeholder(fallbackHeight: 120),
+                    // ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -149,6 +193,8 @@ class _LibraryHeaderState extends ConsumerState<LibraryHeader> {
                     child: SizedBox(
                       width: double.infinity,
                       child: statsAsync.when(
+                        loading: () => const Center(child: CircularProgressIndicator()),
+                        error: (err, stack) => Text('Error loading stats: $err'),
                         data: (stats) => Wrap(
                           spacing: 24,
                           runSpacing: 16,
@@ -165,14 +211,16 @@ class _LibraryHeaderState extends ConsumerState<LibraryHeader> {
                             ),
                             LibraryStatItem(
                               icon: appIconSet.playtime,
-                              value: stats.formattedPlaytime,
+                              value: stats.totalPlaytimeMs.toTotalDurationString(),
                               label: 'Total Playtime',
                             ),
-                            LibraryStatItem(icon: appIconSet.storage, value: stats.formattedSize, label: 'Total Size'),
+                            LibraryStatItem(
+                              icon: appIconSet.storage,
+                              value: stats.totalSizeBytes.toFileSizeString(),
+                              label: 'Total Size',
+                            ),
                           ],
                         ),
-                        loading: () => const Center(child: CircularProgressIndicator()),
-                        error: (err, stack) => Text('Error loading stats: $err'),
                       ),
                     ),
                   ),
@@ -467,10 +515,7 @@ class TracksPanel extends ConsumerWidget {
       error: (error, _) => Center(child: Text('Error: $error')),
       data: (tracks) {
         if (tracks.isEmpty) {
-          return Text(
-            "Your library is empty",
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-          );
+          return const Text("No tracks found");
         }
 
         // Create a copy of the list, shuffle it, and take the first 6

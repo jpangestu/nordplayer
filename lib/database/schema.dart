@@ -48,6 +48,7 @@ class TrackArtist extends Table {
 class PlaylistTrack extends Table {
   IntColumn get playlistId => integer().references(Playlists, #id, onDelete: KeyAction.cascade)();
   IntColumn get trackId => integer().references(Tracks, #id, onDelete: KeyAction.cascade)();
+  DateTimeColumn get dateAdded => dateTime().withDefault(currentDateAndTime)();
 }
 
 /// This table is used to save the current queue state so it never get removed when closing the app.
