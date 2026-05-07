@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/services/config_service.dart';
+import 'package:nordplayer/services/library_scanner.dart';
+import 'package:nordplayer/services/library_watcher.dart';
 import 'package:nordplayer/services/logger.dart';
+import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
 import 'package:nordplayer/widgets/settings/section_card.dart';
 import 'package:nordplayer/widgets/settings/section_header.dart';
@@ -75,8 +78,24 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
 
     if (confirmed == true) {
       log.w("Resetting all settings to default.");
-      await ConfigService().resetToDefaults();
+
+      // Grab the paths BEFORE we overwrite the config
+      final oldPaths = ref.read(configServiceProvider).requireValue.musicPaths;
+
+      // Stop playback and clear the queue
+      await ref.read(playerServiceProvider).clearQueue();
+
+      // Reset the JSON configs
+      await ref.read(configServiceProvider.notifier).resetToDefaults();
       await ref.read(preferenceServiceProvider.notifier).resetToDefaults();
+
+      // Loop through the old paths and explicitly wipe them from the DB and Watcher
+      for (final path in oldPaths) {
+        ref.read(libraryWatcherProvider).stopWatchingFolder(path);
+        await ref.read(libraryScannerProvider).removeTracksInDirectory(path);
+      }
+
+      log.i("Settings reset and orphaned database tracks cleared.");
     }
   }
 
@@ -122,6 +141,20 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
         }
 
         log.i("Application data wipe complete.");
+
+        // Stop playback and clear the queue
+        await ref.read(playerServiceProvider).clearQueue();
+
+        // Trigger rescan library if music paths still exist
+        final currentPaths = ref.read(configServiceProvider).requireValue.musicPaths;
+        if (currentPaths.isNotEmpty) {
+          log.i("Existing music paths found. Triggering library rescan...");
+
+          // Force Riverpod to wake up and establish the new SQLite connection
+          // before the scanner attempts to write to it.
+          ref.read(appDatabaseProvider);
+          ref.read(libraryScannerProvider).scanLibrary();
+        }
       } catch (e, s) {
         log.e("Error during data wipe", error: e, stackTrace: s);
       }

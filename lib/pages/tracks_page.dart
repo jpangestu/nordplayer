@@ -205,12 +205,7 @@ class TracksPageHeader extends ConsumerWidget {
                   mainAxisAlignment: .center,
                   crossAxisAlignment: .start,
                   children: [
-                    const Text(
-                      'Tracks',
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    Text('Tracks', style: theme.textTheme.headlineMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
 
                     const SizedBox(height: 4),
 
@@ -340,8 +335,8 @@ class TracksPageColumnsNotifier extends Notifier<List<TableColumn<TrackWithArtis
       },
     ),
     TableColumn<TrackWithArtists>(
-      id: 'title',
-      label: "Title",
+      id: 'title_artist',
+      label: "Title/Artist",
       flex: 5,
       minWidth: 150,
       cellBuilder: (context, track, index) {

@@ -93,7 +93,6 @@ class _MusicTileState extends ConsumerState<MusicTile> with LoggerMixin {
   Widget build(BuildContext context) {
     final appIconSet = ref.watch(appIconProvider);
     final theme = Theme.of(context);
-    final listTileTheme = Theme.of(context).listTileTheme;
     final textScaler = MediaQuery.textScalerOf(context);
     final double baseSize = widget.albumArtSize ?? 50.0;
     final double responsiveSize = (baseSize * textScaler.scale(1)).clamp(40.0, 80.0);
@@ -103,11 +102,9 @@ class _MusicTileState extends ConsumerState<MusicTile> with LoggerMixin {
     // Multiply by devicePixelRatio (e.g., x2 or x3) to keep it crisp on Retina screens
     final int pixelSize = (displaySize * MediaQuery.of(context).devicePixelRatio).toInt();
 
-    final TextStyle titleStyle = listTileTheme.titleTextStyle ?? theme.textTheme.titleMedium!;
-    final Color titleSelectedColor = widget.selected
-        ? (listTileTheme.selectedColor ?? theme.colorScheme.primary)
-        : (listTileTheme.textColor ?? theme.colorScheme.onSurface);
-    final TextStyle subtitleStyle = listTileTheme.subtitleTextStyle ?? theme.textTheme.bodyMedium!;
+    final TextStyle titleStyle = theme.textTheme.titleMedium!;
+    final Color titleColor = widget.selected ? theme.colorScheme.primary : theme.textTheme.titleMedium!.color!;
+    final TextStyle subtitleStyle = theme.textTheme.bodyMedium!;
 
     return SizedBox(
       child: Material(
@@ -139,7 +136,7 @@ class _MusicTileState extends ConsumerState<MusicTile> with LoggerMixin {
                           : AppIcon(
                               appIconSet.tracks,
                               size: widget.albumArtSize ?? responsiveSize,
-                              color: listTileTheme.iconColor,
+                              color: theme.colorScheme.primary,
                             ),
                     ),
                   ),
@@ -156,7 +153,7 @@ class _MusicTileState extends ConsumerState<MusicTile> with LoggerMixin {
                             child: ScrollingText(
                               textSpan: TextSpan(
                                 text: widget.title,
-                                style: titleStyle.copyWith(color: titleSelectedColor, height: 1.0),
+                                style: titleStyle.copyWith(color: titleColor, height: 1.0),
                               ),
                             ),
                           ),
@@ -166,7 +163,7 @@ class _MusicTileState extends ConsumerState<MusicTile> with LoggerMixin {
                             child: RichText(
                               text: TextSpan(
                                 text: widget.title,
-                                style: titleStyle.copyWith(color: titleSelectedColor, height: 1.0),
+                                style: titleStyle.copyWith(color: titleColor, height: 1.0),
                               ),
                               maxLines: 1,
                               overflow: .ellipsis,

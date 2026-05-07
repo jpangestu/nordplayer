@@ -24,8 +24,8 @@ class AppConfig {
   static const BoxFit _defaultAdaptiveBgAlbumFit = BoxFit.cover;
   static const double _defaultAdaptiveBgAlbumBlur = 20;
   static const double _defaultAdaptiveBgPanelBlur = 20;
-  static const double _defaultAdaptiveBgThemeOverlay = 0.4;
-  static const String _defaultFontFamily = 'system';
+  static const double _defaultAdaptiveBgThemeOverlay = 0.5;
+  static const String _defaultFontFamily = 'outfit';
   static const double _defaultTextScale = 1.0;
 
   AppConfig({

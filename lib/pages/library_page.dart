@@ -170,7 +170,7 @@ class _LibraryHeaderState extends ConsumerState<LibraryHeader> {
                   height: 36,
                   child: Row(
                     children: [
-                      const Text('Library', style: TextStyle(fontSize: 24, fontWeight: .bold)),
+                      Text('Library', style: Theme.of(context).textTheme.headlineMedium),
                       const Spacer(),
                       // IconButton(icon: AppIcon(appIconSet.preference), tooltip: 'Customize Sections', onPressed: () {}),
                       IconButton(

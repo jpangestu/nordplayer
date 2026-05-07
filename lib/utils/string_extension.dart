@@ -1,20 +1,31 @@
-extension StringCasingExtension on String {
-  String get pascalCase {
+extension StringExtension on String {
+  String toTitleCase() {
     if (trim().isEmpty) return this;
 
     // Split the string by spaces, hyphens, or underscores
-    List<String> words = trim().split(RegExp(r'[\s_-]+'));
+    final words = trim().split(RegExp(r'[\s_-]+'));
 
     if (words.isEmpty) return this;
 
-    String result = '';
+    // Capitalize the first letter of each word and lowercase the rest
+    return words
+        .where((word) => word.isNotEmpty)
+        .map((word) => word[0].toUpperCase() + word.substring(1).toLowerCase())
+        .join(' '); // We join with a space to keep it human-readable
+  }
+
+  String toPascalCase() {
+    if (trim().isEmpty) return this;
+
+    // Split the string by spaces, hyphens, or underscores
+    final words = trim().split(RegExp(r'[\s_-]+'));
+
+    if (words.isEmpty) return this;
 
     // Capitalize the first letter of all subsequent words, and lowercase the rest
-    for (int i = 0; i < words.length; i++) {
-      if (words[i].isEmpty) continue;
-      result += words[i][0].toUpperCase() + words[i].substring(1).toLowerCase();
-    }
-
-    return result;
+    return words
+        .where((word) => word.isNotEmpty)
+        .map((word) => word[0].toUpperCase() + word.substring(1).toLowerCase())
+        .join('');
   }
 }

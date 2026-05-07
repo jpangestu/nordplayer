@@ -32,7 +32,7 @@ class PlaylistsPage extends ConsumerWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Playlists', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                Text('Playlists', style: Theme.of(context).textTheme.headlineMedium),
                 OutlinedButton.icon(
                   onPressed: () => showCreatePlaylistDialog(context, db),
                   icon: const AppIcon(Icons.add),

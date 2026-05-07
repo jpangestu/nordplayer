@@ -184,7 +184,7 @@ class PlaylistDetailPageHeader extends ConsumerWidget {
                   children: [
                     Text(
                       playlistWithTracks.playlist.name,
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      style: theme.textTheme.headlineMedium,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -281,8 +281,8 @@ class PlaylistDetailPageColumnsNotifier extends Notifier<List<TableColumn<TrackW
       },
     ),
     TableColumn<TrackWithArtists>(
-      id: 'title',
-      label: "Title",
+      id: 'title_artist',
+      label: "Title/Artist",
       flex: 5,
       minWidth: 150,
       cellBuilder: (context, track, index) {

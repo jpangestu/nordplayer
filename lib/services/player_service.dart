@@ -7,7 +7,6 @@ import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/pages/queue_page.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/preference_service.dart';
-import 'package:nordplayer/utils/debouncer.dart';
 import 'package:nordplayer/utils/stream_extension.dart';
 
 class PlayerService with LoggerMixin {
@@ -203,6 +202,20 @@ class PlayerService with LoggerMixin {
   }
 
   // =========================================== Queue Management =====================================================
+
+  /// Completely clears the player queue and stops playback.
+  Future<void> clearQueue() async {
+    await _mkPlayer.stop();
+    await _mkPlayer.open(const Playlist([]), play: false);
+    _originalQueue.clear();
+
+    // Wipe the queue out of the SQLite database
+    await ref.read(appDatabaseProvider).saveQueue([], null, Duration.zero, '', null);
+    // Reset the UI context
+    ref.read(playbackContextProvider.notifier).setContext('', null);
+
+    log.i("Queue cleared successfully.");
+  }
 
   /// Inserts track(s) immediately after the currently playing track
   Future<void> playNext(List<TrackWithArtists> tracksToAdd, String contextType, int? contextId) async {
@@ -563,28 +576,27 @@ final durationStreamProvider = StreamProvider<Duration>((ref) {
 final isPlayingProvider = NotifierProvider<IsPlayingNotifier, bool>(IsPlayingNotifier.new);
 
 class IsPlayingNotifier extends Notifier<bool> {
-  // Debounce to ignore rapid changes when feeding new playlist to mkPlayer
-  final _debouncer = Debouncer(const Duration(milliseconds: 150));
+  Timer? _debounceTimer;
 
   @override
   bool build() {
     final player = ref.watch(playerServiceProvider).mkPlayer;
 
-    final subscription = player.stream.playing.listen((isPlaying) {
+    final playingSub = player.stream.playing.listen((isPlaying) {
       if (isPlaying) {
-        // Cancel any pending "set to false" timers because we are officially playing again.
-        _debouncer.dispose();
+        _debounceTimer?.cancel();
         state = true;
       } else {
-        _debouncer(() {
+        _debounceTimer?.cancel();
+        _debounceTimer = Timer(const Duration(milliseconds: 150), () {
           state = false;
         });
       }
     });
 
     ref.onDispose(() {
-      subscription.cancel();
-      _debouncer.dispose();
+      playingSub.cancel();
+      _debounceTimer?.cancel();
     });
 
     // Initial synchronous return for instant UI painting

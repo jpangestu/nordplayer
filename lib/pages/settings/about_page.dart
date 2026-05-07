@@ -48,18 +48,18 @@ class _AboutPageState extends ConsumerState<AboutPage> {
           SectionCard(
             child: Column(
               children: [
-                // 1. Force the Wrap to take up the full width so spaceBetween works
+                // Force the Wrap to take up the full width so spaceBetween works
                 SizedBox(
                   width: double.infinity,
                   child: Padding(
                     padding: const EdgeInsets.only(right: 16.0, bottom: 8.0),
                     child: Wrap(
-                      alignment: WrapAlignment.spaceBetween, // Pushes Button to the right
+                      alignment: .spaceBetween,
                       crossAxisAlignment: WrapCrossAlignment.center,
-                      runSpacing: 8.0, // Vertical gap when wrapped
+                      runSpacing: 8.0,
                       children: [
                         Row(
-                          mainAxisSize: MainAxisSize.min,
+                          mainAxisSize: .min,
                           children: [
                             Padding(
                               padding: const EdgeInsets.all(12.0),
@@ -78,7 +78,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
                                 children: [
                                   const SizedBox(height: 4),
                                   Text(
-                                    _packageInfo!.appName.pascalCase,
+                                    _packageInfo!.appName.toPascalCase(),
                                     style: theme.textTheme.titleLarge!.copyWith(color: theme.colorScheme.onSurface),
                                   ),
                                   Text(
@@ -93,41 +93,86 @@ class _AboutPageState extends ConsumerState<AboutPage> {
                           ],
                         ),
 
-                        Padding(
-                          padding: const EdgeInsets.only(left: 12.0, bottom: 8.0),
-                          child: FilledButton.tonalIcon(
-                            onPressed: () async {
-                              final Uri url = Uri.parse('https://github.com/jpangestu/nordplayer');
+                        Row(
+                          mainAxisSize: .min,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(left: 12.0, bottom: 8.0),
+                              child: FilledButton.tonalIcon(
+                                onPressed: () async {
+                                  final Uri url = Uri.parse('https://github.com/jpangestu/nordplayer');
 
-                              if (await canLaunchUrl(url)) {
-                                await launchUrl(url, mode: LaunchMode.externalApplication);
-                              } else {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(
-                                    context,
-                                  ).showSnackBar(const SnackBar(content: Text('Could not open GitHub link.')));
-                                }
-                              }
-                            },
-                            style: FilledButton.styleFrom(
-                              padding: const EdgeInsets.only(left: 8, right: 10.0, top: 16.0, bottom: 16.0),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-                            ),
-                            icon: SvgPicture.asset(
-                              'assets/icons/github_logo.svg',
-                              width: 24,
-                              height: 24,
-                              colorFilter: ColorFilter.mode(theme.colorScheme.onSurface, BlendMode.srcIn),
-                            ),
-                            label: Text(
-                              'See Project on GitHub',
-                              style: TextStyle(
-                                color: theme.colorScheme.onSurface,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.5,
+                                  if (await canLaunchUrl(url)) {
+                                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                                  } else {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(const SnackBar(content: Text('Could not open GitHub link.')));
+                                    }
+                                  }
+                                },
+                                style: FilledButton.styleFrom(
+                                  padding: const EdgeInsets.only(left: 8, right: 10.0, top: 16.0, bottom: 16.0),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                                ),
+                                icon: SvgPicture.asset(
+                                  'assets/icons/github_logo.svg',
+                                  width: 24,
+                                  height: 24,
+                                  colorFilter: ColorFilter.mode(theme.colorScheme.onSurface, BlendMode.srcIn),
+                                ),
+                                label: Text(
+                                  'See Project on GitHub',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onSurface,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
+
+                            Padding(
+                              padding: const EdgeInsets.only(left: 12.0, bottom: 8.0),
+                              child: FilledButton.tonalIcon(
+                                onPressed: () async {
+                                  final Uri url = Uri.parse('https://discord.gg/RH5j8H2Y');
+
+                                  if (await canLaunchUrl(url)) {
+                                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                                  } else {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(const SnackBar(content: Text('Could not open Discord link.')));
+                                    }
+                                  }
+                                },
+                                style: FilledButton.styleFrom(
+                                  padding: const EdgeInsets.only(left: 8, right: 10.0, top: 16.0, bottom: 16.0),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                                ),
+                                icon: Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: SvgPicture.asset(
+                                    'assets/icons/discord_logo.svg',
+                                    width: 15,
+                                    height: 15,
+                                    colorFilter: ColorFilter.mode(theme.colorScheme.onSurface, BlendMode.srcIn),
+                                  ),
+                                ),
+                                label: Text(
+                                  'Join the Community',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onSurface,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

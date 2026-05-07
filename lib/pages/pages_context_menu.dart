@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/pages/pages_helper.dart';
+import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
+import 'package:nordplayer/services/preference_service.dart';
 import 'package:nordplayer/utils/unimplemented.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
@@ -76,11 +79,23 @@ class TrackContextMenu {
                   .playNext(selectedTracks, playbackContext?.type ?? 'all_tracks', playbackContext?.id);
 
               if (context.mounted) {
-                showNordSnackBar(
-                  context: context,
-                  message: 'Added ${selectedTracks.length} track(s) to queue',
-                  type: .general,
-                );
+                final showQueue = ref.read(preferenceServiceProvider).showQueue;
+
+                showQueue
+                    ? showNordSnackBar(
+                        context: context,
+                        message: 'Added ${selectedTracks.length} track(s) to queue',
+                        type: .general,
+                      )
+                    : showNordSnackBar(
+                        context: context,
+                        message: 'Added ${selectedTracks.length} track(s) to queue',
+                        type: .general,
+                        actionLabel: 'View Queue',
+                        onAction: (snackBarContext) {
+                          ref.read(preferenceServiceProvider.notifier).setShowQueue(true);
+                        },
+                      );
               }
             },
           ),
@@ -261,7 +276,15 @@ class _SearchablePlaylistMenuState extends ConsumerState<SearchablePlaylistConte
                       ContextMenu.closeAll();
 
                       if (context.mounted) {
-                        showNordSnackBar(context: context, message: 'Added to ${playlist.name}', type: .general);
+                        showNordSnackBar(
+                          context: context,
+                          message: 'Added to ${playlist.name}',
+                          type: .general,
+                          actionLabel: 'View',
+                          onAction: (snackBarContext) {
+                            snackBarContext.go('${Routes.playlistsPage}/${playlist.id}');
+                          },
+                        );
                       }
                     },
                     child: Container(
@@ -327,9 +350,25 @@ class _CreatePlaylistDialogState extends ConsumerState<CreatePlaylistDialog> wit
       await db.addTracksToPlaylist(newPlaylistId, trackIds);
 
       if (!mounted) return;
-      showNordSnackBar(context: context, message: 'Created "$name" with ${trackIds.length} tracks', type: .success);
+      showNordSnackBar(
+        context: context,
+        message: 'Created "$name" with ${trackIds.length} tracks',
+        type: .success,
+        actionLabel: 'Open Playlist',
+        onAction: (snackBarContext) {
+          snackBarContext.go('${Routes.playlistsPage}/$newPlaylistId');
+        },
+      );
     } else {
-      showNordSnackBar(context: context, message: 'Playlist "$name" created', type: .success);
+      showNordSnackBar(
+        context: context,
+        message: 'Playlist "$name" created',
+        type: .success,
+        actionLabel: 'Open',
+        onAction: (snackBarContext) {
+          snackBarContext.go('${Routes.playlistsPage}/$newPlaylistId');
+        },
+      );
     }
 
     Navigator.pop(context);

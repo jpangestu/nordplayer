@@ -39,63 +39,60 @@ class _NordplayerTitleBarState extends ConsumerState<NordTitleBar> {
     final appConfig = ref.watch(configServiceProvider).requireValue;
     final appIconSet = ref.watch(appIconProvider);
 
-    return DragToMoveArea(
-      child: FrostedGlass(
-        blurSigma: (appConfig.adaptiveBgPanelBlur + 30).clamp(0, 100),
-        backgroundColor: appConfig.adaptiveBg
-            ? colorScheme.surfaceContainer.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
-            : colorScheme.surfaceContainer,
-        child: SizedBox(
-          height: 34,
-          child: Row(
-            children: [
-              const SizedBox(width: 0),
+    return FrostedGlass(
+      blurSigma: (appConfig.adaptiveBgPanelBlur + 30).clamp(0, 100),
+      backgroundColor: appConfig.adaptiveBg
+          ? colorScheme.surfaceContainer.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
+          : colorScheme.surfaceContainer,
+      child: SizedBox(
+        height: 34,
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: () async {
+                await windowManager.popUpWindowMenu();
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8.0, right: 4),
+                child: SvgPicture.asset(
+                  'assets/icons/nordplayer_logo_white_transparent.svg',
+                  width: 22,
+                  height: 22,
+                  colorFilter: ColorFilter.mode(colorScheme.onSurface, BlendMode.srcIn),
+                ),
+              ),
+            ),
 
-              GestureDetector(
-                onTap: () async {
-                  await windowManager.popUpWindowMenu();
+            const Expanded(
+              child: DragToMoveArea(child: Row(children: [Text('Nordplayer'), Spacer()])),
+            ),
+
+            // Right Side
+            if (_packageInfo != null)
+              TextButton(
+                onPressed: () {
+                  context.go(Routes.aboutPage);
                 },
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 8.0, right: 4),
-                  child: SvgPicture.asset(
-                    'assets/icons/nordplayer_logo_white_transparent.svg',
-                    width: 22,
-                    height: 22,
-                    colorFilter: ColorFilter.mode(colorScheme.onSurface, BlendMode.srcIn),
-                  ),
+                child: Text(
+                  _packageInfo!.version,
+                  style: TextStyle(fontSize: 12, color: colorScheme.onSurface.withValues(alpha: 0.5)),
                 ),
               ),
-              const Text('Nordplayer'),
 
-              const Spacer(),
+            TitleBarButton(
+              icon: appIconSet.keyboardShortcut,
+              iconSize: 18,
+              fixedIconColor: colorScheme.onSurface,
+              hoverOverlaySize: 28,
+              hoverOverlayOpacity: 0.1,
+              tooltip: 'Keyboard Shortcuts',
+              onTap: () {},
+            ),
 
-              // Right Side
-              if (_packageInfo != null)
-                TextButton(
-                  onPressed: () {
-                    context.go(Routes.aboutPage);
-                  },
-                  child: Text(
-                    _packageInfo!.version,
-                    style: TextStyle(fontSize: 12, color: colorScheme.onSurface.withValues(alpha: 0.5)),
-                  ),
-                ),
+            const SizedBox(width: 16),
 
-              TitleBarButton(
-                icon: appIconSet.keyboardShortcut,
-                iconSize: 18,
-                fixedIconColor: colorScheme.onSurface,
-                hoverOverlaySize: 28,
-                hoverOverlayOpacity: 0.1,
-                tooltip: 'Keyboard Shortcuts',
-                onTap: () {},
-              ),
-
-              const SizedBox(width: 16),
-
-              const BreezeWindowControl(),
-            ],
-          ),
+            const BreezeWindowControl(),
+          ],
         ),
       ),
     );

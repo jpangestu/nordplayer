@@ -89,7 +89,7 @@ class _LicensesPageState extends ConsumerState<LicensesPage> {
                     return Column(
                       children: [
                         Text(
-                          _packageInfo?.appName.pascalCase ?? 'Nordplayer',
+                          _packageInfo?.appName.toPascalCase() ?? 'Nordplayer',
                           style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 8),

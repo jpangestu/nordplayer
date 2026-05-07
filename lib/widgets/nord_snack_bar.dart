@@ -9,13 +9,22 @@ import 'package:nordplayer/widgets/frosted_glass.dart';
 enum NordSnackBarType { general, info, warning, success, error }
 
 class NordSnackBar extends ConsumerWidget {
-  const NordSnackBar({super.key, required this.message, required this.type, this.icon});
+  const NordSnackBar({
+    super.key,
+    required this.message,
+    required this.type,
+    this.icon,
+    this.actionLabel,
+    this.onAction,
+  });
 
   final String message;
 
   /// The type of the snackbar (general, info, success, warning, error)
   final NordSnackBarType type;
   final IconData? icon;
+  final String? actionLabel;
+  final void Function(BuildContext)? onAction;
 
   (IconData, Color) _getAccents(AppIconSet appIconSet, NordSnackBarTheme nordSnackBarTheme) {
     switch (type) {
@@ -50,11 +59,13 @@ class NordSnackBar extends ConsumerWidget {
         backgroundColor: theme.colorScheme.surfaceContainerHigh.withValues(
           alpha: appConfig.adaptiveBg ? appConfig.adaptiveBgThemeOverlay : 1.0,
         ),
-        child: Padding(
-          padding: const EdgeInsets.only(left: 12, right: 16, top: 12, bottom: 12),
+        child: Container(
+          padding: const EdgeInsets.only(left: 12, right: 8, top: 12, bottom: 12),
+          height: 48,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Icon
               if (icon != null) ...[
                 Icon(icon, size: 18, color: theme.colorScheme.primary),
                 const SizedBox(width: 6),
@@ -62,7 +73,29 @@ class NordSnackBar extends ConsumerWidget {
                 AppIcon(snackBarIcon, color: accentColor),
                 const SizedBox(width: 6),
               ],
-              Text(message, style: theme.textTheme.bodyMedium),
+
+              // Message
+              // Wrap text in Flexible so it doesn't overflow if there's a button
+              Flexible(child: Text(message, style: theme.textTheme.labelLarge)),
+
+              // Action Button
+              if (actionLabel != null && onAction != null) ...[
+                const SizedBox(width: 16),
+                TextButton(
+                  style: TextButton.styleFrom(
+                    minimumSize: Size.zero,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: () => onAction!(context),
+                  child: Text(
+                    actionLabel!,
+                    style: theme.textTheme.labelLarge!.copyWith(
+                      color: type == NordSnackBarType.general ? theme.colorScheme.primary : accentColor,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -73,14 +106,23 @@ class NordSnackBar extends ConsumerWidget {
 
 /// A model to track each unique snack bar
 class ActiveSnackBar {
+  ActiveSnackBar({
+    required this.id,
+    required this.message,
+    required this.type,
+    this.customIcon,
+    this.actionLabel,
+    this.onAction,
+  });
+
   final String id;
   final String message;
   final NordSnackBarType type;
 
   /// The default snack bar icon will be replaced by this
   final IconData? customIcon;
-
-  ActiveSnackBar({required this.id, required this.message, required this.type, this.customIcon});
+  final String? actionLabel;
+  final void Function(BuildContext)? onAction;
 }
 
 // The Stateful Manager that lives in the Overlay
@@ -113,6 +155,12 @@ class NordSnackBarManagerState extends State<NordSnackBarManager> {
     });
   }
 
+  void removeSnackBar(String id) {
+    setState(() {
+      _snackBars.removeWhere((t) => t.id == id);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -133,7 +181,20 @@ class NordSnackBarManagerState extends State<NordSnackBarManager> {
           curve: Curves.easeOutCubic,
           child: Padding(
             padding: const EdgeInsets.only(bottom: 8.0), // Gap between stacked snackBars
-            child: NordSnackBar(message: snackBar.message, type: snackBar.type, icon: snackBar.customIcon),
+            child: NordSnackBar(
+              message: snackBar.message,
+              type: snackBar.type,
+              icon: snackBar.customIcon,
+              actionLabel: snackBar.actionLabel,
+              onAction: snackBar.onAction != null
+                  ? (snackBarContext) {
+                      // Trigger user's action using the living context
+                      snackBar.onAction!(snackBarContext);
+                      // Instantly dismiss this snackbar
+                      removeSnackBar(snackBar.id);
+                    }
+                  : null,
+            ),
           ),
         );
       }),
@@ -150,6 +211,8 @@ void showNordSnackBar({
   required String message,
   required NordSnackBarType type,
   IconData? icon,
+  String? actionLabel,
+  void Function(BuildContext)? onAction,
 }) {
   // If the manager isn't on the screen yet, put it there.
   if (_globalSnackbarOverlay == null) {
@@ -170,6 +233,8 @@ void showNordSnackBar({
     message: message,
     type: type,
     customIcon: icon,
+    actionLabel: actionLabel,
+    onAction: onAction,
   );
 
   // Send it to the Manager

@@ -323,8 +323,8 @@ ThemeData buildNordTheme({String? fontFamily}) {
       // --- LABEL (Buttons, chips, and small captions) ---
       labelLarge: TextStyle(
         fontFamily: resolvedFont,
-        fontSize: 13, // Compact button text
-        fontWeight: FontWeight.w600,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
         color: NordColors.nord6,
       ),
       labelSmall: TextStyle(
