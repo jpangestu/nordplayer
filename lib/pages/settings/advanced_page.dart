@@ -35,11 +35,11 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
             child: ListTile(
               title: Text(
                 'Reset app settings',
-                style: TextStyle(color: theme.colorScheme.onErrorContainer, fontWeight: FontWeight.w600),
+                style: TextStyle(color: theme.colorScheme.onError, fontWeight: FontWeight.w600),
               ),
               subtitle: Text(
                 'Theme, music paths, and player preferences',
-                style: TextStyle(color: theme.colorScheme.onErrorContainer.withValues(alpha: 0.74)),
+                style: TextStyle(color: theme.colorScheme.onError.withValues(alpha: 0.74)),
               ),
               onTap: () => _showResetSettingsDialog(context, ref),
             ),
@@ -48,15 +48,15 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
           const SizedBox(height: 4),
 
           SectionCard(
-            backgroundColor: theme.colorScheme.errorContainer,
+            backgroundColor: theme.colorScheme.error,
             child: ListTile(
               title: Text(
                 'Clear music library',
-                style: TextStyle(color: theme.colorScheme.onErrorContainer, fontWeight: FontWeight.w600),
+                style: TextStyle(color: theme.colorScheme.onError, fontWeight: FontWeight.w600),
               ),
               subtitle: Text(
                 'Wipes database and album art (does not delete music files)',
-                style: TextStyle(color: theme.colorScheme.onErrorContainer.withValues(alpha: 0.74)),
+                style: TextStyle(color: theme.colorScheme.onError.withValues(alpha: 0.74)),
               ),
               onTap: () => _showDeleteDataDialog(context, ref),
             ),

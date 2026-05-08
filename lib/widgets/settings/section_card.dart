@@ -26,7 +26,7 @@ class SectionCard extends ConsumerWidget {
                 : backgroundColor!
           : defaultBackgroundColor,
       borderRadius: 8,
-      child: child,
+      child: Padding(padding: const EdgeInsets.all(4.0), child: child), // TODO: fix layout
     );
   }
 }

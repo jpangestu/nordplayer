@@ -55,7 +55,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
                     padding: const EdgeInsets.only(right: 16.0, bottom: 8.0),
                     child: Wrap(
                       alignment: .spaceBetween,
-                      crossAxisAlignment: WrapCrossAlignment.center,
+                      crossAxisAlignment: .center,
                       runSpacing: 8.0,
                       children: [
                         Row(
@@ -74,7 +74,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
 
                             if (_packageInfo != null)
                               Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                                crossAxisAlignment: .start,
                                 children: [
                                   const SizedBox(height: 4),
                                   Text(
@@ -93,11 +93,13 @@ class _AboutPageState extends ConsumerState<AboutPage> {
                           ],
                         ),
 
-                        Row(
-                          mainAxisSize: .min,
+                        Wrap(
+                          spacing: 8.0,
+                          runSpacing: 12.0,
+                          crossAxisAlignment: .center,
                           children: [
                             Padding(
-                              padding: const EdgeInsets.only(left: 12.0, bottom: 8.0),
+                              padding: const .only(left: 12.0),
                               child: FilledButton.tonalIcon(
                                 onPressed: () async {
                                   final Uri url = Uri.parse('https://github.com/jpangestu/nordplayer');
@@ -114,18 +116,19 @@ class _AboutPageState extends ConsumerState<AboutPage> {
                                 },
                                 style: FilledButton.styleFrom(
                                   padding: const EdgeInsets.only(left: 8, right: 10.0, top: 16.0, bottom: 16.0),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+                                  backgroundColor: theme.colorScheme.primary,
                                 ),
                                 icon: SvgPicture.asset(
                                   'assets/icons/github_logo.svg',
                                   width: 24,
                                   height: 24,
-                                  colorFilter: ColorFilter.mode(theme.colorScheme.onSurface, BlendMode.srcIn),
+                                  colorFilter: ColorFilter.mode(theme.colorScheme.onPrimary, BlendMode.srcIn),
                                 ),
                                 label: Text(
                                   'See Project on GitHub',
                                   style: TextStyle(
-                                    color: theme.colorScheme.onSurface,
+                                    color: theme.colorScheme.onPrimary,
                                     fontWeight: FontWeight.w600,
                                     letterSpacing: 0.5,
                                   ),
@@ -134,7 +137,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
                             ),
 
                             Padding(
-                              padding: const EdgeInsets.only(left: 12.0, bottom: 8.0),
+                              padding: const .only(left: 12.0),
                               child: FilledButton.tonalIcon(
                                 onPressed: () async {
                                   final Uri url = Uri.parse('https://discord.gg/RH5j8H2Y');
@@ -151,7 +154,8 @@ class _AboutPageState extends ConsumerState<AboutPage> {
                                 },
                                 style: FilledButton.styleFrom(
                                   padding: const EdgeInsets.only(left: 8, right: 10.0, top: 16.0, bottom: 16.0),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+                                  backgroundColor: theme.colorScheme.primary,
                                 ),
                                 icon: Padding(
                                   padding: const EdgeInsets.all(4.0),
@@ -159,13 +163,13 @@ class _AboutPageState extends ConsumerState<AboutPage> {
                                     'assets/icons/discord_logo.svg',
                                     width: 15,
                                     height: 15,
-                                    colorFilter: ColorFilter.mode(theme.colorScheme.onSurface, BlendMode.srcIn),
+                                    colorFilter: ColorFilter.mode(theme.colorScheme.onPrimary, BlendMode.srcIn),
                                   ),
                                 ),
                                 label: Text(
                                   'Join the Community',
                                   style: TextStyle(
-                                    color: theme.colorScheme.onSurface,
+                                    color: theme.colorScheme.onPrimary,
                                     fontWeight: FontWeight.w600,
                                     letterSpacing: 0.5,
                                   ),

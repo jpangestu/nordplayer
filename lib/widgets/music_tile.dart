@@ -105,6 +105,7 @@ class _MusicTileState extends ConsumerState<MusicTile> with LoggerMixin {
     final TextStyle titleStyle = theme.textTheme.titleMedium!;
     final Color titleColor = widget.selected ? theme.colorScheme.primary : theme.textTheme.titleMedium!.color!;
     final TextStyle subtitleStyle = theme.textTheme.bodyMedium!;
+    final Color subtitleColor = theme.colorScheme.onSurfaceVariant;
 
     return SizedBox(
       child: Material(
@@ -153,24 +154,24 @@ class _MusicTileState extends ConsumerState<MusicTile> with LoggerMixin {
                             child: ScrollingText(
                               textSpan: TextSpan(
                                 text: widget.title,
-                                style: titleStyle.copyWith(color: titleColor, height: 1.0),
+                                style: titleStyle.copyWith(color: titleColor),
                               ),
                             ),
                           ),
-                          ScrollingText(textSpan: TextSpan(children: _buildArtistsSpan(subtitleStyle))),
+                          ScrollingText(textSpan: TextSpan(children: _buildArtistsSpan(subtitleStyle, subtitleColor))),
                         ] else ...[
                           IgnorePointer(
                             child: RichText(
                               text: TextSpan(
                                 text: widget.title,
-                                style: titleStyle.copyWith(color: titleColor, height: 1.0),
+                                style: titleStyle.copyWith(color: titleColor),
                               ),
                               maxLines: 1,
                               overflow: .ellipsis,
                             ),
                           ),
                           RichText(
-                            text: TextSpan(children: _buildArtistsSpan(subtitleStyle)),
+                            text: TextSpan(children: _buildArtistsSpan(subtitleStyle, subtitleColor)),
                             maxLines: 1,
                             overflow: .ellipsis,
                           ),
@@ -187,19 +188,24 @@ class _MusicTileState extends ConsumerState<MusicTile> with LoggerMixin {
     );
   }
 
-  List<TextSpan> _buildArtistsSpan(TextStyle baseStyle) {
+  List<TextSpan> _buildArtistsSpan(TextStyle textStyle, Color textColor) {
     final List<TextSpan> artistSpan = [];
 
     for (int i = 0; i < widget.artists.length; i++) {
       if (i >= _recognizers.length) break;
       if (i > 0) {
-        artistSpan.add(TextSpan(text: ', ', style: baseStyle.copyWith(height: 1.0)));
+        artistSpan.add(
+          TextSpan(
+            text: ', ',
+            style: textStyle.copyWith(color: textColor),
+          ),
+        );
       }
 
       artistSpan.add(
         TextSpan(
           text: widget.artists[i],
-          style: baseStyle.copyWith(decoration: _hoveredIndex == i ? .underline : .none),
+          style: textStyle.copyWith(decoration: _hoveredIndex == i ? .underline : .none, color: textColor),
           onEnter: (_) {
             if (mounted) setState(() => _hoveredIndex = i);
           },

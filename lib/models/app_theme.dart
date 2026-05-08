@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:nordplayer/theming/catppuccin_mocha_theme.dart';
-import 'package:nordplayer/theming/graphite_theme.dart';
-import 'package:nordplayer/theming/nord_theme.dart';
+import 'package:nordplayer/theming/theme_builder.dart';
+import 'package:nordplayer/theming/themes/graphite.dart';
+import 'package:nordplayer/theming/themes/nord.dart';
+import 'package:nordplayer/theming/themes/nord_light.dart';
 
 class AppTheme {
   AppTheme._();
@@ -11,38 +12,44 @@ class AppTheme {
 
   static const Map<String, String> labels = {
     'nord': 'Nord (default)',
-    'catpuccin_mocha': 'Catpuccin Mocha',
+    'nord_light': 'Nord Light',
     'graphite': 'Graphite',
-    // 'dark': 'Default Dark',
-    // 'light': 'Default Light',
   };
 
   static const Map<String, String> availableFonts = {
-    'System': 'System Default',
-    'Inter': 'Inter',
-    'JetBrains Mono': 'JetBrains Mono',
-    'Lora': 'Lora',
-    'Outfit': 'Outfit',
-    'Rubik': 'Rubik',
+    'outfit': 'Outfit (default)',
+    'inter': 'Inter',
+    'jetbrains_mono': 'JetBrains Mono',
+    'lora': 'Lora',
+    'rubik': 'Rubik',
+    'system': 'System Default',
   };
 
   static ThemeData getTheme(String key, String fontFamily) {
     if (key == 'nord') {
-      return buildNordTheme(fontFamily: fontFamily);
-    } else if (key == 'catpuccin_mocha') {
-      return buildCatppuccinMochaTheme(fontFamily: fontFamily);
+      return buildTheme(
+        fontFamily: fontFamily,
+        fontFamilyFallback: availableFonts.keys.toList(),
+        nordColorScheme: NordColorScheme(),
+      );
+    } else if (key == 'nord_light') {
+      return buildTheme(
+        fontFamily: fontFamily,
+        fontFamilyFallback: availableFonts.keys.toList(),
+        nordColorScheme: NordLightColorScheme(),
+      );
     } else if (key == 'graphite') {
-      return buildGraphiteTheme(fontFamily: fontFamily);
+      return buildTheme(
+        fontFamily: fontFamily,
+        fontFamilyFallback: availableFonts.keys.toList(),
+        nordColorScheme: GraphiteColorScheme(),
+      );
     }
-    // else if (key == 'dark') {
-    //   return defaultDark.copyWith(textTheme: defaultLight.textTheme.apply(fontFamily: fontFamily));
-    // }
-    // else if (key == 'light') {
-    //   return defaultLight.copyWith(textTheme: defaultLight.textTheme.apply(fontFamily: fontFamily));
-    // }
 
-    // Default fallback
-    // return defaultDark.copyWith(textTheme: defaultDark.textTheme.apply(fontFamily: fontFamily));
-    return buildNordTheme(fontFamily: fontFamily);
+    return buildTheme(
+      fontFamily: fontFamily,
+      fontFamilyFallback: availableFonts.keys.toList(),
+      nordColorScheme: NordColorScheme(),
+    );
   }
 }

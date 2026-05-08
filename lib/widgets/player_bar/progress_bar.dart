@@ -1,4 +1,5 @@
 import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -154,20 +155,14 @@ class _RawProgressBar extends LeafRenderObjectWidget {
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
     final sliderTheme = SliderTheme.of(context);
-    final textStyle = timeLabelTextStyle ?? theme.textTheme.bodyLarge;
+    final textStyle = timeLabelTextStyle ?? theme.textTheme.bodyMedium;
     final textScaler = MediaQuery.textScalerOf(context);
 
     // Extract dynamic tooltip colors based on the current context theme
     final tooltipBgColor = theme.colorScheme.inverseSurface;
     final tooltipStyle =
-        theme.textTheme.labelSmall?.copyWith(
-          color: theme.colorScheme.onInverseSurface,
-          fontWeight: FontWeight.bold,
-        ) ??
-        TextStyle(
-          color: theme.colorScheme.onInverseSurface,
-          fontWeight: FontWeight.bold,
-        );
+        theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onInverseSurface, fontWeight: FontWeight.bold) ??
+        TextStyle(color: theme.colorScheme.onInverseSurface, fontWeight: FontWeight.bold);
 
     return _RenderProgressBar(
       progress: progress,
@@ -178,22 +173,14 @@ class _RawProgressBar extends LeafRenderObjectWidget {
       onDragUpdate: onDragUpdate,
       onDragEnd: onDragEnd,
       barHeight: barHeight,
-      baseBarColor:
-          baseBarColor ??
-          sliderTheme.inactiveTrackColor ??
-          primaryColor.withValues(alpha: 0.24),
-      progressBarColor:
-          progressBarColor ?? sliderTheme.activeTrackColor ?? primaryColor,
+      baseBarColor: baseBarColor ?? sliderTheme.inactiveTrackColor ?? primaryColor.withValues(alpha: 0.24),
+      progressBarColor: progressBarColor ?? sliderTheme.activeTrackColor ?? primaryColor,
       bufferedBarColor:
-          bufferedBarColor ??
-          sliderTheme.secondaryActiveTrackColor ??
-          primaryColor.withValues(alpha: 0.38),
+          bufferedBarColor ?? sliderTheme.secondaryActiveTrackColor ?? primaryColor.withValues(alpha: 0.38),
       thumbRadius: thumbRadius,
       thumbColor: thumbColor ?? sliderTheme.thumbColor ?? primaryColor,
       thumbGlowColor:
-          thumbGlowColor ??
-          sliderTheme.overlayColor ??
-          (thumbColor ?? primaryColor).withValues(alpha: 0.54),
+          thumbGlowColor ?? sliderTheme.overlayColor ?? (thumbColor ?? primaryColor).withValues(alpha: 0.54),
       thumbGlowRadius: thumbGlowRadius,
       thumbCanPaintOutsideBar: thumbCanPaintOutsideBar,
       timeLabelType: timeLabelType ?? TimeLabelType.totalTime,
@@ -212,19 +199,13 @@ class _RawProgressBar extends LeafRenderObjectWidget {
     final theme = Theme.of(context);
     final sliderTheme = SliderTheme.of(context);
     final primaryColor = theme.colorScheme.primary;
-    final textStyle = timeLabelTextStyle ?? theme.textTheme.bodyLarge;
+    final textStyle = timeLabelTextStyle ?? theme.textTheme.labelLarge;
     final textScaler = MediaQuery.textScalerOf(context);
 
     final tooltipBgColor = theme.colorScheme.inverseSurface;
     final tooltipStyle =
-        theme.textTheme.labelSmall?.copyWith(
-          color: theme.colorScheme.onInverseSurface,
-          fontWeight: FontWeight.bold,
-        ) ??
-        TextStyle(
-          color: theme.colorScheme.onInverseSurface,
-          fontWeight: FontWeight.bold,
-        );
+        theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onInverseSurface, fontWeight: FontWeight.bold) ??
+        TextStyle(color: theme.colorScheme.onInverseSurface, fontWeight: FontWeight.bold);
 
     final renderProgressBar = renderObject as _RenderProgressBar;
     renderProgressBar
@@ -236,22 +217,14 @@ class _RawProgressBar extends LeafRenderObjectWidget {
       ..onDragStart = onDragStart
       ..onDragUpdate = onDragUpdate
       ..onDragEnd = onDragEnd
-      ..baseBarColor =
-          baseBarColor ??
-          sliderTheme.inactiveTrackColor ??
-          primaryColor.withValues(alpha: 0.24)
-      ..progressBarColor =
-          progressBarColor ?? sliderTheme.activeTrackColor ?? primaryColor
+      ..baseBarColor = baseBarColor ?? sliderTheme.inactiveTrackColor ?? primaryColor.withValues(alpha: 0.24)
+      ..progressBarColor = progressBarColor ?? sliderTheme.activeTrackColor ?? primaryColor
       ..bufferedBarColor =
-          bufferedBarColor ??
-          sliderTheme.secondaryActiveTrackColor ??
-          primaryColor.withValues(alpha: 0.38)
+          bufferedBarColor ?? sliderTheme.secondaryActiveTrackColor ?? primaryColor.withValues(alpha: 0.38)
       ..thumbRadius = thumbRadius
       ..thumbColor = thumbColor ?? sliderTheme.thumbColor ?? primaryColor
       ..thumbGlowColor =
-          thumbGlowColor ??
-          sliderTheme.overlayColor ??
-          (thumbColor ?? primaryColor).withValues(alpha: 0.54)
+          thumbGlowColor ?? sliderTheme.overlayColor ?? (thumbColor ?? primaryColor).withValues(alpha: 0.54)
       ..thumbGlowRadius = thumbGlowRadius
       ..thumbCanPaintOutsideBar = thumbCanPaintOutsideBar
       ..timeLabelType = timeLabelType ?? TimeLabelType.totalTime
@@ -287,8 +260,7 @@ class ThumbDragDetails {
       'local: $localPosition)';
 }
 
-class _EagerHorizontalDragGestureRecognizer
-    extends HorizontalDragGestureRecognizer {
+class _EagerHorizontalDragGestureRecognizer extends HorizontalDragGestureRecognizer {
   @override
   void addAllowedPointer(PointerDownEvent event) {
     super.addAllowedPointer(event);
@@ -407,12 +379,7 @@ class _RenderProgressBar extends RenderBox {
     final maxLeftWidth = max(_maxLeftLabelWidth, _leftLabelSize.width);
     final leftLabelDx = maxLeftWidth - _leftLabelSize.width;
 
-    return Rect.fromLTWH(
-      leftLabelDx,
-      verticalOffset,
-      _leftLabelSize.width,
-      _leftLabelSize.height,
-    );
+    return Rect.fromLTWH(leftLabelDx, verticalOffset, _leftLabelSize.width, _leftLabelSize.height);
   }
 
   Rect get _rightLabelHitRect {
@@ -420,12 +387,7 @@ class _RenderProgressBar extends RenderBox {
     final maxRightWidth = max(_maxRightLabelWidth, _rightLabelSize.width);
     final rightLabelDx = size.width - maxRightWidth;
 
-    return Rect.fromLTWH(
-      rightLabelDx,
-      verticalOffset,
-      _rightLabelSize.width,
-      _rightLabelSize.height,
-    );
+    return Rect.fromLTWH(rightLabelDx, verticalOffset, _rightLabelSize.width, _rightLabelSize.height);
   }
 
   @override
@@ -761,9 +723,7 @@ class _RenderProgressBar extends RenderBox {
     TextPainter textPainter = TextPainter(
       text: TextSpan(
         text: text,
-        style: _timeLabelTextStyle?.copyWith(
-          fontFeatures: const [FontFeature.tabularFigures()],
-        ),
+        style: _timeLabelTextStyle?.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
       ),
       textDirection: TextDirection.ltr,
       textScaler: _textScaler,
@@ -780,16 +740,9 @@ class _RenderProgressBar extends RenderBox {
   }
 
   String _getTimeString(Duration time) {
-    final minutes = time.inMinutes
-        .remainder(Duration.minutesPerHour)
-        .toString();
-    final seconds = time.inSeconds
-        .remainder(Duration.secondsPerMinute)
-        .toString()
-        .padLeft(2, '0');
-    return time.inHours > 0
-        ? "${time.inHours}:${minutes.padLeft(2, "0")}:$seconds"
-        : "$minutes:$seconds";
+    final minutes = time.inMinutes.remainder(Duration.minutesPerHour).toString();
+    final seconds = time.inSeconds.remainder(Duration.secondsPerMinute).toString().padLeft(2, '0');
+    return time.inHours > 0 ? "${time.inHours}:${minutes.padLeft(2, "0")}:$seconds" : "$minutes:$seconds";
   }
 
   static const _minDesiredWidth = 100.0;
@@ -858,48 +811,23 @@ class _RenderProgressBar extends RenderBox {
     if (barWidth > 0) {
       // Check if the mouse is strictly within the horizontal bounds of the bar
       final bool isHoveringBar =
-          _hoverPosition != null &&
-          _hoverPosition!.dx >= barDx &&
-          _hoverPosition!.dx <= (barDx + barWidth);
+          _hoverPosition != null && _hoverPosition!.dx >= barDx && _hoverPosition!.dx <= (barDx + barWidth);
 
       if (isHoveringBar) {
         final localHoverX = _hoverPosition!.dx - barDx;
         final hoverProportion = localHoverX / barWidth;
 
-        _drawProgressBar(
-          canvas,
-          Offset(barDx, barDy),
-          Size(barWidth, barHeight),
-          hoverProportion,
-        );
+        _drawProgressBar(canvas, Offset(barDx, barDy), Size(barWidth, barHeight), hoverProportion);
 
-        _drawHoverTooltip(
-          canvas,
-          barDx,
-          barDy,
-          localHoverX,
-          hoverProportion,
-          maxLeftWidth,
-          maxRightWidth,
-        );
+        _drawHoverTooltip(canvas, barDx, barDy, localHoverX, hoverProportion, maxLeftWidth, maxRightWidth);
       } else {
         // Not Hovering or Hovering over labels: Draw normally
-        _drawProgressBar(
-          canvas,
-          Offset(barDx, barDy),
-          Size(barWidth, barHeight),
-          null,
-        );
+        _drawProgressBar(canvas, Offset(barDx, barDy), Size(barWidth, barHeight), null);
       }
     }
   }
 
-  void _drawProgressBar(
-    Canvas canvas,
-    Offset offset,
-    Size localSize,
-    double? hoverProportion,
-  ) {
+  void _drawProgressBar(Canvas canvas, Offset offset, Size localSize, double? hoverProportion) {
     canvas.save();
     canvas.translate(offset.dx, offset.dy);
 
@@ -924,9 +852,7 @@ class _RenderProgressBar extends RenderBox {
     double maxLeftWidth,
     double maxRightWidth,
   ) {
-    final hoverDuration = Duration(
-      milliseconds: (hoverProportion * total.inMilliseconds).round(),
-    );
+    final hoverDuration = Duration(milliseconds: (hoverProportion * total.inMilliseconds).round());
     final timeString = _getTimeString(hoverDuration);
 
     // Only re-layout the text if the second changed or style updated
@@ -935,9 +861,7 @@ class _RenderProgressBar extends RenderBox {
       _cachedTooltipPainter = TextPainter(
         text: TextSpan(
           text: timeString,
-          style: _tooltipTextStyle.copyWith(
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
+          style: _tooltipTextStyle.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
         ),
         textDirection: TextDirection.ltr,
       )..layout();
@@ -959,10 +883,7 @@ class _RenderProgressBar extends RenderBox {
       height: textPainter.height + 10,
     );
 
-    final tooltipRRect = RRect.fromRectAndRadius(
-      tooltipRect,
-      const Radius.circular(6),
-    );
+    final tooltipRRect = RRect.fromRectAndRadius(tooltipRect, const Radius.circular(6));
 
     final bgPaint = Paint()..color = _tooltipBgColor;
     canvas.drawRRect(tooltipRRect, bgPaint);
@@ -974,32 +895,16 @@ class _RenderProgressBar extends RenderBox {
     trianglePath.close();
     canvas.drawPath(trianglePath, bgPaint);
 
-    textPainter.paint(
-      canvas,
-      Offset(
-        clampedTooltipDx - textPainter.width / 2,
-        tooltipDy - textPainter.height / 2,
-      ),
-    );
+    textPainter.paint(canvas, Offset(clampedTooltipDx - textPainter.width / 2, tooltipDy - textPainter.height / 2));
   }
 
   void _drawHoverBar(Canvas canvas, Size localSize, double proportion) {
     final hoverColor = progressBarColor.withValues(alpha: 0.35);
-    _drawBar(
-      canvas: canvas,
-      availableSize: localSize,
-      widthProportion: proportion,
-      color: hoverColor,
-    );
+    _drawBar(canvas: canvas, availableSize: localSize, widthProportion: proportion, color: hoverColor);
   }
 
   void _drawBaseBar(Canvas canvas, Size localSize) {
-    _drawBar(
-      canvas: canvas,
-      availableSize: localSize,
-      widthProportion: 1.0,
-      color: baseBarColor,
-    );
+    _drawBar(canvas: canvas, availableSize: localSize, widthProportion: 1.0, color: baseBarColor);
   }
 
   void _drawBufferedBar(Canvas canvas, Size localSize) {

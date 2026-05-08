@@ -140,7 +140,6 @@ class ProgressBarSection extends ConsumerWidget {
       barHeight: 5,
       thumbRadius: 6,
       thumbGlowRadius: 14,
-      timeLabelTextStyle: const TextStyle(fontSize: 14),
       timeLabelType: timeLabelType,
     );
   }

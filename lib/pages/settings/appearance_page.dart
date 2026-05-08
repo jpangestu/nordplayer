@@ -213,7 +213,7 @@ class AppearancePage extends ConsumerWidget {
                     ),
                   ),
                   dropdownMenuEntries: AppTheme.availableFonts.entries.map((entry) {
-                    final fontName = entry.key == 'System' ? null : entry.key;
+                    final fontName = entry.key == 'system' ? null : entry.key;
 
                     return DropdownMenuEntry(
                       value: entry.key,
