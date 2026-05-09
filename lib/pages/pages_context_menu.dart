@@ -80,25 +80,18 @@ class TrackContextMenu {
                   .read(playerServiceProvider)
                   .playNext(selectedTracks, playbackContext?.type ?? 'all_tracks', playbackContext?.id);
 
-              if (context.mounted) {
-                final showQueue = ref.read(preferenceServiceProvider).showQueue;
+              final showQueue = ref.read(preferenceServiceProvider).showQueue;
 
-                showQueue
-                    ? showNordSnackBar(
-                        context: context,
-                        message: 'Added ${selectedTracks.length} track(s) to queue',
-                        type: .general,
-                      )
-                    : showNordSnackBar(
-                        context: context,
-                        message: 'Added ${selectedTracks.length} track(s) to queue',
-                        type: .general,
-                        actionLabel: 'View Queue',
-                        onAction: (snackBarContext) {
-                          ref.read(preferenceServiceProvider.notifier).setShowQueue(true);
-                        },
-                      );
-              }
+              showQueue
+                  ? showNordSnackBar(message: 'Added ${selectedTracks.length} track(s) to queue', type: .general)
+                  : showNordSnackBar(
+                      message: 'Added ${selectedTracks.length} track(s) to queue',
+                      type: .general,
+                      actionLabel: 'View Queue',
+                      onAction: (snackBarContext) {
+                        ref.read(preferenceServiceProvider.notifier).setShowQueue(true);
+                      },
+                    );
             },
           ),
 
@@ -113,25 +106,18 @@ class TrackContextMenu {
                   .read(playerServiceProvider)
                   .addToQueue(selectedTracks, playbackContext?.type ?? 'all_tracks', playbackContext?.id);
 
-              if (context.mounted) {
-                final showQueue = ref.read(preferenceServiceProvider).showQueue;
+              final showQueue = ref.read(preferenceServiceProvider).showQueue;
 
-                showQueue
-                    ? showNordSnackBar(
-                        context: context,
-                        message: 'Added ${selectedTracks.length} track(s) to queue',
-                        type: .general,
-                      )
-                    : showNordSnackBar(
-                        context: context,
-                        message: 'Added ${selectedTracks.length} track(s) to queue',
-                        type: .general,
-                        actionLabel: 'View Queue',
-                        onAction: (snackBarContext) {
-                          ref.read(preferenceServiceProvider.notifier).setShowQueue(true);
-                        },
-                      );
-              }
+              showQueue
+                  ? showNordSnackBar(message: 'Added ${selectedTracks.length} track(s) to queue', type: .general)
+                  : showNordSnackBar(
+                      message: 'Added ${selectedTracks.length} track(s) to queue',
+                      type: .general,
+                      actionLabel: 'View Queue',
+                      onAction: (snackBarContext) {
+                        ref.read(preferenceServiceProvider.notifier).setShowQueue(true);
+                      },
+                    );
             },
           ),
 
@@ -202,7 +188,7 @@ class SearchTracksContextMenu {
       globalPosition: globalPosition,
       actionMenus: [
         ContextMenuActions(
-          icon: Icons.play_circle,
+          icon: appIconSet.play,
           label: 'Play',
           onTap: () {
             ref
@@ -222,21 +208,18 @@ class SearchTracksContextMenu {
           onTap: () {
             ref.read(playerServiceProvider).playNext([tracks[indexToPlay]], playbackContextType, playbackContextId);
 
-            if (context.mounted) {
-              final showQueue = ref.read(preferenceServiceProvider).showQueue;
+            final showQueue = ref.read(preferenceServiceProvider).showQueue;
 
-              showQueue
-                  ? showNordSnackBar(context: context, message: 'Added 1 track to queue', type: .general)
-                  : showNordSnackBar(
-                      context: context,
-                      message: 'Added 1 track to queue',
-                      type: .general,
-                      actionLabel: 'View Queue',
-                      onAction: (snackBarContext) {
-                        ref.read(preferenceServiceProvider.notifier).setShowQueue(true);
-                      },
-                    );
-            }
+            showQueue
+                ? showNordSnackBar(message: 'Added 1 track to queue', type: .general)
+                : showNordSnackBar(
+                    message: 'Added 1 track to queue',
+                    type: .general,
+                    actionLabel: 'View Queue',
+                    onAction: (snackBarContext) {
+                      ref.read(preferenceServiceProvider.notifier).setShowQueue(true);
+                    },
+                  );
           },
         ),
 
@@ -246,21 +229,18 @@ class SearchTracksContextMenu {
           onTap: () {
             ref.read(playerServiceProvider).addToQueue([tracks[indexToPlay]], playbackContextType, playbackContextId);
 
-            if (context.mounted) {
-              final showQueue = ref.read(preferenceServiceProvider).showQueue;
+            final showQueue = ref.read(preferenceServiceProvider).showQueue;
 
-              showQueue
-                  ? showNordSnackBar(context: context, message: 'Added 1 track to queue', type: .general)
-                  : showNordSnackBar(
-                      context: context,
-                      message: 'Added 1 track to queue',
-                      type: .general,
-                      actionLabel: 'View Queue',
-                      onAction: (snackBarContext) {
-                        ref.read(preferenceServiceProvider.notifier).setShowQueue(true);
-                      },
-                    );
-            }
+            showQueue
+                ? showNordSnackBar(message: 'Added 1 track to queue', type: .general)
+                : showNordSnackBar(
+                    message: 'Added 1 track to queue',
+                    type: .general,
+                    actionLabel: 'View Queue',
+                    onAction: (snackBarContext) {
+                      ref.read(preferenceServiceProvider.notifier).setShowQueue(true);
+                    },
+                  );
           },
         ),
 
@@ -385,17 +365,14 @@ class _SearchablePlaylistMenuState extends ConsumerState<SearchablePlaylistConte
 
                       ContextMenu.closeAll();
 
-                      if (context.mounted) {
-                        showNordSnackBar(
-                          context: context,
-                          message: 'Added to ${playlist.name}',
-                          type: .general,
-                          actionLabel: 'View',
-                          onAction: (snackBarContext) {
-                            snackBarContext.go('${Routes.playlistsPage}/${playlist.id}');
-                          },
-                        );
-                      }
+                      showNordSnackBar(
+                        message: 'Added to ${playlist.name}',
+                        type: .general,
+                        actionLabel: 'View',
+                        onAction: (snackBarContext) {
+                          snackBarContext.go('${Routes.playlistsPage}/${playlist.id}');
+                        },
+                      );
                     },
                     child: Container(
                       height: 36,
@@ -459,9 +436,7 @@ class _CreatePlaylistDialogState extends ConsumerState<CreatePlaylistDialog> wit
 
       await db.addTracksToPlaylist(newPlaylistId, trackIds);
 
-      if (!mounted) return;
       showNordSnackBar(
-        context: context,
         message: 'Created "$name" with ${trackIds.length} tracks',
         type: .success,
         actionLabel: 'Open Playlist',
@@ -471,7 +446,6 @@ class _CreatePlaylistDialogState extends ConsumerState<CreatePlaylistDialog> wit
       );
     } else {
       showNordSnackBar(
-        context: context,
         message: 'Playlist "$name" created',
         type: .success,
         actionLabel: 'Open',

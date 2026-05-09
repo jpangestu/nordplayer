@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/theming/theme-extension/nord_snackbar_theme.dart';
@@ -207,7 +208,6 @@ OverlayEntry? _globalSnackbarOverlay;
 final GlobalKey<NordSnackBarManagerState> _snackbarManagerKey = GlobalKey<NordSnackBarManagerState>();
 
 void showNordSnackBar({
-  required BuildContext context,
   required String message,
   required NordSnackBarType type,
   IconData? icon,
@@ -216,6 +216,11 @@ void showNordSnackBar({
 }) {
   // If the manager isn't on the screen yet, put it there.
   if (_globalSnackbarOverlay == null) {
+    // Grab the OverlayState DIRECTLY from the Navigator's current state.
+    final overlayState = router.configuration.navigatorKey.currentState?.overlay;
+
+    if (overlayState == null) return; // Safety failsafe
+
     _globalSnackbarOverlay = OverlayEntry(
       builder: (context) => Positioned(
         bottom: 106, // Player Bar height + gap
@@ -224,7 +229,8 @@ void showNordSnackBar({
         child: Center(child: NordSnackBarManager(key: _snackbarManagerKey)),
       ),
     );
-    Overlay.of(context, rootOverlay: true).insert(_globalSnackbarOverlay!);
+
+    overlayState.insert(_globalSnackbarOverlay!);
   }
 
   // Create the unique snackbar data

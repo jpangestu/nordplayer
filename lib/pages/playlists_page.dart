@@ -6,6 +6,7 @@ import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
+import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/widgets/album_art_stack.dart';
 import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
@@ -21,6 +22,7 @@ class PlaylistsPage extends ConsumerWidget {
     final theme = Theme.of(context);
     final db = ref.watch(appDatabaseProvider);
     final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appIconSet = ref.watch(appIconProvider);
 
     return Scaffold(
       backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
@@ -36,7 +38,7 @@ class PlaylistsPage extends ConsumerWidget {
                 Text('Playlists', style: Theme.of(context).textTheme.headlineMedium),
                 OutlinedButton.icon(
                   onPressed: () => showCreatePlaylistDialog(context, db),
-                  icon: const AppIcon(Icons.add),
+                  icon: AppIcon(appIconSet.add),
                   label: const Text('New Playlist'),
                 ),
               ],
@@ -137,9 +139,7 @@ class _CreatePlaylistDialogState extends ConsumerState<CreatePlaylistDialog> wit
 
     final newPlaylistId = await widget.database.addPlaylist(PlaylistsCompanion.insert(name: name));
 
-    if (!mounted) return;
-
-    showNordSnackBar(context: context, message: '$name created successfully', type: .success);
+    showNordSnackBar(message: '$name created successfully', type: .success);
 
     log.i('$name created successfully');
 
@@ -149,10 +149,10 @@ class _CreatePlaylistDialogState extends ConsumerState<CreatePlaylistDialog> wit
 
       await db.addTracksToPlaylist(newPlaylistId, trackIds);
 
-      if (!mounted) return;
-      showNordSnackBar(context: context, message: 'Added to $name', type: .success);
+      showNordSnackBar(message: 'Added to $name', type: .success);
     }
 
+    if (!mounted) return;
     Navigator.pop(context);
   }
 
@@ -212,8 +212,9 @@ class _RenamePlaylistDialogState extends ConsumerState<RenamePlaylistDialog> {
 
     await widget.database.renamePlaylist(widget.playlist.id, newName);
 
+    showNordSnackBar(message: 'Renamed to "$newName"', type: .success);
+
     if (!mounted) return;
-    showNordSnackBar(context: context, message: 'Renamed to "$newName"', type: .success);
     Navigator.pop(context);
   }
 
@@ -258,6 +259,7 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
     final theme = Theme.of(context);
     final totalTracks = widget.playlistWithDetails.trackCount;
     final playlistId = widget.playlistWithDetails.playlist.id;
+    final appIconSet = ref.watch(appIconProvider);
 
     // Check if THIS playlist is the active context
     final playbackContext = ref.watch(playbackContextProvider);
@@ -308,7 +310,7 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
                         child: IconButton(
                           key: _moreButtonKey,
                           visualDensity: .compact,
-                          icon: AppIcon(Icons.more_horiz, color: theme.colorScheme.primary, size: 20),
+                          icon: AppIcon(appIconSet.contextMenu, color: theme.colorScheme.primary, size: 20),
                           tooltip: 'Options',
                           hoverColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                           focusColor: theme.colorScheme.primary.withValues(alpha: 0.15),
@@ -334,6 +336,7 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
                         shape: const CircleBorder(),
                         elevation: 4,
                         child: IconButton(
+                          // Purposefully not using appIconSet here cause it'll look weird
                           icon: AppIcon(Icons.play_arrow, color: Theme.of(context).colorScheme.onPrimary),
                           onPressed: () {
                             _playPlaylist();
@@ -384,14 +387,18 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
   }
 
   void _showContextMenu(Offset position, WidgetRef ref) {
+    final appConfig = ref.read(configServiceProvider).requireValue;
+    final appIconSet = ref.read(appIconProvider);
+
     ContextMenu.show(
+      isAdaptive: appConfig.adaptiveBg,
       context: context,
       globalPosition: position,
       actionMenus: [
-        ContextMenuActions(icon: Icons.play_circle, label: 'Play', onTap: _playPlaylist),
-        ContextMenuActions(icon: Icons.playlist_add_outlined, label: 'Add to queue', onTap: _addToQueue),
+        ContextMenuActions(icon: appIconSet.play, label: 'Play', onTap: _playPlaylist),
+        ContextMenuActions(icon: appIconSet.addToQueue, label: 'Add to queue', onTap: _addToQueue),
         ContextMenuActions(
-          icon: Icons.edit_outlined,
+          icon: appIconSet.rename,
           label: 'Rename',
           onTap: () {
             showDialog(
@@ -402,7 +409,7 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
           },
         ),
         ContextMenuActions(
-          icon: Icons.delete_outline,
+          icon: appIconSet.delete,
           label: 'Delete',
           isDestructive: true,
           onTap: () {
@@ -417,9 +424,7 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
     final tracks = await widget.database.getPlaylistTracks(widget.playlistWithDetails.playlist.id);
 
     if (tracks.isEmpty) {
-      if (mounted) {
-        showNordSnackBar(context: context, message: 'This playlist is empty! Add some tracks first.', type: .info);
-      }
+      showNordSnackBar(message: 'This playlist is empty! Add some tracks first.', type: .info);
       return;
     }
 
@@ -437,18 +442,14 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
     final tracks = await widget.database.getPlaylistTracks(widget.playlistWithDetails.playlist.id);
 
     if (tracks.isEmpty) {
-      if (mounted) {
-        showNordSnackBar(context: context, message: 'This playlist is empty! Add some tracks first.', type: .general);
-      }
+      showNordSnackBar(message: 'This playlist is empty! Add some tracks first.', type: .general);
       return;
     }
 
     final playbackContext = ref.read(playbackContextProvider);
     ref.read(playerServiceProvider).addToQueue(tracks, playbackContext?.type ?? '', playbackContext?.id);
 
-    if (mounted) {
-      showNordSnackBar(context: context, message: 'Added ${tracks.length} tracks to queue', type: .general);
-    }
+    showNordSnackBar(message: 'Added ${tracks.length} tracks to queue', type: .general);
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
@@ -470,14 +471,10 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
       ),
     );
 
-    if (confirmed == true && context.mounted) {
+    if (confirmed == true) {
       await widget.database.deletePlaylist(widget.playlistWithDetails.playlist.id);
       if (context.mounted) {
-        showNordSnackBar(
-          context: context,
-          message: 'Deleted "${widget.playlistWithDetails.playlist.name}"',
-          type: .success,
-        );
+        showNordSnackBar(message: 'Deleted "${widget.playlistWithDetails.playlist.name}"', type: .success);
       }
     }
   }

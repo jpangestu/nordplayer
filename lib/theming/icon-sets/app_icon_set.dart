@@ -59,6 +59,8 @@ abstract class AppIconSet {
   IconData get add;
   IconData get showMetadata;
   IconData get showInfolder;
+  IconData get rename;
+  IconData get delete;
 
   // Others
   IconData get favorite; // Heart

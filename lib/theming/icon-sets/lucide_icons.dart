@@ -94,6 +94,10 @@ class LucideIconSet implements AppIconSet {
   IconData get showMetadata => LucideIcons.fileBracesCorner;
   @override
   IconData get showInfolder => LucideIcons.folderSearch;
+  @override
+  IconData get rename => LucideIcons.pencil;
+  @override
+  IconData get delete => LucideIcons.trash2;
 
   // Others
   @override

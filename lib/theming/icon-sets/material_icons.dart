@@ -93,6 +93,10 @@ class MaterialIconSet implements AppIconSet {
   IconData get showMetadata => Icons.description_outlined;
   @override
   IconData get showInfolder => Icons.folder_outlined;
+  @override
+  IconData get rename => Icons.edit_outlined;
+  @override
+  IconData get delete => Icons.edit_outlined;
 
   // Others
   @override
