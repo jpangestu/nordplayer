@@ -4,7 +4,7 @@ import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/pages/pages_helper.dart';
 import 'package:nordplayer/services/player_service.dart';
 
-// =========================== Player Bar ================================
+// ================================================= Player Bar =======================================================
 
 class PlayOrPauseIntent extends Intent {
   const PlayOrPauseIntent();
@@ -13,6 +13,13 @@ class PlayOrPauseIntent extends Intent {
 class PlayOrPauseAction extends Action<PlayOrPauseIntent> {
   PlayOrPauseAction(this.ref);
   final WidgetRef ref;
+
+  // If search has focus, disable the shortcut!
+  @override
+  bool isEnabled(covariant PlayOrPauseIntent intent) {
+    if (ref.read(searchFocusNodeProvider).hasFocus) return false;
+    return super.isEnabled(intent);
+  }
 
   @override
   void invoke(covariant PlayOrPauseIntent intent) {
@@ -118,7 +125,29 @@ class MuteAction extends Action<MuteIntent> {
   }
 }
 
-// ========================== Tracks Table ===============================
+// ================================================ Search Bar ========================================================
+
+final searchFocusNodeProvider = Provider<FocusNode>((ref) {
+  final node = FocusNode();
+  ref.onDispose(() => node.dispose());
+  return node;
+});
+
+class FocusSearchIntent extends Intent {
+  const FocusSearchIntent();
+}
+
+class FocusSearchAction extends Action<FocusSearchIntent> {
+  FocusSearchAction(this.ref);
+  final WidgetRef ref;
+
+  @override
+  void invoke(covariant FocusSearchIntent intent) {
+    ref.read(searchFocusNodeProvider).requestFocus();
+  }
+}
+
+// ============================================= Tracks Table =========================================================
 
 class PlaySelectedIntent extends Intent {
   const PlaySelectedIntent();

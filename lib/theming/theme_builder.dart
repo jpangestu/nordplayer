@@ -58,8 +58,9 @@ abstract class AppColorScheme {
 }
 
 ThemeData buildTheme({
-  required String fontFamily,
-  required List<String> fontFamilyFallback,
+  // Nullable fontFamily for system font (null == system font)
+  required String? fontFamily,
+  required List<String>? fontFamilyFallback,
   required AppColorScheme nordColorScheme,
 }) {
   return ThemeData(
@@ -266,9 +267,9 @@ ThemeData buildTheme({
 
       titleLarge: TextStyle(
         fontFamily: fontFamily,
-        fontSize: 22,
+        fontSize: 20, // default: 22
         fontWeight: .w500, // default:400
-        height: 28 / 22,
+        height: 28 / 20,
         letterSpacing: 0,
         color: nordColorScheme.onSurface,
         fontVariations: const <FontVariation>[

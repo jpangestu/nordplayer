@@ -1,5 +1,6 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:metadata_god/metadata_god.dart';
@@ -12,6 +13,7 @@ import 'package:nordplayer/services/library_watcher.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
 import 'package:nordplayer/widgets/adaptive_scaffold.dart';
+import 'package:nordplayer/widgets/shortcuts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -131,9 +133,37 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp> with WindowListen
           title: 'Nordplayer',
           theme: AppTheme.getTheme(config.theme, config.fontFamily),
           builder: (context, child) {
-            return MediaQuery(
-              data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(config.textScale)),
-              child: AdaptiveScaffold(body: child!),
+            return Shortcuts(
+              shortcuts: <ShortcutActivator, Intent>{
+                const SingleActivator(LogicalKeyboardKey.keyK, control: true): const FocusSearchIntent(),
+                const SingleActivator(LogicalKeyboardKey.space): const PlayOrPauseIntent(),
+                const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): const SkipToNextIntent(),
+                const SingleActivator(LogicalKeyboardKey.arrowLeft, control: true): const SkipToPreviousIntent(),
+                const CharacterActivator('s', control: true): const ToggleShuffleIntent(),
+                const CharacterActivator('l', control: true): const CycleLoopIntent(),
+                const SingleActivator(LogicalKeyboardKey.arrowUp, control: true): const VolumeUpIntent(),
+                const SingleActivator(LogicalKeyboardKey.arrowDown, control: true): const VolumeDownIntent(),
+                const CharacterActivator('m'): const MuteIntent(),
+              },
+              child: Actions(
+                actions: <Type, Action<Intent>>{
+                  FocusSearchIntent: FocusSearchAction(ref),
+                  PlayOrPauseIntent: PlayOrPauseAction(ref),
+                  SkipToNextIntent: SkipToNextAction(ref),
+                  SkipToPreviousIntent: SkipToPreviousAction(ref),
+                  ToggleShuffleIntent: ToggleShuffleAction(ref),
+                  CycleLoopIntent: CycleLoopAction(ref),
+                  VolumeUpIntent: VolumeUpAction(ref),
+                  VolumeDownIntent: VolumeDownAction(ref),
+                  MuteIntent: MuteAction(ref),
+                },
+                child: Focus(
+                  child: MediaQuery(
+                    data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(config.textScale)),
+                    child: AdaptiveScaffold(body: child!),
+                  ),
+                ),
+              ),
             );
           },
         );

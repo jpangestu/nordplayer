@@ -10,6 +10,7 @@ import 'package:nordplayer/widgets/album_art_stack.dart';
 import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
+import 'package:nordplayer/widgets/nord_alert_dialog.dart';
 import 'package:nordplayer/widgets/nord_snack_bar.dart';
 
 class PlaylistsPage extends ConsumerWidget {
@@ -157,8 +158,8 @@ class _CreatePlaylistDialogState extends ConsumerState<CreatePlaylistDialog> wit
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Create New Playlist'),
+    return NordAlertDialog(
+      title: 'Create New Playlist',
       content: TextField(
         controller: _textController,
         autofocus: true,
@@ -218,8 +219,8 @@ class _RenamePlaylistDialogState extends ConsumerState<RenamePlaylistDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Rename Playlist'),
+    return NordAlertDialog(
+      title: 'Rename Playlist',
       content: TextField(
         controller: _textController,
         autofocus: true,
@@ -453,8 +454,8 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
   Future<void> _confirmDelete(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Playlist?'),
+      builder: (context) => NordAlertDialog(
+        title: 'Delete Playlist?',
         content: Text(
           'Are you sure you want to delete "${widget.playlistWithDetails.playlist.name}"?\nThis cannot be undone.',
         ),

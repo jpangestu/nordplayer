@@ -1,7 +1,7 @@
 name: nordplayer
 description: "A highly customizable music player with extensive theming."
 publish_to: "none"
-version: 0.1.14-alpha+1
+version: 0.1.15-alpha+1
 
 environment:
   sdk: ^3.10.4
@@ -57,7 +57,7 @@ flutter:
     - assets/images/
 
   fonts:
-    - family: Inter
+    - family: inter
       fonts:
         - asset: assets/fonts/Inter/Inter_24pt-Regular.ttf
         - asset: assets/fonts/Inter/Inter_24pt-Medium.ttf
@@ -67,7 +67,7 @@ flutter:
         - asset: assets/fonts/Inter/Inter_24pt-Bold.ttf
           weight: 700
 
-    - family: JetBrains Mono
+    - family: jetbrains_mono
       fonts:
         - asset: assets/fonts/JetBrains_Mono/JetBrainsMono-Regular.ttf
         - asset: assets/fonts/JetBrains_Mono/JetBrainsMono-Medium.ttf
@@ -77,7 +77,7 @@ flutter:
         - asset: assets/fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf
           weight: 700
 
-    - family: Lora
+    - family: lora
       fonts:
         - asset: assets/fonts/Lora/Lora-Regular.ttf
         - asset: assets/fonts/Lora/Lora-Medium.ttf
@@ -87,7 +87,7 @@ flutter:
         - asset: assets/fonts/Lora/Lora-Bold.ttf
           weight: 700
 
-    - family: Outfit
+    - family: outfit
       fonts:
         - asset: assets/fonts/Outfit/Outfit-Regular.ttf
         - asset: assets/fonts/Outfit/Outfit-Medium.ttf
@@ -97,7 +97,7 @@ flutter:
         - asset: assets/fonts/Outfit/Outfit-Bold.ttf
           weight: 700
 
-    - family: Rubik
+    - family: rubik
       fonts:
         - asset: assets/fonts/Rubik/Rubik-Regular.ttf
         - asset: assets/fonts/Rubik/Rubik-Medium.ttf

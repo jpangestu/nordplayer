@@ -25,31 +25,25 @@ class AppTheme {
     'system': 'System Default',
   };
 
-  static ThemeData getTheme(String key, String fontFamily) {
+  // Nullable fontFamily for system font (null == system font)
+  static ThemeData getTheme(String key, String? fontFamily) {
+    // Convert the string 'system' into a true null for Flutter
+    final String? actualFontFamily = fontFamily == 'system' ? null : fontFamily;
+
+    // Only use fallbacks if we are NOT using the system font.
+    // Also, make sure 'system' isn't accidentally passed into the fallback list.
+    final List<String>? fallbacks = actualFontFamily == null
+        ? null
+        : availableFonts.keys.where((k) => k != 'system').toList();
+
     if (key == 'nord') {
-      return buildTheme(
-        fontFamily: fontFamily,
-        fontFamilyFallback: availableFonts.keys.toList(),
-        nordColorScheme: NordColorScheme(),
-      );
+      return buildTheme(fontFamily: fontFamily, fontFamilyFallback: fallbacks, nordColorScheme: NordColorScheme());
     } else if (key == 'nord_light') {
-      return buildTheme(
-        fontFamily: fontFamily,
-        fontFamilyFallback: availableFonts.keys.toList(),
-        nordColorScheme: NordLightColorScheme(),
-      );
+      return buildTheme(fontFamily: fontFamily, fontFamilyFallback: fallbacks, nordColorScheme: NordLightColorScheme());
     } else if (key == 'graphite') {
-      return buildTheme(
-        fontFamily: fontFamily,
-        fontFamilyFallback: availableFonts.keys.toList(),
-        nordColorScheme: GraphiteColorScheme(),
-      );
+      return buildTheme(fontFamily: fontFamily, fontFamilyFallback: fallbacks, nordColorScheme: GraphiteColorScheme());
     }
 
-    return buildTheme(
-      fontFamily: fontFamily,
-      fontFamilyFallback: availableFonts.keys.toList(),
-      nordColorScheme: NordColorScheme(),
-    );
+    return buildTheme(fontFamily: fontFamily, fontFamilyFallback: fallbacks, nordColorScheme: NordColorScheme());
   }
 }

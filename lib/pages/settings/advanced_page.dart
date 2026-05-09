@@ -9,6 +9,7 @@ import 'package:nordplayer/services/library_watcher.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
+import 'package:nordplayer/widgets/nord_alert_dialog.dart';
 import 'package:nordplayer/widgets/settings/section_card.dart';
 import 'package:nordplayer/widgets/settings/section_header.dart';
 import 'package:path/path.dart' as p;
@@ -171,8 +172,8 @@ Future<bool?> _confirmAction(
 }) {
   return showDialog<bool>(
     context: context,
-    builder: (context) => AlertDialog(
-      title: Text(title),
+    builder: (context) => NordAlertDialog(
+      title: title,
       content: Text(content),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),

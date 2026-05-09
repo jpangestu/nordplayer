@@ -138,7 +138,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                       ),
                       const SizedBox(width: 8),
                     ],
-                    const Text('Queue'),
+                    Text('Queue', style: Theme.of(context).textTheme.titleLarge),
                   ],
                 ),
               ),

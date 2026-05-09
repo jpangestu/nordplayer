@@ -7,6 +7,7 @@ import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
+import 'package:nordplayer/widgets/nord_seaarch_bar.dart';
 
 class NordAppBar extends ConsumerStatefulWidget implements PreferredSizeWidget {
   const NordAppBar({super.key});
@@ -85,25 +86,14 @@ class _NordplayerAppBarState extends ConsumerState<NordAppBar> {
           : null,
       centerTitle: true,
       title: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: (MediaQuery.sizeOf(context).width * 0.4).clamp(200, 500)),
+        constraints: BoxConstraints(maxWidth: (MediaQuery.sizeOf(context).width * 0.4).clamp(200, 400)),
         child: Container(
           height: 44,
           decoration: BoxDecoration(
             color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(22),
           ),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: "Ctrl + k to focus",
-              hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
-              prefixIcon: AppIcon(appIconSet.search, size: 20),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(vertical: 10),
-            ),
-            onChanged: (value) {},
-          ),
+          child: const NordSearchBar(),
         ),
       ),
       // Settings button on app bar

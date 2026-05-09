@@ -213,14 +213,12 @@ class AppearancePage extends ConsumerWidget {
                     ),
                   ),
                   dropdownMenuEntries: AppTheme.availableFonts.entries.map((entry) {
-                    final fontName = entry.key == 'system' ? null : entry.key;
-
                     return DropdownMenuEntry(
                       value: entry.key,
                       label: entry.value,
                       style: MenuItemButton.styleFrom(
                         textStyle: TextStyle(
-                          fontFamily: fontName,
+                          fontFamily: entry.key,
                           fontSize: 16, // Slightly larger size makes the preview clearer
                         ),
                       ),

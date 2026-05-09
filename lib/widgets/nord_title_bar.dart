@@ -6,6 +6,7 @@ import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
+import 'package:nordplayer/widgets/keyboard_shortcuts_panel.dart';
 import 'package:nordplayer/widgets/title_bar_button.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:window_manager/window_manager.dart';
@@ -19,6 +20,7 @@ class NordTitleBar extends ConsumerStatefulWidget {
 
 class _NordplayerTitleBarState extends ConsumerState<NordTitleBar> {
   PackageInfo? _packageInfo;
+  final GlobalKey _shortcutsButtonKey = GlobalKey();
 
   void _loadPackageInfo() async {
     final info = await PackageInfo.fromPlatform();
@@ -80,13 +82,16 @@ class _NordplayerTitleBarState extends ConsumerState<NordTitleBar> {
               ),
 
             TitleBarButton(
+              key: _shortcutsButtonKey,
               icon: appIconSet.keyboardShortcut,
               iconSize: 18,
               fixedIconColor: colorScheme.onSurface,
               hoverOverlaySize: 28,
               hoverOverlayOpacity: 0.1,
               tooltip: 'Keyboard Shortcuts',
-              onTap: () {},
+              onTap: () {
+                showShortcutsPanel(context, _shortcutsButtonKey);
+              },
             ),
 
             const SizedBox(width: 16),

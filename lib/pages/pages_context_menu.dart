@@ -11,6 +11,7 @@ import 'package:nordplayer/services/preference_service.dart';
 import 'package:nordplayer/utils/unimplemented.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
+import 'package:nordplayer/widgets/nord_alert_dialog.dart';
 import 'package:nordplayer/widgets/nord_snack_bar.dart';
 
 class TrackContextMenu {
@@ -34,7 +35,6 @@ class TrackContextMenu {
         ContextMenuActions(
           icon: Icons.play_circle,
           label: selectedTracks.length == 1 ? 'Play' : 'Play as playlist',
-          shortcut: '⏎',
           onTap: () {
             if (selectedTracks.length == 1) {
               ref
@@ -112,11 +112,23 @@ class TrackContextMenu {
                   .addToQueue(selectedTracks, playbackContext?.type ?? 'all_tracks', playbackContext?.id);
 
               if (context.mounted) {
-                showNordSnackBar(
-                  context: context,
-                  message: 'Added ${selectedTracks.length} track(s) to queue',
-                  type: .general,
-                );
+                final showQueue = ref.read(preferenceServiceProvider).showQueue;
+
+                showQueue
+                    ? showNordSnackBar(
+                        context: context,
+                        message: 'Added ${selectedTracks.length} track(s) to queue',
+                        type: .general,
+                      )
+                    : showNordSnackBar(
+                        context: context,
+                        message: 'Added ${selectedTracks.length} track(s) to queue',
+                        type: .general,
+                        actionLabel: 'View Queue',
+                        onAction: (snackBarContext) {
+                          ref.read(preferenceServiceProvider.notifier).setShowQueue(true);
+                        },
+                      );
               }
             },
           ),
@@ -376,8 +388,8 @@ class _CreatePlaylistDialogState extends ConsumerState<CreatePlaylistDialog> wit
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Create New Playlist'),
+    return NordAlertDialog(
+      title: 'Create New Playlist',
       content: TextField(
         controller: _textController,
         autofocus: true,
