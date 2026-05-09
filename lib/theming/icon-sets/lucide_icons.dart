@@ -80,9 +80,22 @@ class LucideIconSet implements AppIconSet {
   @override
   IconData get error => LucideIcons.circleX;
 
-  // Others
   @override
   IconData get contextMenu => LucideIcons.ellipsis;
+  @override
+  IconData get playNext => LucideIcons.listStart;
+  @override
+  IconData get addToQueue => LucideIcons.listEnd;
+  @override
+  IconData get removeFromQueue => LucideIcons.listX;
+  @override
+  IconData get add => LucideIcons.plus;
+  @override
+  IconData get showMetadata => LucideIcons.fileBracesCorner;
+  @override
+  IconData get showInfolder => LucideIcons.folderSearch;
+
+  // Others
   @override
   IconData get favorite => LucideIcons.heart;
   @override

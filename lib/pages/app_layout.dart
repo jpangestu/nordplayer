@@ -10,6 +10,7 @@ import 'package:nordplayer/widgets/nord_app_bar.dart';
 import 'package:nordplayer/widgets/nord_sidebar.dart';
 import 'package:nordplayer/widgets/nord_title_bar.dart';
 import 'package:nordplayer/widgets/player_bar/nord_player_bar.dart';
+import 'package:nordplayer/widgets/search_result_panel.dart';
 
 class AppLayout extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
@@ -107,17 +108,11 @@ class AppLayout extends ConsumerWidget {
                         body: Stack(
                           children: [
                             navigationShell,
-                            // Row(
-                            //   children: [
-                            //     Expanded(child: navigationShell),
-                            //     if (showQueue && isWideScreen) ...[
-                            //       const AdaptiveVerticalDivider(),
-                            //       QueuePage(isWideScreen: isWideScreen),
-                            //     ],
-                            //   ],
-                            // ),
                             if (showQueue && !isWideScreen)
                               const Positioned(top: 0, bottom: 0, right: 0, child: QueuePage()),
+
+                            // Aligns perfectly under the AppBar's centerTitle
+                            const Align(alignment: Alignment.topCenter, child: SearchResultsDropdown()),
                           ],
                         ),
                       ),

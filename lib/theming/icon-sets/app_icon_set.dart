@@ -51,8 +51,16 @@ abstract class AppIconSet {
   IconData get success;
   IconData get error;
 
-  // Others
+  // Context Menu
   IconData get contextMenu; // Horizontal
+  IconData get playNext;
+  IconData get addToQueue; // Play last
+  IconData get removeFromQueue;
+  IconData get add;
+  IconData get showMetadata;
+  IconData get showInfolder;
+
+  // Others
   IconData get favorite; // Heart
   IconData get navigationLeft;
   IconData get navigationRight;

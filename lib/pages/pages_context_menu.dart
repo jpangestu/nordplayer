@@ -8,7 +8,7 @@ import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
-import 'package:nordplayer/utils/unimplemented.dart';
+import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
 import 'package:nordplayer/widgets/nord_alert_dialog.dart';
@@ -27,13 +27,15 @@ class TrackContextMenu {
     required String playbackContextType,
     int? playbackContextId,
   }) {
+    final appIconSet = ref.read(appIconProvider);
+
     ContextMenu.show(
       isAdaptive: isAdaptive,
       context: context,
       globalPosition: globalPosition,
       actionMenus: [
         ContextMenuActions(
-          icon: Icons.play_circle,
+          icon: appIconSet.play,
           label: selectedTracks.length == 1 ? 'Play' : 'Play as playlist',
           onTap: () {
             if (selectedTracks.length == 1) {
@@ -70,7 +72,7 @@ class TrackContextMenu {
         // Only show "Play Next" if we aren't already looking at the queue
         if (playbackContextType != 'queue')
           ContextMenuActions(
-            icon: LucideIcons.listStart,
+            icon: appIconSet.playNext,
             label: 'Play Next',
             onTap: () {
               final playbackContext = ref.read(playbackContextProvider);
@@ -103,7 +105,7 @@ class TrackContextMenu {
         // Only show "Add to queue" if we aren't already looking at the queue
         if (playbackContextType != 'queue')
           ContextMenuActions(
-            icon: LucideIcons.listEnd,
+            icon: appIconSet.addToQueue,
             label: 'Add to queue',
             onTap: () {
               final playbackContext = ref.read(playbackContextProvider);
@@ -136,7 +138,7 @@ class TrackContextMenu {
         // Show "Remove from queue" if we ARE looking at the queue
         if (playbackContextType == 'queue')
           ContextMenuActions(
-            icon: Icons.playlist_remove_outlined,
+            icon: appIconSet.removeFromQueue,
             label: 'Remove from queue',
             onTap: () {
               final selectionSet = ref.read(selectedTracksIndexProvider('queue_page'));
@@ -154,25 +156,120 @@ class TrackContextMenu {
             },
           ),
         ContextSubMenuAction(
-          icon: Icons.add,
+          icon: appIconSet.add,
           label: 'Add to playlist',
           children: [ContextMenuCustomWidget(child: SearchablePlaylistContextSubMenu(tracksToAdd: selectedTracks))],
         ),
         ContextMenuDivider(),
+        // ContextMenuActions(
+        //   icon: appIconSet.showMetadata,
+        //   label: 'Show Metadata',
+        //   onTap: () {
+        //     unimplemented(context);
+        //   }, // TODO: Add Metadata context menu
+        // ),
         ContextMenuActions(
-          icon: Icons.description_outlined,
-          label: 'Edit Metadata',
-          onTap: () {
-            unimplemented(context);
-          }, // TODO: Add Metadata context menu
-        ),
-        ContextMenuActions(
-          icon: Icons.folder_outlined,
+          icon: appIconSet.showInfolder,
           label: 'Show in folder',
           onTap: () async {
             final path = tracks[clickedIndex].track.filePath;
             await showInFolder(path);
           },
+        ),
+      ],
+    );
+  }
+}
+
+class SearchTracksContextMenu {
+  /// Shows a simplified right-click menu for track. Used in search result panel
+  /// No selection here
+  static void show({
+    required BuildContext context,
+    required WidgetRef ref,
+    required bool isAdaptive,
+    required Offset globalPosition,
+    required List<TrackWithArtists> tracks,
+    required int indexToPlay,
+    required String playbackContextType,
+    int? playbackContextId,
+  }) {
+    final appIconSet = ref.read(appIconProvider);
+
+    ContextMenu.show(
+      isAdaptive: isAdaptive,
+      context: context,
+      globalPosition: globalPosition,
+      actionMenus: [
+        ContextMenuActions(
+          icon: Icons.play_circle,
+          label: 'Play',
+          onTap: () {
+            ref
+                .read(playerServiceProvider)
+                .setPlaylist(
+                  playbackContextType: playbackContextType,
+                  playbackContextId: playbackContextId,
+                  tracksToPlay: tracks,
+                  initialIndex: indexToPlay,
+                );
+          },
+        ),
+
+        ContextMenuActions(
+          icon: LucideIcons.listStart,
+          label: 'Play Next',
+          onTap: () {
+            ref.read(playerServiceProvider).playNext([tracks[indexToPlay]], playbackContextType, playbackContextId);
+
+            if (context.mounted) {
+              final showQueue = ref.read(preferenceServiceProvider).showQueue;
+
+              showQueue
+                  ? showNordSnackBar(context: context, message: 'Added 1 track to queue', type: .general)
+                  : showNordSnackBar(
+                      context: context,
+                      message: 'Added 1 track to queue',
+                      type: .general,
+                      actionLabel: 'View Queue',
+                      onAction: (snackBarContext) {
+                        ref.read(preferenceServiceProvider.notifier).setShowQueue(true);
+                      },
+                    );
+            }
+          },
+        ),
+
+        ContextMenuActions(
+          icon: appIconSet.addToQueue,
+          label: 'Add to queue',
+          onTap: () {
+            ref.read(playerServiceProvider).addToQueue([tracks[indexToPlay]], playbackContextType, playbackContextId);
+
+            if (context.mounted) {
+              final showQueue = ref.read(preferenceServiceProvider).showQueue;
+
+              showQueue
+                  ? showNordSnackBar(context: context, message: 'Added 1 track to queue', type: .general)
+                  : showNordSnackBar(
+                      context: context,
+                      message: 'Added 1 track to queue',
+                      type: .general,
+                      actionLabel: 'View Queue',
+                      onAction: (snackBarContext) {
+                        ref.read(preferenceServiceProvider.notifier).setShowQueue(true);
+                      },
+                    );
+            }
+          },
+        ),
+
+        ContextSubMenuAction(
+          icon: appIconSet.add,
+          label: 'Add to playlist',
+          children: [
+            ContextMenuCustomWidget(child: SearchablePlaylistContextSubMenu(tracksToAdd: [tracks[indexToPlay]])),
+          ],
         ),
       ],
     );
@@ -196,6 +293,7 @@ class _SearchablePlaylistMenuState extends ConsumerState<SearchablePlaylistConte
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final playlistsWithDetails = ref.watch(playlistsStreamProvider);
+    final appIconSet = ref.read(appIconProvider);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -211,7 +309,7 @@ class _SearchablePlaylistMenuState extends ConsumerState<SearchablePlaylistConte
               style: const TextStyle(fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Find a playlist',
-                prefixIcon: const AppIcon(Icons.search, size: 16),
+                prefixIcon: AppIcon(appIconSet.search, size: 16),
                 contentPadding: EdgeInsets.zero,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide.none),
                 filled: true,
@@ -236,11 +334,11 @@ class _SearchablePlaylistMenuState extends ConsumerState<SearchablePlaylistConte
           child: Container(
             height: 36,
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: const Row(
+            child: Row(
               children: [
-                AppIcon(Icons.add, size: 20),
-                SizedBox(width: 12),
-                Text('New playlist', style: TextStyle(fontWeight: FontWeight.w500)),
+                AppIcon(appIconSet.add, size: 20),
+                const SizedBox(width: 12),
+                const Text('New playlist', style: TextStyle(fontWeight: FontWeight.w500)),
               ],
             ),
           ),

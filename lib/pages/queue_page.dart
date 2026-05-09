@@ -148,7 +148,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
               ? theme.colorScheme.surfaceContainerLow.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
               : theme.colorScheme.surfaceContainerLow,
           body: ReorderableList(
-            padding: const .only(top: 56),
+            padding: const .only(top: 66, bottom: 4),
             controller: _scrollController,
             onReorder: (oldIndex, newIndex) {
               ref.read(playerServiceProvider).moveTrack(oldIndex, newIndex);

@@ -19,8 +19,8 @@ class VolumeSlider extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final sliderTheme = Theme.of(context).sliderTheme;
     final appIconSet = ref.watch(appIconProvider);
+    final sliderTheme = Theme.of(context).sliderTheme;
 
     return Flexible(
       child: Row(
@@ -42,21 +42,14 @@ class VolumeSlider extends ConsumerWidget {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 120),
               child: Padding(
-                padding: const EdgeInsets.only(right: 20),
+                padding: const .only(right: 20),
                 child: SliderTheme(
                   data: SliderThemeData(
-                    padding: const EdgeInsets.only(right: 5),
+                    padding: const .only(right: 5),
                     trackHeight: 3,
-                    trackShape: sliderTheme.trackShape,
-                    activeTrackColor: sliderTheme.activeTrackColor,
-                    inactiveTrackColor: sliderTheme.inactiveTrackColor,
-                    thumbColor: sliderTheme.thumbColor,
-                    thumbShape: sliderTheme.thumbShape,
-                    overlayColor: sliderTheme.overlayColor,
-                    overlayShape: sliderTheme.overlayShape,
                     showValueIndicator: .onDrag,
-                    valueIndicatorColor: sliderTheme.valueIndicatorColor,
-                    valueIndicatorTextStyle: sliderTheme.valueIndicatorTextStyle,
+                    thumbShape: sliderTheme.thumbShape,
+                    overlayShape: sliderTheme.overlayShape,
                   ),
                   child: Slider(
                     value: isMuted ? 0.0 : volume,

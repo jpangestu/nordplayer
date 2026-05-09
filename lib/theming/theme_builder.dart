@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nordplayer/theming/theme-extension/nord_semantic_theme.dart';
 import 'package:nordplayer/theming/theme-extension/nord_sidebar_theme.dart';
 import 'package:nordplayer/theming/theme-extension/nord_snackbar_theme.dart';
 
@@ -145,7 +146,25 @@ ThemeData buildTheme({
         warningColor: nordColorScheme.warning,
         errorColor: nordColorScheme.error,
       ),
+
+      NordSemanticTheme(
+        error: nordColorScheme.error,
+        onError: nordColorScheme.onError,
+        success: nordColorScheme.success,
+        onSuccess: nordColorScheme.onSuccess,
+        warning: nordColorScheme.warning,
+        onWarning: nordColorScheme.onWarning,
+        info: nordColorScheme.info,
+        onInfo: nordColorScheme.onInfo,
+        general: nordColorScheme.general,
+        onGeneral: nordColorScheme.onGeneral,
+      ),
     ],
+
+    sliderTheme: const SliderThemeData(
+      thumbShape: RoundSliderThumbShape(enabledThumbRadius: 6.0, pressedElevation: 4.0),
+      overlayShape: RoundSliderOverlayShape(overlayRadius: 14.0),
+    ),
 
     // Guideline: https://m3.material.io/styles/typography/type-scale-tokens
     textTheme: TextTheme(

@@ -16,9 +16,10 @@ class MusicTile extends ConsumerStatefulWidget {
     this.albumArtPath,
     this.albumArtSize,
     this.selected = false,
-    this.onTap,
     this.padding = const EdgeInsets.only(left: 16),
     this.marqueeEffect = false,
+    this.onTap,
+    this.onRightClick,
   });
 
   final String title;
@@ -28,9 +29,10 @@ class MusicTile extends ConsumerStatefulWidget {
   /// If set, the art size will have fixed size
   final double? albumArtSize;
   final bool selected;
-  final VoidCallback? onTap;
   final EdgeInsets padding;
   final bool marqueeEffect;
+  final VoidCallback? onTap;
+  final void Function(Offset globalPosition)? onRightClick;
 
   /// Get the exact tile height for itemExtent
   static double tileHeight(TextScaler textScaler) {
@@ -112,7 +114,15 @@ class _MusicTileState extends ConsumerState<MusicTile> with LoggerMixin {
         color: Colors.transparent,
         child: Stack(
           children: [
-            if (widget.onTap != null) Positioned.fill(child: InkWell(onTap: widget.onTap)),
+            if (widget.onTap != null)
+              Positioned.fill(
+                child: InkWell(
+                  onTap: widget.onTap,
+                  onSecondaryTapDown: widget.onRightClick != null
+                      ? (details) => widget.onRightClick!(details.globalPosition)
+                      : null,
+                ),
+              ),
             Padding(
               padding: widget.padding,
               child: Row(

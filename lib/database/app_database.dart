@@ -276,6 +276,48 @@ class AppDatabase extends _$AppDatabase {
     return (update(playlists)..where((p) => p.id.equals(playlistId))).write(PlaylistsCompanion(name: Value(newName)));
   }
 
+  // ============================================= Search Stuff =======================================================
+
+  Stream<List<TrackWithArtists>> searchTracks(String queryStr) {
+    // Add SQL wildcards to the start and end of the search string
+    final searchTerm = '%$queryStr%';
+
+    final query =
+        select(tracks).join([
+          leftOuterJoin(albums, albums.id.equalsExp(tracks.albumId)),
+          leftOuterJoin(trackArtist, trackArtist.trackId.equalsExp(tracks.id)),
+          leftOuterJoin(artists, artists.id.equalsExp(trackArtist.artistId)),
+        ])..where(
+          // Use the | operator for SQL OR to search across multiple tables
+          tracks.title.like(searchTerm) | albums.title.like(searchTerm) | artists.name.like(searchTerm),
+        );
+
+    // Order alphabetically by track title
+    query.orderBy([OrderingTerm.asc(tracks.title.lower())]);
+
+    return query.watch().map((rows) {
+      final Map<int, TrackWithArtists> groupedTracks = {};
+
+      for (final row in rows) {
+        final track = row.readTable(tracks);
+        final album = row.readTable(albums);
+        final artist = row.readTable(artists);
+
+        if (!groupedTracks.containsKey(track.id)) {
+          groupedTracks[track.id] = TrackWithArtists(track: track, album: album, artists: []);
+        }
+
+        final currentArtists = groupedTracks[track.id]!.artists;
+        // Make sure we don't add null/empty artists if the join fails
+        if (artist.id != 0 && !currentArtists.any((a) => a.id == artist.id)) {
+          currentArtists.add(artist);
+        }
+      }
+
+      return groupedTracks.values.toList();
+    });
+  }
+
   // =================================== Queue Saving & Restoration ===================================================
 
   /// Saves the app current queue state to the database
@@ -529,4 +571,30 @@ final playlistWithTracksProvider = Provider.family<AsyncValue<PlaylistWithTracks
 
   // Once both are ready, return the combined data
   return AsyncData(PlaylistWithTracks(playlist: playlistAsync.value!, tracks: tracksAsync.value!));
+});
+
+final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(SearchQueryNotifier.new);
+
+class SearchQueryNotifier extends Notifier<String> {
+  @override
+  String build() => '';
+
+  void updateQuery(String query) {
+    state = query;
+  }
+
+  void clear() {
+    state = '';
+  }
+}
+
+final searchResultsProvider = StreamProvider<List<TrackWithArtists>>((ref) {
+  final query = ref.watch(searchQueryProvider);
+  final db = ref.watch(appDatabaseProvider);
+
+  if (query.trim().isEmpty) {
+    return Stream.value([]);
+  }
+
+  return db.searchTracks(query);
 });

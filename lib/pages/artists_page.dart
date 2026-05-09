@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:nordplayer/services/config_service.dart';
-import 'package:nordplayer/widgets/nord_alert_dialog.dart';
+import 'package:nordplayer/theming/theme-extension/nord_semantic_theme.dart';
 
 class ArtistsPage extends ConsumerStatefulWidget {
   const ArtistsPage({super.key});
@@ -24,98 +24,22 @@ class _ArtistsPageState extends ConsumerState<ArtistsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final appConfig = ref.watch(configServiceProvider).requireValue;
+    final warningColor = Theme.of(context).extension<NordSemanticTheme>()!.warning;
 
     return Scaffold(
       backgroundColor: appConfig.adaptiveBg
           ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.0)
           : theme.colorScheme.surface,
-      body: Center(
-        child: Column(
+      body: Padding(
+        padding: const .only(top: 32.0),
+        child: Row(
           mainAxisAlignment: .center,
           children: [
-            // const Text('Artists'),
-            // TextButton(
-            //   onPressed: () {
-            //     showNordSnackBar(
-            //       context: context,
-            //       message: 'Created playlist 1 with 12 tracks',
-            //       type: .general,
-            //       actionLabel: 'Open Playlist',
-            //       onAction: (snackbarContext) {},
-            //     );
-            //   },
-            //   child: const Text('Show snack bar with action button'),
-            // ),
-            // TextButton(
-            //   onPressed: () {
-            //     showNordSnackBar(
-            //       context: context,
-            //       message: 'Created playlist 1 with 12 tracks',
-            //       type: .info,
-            //       actionLabel: 'Open Playlist',
-            //       onAction: (snackbarContext) {},
-            //     );
-            //   },
-            //   child: const Text('Show snack bar with action button'),
-            // ),
-            // TextButton(
-            //   onPressed: () {
-            //     showNordSnackBar(
-            //       context: context,
-            //       message: 'Created playlist 1 with 12 tracks',
-            //       type: .warning,
-            //       actionLabel: 'Open Playlist',
-            //       onAction: (snackbarContext) {},
-            //     );
-            //   },
-            //   child: const Text('Show snack bar with action button'),
-            // ),
-            // TextButton(
-            //   onPressed: () {
-            //     showNordSnackBar(
-            //       context: context,
-            //       message: 'Created playlist 1 with 12 tracks',
-            //       type: .success,
-            //       actionLabel: 'Open Playlist',
-            //       onAction: (snackbarContext) {},
-            //     );
-            //   },
-            //   child: const Text('Show snack bar with action button'),
-            // ),
-            // TextButton(
-            //   onPressed: () {
-            //     showNordSnackBar(
-            //       context: context,
-            //       message: 'Created playlist 1 with 12 tracks',
-            //       type: .error,
-            //       actionLabel: 'Open Playlist',
-            //       onAction: (snackbarContext) {},
-            //     );
-            //   },
-            //   child: const Text('Show snack bar with action button'),
-            // ),
-            TextButton(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) {
-                    return NordAlertDialog(
-                      title: 'Create New Playlist',
-                      content: TextField(
-                        controller: _textController,
-                        autofocus: true,
-                        decoration: const InputDecoration(hintText: 'Playlist Name', border: OutlineInputBorder()),
-                        onSubmitted: (value) {},
-                      ),
-                      actions: [
-                        TextButton(onPressed: () => context.pop(), child: const Text('Cancel')),
-                        FilledButton(onPressed: () {}, child: const Text('Create')),
-                      ],
-                    );
-                  },
-                );
-              },
-              child: const Text('Show snack bar with action button'),
+            Icon(LucideIcons.construction, size: 28, color: warningColor),
+            const SizedBox(width: 8),
+            Text(
+              'Artists page is still under construction',
+              style: Theme.of(context).textTheme.titleLarge!.copyWith(color: warningColor),
             ),
           ],
         ),

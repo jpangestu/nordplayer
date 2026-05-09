@@ -79,9 +79,22 @@ class MaterialIconSet implements AppIconSet {
   @override
   IconData get error => Icons.error_rounded;
 
-  // Others
   @override
   IconData get contextMenu => Icons.more_horiz;
+  @override
+  IconData get playNext => Icons.playlist_add;
+  @override
+  IconData get addToQueue => Icons.playlist_add;
+  @override
+  IconData get removeFromQueue => Icons.playlist_remove;
+  @override
+  IconData get add => Icons.add;
+  @override
+  IconData get showMetadata => Icons.description_outlined;
+  @override
+  IconData get showInfolder => Icons.folder_outlined;
+
+  // Others
   @override
   IconData get favorite => Icons.favorite_outline;
   @override
