@@ -1,6 +1,6 @@
 <!-- LOGO -->
 <p align="center">
-  <img src=".readme_assets/nordplayer_logo.svg" alt="Logo" width="128">
+  <img width="128" height="128" alt="nordplayer_icon" src="https://github.com/user-attachments/assets/761d4002-0f94-46fe-a323-fdd65fe4091c" />
 <h2 align="center">
   Nordplayer
 </h2>
@@ -9,7 +9,8 @@
   <br>
   <br>
   <a href="https://github.com/jpangestu/nordplayer/releases/latest">
-    <img alt="GitHub Downloads (all assets, all releases)" src="https://img.shields.io/github/downloads/jpangestu/nordplayer/total?style=flat&label=Downloads">
+    <!-- GitHub Downloads (all assets, all releases -->
+    <img alt="Downloads" src="https://img.shields.io/github/downloads/jpangestu/nordplayer/total?style=flat&label=Downloads">
   </a>
   <a href="#screenshot">
     <img alt="Static Badge" src="https://img.shields.io/badge/Screenshot-5e81ac?style=flat">
@@ -17,11 +18,23 @@
   <a href="https://discord.gg/RH5j8H2Y">
     <img alt="Static Badge" src="https://img.shields.io/badge/Discord-5e81ac?style=flat&logo=discord&logoColor=white">
   </a>
-</a>
-  
 </p>
 
-## Why?
+## Installation
+
+**Arch-based Linux**
+
+```bash
+yay -S nordplayer-bin
+# or
+paru -S nordplayer-bin
+```
+
+**Other Linux Distributions**
+
+Grab the latest pre-compiled `.tar.gz` archive from the [Releases](https://github.com/jpangestu/nordplayer/releases) page, extract it, and run the `nordplayer` executable inside. If it fail to run, it's probably because of missing dependency. So run the `nordplayer` executable from terminal to see the missing dependency and install those.
+
+## But Why?
 Of all the music players I've tried (I tried a lot of them, btw), I still haven't found one that's of my preference. The closest I could get was MusicBee, but that only runs on Windows.
 
 A lot of the other options, especially the ones that also run on linux, still have what I call "old UIs" --look at Rhythmbox, Strawberry, Elisa. While most of them are performant because they use C/C++, I just don't like it --not saying they're bad, it's just not my preference, I want something more modern.
