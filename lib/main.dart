@@ -128,10 +128,13 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp> with WindowListen
       ),
 
       data: (config) {
+        // Depends on configProvider.requireValue
+        final themeData = ref.watch(activeThemeProvider);
+
         return MaterialApp.router(
           routerConfig: router,
           title: 'Nordplayer',
-          theme: AppTheme.getTheme(config.theme, config.fontFamily),
+          theme: themeData,
           builder: (context, child) {
             return Shortcuts(
               shortcuts: <ShortcutActivator, Intent>{
