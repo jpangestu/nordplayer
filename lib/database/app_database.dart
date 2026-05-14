@@ -69,6 +69,41 @@ class AppDatabase extends _$AppDatabase {
 
   // ============================================= Tracks Stuff =======================================================
 
+  /// Watch all tracks in the library, sorted alphabetically.
+  Stream<List<TrackWithArtists>> watchAllTracks() {
+    final query = select(tracks).join([
+      leftOuterJoin(albums, albums.id.equalsExp(tracks.albumId)),
+      leftOuterJoin(trackArtist, trackArtist.trackId.equalsExp(tracks.id)),
+      leftOuterJoin(artists, artists.id.equalsExp(trackArtist.artistId)),
+    ])..orderBy([OrderingTerm.asc(tracks.title.lower())]);
+
+    return query.watch().map((rows) {
+      final Map<int, TrackWithArtists> groupedTracks = {};
+
+      for (final row in rows) {
+        final track = row.readTable(tracks);
+        final album = row.readTable(albums);
+        final artist = row.readTable(artists);
+
+        // If track is new, create the entry
+        if (!groupedTracks.containsKey(track.id)) {
+          groupedTracks[track.id] = TrackWithArtists(track: track, album: album, artists: []);
+        }
+
+        // Add the artist from this row to the artists list
+        // distinct check to avoid duplicates if query logic overlaps
+        final currentArtists = groupedTracks[track.id]!.artists;
+
+        // Safety check: Because it's a leftOuterJoin, ensure we don't add a null/empty artist
+        if (artist.id != 0 && !currentArtists.any((a) => a.id == artist.id)) {
+          currentArtists.add(artist);
+        }
+      }
+
+      return groupedTracks.values.toList();
+    });
+  }
+
   Future<TrackWithArtists?> getTrackWithArtistsById(int id) async {
     final query = select(tracks).join([
       leftOuterJoin(albums, albums.id.equalsExp(tracks.albumId)),
@@ -130,9 +165,22 @@ class AppDatabase extends _$AppDatabase {
 
   // ============================================= Albums Stuff =======================================================
 
+  /// Get all albums and albums count
+  /// Usage: main album page
+  Stream<List<AlbumsWithDetails>> watchAlbums() {
+    final query = select(albums)..orderBy([(u) => OrderingTerm(expression: u.title, mode: OrderingMode.asc)]);
+
+    return query.watch().map((rows) {
+      final rowsCount = rows.length;
+
+      return rows.map((row) {
+        return AlbumsWithDetails(album: row, albumsCount: rowsCount);
+      }).toList();
+    });
+  }
+
   /// Fetches a list of random albums.
-  /// Using a Future instead of a Stream prevents the UI from re-shuffling
-  /// every time the database receives an update.
+  /// Using a Future instead of a Stream prevents the UI from re-shuffling every time the database receives an update.
   Future<List<Album>> getRandomAlbums({int limitAmount = 10}) {
     final query = select(albums)
       // Use SQLite's native RANDOM() function to sort the rows arbitrarily
@@ -144,7 +192,8 @@ class AppDatabase extends _$AppDatabase {
 
   // =========================================== Playlist Stuff =======================================================
 
-  // -- PLAYLISTS TABLE CRUD --
+  /// Watch a playlists with 5 albums art from this playlist
+  /// Used in playlist card
   Stream<List<PlaylistWithDetails>> watchAllPlaylists() {
     final trackCount = playlistTrack.trackId.count();
 
@@ -157,7 +206,7 @@ class AppDatabase extends _$AppDatabase {
             leftOuterJoin(tracks, tracks.id.equalsExp(playlistTrack.trackId)),
             leftOuterJoin(albums, albums.id.equalsExp(tracks.albumId)),
           ])
-          ..addColumns([trackCount, coverPaths]) // Ask SQL for the concated string
+          ..addColumns([trackCount, coverPaths]) // Ask SQL for the concatenated string
           ..groupBy([playlists.id])
           ..orderBy([OrderingTerm(expression: playlists.name, mode: OrderingMode.asc)]);
 
@@ -415,7 +464,7 @@ class AppDatabase extends _$AppDatabase {
   }
 }
 
-// ================================================= Class ============================================================
+// =============================================== Class Stuf =========================================================
 
 class LibraryStats {
   final int trackCount;
@@ -450,6 +499,13 @@ class TrackWithArtists {
   bool get isEmpty => track.id == 0 || track.filePath.isEmpty;
 
   bool get isNotEmpty => !isEmpty;
+}
+
+class AlbumsWithDetails {
+  final Album album;
+  final int albumsCount;
+
+  AlbumsWithDetails({required this.album, required this.albumsCount});
 }
 
 class PlaylistWithDetails {
@@ -489,45 +545,17 @@ final libraryStatsProvider = StreamProvider<LibraryStats>((ref) {
 
 final libraryStreamProvider = StreamProvider<List<TrackWithArtists>>((ref) {
   final db = ref.watch(appDatabaseProvider);
-
-  final query = db.select(db.tracks).join([
-    leftOuterJoin(db.albums, db.albums.id.equalsExp(db.tracks.albumId)),
-    leftOuterJoin(db.trackArtist, db.trackArtist.trackId.equalsExp(db.tracks.id)),
-    leftOuterJoin(db.artists, db.artists.id.equalsExp(db.trackArtist.artistId)),
-  ]);
-
-  // Sort title ascending
-  query.orderBy([OrderingTerm.asc(db.tracks.title.lower())]);
-
-  // Return the stream and map the raw rows into grouped objects
-  return query.watch().map((rows) {
-    final Map<int, TrackWithArtists> groupedTracks = {};
-
-    for (final row in rows) {
-      final track = row.readTable(db.tracks);
-      final album = row.readTable(db.albums);
-      final artist = row.readTable(db.artists);
-
-      // If track is new, create the entry
-      if (!groupedTracks.containsKey(track.id)) {
-        groupedTracks[track.id] = TrackWithArtists(track: track, album: album, artists: []);
-      }
-
-      // Add the artist from this row to the artists list
-      // distinct check to avoid duplicates if query logic overlaps
-      final currentArtists = groupedTracks[track.id]!.artists;
-      if (!currentArtists.any((a) => a.id == artist.id)) {
-        currentArtists.add(artist);
-      }
-    }
-
-    return groupedTracks.values.toList();
-  });
+  return db.watchAllTracks();
 });
 
 final recentlyAddedTracksProvider = StreamProvider<List<TrackWithArtists>>((ref) {
   final db = ref.watch(appDatabaseProvider);
   return db.watchRecentlyAddedTracks(limitAmount: 12);
+});
+
+final albumsDetailsProvider = StreamProvider<List<AlbumsWithDetails>>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return db.watchAlbums();
 });
 
 final randomAlbumsProvider = FutureProvider<List<Album>>((ref) {

@@ -1,9 +1,8 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nordplayer/database/app_database.dart';
+import 'package:nordplayer/pages/albums_page.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/player_service.dart';
@@ -432,30 +431,11 @@ class _AlbumsPanelState extends ConsumerState<AlbumsPanel> {
                         padding: EdgeInsets.only(left: i == 0 ? 0 : 12.0, right: i == albums.length - 1 ? 0 : 12.0),
                         child: SizedBox(
                           width: 160,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(6),
-                                child: Image.file(
-                                  File(
-                                    albums[i].albumArtPath ??
-                                        '/home/est/.cache/com.nordplayer.nordplayer/album_art/album_38.jpg',
-                                  ),
-                                  height: 160,
-                                  width: 160,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                albums[i].title,
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 2,
-                                style: theme.textTheme.titleMedium,
-                              ),
-                              Text(albums[i].albumArtist ?? 'Unknown Artist', style: theme.textTheme.bodyMedium),
-                            ],
+                          child: AlbumCard(
+                            album: albums[i],
+                            albumSize: 160,
+                            onAlbumTap: () {},
+                            albumArtist: albums[i].albumArtist,
                           ),
                         ),
                       ),
