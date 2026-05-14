@@ -62,7 +62,7 @@ ThemeData buildTheme({
   // Nullable fontFamily for system font (null == system font)
   required String? fontFamily,
   required List<String>? fontFamilyFallback,
-  required AppColorScheme nordColorScheme,
+  required AppColorScheme appColorScheme,
 }) {
   return ThemeData(
     useMaterial3: true,
@@ -70,49 +70,49 @@ ThemeData buildTheme({
     fontFamilyFallback: fontFamilyFallback,
 
     colorScheme: ColorScheme(
-      brightness: nordColorScheme.brightness,
+      brightness: appColorScheme.brightness,
 
-      primary: nordColorScheme.primary,
-      onPrimary: nordColorScheme.onPrimary,
+      primary: appColorScheme.primary,
+      onPrimary: appColorScheme.onPrimary,
 
-      secondary: nordColorScheme.secondary,
-      onSecondary: nordColorScheme.onSecondary,
+      secondary: appColorScheme.secondary,
+      onSecondary: appColorScheme.onSecondary,
 
-      surface: nordColorScheme.surface,
-      onSurface: nordColorScheme.onSurface,
-      onSurfaceVariant: nordColorScheme.onSurfaceVariant,
-      surfaceContainerLowest: nordColorScheme.surfaceContainerLowest,
-      surfaceContainerLow: nordColorScheme.surfaceContainerLow,
-      surfaceContainer: nordColorScheme.surfaceContainer,
-      surfaceContainerHigh: nordColorScheme.surfaceContainerHigh,
-      surfaceContainerHighest: nordColorScheme.surfaceContainerHighest,
+      surface: appColorScheme.surface,
+      onSurface: appColorScheme.onSurface,
+      onSurfaceVariant: appColorScheme.onSurfaceVariant,
+      surfaceContainerLowest: appColorScheme.surfaceContainerLowest,
+      surfaceContainerLow: appColorScheme.surfaceContainerLow,
+      surfaceContainer: appColorScheme.surfaceContainer,
+      surfaceContainerHigh: appColorScheme.surfaceContainerHigh,
+      surfaceContainerHighest: appColorScheme.surfaceContainerHighest,
 
-      outline: nordColorScheme.outline,
-      outlineVariant: nordColorScheme.outlineVariant,
+      outline: appColorScheme.outline,
+      outlineVariant: appColorScheme.outlineVariant,
 
-      error: nordColorScheme.error,
-      onError: nordColorScheme.onError,
+      error: appColorScheme.error,
+      onError: appColorScheme.onError,
     ),
 
     extensions: <ThemeExtension<dynamic>>[
       NordSidebarTheme(
-        backgroundColor: nordColorScheme.surfaceContainer,
+        backgroundColor: appColorScheme.surfaceContainer,
         itemBackgroundColor: WidgetStateProperty.resolveWith((states) {
           // Selected State
           if (states.contains(WidgetState.selected)) {
             // Blend the M3 State Layers over the active container color
             if (states.contains(WidgetState.pressed) || states.contains(WidgetState.focused)) {
-              return nordColorScheme.primary.withValues(alpha: 0.1);
+              return appColorScheme.primary.withValues(alpha: 0.1);
             }
             if (states.contains(WidgetState.hovered)) {
-              return nordColorScheme.primary.withValues(alpha: 0.08);
+              return appColorScheme.primary.withValues(alpha: 0.08);
             }
 
-            return nordColorScheme.primary.withValues(alpha: 0.1);
+            return appColorScheme.primary.withValues(alpha: 0.1);
           }
 
           // Unselected State
-          final stateLayerColor = nordColorScheme.onSurface;
+          final stateLayerColor = appColorScheme.onSurface;
 
           if (states.contains(WidgetState.pressed) || states.contains(WidgetState.focused)) {
             return stateLayerColor.withValues(alpha: 0.1);
@@ -125,39 +125,39 @@ ThemeData buildTheme({
         }),
         itemForegroundColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.disabled)) {
-            return nordColorScheme.onSurface.withValues(alpha: 0.38);
+            return appColorScheme.onSurface.withValues(alpha: 0.38);
           }
           if (states.contains(WidgetState.selected)) {
-            return nordColorScheme.primary;
+            return appColorScheme.primary;
           }
           if (states.contains(WidgetState.pressed) ||
               states.contains(WidgetState.focused) ||
               states.contains(WidgetState.hovered)) {
-            return nordColorScheme.onSurface;
+            return appColorScheme.onSurface;
           }
-          return nordColorScheme.onSurface;
+          return appColorScheme.onSurface;
         }),
       ),
 
       NordSnackBarTheme(
-        generalColor: nordColorScheme.general,
-        infoColor: nordColorScheme.info,
-        successColor: nordColorScheme.success,
-        warningColor: nordColorScheme.warning,
-        errorColor: nordColorScheme.error,
+        generalColor: appColorScheme.general,
+        infoColor: appColorScheme.info,
+        successColor: appColorScheme.success,
+        warningColor: appColorScheme.warning,
+        errorColor: appColorScheme.error,
       ),
 
       NordSemanticTheme(
-        error: nordColorScheme.error,
-        onError: nordColorScheme.onError,
-        success: nordColorScheme.success,
-        onSuccess: nordColorScheme.onSuccess,
-        warning: nordColorScheme.warning,
-        onWarning: nordColorScheme.onWarning,
-        info: nordColorScheme.info,
-        onInfo: nordColorScheme.onInfo,
-        general: nordColorScheme.general,
-        onGeneral: nordColorScheme.onGeneral,
+        error: appColorScheme.error,
+        onError: appColorScheme.onError,
+        success: appColorScheme.success,
+        onSuccess: appColorScheme.onSuccess,
+        warning: appColorScheme.warning,
+        onWarning: appColorScheme.onWarning,
+        info: appColorScheme.info,
+        onInfo: appColorScheme.onInfo,
+        general: appColorScheme.general,
+        onGeneral: appColorScheme.onGeneral,
       ),
     ],
 
@@ -174,7 +174,7 @@ ThemeData buildTheme({
         fontWeight: .w400,
         height: 64 / 57, // 'Line height 64pt' relative to '57pt' font size
         letterSpacing: 0, // letter spacing = tracking
-        color: nordColorScheme.onSurface,
+        color: appColorScheme.onSurface,
         fontVariations: const <FontVariation>[
           FontVariation('wght', 400), // Weight
           FontVariation('wdth', 100), // Width
@@ -193,7 +193,7 @@ ThemeData buildTheme({
         fontWeight: .w400,
         height: 52 / 45,
         letterSpacing: 0,
-        color: nordColorScheme.onSurface,
+        color: appColorScheme.onSurface,
         fontVariations: const <FontVariation>[
           FontVariation('wght', 400),
           FontVariation('wdth', 100),
@@ -212,7 +212,7 @@ ThemeData buildTheme({
         fontWeight: .w400,
         height: 44 / 36,
         letterSpacing: 0,
-        color: nordColorScheme.onSurface,
+        color: appColorScheme.onSurface,
         fontVariations: const <FontVariation>[
           FontVariation('wght', 400),
           FontVariation('wdth', 100),
@@ -232,7 +232,7 @@ ThemeData buildTheme({
         fontWeight: .w500, // default:400
         height: 40 / 32,
         letterSpacing: 0,
-        color: nordColorScheme.onSurface,
+        color: appColorScheme.onSurface,
         fontVariations: const <FontVariation>[
           FontVariation('wght', 500), // default:400
           FontVariation('wdth', 100),
@@ -251,7 +251,7 @@ ThemeData buildTheme({
         fontWeight: .w500, // default:400
         height: 36 / 28,
         letterSpacing: 0,
-        color: nordColorScheme.onSurface,
+        color: appColorScheme.onSurface,
         fontVariations: const <FontVariation>[
           FontVariation('wght', 500),
           FontVariation('wdth', 100),
@@ -270,7 +270,7 @@ ThemeData buildTheme({
         fontWeight: .w500, // default:400
         height: 32 / 24,
         letterSpacing: 0,
-        color: nordColorScheme.onSurface,
+        color: appColorScheme.onSurface,
         fontVariations: const <FontVariation>[
           FontVariation('wght', 500),
           FontVariation('wdth', 100),
@@ -290,7 +290,7 @@ ThemeData buildTheme({
         fontWeight: .w500, // default:400
         height: 28 / 20,
         letterSpacing: 0,
-        color: nordColorScheme.onSurface,
+        color: appColorScheme.onSurface,
         fontVariations: const <FontVariation>[
           FontVariation('wght', 500),
           FontVariation('wdth', 100),
@@ -309,7 +309,7 @@ ThemeData buildTheme({
         fontWeight: .w500,
         height: 24 / 16,
         letterSpacing: 0,
-        color: nordColorScheme.onSurface,
+        color: appColorScheme.onSurface,
         fontVariations: const <FontVariation>[
           FontVariation('wght', 500),
           FontVariation('wdth', 100),
@@ -328,7 +328,7 @@ ThemeData buildTheme({
         fontWeight: .w500,
         height: 20 / 14,
         letterSpacing: 0,
-        color: nordColorScheme.onSurface,
+        color: appColorScheme.onSurface,
         fontVariations: const <FontVariation>[
           FontVariation('wght', 500),
           FontVariation('wdth', 100),
@@ -348,7 +348,7 @@ ThemeData buildTheme({
         fontWeight: .w400,
         height: 24 / 16,
         letterSpacing: 0,
-        color: nordColorScheme.onSurface,
+        color: appColorScheme.onSurface,
         fontVariations: const <FontVariation>[
           FontVariation('wght', 400),
           FontVariation('wdth', 100),
@@ -367,7 +367,7 @@ ThemeData buildTheme({
         fontWeight: .w400,
         height: 20 / 14,
         letterSpacing: 0,
-        color: nordColorScheme.onSurface,
+        color: appColorScheme.onSurface,
         fontVariations: const <FontVariation>[
           FontVariation('wght', 400),
           FontVariation('wdth', 100),
@@ -386,7 +386,7 @@ ThemeData buildTheme({
         fontWeight: .w400,
         height: 16 / 12,
         letterSpacing: 0.1,
-        color: nordColorScheme.onSurface,
+        color: appColorScheme.onSurface,
         fontVariations: const <FontVariation>[
           FontVariation('wght', 400),
           FontVariation('wdth', 100),
@@ -407,7 +407,7 @@ ThemeData buildTheme({
         fontWeight: .w500,
         height: 20 / 14,
         letterSpacing: 0,
-        color: nordColorScheme.onSurface,
+        color: appColorScheme.onSurface,
         fontVariations: const <FontVariation>[
           FontVariation('wght', 500),
           FontVariation('wdth', 100),
@@ -428,7 +428,7 @@ ThemeData buildTheme({
         fontWeight: .w500,
         height: 20 / 12,
         letterSpacing: 0.1,
-        color: nordColorScheme.onSurface,
+        color: appColorScheme.onSurface,
         fontVariations: const <FontVariation>[
           FontVariation('wght', 500),
           FontVariation('wdth', 100),
@@ -447,7 +447,7 @@ ThemeData buildTheme({
         fontWeight: .w500,
         height: 16 / 11,
         letterSpacing: 0.1,
-        color: nordColorScheme.onSurface,
+        color: appColorScheme.onSurface,
         fontVariations: const <FontVariation>[
           FontVariation('wght', 500),
           FontVariation('wdth', 100),

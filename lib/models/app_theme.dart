@@ -56,7 +56,7 @@ class AppTheme {
       schemeToUse = NordColorScheme();
     }
 
-    return buildTheme(fontFamily: fontFamily, fontFamilyFallback: fallbacks, nordColorScheme: schemeToUse);
+    return buildTheme(fontFamily: fontFamily, fontFamilyFallback: fallbacks, appColorScheme: schemeToUse);
   }
 }
 
