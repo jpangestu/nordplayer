@@ -141,63 +141,55 @@ class PlayerService with LoggerMixin {
     required String playbackContextType,
     int? playbackContextId,
     bool autoplay = true,
+
+    /// Ignore same playlist check
+    bool forceReload = false,
   }) async {
+    // Check the old context before overwriting it!
+    final currentContext = ref.read(playbackContextProvider);
+    bool isSamePlaylist = currentContext?.isPlaying(playbackContextType, playbackContextId) ?? false;
+
+    if (forceReload) {
+      isSamePlaylist = false;
+    }
+
+    // Set the new context
     ref.read(playbackContextProvider.notifier).setContext(playbackContextType, playbackContextId);
 
     _originalQueue = List.from(tracksToPlay);
     final shouldShuffle = ref.read(preferenceServiceProvider).shuffleMode;
-
-    final currentPaths = _mkPlayer.state.playlist.medias.map((m) => m.uri).toList();
-    final newPaths = tracksToPlay.map((s) => s.track.filePath).toList();
-
-    bool isSamePlaylist = false;
-    if (currentPaths.length == newPaths.length && currentPaths.isNotEmpty) {
-      final currentSet = currentPaths.toSet();
-
-      // Heuristic Check: If it has the exact same length, and the engine's set contains the first, middle, and last
-      // tracks from the UI's list, it is safely to assume that the track is from the exact same playlist.
-      if (currentSet.contains(newPaths.first) &&
-          currentSet.contains(newPaths.last) &&
-          currentSet.contains(newPaths[newPaths.length ~/ 2])) {
-        isSamePlaylist = true;
-      }
-    }
-
     final targetTrackPath = tracksToPlay[initialIndex].track.filePath;
 
-    if (isSamePlaylist) {
-      // Find where the target track ended up in the shuffled queue
+    // Jump logic
+    if (isSamePlaylist && _mkPlayer.state.playlist.medias.isNotEmpty) {
+      // Find where the target track ended up in the engine's queue (in case it's shuffled)
       final targetIndex = _mkPlayer.state.playlist.medias.indexWhere((m) => m.uri == targetTrackPath);
 
       if (targetIndex != -1) {
-        log.d("Same playlist detected. Jumping to actual engine index: $targetIndex.");
+        log.d("Same context detected. Jumping to engine index: $targetIndex.");
         await _mkPlayer.jump(targetIndex);
-        await _mkPlayer.play();
-      } else {
-        isSamePlaylist = false;
+        if (autoplay) await _mkPlayer.play();
+        return;
       }
     }
 
-    if (!isSamePlaylist) {
-      log.d("New playlist detected. Opening new media pipeline.");
-      final playableMedia = tracksToPlay.map((track) {
-        return Media(
-          track.track.filePath,
-          extras: {'title': track.track.title, 'artists': track.artists, 'data': track},
-        );
-      }).toList();
+    // Reload logic (If different playlist, or forceReload == true, or jump failed)
+    log.d("New context or force reload. Opening new media pipeline.");
+    final playableMedia = tracksToPlay.map((track) {
+      return Media(track.track.filePath, extras: {'title': track.track.title, 'artists': track.artists, 'data': track});
+    }).toList();
 
-      try {
-        await _mkPlayer.open(Playlist(playableMedia, index: initialIndex), play: autoplay);
-        _saveQueueState();
-      } catch (e) {
-        log.e("Error loading media_kit playlist: $e");
-      }
+    try {
+      await _mkPlayer.open(Playlist(playableMedia, index: initialIndex), play: autoplay);
+      _saveQueueState();
+    } catch (e) {
+      log.e("Error loading media_kit playlist: $e");
+    }
 
-      if (shouldShuffle) {
-        await Future.delayed(const Duration(milliseconds: 100));
-        await _mkPlayer.setShuffle(true);
-      }
+    // Apply shuffle if needed
+    if (shouldShuffle) {
+      await Future.delayed(const Duration(milliseconds: 100));
+      await _mkPlayer.setShuffle(true);
     }
   }
 

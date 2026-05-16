@@ -36,14 +36,14 @@ extension IntExtension on int {
     final minutes = duration.inMinutes.remainder(60);
 
     if (days > 0) {
-      return '$days day${days > 1 ? 's' : ''} $hours hr';
+      return '$days Day${days > 1 ? 's' : ''} $hours Hour';
     }
 
     if (duration.inHours > 0) {
-      return '${duration.inHours} hr $minutes min';
+      return '${duration.inHours} Hour $minutes Minutes';
     }
 
-    return '$minutes min';
+    return '$minutes Minutes';
   }
 
   /// Converts bytes into a human-readable file size string (e.g., "24.1 GB", "850.5 MB", "12 KB")

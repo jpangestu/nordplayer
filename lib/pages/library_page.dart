@@ -434,7 +434,12 @@ class _AlbumsPanelState extends ConsumerState<AlbumsPanel> {
                           child: AlbumCard(
                             album: albums[i],
                             albumSize: 160,
-                            onAlbumTap: () {},
+                            onAlbumTap: () {
+                              final basePath = Routes.albumsPage;
+                              final targetId = albums[i].id;
+
+                              context.go('$basePath/$targetId');
+                            },
                             albumArtist: albums[i].albumArtist,
                           ),
                         ),

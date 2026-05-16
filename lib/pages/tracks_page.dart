@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/pages/pages_context_menu.dart';
 import 'package:nordplayer/pages/pages_helper.dart';
+import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/utils/datetime_extension.dart';
@@ -11,6 +12,7 @@ import 'package:nordplayer/utils/int_extension.dart';
 import 'package:nordplayer/widgets/album_art_stack.dart';
 import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
+import 'package:nordplayer/widgets/clickable_text.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
@@ -360,7 +362,16 @@ class TracksPageColumnsNotifier extends Notifier<List<TableColumn<TrackWithArtis
       flex: 3,
       minWidth: 100,
       cellBuilder: (context, track, index) {
-        return Text(track.album.title, maxLines: 1, overflow: TextOverflow.ellipsis);
+        return ClickableText(
+          text: track.album.title,
+          onTap: () {
+            final basePath = Routes.albumsPage;
+            final targetId = track.album.id;
+
+            context.go('$basePath/$targetId');
+          },
+        );
+        // return Text(track.album.title, maxLines: 1, overflow: TextOverflow.ellipsis);
       },
     ),
     TableColumn<TrackWithArtists>(

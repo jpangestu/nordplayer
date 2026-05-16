@@ -2,8 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:nordplayer/database/app_database.dart';
+import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/config_service.dart';
 
 class AlbumsPage extends ConsumerWidget {
@@ -13,11 +15,11 @@ class AlbumsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final appConfig = ref.watch(configServiceProvider).requireValue;
-    final albumsDetails = ref.watch(albumsDetailsProvider);
+    final albums = ref.watch(albumsProvider);
 
     return Scaffold(
       backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
-      body: albumsDetails.when(
+      body: albums.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Text('Error loading albums: $err'),
         data: (data) {
@@ -40,14 +42,19 @@ class AlbumsPage extends ConsumerWidget {
                         mainAxisSpacing: 8,
                       ),
                       itemBuilder: (context, index) {
-                        final album = data[index].album;
+                        final album = data[index];
 
                         return Center(
                           child: SizedBox(
                             width: 180,
                             child: AlbumCard(
                               album: album,
-                              onAlbumTap: () {},
+                              onAlbumTap: () {
+                                final basePath = Routes.albumsPage;
+                                final targetId = album.id;
+
+                                context.push('$basePath/$targetId');
+                              },
                               albumArtist: album.albumArtist ?? 'Unknown Artist',
                             ),
                           ),

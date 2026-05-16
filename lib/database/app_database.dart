@@ -165,17 +165,64 @@ class AppDatabase extends _$AppDatabase {
 
   // ============================================= Albums Stuff =======================================================
 
-  /// Get all albums and albums count
+  /// Get all albums
   /// Usage: main album page
-  Stream<List<AlbumsWithDetails>> watchAlbums() {
+  Stream<List<Album>> watchAlbums() {
     final query = select(albums)..orderBy([(u) => OrderingTerm(expression: u.title, mode: OrderingMode.asc)]);
 
     return query.watch().map((rows) {
-      final rowsCount = rows.length;
-
       return rows.map((row) {
-        return AlbumsWithDetails(album: row, albumsCount: rowsCount);
+        return Album(
+          id: row.id,
+          title: row.title,
+          year: row.year,
+          albumArtPath: row.albumArtPath,
+          albumArtist: row.albumArtist,
+          artistId: row.artistId,
+        );
       }).toList();
+    });
+  }
+
+  Stream<AlbumWithTracks?> watchAlbumWithTracks(int albumId) {
+    final query = select(albums).join([
+      leftOuterJoin(tracks, tracks.albumId.equalsExp(albums.id)),
+      leftOuterJoin(trackArtist, trackArtist.trackId.equalsExp(tracks.id)),
+      leftOuterJoin(artists, artists.id.equalsExp(trackArtist.artistId)),
+    ])..where(albums.id.equals(albumId));
+
+    query.orderBy([OrderingTerm.asc(tracks.trackNumber)]);
+
+    return query.watch().map((rows) {
+      if (rows.isEmpty) return null;
+
+      final album = rows.first.readTable(albums);
+
+      // Use a Map to group the rows by track ID.
+      // If a track has 3 artists, it returns 3 rows, should group them to avoid duplicates.
+      final Map<int, TrackWithArtists> groupedTracks = {};
+      int tracksLengthMs = 0;
+
+      for (final row in rows) {
+        final track = row.readTableOrNull(tracks);
+
+        if (track != null) {
+          if (!groupedTracks.containsKey(track.id)) {
+            groupedTracks[track.id] = TrackWithArtists(track: track, album: album, artists: []);
+            tracksLengthMs += track.durationMs;
+          }
+
+          final artist = row.readTableOrNull(artists);
+          if (artist != null && artist.id != 0) {
+            final currentArtists = groupedTracks[track.id]!.artists;
+            if (!currentArtists.any((a) => a.id == artist.id)) {
+              currentArtists.add(artist);
+            }
+          }
+        }
+      }
+
+      return AlbumWithTracks(album: album, tracks: groupedTracks.values.toList(), tracksLengthMs: tracksLengthMs);
     });
   }
 
@@ -501,11 +548,12 @@ class TrackWithArtists {
   bool get isNotEmpty => !isEmpty;
 }
 
-class AlbumsWithDetails {
+class AlbumWithTracks {
   final Album album;
-  final int albumsCount;
+  final List<TrackWithArtists> tracks;
+  final int tracksLengthMs;
 
-  AlbumsWithDetails({required this.album, required this.albumsCount});
+  AlbumWithTracks({required this.album, required this.tracks, required this.tracksLengthMs});
 }
 
 class PlaylistWithDetails {
@@ -553,9 +601,15 @@ final recentlyAddedTracksProvider = StreamProvider<List<TrackWithArtists>>((ref)
   return db.watchRecentlyAddedTracks(limitAmount: 12);
 });
 
-final albumsDetailsProvider = StreamProvider<List<AlbumsWithDetails>>((ref) {
+final albumsProvider = StreamProvider<List<Album>>((ref) {
   final db = ref.watch(appDatabaseProvider);
   return db.watchAlbums();
+});
+
+/// Watch an album and its tracks + total duration in ms
+final albumWithTracksProvider = StreamProvider.family<AlbumWithTracks?, int>((ref, albumId) {
+  final db = ref.watch(appDatabaseProvider);
+  return db.watchAlbumWithTracks(albumId);
 });
 
 final randomAlbumsProvider = FutureProvider<List<Album>>((ref) {

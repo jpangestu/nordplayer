@@ -455,6 +455,7 @@ class _CreatePlaylistDialogState extends ConsumerState<CreatePlaylistDialog> wit
       );
     }
 
+    if (!mounted) return;
     Navigator.pop(context);
   }
 

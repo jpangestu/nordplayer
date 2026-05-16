@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nordplayer/pages/album_detail_page.dart';
 import 'package:nordplayer/pages/albums_page.dart';
 import 'package:nordplayer/pages/app_layout.dart';
 import 'package:nordplayer/pages/artists_page.dart';
@@ -67,7 +68,23 @@ final router = GoRouter(
           ],
         ),
         StatefulShellBranch(
-          routes: [GoRoute(path: Routes.albumsPage, builder: (context, state) => const AlbumsPage())],
+          routes: [
+            GoRoute(
+              path: Routes.albumsPage,
+              builder: (context, state) => const AlbumsPage(),
+              routes: [
+                GoRoute(
+                  path: ':id',
+                  builder: (context, state) {
+                    final albumIdStr = state.pathParameters['id']!;
+                    final albumId = int.parse(albumIdStr);
+
+                    return AlbumDetailPage(albumId: albumId);
+                  },
+                ),
+              ],
+            ),
+          ],
         ),
         StatefulShellBranch(
           routes: [GoRoute(path: Routes.artistsPage, builder: (context, state) => const ArtistsPage())],
