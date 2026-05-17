@@ -20,6 +20,13 @@ class PlayerService with LoggerMixin {
   /// The original nshuffled queue
   List<TrackWithArtists> _originalQueue = [];
 
+  bool _shouldSuppressNextScroll = false;
+
+  /// Call this before a track change to prevent the QueuePage from auto-scrolling.
+  void suppressNextScroll() {
+    _shouldSuppressNextScroll = true;
+  }
+
   PlayerService.withPlayer(this.ref, this._mkPlayer) {
     DateTime? lastSaveTime;
 
@@ -181,6 +188,9 @@ class PlayerService with LoggerMixin {
     }).toList();
 
     try {
+      _shouldSuppressNextScroll = false;
+      ref.read(queueScrollBehaviorProvider.notifier).setIntent(.jump);
+
       await _mkPlayer.open(Playlist(playableMedia, index: initialIndex), play: autoplay);
       _saveQueueState();
     } catch (e) {
@@ -327,6 +337,26 @@ class PlayerService with LoggerMixin {
       log.i("Removed track at index $index");
     } catch (e) {
       log.e("Error removing track: $e");
+    }
+  }
+
+  /// Removes multiple tracks from the queue
+  Future<void> removeTracks(List<int> indices) async {
+    if (indices.isEmpty) return;
+
+    // Sort indices in descending order to avoid shifting issues during removal
+    final sortedIndices = List<int>.from(indices)..sort((a, b) => b.compareTo(a));
+
+    try {
+      for (final index in sortedIndices) {
+        final trackPath = _mkPlayer.state.playlist.medias[index].uri;
+        _originalQueue.removeWhere((t) => t.track.filePath == trackPath);
+        await _mkPlayer.remove(index);
+      }
+      _saveQueueState();
+      log.i("Removed ${indices.length} tracks from queue");
+    } catch (e) {
+      log.e("Error removing tracks: $e");
     }
   }
 
@@ -672,7 +702,8 @@ final currentTrackIndexProvider = NotifierProvider<CurrentTrackIndexNotifier, in
 class CurrentTrackIndexNotifier extends Notifier<int> {
   @override
   int build() {
-    final player = ref.watch(playerServiceProvider).mkPlayer;
+    final playerService = ref.watch(playerServiceProvider);
+    final player = playerService.mkPlayer;
     final debouncer = Debouncer(const Duration(milliseconds: 50));
 
     final subscription = player.stream.playlist.listen((playlist) {
@@ -680,6 +711,16 @@ class CurrentTrackIndexNotifier extends Notifier<int> {
         final newIndex = playlist.index;
 
         if (newIndex != state) {
+          // Check if the scroll for this specific change should be suppressed
+          if (playerService._shouldSuppressNextScroll) {
+            playerService._shouldSuppressNextScroll = false;
+          } else {
+            // If the index changed and no intent is set, it's likely an auto-advance
+            final currentIntent = ref.read(queueScrollBehaviorProvider);
+            if (currentIntent == QueueScrollBehavior.none) {
+              ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.animate);
+            }
+          }
           state = newIndex;
         }
       });

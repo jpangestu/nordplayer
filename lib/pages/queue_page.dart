@@ -24,7 +24,6 @@ class QueuePage extends ConsumerStatefulWidget {
 
 class _QueuePageState extends ConsumerState<QueuePage> {
   late ScrollController _scrollController;
-  final ValueNotifier<TrackWithArtists?> _hoveredTrackNotifier = ValueNotifier(null);
 
   /// The height of MusicTile + padding (50 + 8 + 8).
   final double _itemHeight = 66.0;
@@ -71,6 +70,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
     final appConfig = ref.watch(configServiceProvider).requireValue;
     final appIconSet = ref.watch(appIconProvider);
 
+    // Handle index changes (Next/Prev/Auto-advance)
     ref.listen<int>(currentTrackIndexProvider, (previous, next) {
       if (next != previous && next >= 0 && _scrollController.hasClients) {
         // Read the exact intent of this track change
@@ -86,7 +86,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
           _scrollController.jumpTo(next * _itemHeight);
         }
 
-        // Reset the intent so it doesn't get stuck
+        // Reset the intent
         ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.none);
       }
     });
@@ -146,7 +146,14 @@ class _QueuePageState extends ConsumerState<QueuePage> {
           body: ReorderableList(
             padding: const EdgeInsets.only(top: 66, bottom: 4),
             controller: _scrollController,
+            onReorderStart: (index) {
+              ref.read(queueIsDraggingProvider.notifier).setDragging(true);
+            },
+            onReorderEnd: (index) {
+              ref.read(queueIsDraggingProvider.notifier).setDragging(false);
+            },
             onReorder: (oldIndex, newIndex) {
+              ref.read(selectedTracksIndexProvider('queue_page').notifier).updateIndicesOnReorder(oldIndex, newIndex);
               ref.read(currentTracksInQueueProvider.notifier).moveTrackOptimistically(oldIndex, newIndex);
               ref.read(playerServiceProvider).moveTrack(oldIndex, newIndex);
             },
@@ -164,9 +171,15 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                 trackItem: trackItem,
                 isSelected: isSelected,
                 isCurrentlyPlaying: isCurrentlyPlaying,
-                hoveredTrackNotifier: _hoveredTrackNotifier,
                 onRemove: () {
-                  ref.read(playerServiceProvider).removeTrack(index);
+                  final selection = ref.read(selectedTracksIndexProvider('queue_page'));
+                  if (selection.contains(index)) {
+                    ref.read(playerServiceProvider).removeTracks(selection.toList());
+                    ref.read(selectedTracksIndexProvider('queue_page').notifier).clear();
+                  } else {
+                    ref.read(playerServiceProvider).removeTrack(index);
+                    ref.read(selectedTracksIndexProvider('queue_page').notifier).updateIndicesOnRemove(index);
+                  }
                 },
                 onClick: (index, {required isCtrl, required isShift}) {
                   ref
@@ -174,6 +187,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                       .selectTrack(index, isCtrlSelect: isCtrl, isShiftSelect: isShift);
                 },
                 onDoubleClick: (index) {
+                  ref.read(playerServiceProvider).suppressNextScroll();
                   ref
                       .read(playerServiceProvider)
                       .setPlaylist(
@@ -235,7 +249,6 @@ class _QueueItem extends ConsumerStatefulWidget {
   final TrackWithArtists trackItem;
   final bool isSelected;
   final bool isCurrentlyPlaying;
-  final ValueNotifier<TrackWithArtists?> hoveredTrackNotifier;
   final VoidCallback onRemove;
   final void Function(int index, {required bool isCtrl, required bool isShift})? onClick;
   final void Function(int index)? onDoubleClick;
@@ -247,7 +260,6 @@ class _QueueItem extends ConsumerStatefulWidget {
     required this.trackItem,
     required this.isSelected,
     required this.isCurrentlyPlaying,
-    required this.hoveredTrackNotifier,
     required this.onRemove,
     required this.onClick,
     required this.onDoubleClick,
@@ -259,92 +271,95 @@ class _QueueItem extends ConsumerStatefulWidget {
 }
 
 class _QueueItemState extends ConsumerState<_QueueItem> {
+  bool _isHovered = false;
   bool _isHoveringActions = false;
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<TrackWithArtists?>(
-      valueListenable: widget.hoveredTrackNotifier,
-      builder: (context, hoveredTrack, child) {
-        final isHovered = hoveredTrack == widget.trackItem;
+    final theme = Theme.of(context);
+    final isDragging = ref.watch(queueIsDraggingProvider);
 
-        return MouseRegion(
-          onEnter: (_) => widget.hoveredTrackNotifier.value = widget.trackItem,
-          onExit: (_) {
-            if (widget.hoveredTrackNotifier.value == widget.trackItem) {
-              widget.hoveredTrackNotifier.value = null;
-            }
-          },
-          child: Listener(
-            onPointerDown: (event) {
-              if (_isHoveringActions) return;
+    // If we start dragging, hide the hover actions immediately
+    final effectiveHover = _isHovered && !isDragging;
 
-              if (event.buttons == kPrimaryMouseButton) {
-                final isCtrl = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
-                final isShift = HardwareKeyboard.instance.isShiftPressed;
+    return MouseRegion(
+      onEnter: (_) {
+        if (!isDragging) setState(() => _isHovered = true);
+      },
+      onExit: (_) => setState(() => _isHovered = false),
+      child: Listener(
+        onPointerDown: (event) {
+          if (_isHoveringActions) return;
 
-                widget.onClick?.call(widget.index, isCtrl: isCtrl, isShift: isShift);
-              } else if (event.buttons == kSecondaryMouseButton) {
-                widget.onRightClick?.call(widget.index, event.position);
-              }
-            },
-            child: GestureDetector(
-              onDoubleTap: () => widget.onDoubleClick?.call(widget.index),
-              child: Container(
-                height: 66,
-                color: widget.isSelected
-                    ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
-                    : isHovered
-                    ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05)
-                    : Colors.transparent,
-                child: Stack(
-                  alignment: Alignment.centerRight,
-                  children: [
-                    MusicTile(
-                      selected: widget.isCurrentlyPlaying,
-                      padding: EdgeInsets.only(left: 16, top: 8, bottom: 8, right: isHovered ? 90.0 : 16.0),
-                      title: widget.trackItem.track.title,
-                      artists: widget.trackItem.artists.map<String>((artist) => artist.name).toList(),
-                      albumArtPath: widget.trackItem.album.albumArtPath,
-                    ),
+          if (event.buttons == kPrimaryMouseButton) {
+            final isCtrl = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
+            final isShift = HardwareKeyboard.instance.isShiftPressed;
 
-                    // Show action buttons only when hovered
-                    if (isHovered)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: MouseRegion(
-                          onEnter: (_) => _isHoveringActions = true,
-                          onExit: (_) => _isHoveringActions = false,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const AppIcon(Icons.close, size: 20),
-                                onPressed: widget.onRemove,
-                                tooltip: 'Remove from queue',
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                              // Desktop users need a specific drag handle to click and drag
-                              ReorderableDragStartListener(
-                                index: widget.index,
-                                child: IconButton(
-                                  icon: const AppIcon(Icons.drag_indicator, size: 20),
-                                  onPressed: () {}, // Handled by the drag listener
-                                  mouseCursor: SystemMouseCursors.grab,
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
+            widget.onClick?.call(widget.index, isCtrl: isCtrl, isShift: isShift);
+          } else if (event.buttons == kSecondaryMouseButton) {
+            widget.onRightClick?.call(widget.index, event.position);
+          }
+        },
+        child: Container(
+          height: 66,
+          color: widget.isSelected
+              ? theme.colorScheme.primary.withValues(alpha: 0.1)
+              : effectiveHover
+              ? theme.colorScheme.onSurface.withValues(alpha: 0.05)
+              : Colors.transparent,
+          child: Stack(
+            alignment: Alignment.centerRight,
+            children: [
+              GestureDetector(
+                onDoubleTap: () => widget.onDoubleClick?.call(widget.index),
+                child: ReorderableDragStartListener(
+                  index: widget.index,
+                  child: MusicTile(
+                    selected: widget.isCurrentlyPlaying,
+                    padding: EdgeInsets.only(left: 16, top: 8, bottom: 8, right: effectiveHover ? 90.0 : 16.0),
+                    title: widget.trackItem.track.title,
+                    artists: widget.trackItem.artists.map<String>((artist) => artist.name).toList(),
+                    albumArtPath: widget.trackItem.album.albumArtPath,
+                  ),
                 ),
               ),
-            ),
+
+              // Show action buttons only when hovered
+              if (effectiveHover)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: MouseRegion(
+                    onEnter: (_) => _isHoveringActions = true,
+                    onExit: (_) => _isHoveringActions = false,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const AppIcon(Icons.close, size: 20),
+                          onPressed: widget.onRemove,
+                          tooltip: 'Remove from queue',
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        Builder(
+                          builder: (buttonContext) => IconButton(
+                            icon: const AppIcon(Icons.more_horiz, size: 20),
+                            onPressed: () {
+                              final RenderBox renderBox = buttonContext.findRenderObject() as RenderBox;
+                              final position = renderBox.localToGlobal(Offset(0, renderBox.size.height));
+                              widget.onRightClick?.call(widget.index, position);
+                            },
+                            tooltip: 'Options',
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
@@ -361,5 +376,17 @@ class ScrollBehaviorNotifier extends Notifier<QueueScrollBehavior> {
 
   void setIntent(QueueScrollBehavior intent) {
     state = intent;
+  }
+}
+
+/// Tracks if a reorder drag is in progress to suppress hover effects and prevent flickering.
+final queueIsDraggingProvider = NotifierProvider<QueueIsDraggingNotifier, bool>(QueueIsDraggingNotifier.new);
+
+class QueueIsDraggingNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void setDragging(bool dragging) {
+    state = dragging;
   }
 }

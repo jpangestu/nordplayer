@@ -44,6 +44,42 @@ class SelectedTracksIndex extends Notifier<Set<int>> {
       state = {index};
     }
   }
+
+  /// Maps the current selected indices to their new positions after a track is moved.
+  void updateIndicesOnReorder(int oldIndex, int newIndex) {
+    // Flutter's ReorderableList: if moving downwards, newIndex is the index *after* removal.
+    final actualNewIndex = oldIndex < newIndex ? newIndex - 1 : newIndex;
+
+    int mapIndex(int i) {
+      if (i == oldIndex) return actualNewIndex;
+      if (oldIndex < actualNewIndex) {
+        // Moving down: shift items between old and new indices up by 1
+        if (i > oldIndex && i <= actualNewIndex) return i - 1;
+      } else if (oldIndex > actualNewIndex) {
+        // Moving up: shift items between new and old indices down by 1
+        if (i >= actualNewIndex && i < oldIndex) return i + 1;
+      }
+      return i;
+    }
+
+    state = state.map(mapIndex).toSet();
+    if (_anchorIndex != null) {
+      _anchorIndex = mapIndex(_anchorIndex!);
+    }
+  }
+
+  /// Shifts any selected indices that appear *after* the removedIndex up by 1.
+  void updateIndicesOnRemove(int removedIndex) {
+    state = state.where((i) => i != removedIndex).map((i) => i > removedIndex ? i - 1 : i).toSet();
+
+    if (_anchorIndex != null) {
+      if (_anchorIndex == removedIndex) {
+        _anchorIndex = null;
+      } else if (_anchorIndex! > removedIndex) {
+        _anchorIndex = _anchorIndex! - 1;
+      }
+    }
+  }
 }
 
 // TODO: Fix cannot open certain path with weird characters (' ` ;, etc) and replace debugPrint to logger
