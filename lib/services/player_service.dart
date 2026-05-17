@@ -7,6 +7,7 @@ import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/pages/queue_page.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/preference_service.dart';
+import 'package:nordplayer/utils/debouncer.dart';
 import 'package:nordplayer/utils/stream_extension.dart';
 
 class PlayerService with LoggerMixin {
@@ -347,8 +348,6 @@ class PlayerService with LoggerMixin {
   }
 
   Future<void> toggleShuffle() async {
-    ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.jump);
-
     if (_mkPlayer.state.playlist.medias.isEmpty) {
       final newState = !ref.read(preferenceServiceProvider).shuffleMode;
       ref.read(preferenceServiceProvider.notifier).setShuffleMode(newState);
@@ -361,10 +360,13 @@ class PlayerService with LoggerMixin {
     await _mkPlayer.setShuffle(newState);
 
     // Always put the current track at index 0 when shuffling
-    // if (newState == true) {
-    //   final currentIndex = _mkPlayer.state.playlist.index;
-    //   await _mkPlayer.move(currentIndex, 0);
-    // }
+    if (newState == true) {
+      final currentIndex = _mkPlayer.state.playlist.index;
+      await _mkPlayer.move(currentIndex, 0);
+    }
+
+    // Important to be placed here so the queue jump after shuffling and moving index done
+    ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.jump);
 
     _saveQueueState();
   }
@@ -671,16 +673,20 @@ class CurrentTrackIndexNotifier extends Notifier<int> {
   @override
   int build() {
     final player = ref.watch(playerServiceProvider).mkPlayer;
+    final debouncer = Debouncer(const Duration(milliseconds: 50));
 
     final subscription = player.stream.playlist.listen((playlist) {
-      final newIndex = playlist.index;
+      debouncer(() {
+        final newIndex = playlist.index;
 
-      if (newIndex != state) {
-        state = newIndex;
-      }
+        if (newIndex != state) {
+          state = newIndex;
+        }
+      });
     });
 
     ref.onDispose(() {
+      debouncer.dispose();
       subscription.cancel();
     });
 
@@ -697,17 +703,29 @@ class CurrentTracksInQueueNotifier extends Notifier<List<TrackWithArtists>> {
   @override
   List<TrackWithArtists> build() {
     final player = ref.watch(playerServiceProvider).mkPlayer;
+    final debouncer = Debouncer(const Duration(milliseconds: 50));
 
     final subscription = player.stream.playlist.listen((playlist) {
-      // Drop any nulls just in case
-      state = playlist.medias.map((media) => media.extras?['data']).whereType<TrackWithArtists>().toList();
+      debouncer(() {
+        // Drop any nulls just in case
+        state = playlist.medias.map((media) => media.extras?['data']).whereType<TrackWithArtists>().toList();
+      });
     });
 
     ref.onDispose(() {
+      debouncer.dispose();
       subscription.cancel();
     });
 
     return player.state.playlist.medias.map((media) => media.extras?['data']).whereType<TrackWithArtists>().toList();
+  }
+
+  void moveTrackOptimistically(int oldIndex, int newIndex) {
+    final list = List<TrackWithArtists>.from(state);
+    final finalIndex = oldIndex < newIndex ? newIndex - 1 : newIndex;
+    final item = list.removeAt(oldIndex);
+    list.insert(finalIndex, item);
+    state = list;
   }
 }
 
@@ -721,12 +739,16 @@ class Current5TracksAlbumArtNotifier extends Notifier<List<String>> {
   List<String> build() {
     final player = ref.watch(playerServiceProvider).mkPlayer;
     final loopMode = ref.watch(preferenceServiceProvider.select((prefs) => prefs.loopMode));
+    final debouncer = Debouncer(const Duration(milliseconds: 50));
 
     final subscription = player.stream.playlist.listen((playlist) {
-      state = _calculateCovers(playlist, loopMode);
+      debouncer(() {
+        state = _calculateCovers(playlist, loopMode);
+      });
     });
 
     ref.onDispose(() {
+      debouncer.dispose();
       subscription.cancel();
     });
 

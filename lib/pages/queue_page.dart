@@ -11,7 +11,6 @@ import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
 import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
-import 'package:nordplayer/utils/debouncer.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
@@ -25,6 +24,7 @@ class QueuePage extends ConsumerStatefulWidget {
 
 class _QueuePageState extends ConsumerState<QueuePage> {
   late ScrollController _scrollController;
+  final ValueNotifier<TrackWithArtists?> _hoveredTrackNotifier = ValueNotifier(null);
 
   /// The height of MusicTile + padding (50 + 8 + 8).
   final double _itemHeight = 66.0;
@@ -83,11 +83,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
             curve: Curves.easeInOut,
           );
         } else if (scrollBehavior == QueueScrollBehavior.jump) {
-          final debouncer = Debouncer(const Duration(milliseconds: 0));
-
-          debouncer(() {
-            _scrollController.jumpTo(next * _itemHeight);
-          });
+          _scrollController.jumpTo(next * _itemHeight);
         }
 
         // Reset the intent so it doesn't get stuck
@@ -148,9 +144,10 @@ class _QueuePageState extends ConsumerState<QueuePage> {
               ? theme.colorScheme.surfaceContainerLow.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
               : theme.colorScheme.surfaceContainerLow,
           body: ReorderableList(
-            padding: const .only(top: 66, bottom: 4),
+            padding: const EdgeInsets.only(top: 66, bottom: 4),
             controller: _scrollController,
             onReorder: (oldIndex, newIndex) {
+              ref.read(currentTracksInQueueProvider.notifier).moveTrackOptimistically(oldIndex, newIndex);
               ref.read(playerServiceProvider).moveTrack(oldIndex, newIndex);
             },
             itemCount: currentTracks.length,
@@ -167,6 +164,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                 trackItem: trackItem,
                 isSelected: isSelected,
                 isCurrentlyPlaying: isCurrentlyPlaying,
+                hoveredTrackNotifier: _hoveredTrackNotifier,
                 onRemove: () {
                   ref.read(playerServiceProvider).removeTrack(index);
                 },
@@ -237,6 +235,7 @@ class _QueueItem extends ConsumerStatefulWidget {
   final TrackWithArtists trackItem;
   final bool isSelected;
   final bool isCurrentlyPlaying;
+  final ValueNotifier<TrackWithArtists?> hoveredTrackNotifier;
   final VoidCallback onRemove;
   final void Function(int index, {required bool isCtrl, required bool isShift})? onClick;
   final void Function(int index)? onDoubleClick;
@@ -248,6 +247,7 @@ class _QueueItem extends ConsumerStatefulWidget {
     required this.trackItem,
     required this.isSelected,
     required this.isCurrentlyPlaying,
+    required this.hoveredTrackNotifier,
     required this.onRemove,
     required this.onClick,
     required this.onDoubleClick,
@@ -259,88 +259,92 @@ class _QueueItem extends ConsumerStatefulWidget {
 }
 
 class _QueueItemState extends ConsumerState<_QueueItem> {
-  bool _isHovered = false;
   bool _isHoveringActions = false;
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: Listener(
-        onPointerDown: (event) {
-          if (_isHoveringActions) return;
+    return ValueListenableBuilder<TrackWithArtists?>(
+      valueListenable: widget.hoveredTrackNotifier,
+      builder: (context, hoveredTrack, child) {
+        final isHovered = hoveredTrack == widget.trackItem;
 
-          if (event.buttons == kPrimaryMouseButton) {
-            final isCtrl = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
-            final isShift = HardwareKeyboard.instance.isShiftPressed;
+        return MouseRegion(
+          onEnter: (_) => widget.hoveredTrackNotifier.value = widget.trackItem,
+          onExit: (_) {
+            if (widget.hoveredTrackNotifier.value == widget.trackItem) {
+              widget.hoveredTrackNotifier.value = null;
+            }
+          },
+          child: Listener(
+            onPointerDown: (event) {
+              if (_isHoveringActions) return;
 
-            widget.onClick?.call(widget.index, isCtrl: isCtrl, isShift: isShift);
-          } else if (event.buttons == kSecondaryMouseButton) {
-            widget.onRightClick?.call(widget.index, event.position);
-          }
-        },
-        child: GestureDetector(
-          onDoubleTap: () => widget.onDoubleClick?.call(widget.index),
-          child: Container(
-            height: 66,
-            color: widget.isSelected
-                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
-                : _isHovered
-                ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05)
-                : Colors.transparent,
-            child: Stack(
-              alignment: Alignment.centerRight,
-              children: [
-                MusicTile(
-                  selected: widget.isCurrentlyPlaying,
-                  padding: EdgeInsets.only(left: 16, top: 8, bottom: 8, right: _isHovered ? 90.0 : 16.0),
-                  title: widget.trackItem.track.title,
-                  artists: widget.trackItem.artists.map<String>((artist) => artist.name).toList(),
-                  albumArtPath: widget.trackItem.album.albumArtPath,
-                ),
+              if (event.buttons == kPrimaryMouseButton) {
+                final isCtrl = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
+                final isShift = HardwareKeyboard.instance.isShiftPressed;
 
-                // Show action buttons only when hovered
-                AnimatedOpacity(
-                  opacity: _isHovered ? 1 : 0,
-                  duration: const Duration(milliseconds: 100),
-                  child: IgnorePointer(
-                    ignoring: !_isHovered,
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: MouseRegion(
-                        onEnter: (_) => _isHoveringActions = true,
-                        onExit: (_) => _isHoveringActions = false,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const AppIcon(Icons.close, size: 20),
-                              onPressed: widget.onRemove,
-                              tooltip: 'Remove from queue',
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                            // Desktop users need a specific drag handle to click and drag
-                            ReorderableDragStartListener(
-                              index: widget.index,
-                              child: IconButton(
-                                icon: const AppIcon(Icons.drag_indicator, size: 20),
-                                onPressed: () {}, // Handled by the drag listener
-                                mouseCursor: SystemMouseCursors.grab,
+                widget.onClick?.call(widget.index, isCtrl: isCtrl, isShift: isShift);
+              } else if (event.buttons == kSecondaryMouseButton) {
+                widget.onRightClick?.call(widget.index, event.position);
+              }
+            },
+            child: GestureDetector(
+              onDoubleTap: () => widget.onDoubleClick?.call(widget.index),
+              child: Container(
+                height: 66,
+                color: widget.isSelected
+                    ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+                    : isHovered
+                    ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05)
+                    : Colors.transparent,
+                child: Stack(
+                  alignment: Alignment.centerRight,
+                  children: [
+                    MusicTile(
+                      selected: widget.isCurrentlyPlaying,
+                      padding: EdgeInsets.only(left: 16, top: 8, bottom: 8, right: isHovered ? 90.0 : 16.0),
+                      title: widget.trackItem.track.title,
+                      artists: widget.trackItem.artists.map<String>((artist) => artist.name).toList(),
+                      albumArtPath: widget.trackItem.album.albumArtPath,
+                    ),
+
+                    // Show action buttons only when hovered
+                    if (isHovered)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: MouseRegion(
+                          onEnter: (_) => _isHoveringActions = true,
+                          onExit: (_) => _isHoveringActions = false,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const AppIcon(Icons.close, size: 20),
+                                onPressed: widget.onRemove,
+                                tooltip: 'Remove from queue',
                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
-                            ),
-                          ],
+                              // Desktop users need a specific drag handle to click and drag
+                              ReorderableDragStartListener(
+                                index: widget.index,
+                                child: IconButton(
+                                  icon: const AppIcon(Icons.drag_indicator, size: 20),
+                                  onPressed: () {}, // Handled by the drag listener
+                                  mouseCursor: SystemMouseCursors.grab,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
