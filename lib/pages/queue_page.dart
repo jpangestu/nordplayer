@@ -152,7 +152,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
             onReorderEnd: (index) {
               ref.read(queueIsDraggingProvider.notifier).setDragging(false);
             },
-            onReorder: (oldIndex, newIndex) {
+            onReorderItem: (oldIndex, newIndex) {
               ref.read(selectedTracksIndexProvider('queue_page').notifier).updateIndicesOnReorder(oldIndex, newIndex);
               ref.read(currentTracksInQueueProvider.notifier).moveTrackOptimistically(oldIndex, newIndex);
               ref.read(playerServiceProvider).moveTrack(oldIndex, newIndex);

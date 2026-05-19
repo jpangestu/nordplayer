@@ -1,8 +1,8 @@
 import 'dart:io';
 
+import "package:audiotags/audiotags.dart";
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:metadata_god/metadata_god.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/services/config_service.dart';
@@ -100,8 +100,8 @@ class LibraryScanner with LoggerMixin {
     final metadataList = await Future.wait(
       files.map((file) async {
         try {
-          final meta = await MetadataGod.readMetadata(file: file.path);
-          return (file.path, meta);
+          final tag = await AudioTags.read(file.path);
+          return (file.path, tag);
         } catch (e) {
           log.e("Error parsing ${file.path}: $e");
           return (file.path, null);
@@ -112,16 +112,16 @@ class LibraryScanner with LoggerMixin {
     await _db.transaction(() async {
       for (var item in metadataList) {
         final filePath = item.$1;
-        final meta = item.$2;
+        final tag = item.$2;
 
-        if (meta == null) {
+        if (tag == null) {
           log.w("Skipped file due to parsing error: $filePath");
           continue;
         }
 
         final file = File(filePath);
 
-        final rawArtistString = meta.artist ?? 'Unknown Artist';
+        final rawArtistString = tag.trackArtist ?? 'Unknown Artist';
         List<String> artistNames = _splitArtistString(rawArtistString);
         if (artistNames.isEmpty) artistNames = ['Unknown Artist'];
 
@@ -134,9 +134,9 @@ class LibraryScanner with LoggerMixin {
         }
         final primaryArtistId = allArtistIds.first;
 
-        final albumId = await _getOrCreateAlbum(meta, primaryArtistId);
+        final albumId = await _getOrCreateAlbum(tag, primaryArtistId);
 
-        final artPath = await _saveAlbumArt(meta, albumId);
+        final artPath = await _saveAlbumArt(tag, albumId);
         if (artPath != null) {
           await (_db.update(
             _db.albums,
@@ -147,13 +147,13 @@ class LibraryScanner with LoggerMixin {
             .into(_db.tracks)
             .insert(
               TracksCompanion(
-                title: Value(meta.title ?? p.basename(filePath)),
-                trackNumber: Value(meta.trackNumber ?? 0),
-                trackTotal: Value(meta.trackTotal ?? 0),
-                discNumber: Value(meta.discNumber ?? 0),
-                discTotal: Value(meta.discTotal ?? 0),
-                durationMs: Value(meta.duration?.inMilliseconds ?? 0),
-                genre: Value(meta.genre),
+                title: Value(tag.title ?? p.basename(filePath)),
+                trackNumber: Value(tag.trackNumber ?? 0),
+                trackTotal: Value(tag.trackTotal ?? 0),
+                discNumber: Value(tag.discNumber ?? 0),
+                discTotal: Value(tag.discTotal ?? 0),
+                durationMs: Value((tag.duration ?? 0) * 1000),
+                genre: Value(tag.genre),
                 fileSize: Value(file.lengthSync()),
                 filePath: Value(file.path),
                 artistId: Value(primaryArtistId),
@@ -174,8 +174,8 @@ class LibraryScanner with LoggerMixin {
     });
   }
 
-  Future<String?> _saveAlbumArt(Metadata metadata, int albumId) async {
-    if (metadata.picture == null) return null;
+  Future<String?> _saveAlbumArt(Tag tag, int albumId) async {
+    if (tag.pictures.isEmpty) return null;
 
     final cacheDir = await getApplicationCacheDirectory();
     final artDir = Directory(p.join(cacheDir.path, 'album_art'));
@@ -184,7 +184,8 @@ class LibraryScanner with LoggerMixin {
     }
 
     // Determine file extension from MIME type
-    final String ext = metadata.picture!.mimeType == 'image/png' ? '.png' : '.jpg';
+    final picture = tag.pictures.first;
+    final String ext = picture.mimeType == MimeType.png ? '.png' : '.jpg';
 
     // Create a unique filename based on Album ID
     final String fileName = "album_$albumId$ext";
@@ -195,7 +196,7 @@ class LibraryScanner with LoggerMixin {
     }
 
     try {
-      await File(fullPath).writeAsBytes(metadata.picture!.data);
+      await File(fullPath).writeAsBytes(picture.bytes);
       return fullPath;
     } catch (e) {
       log.e("Failed to save album art: $e");
@@ -230,8 +231,8 @@ class LibraryScanner with LoggerMixin {
     return newId;
   }
 
-  Future<int> _getOrCreateAlbum(Metadata meta, int artistId) async {
-    final albumTitle = meta.album ?? 'Unknown Album';
+  Future<int> _getOrCreateAlbum(Tag tag, int artistId) async {
+    final albumTitle = tag.album ?? 'Unknown Album';
     final cacheKey = '$albumTitle-$artistId';
 
     if (_albumCache.containsKey(cacheKey)) {
@@ -253,8 +254,8 @@ class LibraryScanner with LoggerMixin {
           AlbumsCompanion(
             title: Value(albumTitle),
             artistId: Value(artistId),
-            year: Value(meta.year ?? 0),
-            albumArtist: Value(meta.albumArtist),
+            year: Value(tag.year ?? 0),
+            albumArtist: Value(tag.albumArtist),
           ),
         );
 

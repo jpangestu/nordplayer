@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:metadata_god/metadata_god.dart';
 import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/models/app_theme.dart';
 import 'package:nordplayer/routes/router.dart';
@@ -38,7 +37,6 @@ void main() async {
     await windowManager.focus();
   });
 
-  await MetadataGod.initialize();
   MediaKit.ensureInitialized();
 
   // SharedPreferencesWithCache must be loaded once at startup
