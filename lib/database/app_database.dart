@@ -1,37 +1,32 @@
-import 'dart:io';
-
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
+import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/database/schema.dart';
-import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 part 'app_database.g.dart';
 
-LazyDatabase openConection() {
-  return LazyDatabase(() async {
-    final dbPath = await getApplicationSupportDirectory();
-    final file = File(p.join(dbPath.path, 'database.sqlite'));
-
-    return NativeDatabase.createInBackground(
-      file,
-      setup: (database) {
-        // Enable WAL (Write-Ahead Logging) Mode (Higher concurrency, less locking)
-        database.execute('PRAGMA journal_mode=WAL;');
-        // Synchronous Normal (Faster writes, slightly less safe on power loss)
-        database.execute('PRAGMA synchronous=NORMAL;');
-      },
-    );
-  });
-}
-
 @DriftDatabase(tables: [Tracks, Artists, Albums, Playlists, TrackArtist, PlaylistTrack, QueueEntries])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase(super.e);
+  AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
   int get schemaVersion => 1;
+
+  static QueryExecutor _openConnection() {
+    return driftDatabase(
+      name: 'database',
+      native: DriftNativeOptions(
+        databaseDirectory: getApplicationSupportDirectory,
+        setup: (db) {
+          // Enable WAL (Write-Ahead Logging) Mode (Higher concurrency, less locking)
+          db.execute('PRAGMA journal_mode=WAL;');
+          // Synchronous Normal (Faster writes, slightly less safe on power loss)
+          db.execute('PRAGMA synchronous=NORMAL;');
+        },
+      ),
+    );
+  }
 
   // =========================================== Library Stats =======================================================
 
@@ -580,7 +575,7 @@ class PlaylistWithTracks {
 //
 
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
-  final database = AppDatabase(openConection());
+  final database = AppDatabase();
   ref.onDispose(() => database.close());
 
   return database;
