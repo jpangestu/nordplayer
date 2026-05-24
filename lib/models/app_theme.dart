@@ -64,6 +64,7 @@ class AppTheme {
 
 final adaptiveThemeProvider = FutureProvider<AdaptiveColorScheme>((ref) async {
   final track = ref.watch(currentTrackProvider);
+  final appConfig = ref.watch(configServiceProvider).requireValue;
   final albumArtPath = track?.album.albumArtPath;
 
   // Determine the correct ImageProvider based on the path
@@ -76,7 +77,7 @@ final adaptiveThemeProvider = FutureProvider<AdaptiveColorScheme>((ref) async {
     imageProvider = const AssetImage('assets/images/default_background.png');
   }
 
-  final generatedScheme = await ColorScheme.fromImageProvider(provider: imageProvider, brightness: Brightness.dark);
+  final generatedScheme = await ColorScheme.fromImageProvider(provider: imageProvider, brightness: appConfig.themeBrightness);
 
   return AdaptiveColorScheme.fromColorScheme(generatedScheme);
 });

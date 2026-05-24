@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/models/app_theme.dart';
 import 'package:nordplayer/services/config_service.dart';
+import 'package:nordplayer/widgets/settings/choice_tile.dart';
 import 'package:nordplayer/widgets/settings/section_card.dart';
 import 'package:nordplayer/widgets/settings/section_divider.dart';
 import 'package:nordplayer/widgets/settings/section_header.dart';
@@ -12,7 +13,6 @@ class AppearancePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final Map<String, String> keyLabel = AppTheme.labels;
     final theme = Theme.of(context);
     final appConfig = ref.watch(configServiceProvider).requireValue;
 
@@ -21,36 +21,93 @@ class AppearancePage extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          const SectionHeader(label: 'Theme', labelType: LabelType.h1, padding: EdgeInsets.only(bottom: 8)),
+          const SectionHeader(label: 'Theme', labelType: .h1, padding: EdgeInsets.only(bottom: 8)),
           Column(
             children: [
               SectionCard(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: ListTile(
-                    title: const Text('Color Theme'),
-                    trailing: DropdownMenu<String>(
-                      initialSelection: appConfig.theme,
-                      inputDecorationTheme: InputDecorationTheme(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                        isDense: true,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: .start,
+                    children: [
+                      Row(
+                        children: [
+                          ChoiceTile(
+                            label: 'Static',
+                            isSelected: appConfig.theme != 'adaptive',
+                            onTap: () => ref.read(configServiceProvider.notifier).updateConfig(theme: 'nord'),
+                          ),
+                          const SizedBox(width: 12),
+                          ChoiceTile(
+                            label: 'Adaptive',
+                            isSelected: appConfig.theme == 'adaptive',
+                            onTap: () => ref.read(configServiceProvider.notifier).updateConfig(theme: 'adaptive'),
+                          ),
+                        ],
                       ),
-                      menuStyle: MenuStyle(
-                        backgroundColor: WidgetStatePropertyAll(
-                          appConfig.adaptiveBg
-                              ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.8)
-                              : theme.colorScheme.surfaceContainer,
+                      const SizedBox(height: 24),
+                      if (appConfig.theme == 'adaptive') ...[
+                        Row(
+                          children: [
+                            Text('Base Brightness', style: theme.textTheme.bodyLarge),
+                            const SizedBox(width: 48),
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  ChoiceTile(
+                                    label: 'Light',
+                                    verticalPadding: 8,
+                                    isSelected: appConfig.themeBrightness == .light,
+                                    onTap: () =>
+                                        ref.read(configServiceProvider.notifier).updateConfig(themeBrightness: .light),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  ChoiceTile(
+                                    label: 'Dark',
+                                    verticalPadding: 8,
+                                    isSelected: appConfig.themeBrightness == .dark,
+                                    onTap: () =>
+                                        ref.read(configServiceProvider.notifier).updateConfig(themeBrightness: .dark),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      dropdownMenuEntries: keyLabel.entries.map((entry) {
-                        return DropdownMenuEntry(value: entry.key, label: entry.value);
-                      }).toList(),
-                      onSelected: (selectedTheme) {
-                        if (selectedTheme == null) return;
-                        ref.read(configServiceProvider.notifier).updateConfig(theme: selectedTheme);
-                      },
-                    ),
+                      ] else ...[
+                        Row(
+                          mainAxisAlignment: .spaceBetween,
+                          children: [
+                            Text('Color Theme', style: theme.textTheme.bodyLarge),
+                            const SizedBox(width: 48),
+                            DropdownMenu<String>(
+                              initialSelection: appConfig.theme,
+                              inputDecorationTheme: InputDecorationTheme(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                                isDense: true,
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              menuStyle: MenuStyle(
+                                backgroundColor: WidgetStatePropertyAll(
+                                  appConfig.adaptiveBg
+                                      ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.8)
+                                      : theme.colorScheme.surfaceContainer,
+                                ),
+                              ),
+                              dropdownMenuEntries: AppTheme.labels.entries.where((e) => e.key != 'adaptive').map((
+                                entry,
+                              ) {
+                                return DropdownMenuEntry(value: entry.key, label: entry.value);
+                              }).toList(),
+                              onSelected: (selectedTheme) {
+                                if (selectedTheme == null) return;
+                                ref.read(configServiceProvider.notifier).updateConfig(theme: selectedTheme);
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ),
@@ -61,7 +118,7 @@ class AppearancePage extends ConsumerWidget {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: ListTile(
-                    title: const Text('Icon Set'),
+                    title: Text('Icon Set', style: theme.textTheme.bodyLarge),
                     trailing: DropdownMenu<String>(
                       initialSelection: appConfig.iconSet,
                       inputDecorationTheme: InputDecorationTheme(
@@ -95,7 +152,7 @@ class AppearancePage extends ConsumerWidget {
                 child: Column(
                   children: [
                     SwitchListTile(
-                      title: const Text('Adaptive Background'),
+                      title: Text('Adaptive Background', style: theme.textTheme.bodyLarge),
                       subtitle: const Text("Use the currently played track's album art as the background"),
                       value: appConfig.adaptiveBg,
                       onChanged: (val) {
@@ -109,7 +166,7 @@ class AppearancePage extends ConsumerWidget {
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         child: ListTile(
-                          title: const Text('Album Art Fit'),
+                          title: Text('Album Art Fit', style: theme.textTheme.bodyLarge),
                           trailing: DropdownMenu<BoxFit>(
                             initialSelection: appConfig.adaptiveBgAlbumFit,
                             inputDecorationTheme: InputDecorationTheme(
@@ -125,9 +182,9 @@ class AppearancePage extends ConsumerWidget {
                               ),
                             ),
                             dropdownMenuEntries: const [
-                              DropdownMenuEntry(value: BoxFit.contain, label: 'Contain (Fit inside)'),
-                              DropdownMenuEntry(value: BoxFit.cover, label: 'Cover (Crop to fill)'),
-                              DropdownMenuEntry(value: BoxFit.fill, label: 'Fill (Stretch)'),
+                              DropdownMenuEntry(value: .contain, label: 'Contain (Fit inside)'),
+                              DropdownMenuEntry(value: .cover, label: 'Cover (Crop to fill)'),
+                              DropdownMenuEntry(value: .fill, label: 'Fill (Stretch)'),
                             ],
                             onSelected: (selectedFit) {
                               if (selectedFit == null) return;
@@ -191,13 +248,13 @@ class AppearancePage extends ConsumerWidget {
 
           const SizedBox(height: 8),
 
-          const SectionHeader(label: 'Typography', labelType: LabelType.h1),
+          const SectionHeader(label: 'Typography', labelType: .h1),
 
           SectionCard(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: ListTile(
-                title: const Text('Font Family'),
+                title: Text('Font Family', style: theme.textTheme.bodyLarge),
                 trailing: DropdownMenu<String>(
                   initialSelection: appConfig.fontFamily,
                   inputDecorationTheme: InputDecorationTheme(

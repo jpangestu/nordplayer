@@ -53,18 +53,13 @@ class _SliderTileState extends State<SliderTile> {
         children: [
           SizedBox(
             width: widget.leading != null ? 160 - 40 : 160, // 40 is the width of the leading icon
-            child: Text(
-              widget.label,
-              style: const TextStyle(fontWeight: FontWeight.w500, height: 1.0),
-            ),
+            child: Text(widget.label, style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.0)),
           ),
 
           const SizedBox(width: 8),
           Expanded(
             child: SliderTheme(
-              data: SliderTheme.of(
-                context,
-              ).copyWith(overlayShape: SliderComponentShape.noOverlay),
+              data: SliderTheme.of(context).copyWith(overlayShape: SliderComponentShape.noOverlay),
               child: Slider(
                 value: _localValue,
                 min: widget.min,
@@ -85,10 +80,7 @@ class _SliderTileState extends State<SliderTile> {
             child: Text(
               widget.labelBuilder(_localValue),
               textAlign: TextAlign.left,
-              style: const TextStyle(
-                fontFeatures: [FontFeature.tabularFigures()],
-                height: 1.0,
-              ),
+              style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()], height: 1.0),
               maxLines: 1,
             ),
           ),

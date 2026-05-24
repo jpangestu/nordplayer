@@ -1,4 +1,4 @@
-import 'package:flutter/rendering.dart';
+import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:nordplayer/models/app_theme.dart';
 
@@ -6,6 +6,7 @@ class AppConfig {
   final List<String> musicPaths;
   final List<String> artistDelimiters;
   final String theme;
+  final Brightness themeBrightness;
   final String iconSet;
   final bool adaptiveBg;
   final BoxFit adaptiveBgAlbumFit;
@@ -19,6 +20,7 @@ class AppConfig {
   // Not private because settings page need access
   static const List<String> defaultArtistDelimiters = [',', ';', '/', '+', '&'];
   static const String _defaultTheme = 'nord';
+  static const Brightness _defaultThemeBrightness = Brightness.dark;
   static const String _defaultIconSet = 'lucide';
   static const bool _defaultAdaptiveBg = false;
   static const BoxFit _defaultAdaptiveBgAlbumFit = BoxFit.cover;
@@ -32,6 +34,7 @@ class AppConfig {
     this.musicPaths = _defaultMusicPaths,
     this.artistDelimiters = defaultArtistDelimiters,
     this.theme = _defaultTheme,
+    this.themeBrightness = _defaultThemeBrightness,
     this.iconSet = _defaultIconSet,
     this.adaptiveBg = _defaultAdaptiveBg,
     this.adaptiveBgAlbumFit = _defaultAdaptiveBgAlbumFit,
@@ -46,6 +49,7 @@ class AppConfig {
     List<String>? musicPaths,
     List<String>? artistDelimiters,
     String? theme,
+    Brightness? themeBrightness,
     String? iconSet,
     bool? adaptiveBg,
     BoxFit? adaptiveBgAlbumFit,
@@ -59,6 +63,7 @@ class AppConfig {
       musicPaths: musicPaths ?? this.musicPaths,
       artistDelimiters: artistDelimiters ?? this.artistDelimiters,
       theme: theme ?? this.theme,
+      themeBrightness: themeBrightness ?? this.themeBrightness,
       iconSet: iconSet ?? this.iconSet,
       adaptiveBg: adaptiveBg ?? this.adaptiveBg,
       adaptiveBgAlbumFit: adaptiveBgAlbumFit ?? this.adaptiveBgAlbumFit,
@@ -75,6 +80,7 @@ class AppConfig {
       musicPaths: _parseMusicPaths(json['musicPaths'], logger: logger),
       artistDelimiters: _parseArtistDelimiters(json['artistDelimiters'], logger: logger),
       theme: _parseTheme(json['theme'], logger: logger),
+      themeBrightness: _parseThemeBrightness(json['themeBrightness'], logger: logger),
       iconSet: _parseIconSet(json['iconSet'], logger: logger),
       adaptiveBg: _parseAdaptiveBg(json['adaptiveBg'], logger: logger),
       adaptiveBgAlbumFit: _parseAlbumFit(json['albumFit'], logger: logger),
@@ -119,6 +125,20 @@ class AppConfig {
     }
 
     return value;
+  }
+
+  static Brightness _parseThemeBrightness(dynamic value, {required Logger logger}) {
+    if (value is! String) {
+      logger.w("Invalid brightness type: $value. Fallback to '$_defaultThemeBrightness'.");
+      return _defaultThemeBrightness;
+    }
+
+    try {
+      return Brightness.values.byName(value);
+    } catch (e) {
+      logger.w("Unknown brightness value: $value. Fallback to '$_defaultThemeBrightness'.");
+      return _defaultThemeBrightness;
+    }
   }
 
   static String _parseIconSet(dynamic value, {required Logger logger}) {
@@ -202,6 +222,7 @@ class AppConfig {
       'musicPaths': musicPaths,
       'artistDelimiters': artistDelimiters,
       'theme': theme,
+      'themeBrightness': themeBrightness.name,
       'iconSet': iconSet,
       'adaptiveBg': adaptiveBg,
       'albumFit': adaptiveBgAlbumFit.name,
