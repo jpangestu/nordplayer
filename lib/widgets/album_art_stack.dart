@@ -44,6 +44,8 @@ class AlbumArtStack extends ConsumerWidget {
         if (imageUrls.isEmpty) {
           return Center(
             child: Container(
+              width: squareSize,
+              height: squareSize,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(4),
                 gradient: LinearGradient(
@@ -72,9 +74,16 @@ class AlbumArtStack extends ConsumerWidget {
             child: Stack(
               children: List.generate(count, (index) {
                 final double leftOffset = (count - 1 - index) * sliceWidth;
-
                 final imageUrl = displayUrls[index];
-                final file = File(Uri.parse(imageUrl).toFilePath());
+                
+                // 🛠️ FIX: Safely parse path whether it's a raw path or a file:// URI
+                File file;
+                if (imageUrl.startsWith('file://')) {
+                  file = File(Uri.parse(imageUrl).toFilePath());
+                } else {
+                  file = File(imageUrl);
+                }
+
                 final hasImage = imageUrl.isNotEmpty && file.existsSync();
 
                 return AnimatedPositioned(

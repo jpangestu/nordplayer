@@ -28,6 +28,47 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  Future<void> clearAllData() async {
+    await customStatement('PRAGMA foreign_keys = OFF;');
+
+    try {
+      await transaction(() async {
+        await customStatement('DELETE FROM queue_entries;');
+        await customStatement('DELETE FROM playlist_track;');
+        await customStatement('DELETE FROM track_artist;');
+
+        await customStatement('DELETE FROM playlists;');
+        await customStatement('DELETE FROM tracks;');
+        await customStatement('DELETE FROM albums;');
+        await customStatement('DELETE FROM artists;');
+      });
+
+      await customStatement('PRAGMA foreign_keys = ON;');
+
+      // Reclaim empty disk spaces and reduce file size back to zero
+      await customStatement('VACUUM;');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> deleteOrphanedMetadata() async {
+    await transaction(() async {
+      // Delete albums that no longer have any tracks pointing to them
+      await customStatement('''
+      DELETE FROM albums 
+      WHERE id NOT IN (SELECT DISTINCT album_id FROM tracks WHERE album_id IS NOT NULL);
+    ''');
+
+      // Delete artists who no longer have any tracks OR albums pointing to them
+      await customStatement('''
+      DELETE FROM artists 
+      WHERE id NOT IN (SELECT DISTINCT artist_id FROM tracks WHERE artist_id IS NOT NULL)
+        AND id NOT IN (SELECT DISTINCT artist_id FROM albums WHERE artist_id IS NOT NULL);
+    ''');
+    });
+  }
+
   // =========================================== Library Stats =======================================================
 
   Stream<LibraryStats> watchLibraryStats() {

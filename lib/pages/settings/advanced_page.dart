@@ -96,6 +96,9 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
         await ref.read(libraryScannerProvider).removeTracksInDirectory(path);
       }
 
+      // Clean up orphaned metadata
+      await ref.read(appDatabaseProvider).deleteOrphanedMetadata();
+
       log.i("Settings reset and orphaned database tracks cleared.");
     }
   }
@@ -115,25 +118,17 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
       log.w("Starting full application data wipe...");
 
       try {
-        ref.invalidate(appDatabaseProvider);
-        log.d("Database connection closed.");
+        // Stop playback and clear the queue
+        await ref.read(playerServiceProvider).clearQueue();
+        log.d("Player queue cleared.");
 
-        final dbDir = await getApplicationSupportDirectory();
-        final dbPath = p.join(dbDir.path, 'database.sqlite');
-        final dbFiles = [dbPath, '$dbPath-wal', '$dbPath-shm'];
+        // Clear all db tables
+        await ref.read(appDatabaseProvider).clearAllData();
 
-        for (final path in dbFiles) {
-          final file = File(path);
-          if (await file.exists()) {
-            try {
-              await file.delete();
-              log.d("Deleted database file: $path");
-            } catch (e) {
-              log.e("Could not delete $path: $e");
-            }
-          }
-        }
+        // Give the OS a moment to fully release the file system handles.
+        await Future.delayed(const Duration(milliseconds: 100));
 
+        // Delete the album art cache
         final cacheDir = await getApplicationCacheDirectory();
         final artDir = Directory(p.join(cacheDir.path, 'album_art'));
         if (await artDir.exists()) {
@@ -143,17 +138,14 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
 
         log.i("Application data wipe complete.");
 
-        // Stop playback and clear the queue
-        await ref.read(playerServiceProvider).clearQueue();
+        // Invalidate libraryScanner before rescan
+        ref.invalidate(randomAlbumsProvider);
+        ref.invalidate(libraryScannerProvider);
 
         // Trigger rescan library if music paths still exist
         final currentPaths = ref.read(configServiceProvider).requireValue.musicPaths;
         if (currentPaths.isNotEmpty) {
           log.i("Existing music paths found. Triggering library rescan...");
-
-          // Force Riverpod to wake up and establish the new SQLite connection
-          // before the scanner attempts to write to it.
-          ref.read(appDatabaseProvider);
           ref.read(libraryScannerProvider).scanLibrary();
         }
       } catch (e, s) {
