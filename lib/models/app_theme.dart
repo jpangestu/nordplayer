@@ -64,7 +64,11 @@ class AppTheme {
 
 final adaptiveThemeProvider = FutureProvider<AdaptiveColorScheme>((ref) async {
   final track = ref.watch(currentTrackProvider);
-  final appConfig = ref.watch(configServiceProvider).requireValue;
+  
+  final themeBrightness = ref.watch(
+    configServiceProvider.select((asyncValue) => asyncValue.value?.themeBrightness ?? Brightness.dark),
+  );
+  
   final albumArtPath = track?.album.albumArtPath;
 
   // Determine the correct ImageProvider based on the path
@@ -77,17 +81,29 @@ final adaptiveThemeProvider = FutureProvider<AdaptiveColorScheme>((ref) async {
     imageProvider = const AssetImage('assets/images/default_background.png');
   }
 
-  final generatedScheme = await ColorScheme.fromImageProvider(provider: imageProvider, brightness: appConfig.themeBrightness);
+  // Register onDispose listener to evict the image from cache if the provider is cancelled or rebuilt.
+  ref.onDispose(() {
+    if (imageProvider is FileImage) {
+      imageProvider.evict();
+    }
+  });
+
+  final generatedScheme = await ColorScheme.fromImageProvider(provider: imageProvider, brightness: themeBrightness);
+
+  // Evict the image provider from Flutter's imageCache immediately after extraction
+  // to avoid retaining the full-resolution decoded image in memory.
+  if (imageProvider is FileImage) {
+    await imageProvider.evict();
+  }
 
   return AdaptiveColorScheme.fromColorScheme(generatedScheme);
 });
 
 final activeThemeProvider = Provider<ThemeData>((ref) {
-  final appConfig = ref.watch(configServiceProvider).requireValue;
-  final currentTheme = appConfig.theme;
-  final currentFont = appConfig.fontFamily;
+  final currentTheme = ref.watch(configServiceProvider.select((v) => v.value?.theme ?? 'nord'));
+  final currentFont = ref.watch(configServiceProvider.select((v) => v.value?.fontFamily));
 
-  if (appConfig.theme != 'adaptive') {
+  if (currentTheme != 'adaptive') {
     return AppTheme.getTheme(currentTheme, currentFont);
   }
 
@@ -101,7 +117,8 @@ final activeThemeProvider = Provider<ThemeData>((ref) {
     // If we have any scheme at all (old or new), use it. No flicker!
     return AppTheme.getTheme(currentTheme, currentFont, adaptiveScheme: currentAdaptiveScheme);
   } else {
-    // Fallback at app rist launch
+    // Fallback at app first launch
     return AppTheme.getTheme('nord', currentFont);
   }
 });
+

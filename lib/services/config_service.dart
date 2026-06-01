@@ -77,6 +77,13 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
     if (!state.hasValue) return;
 
     final currentConfig = state.requireValue;
+
+    // Clear global image cache when adaptive background is turned off to release memory
+    if (adaptiveBg == false && currentConfig.adaptiveBg) {
+      log.i("Clearing global ImageCache on disabling adaptive background.");
+      PaintingBinding.instance.imageCache.clear();
+    }
+
     final newConfig = currentConfig.copyWith(
       musicPaths: musicPaths,
       artistDelimiters: artistDelimiters,

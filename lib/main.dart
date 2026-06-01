@@ -113,60 +113,77 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp> with WindowListen
       }
     });
 
-    final configState = ref.watch(configServiceProvider);
+    // Select only the loading/error/value status fields so that changing config fields
+    // does not trigger a rebuild of the entire NordplayerApp (and therefore MaterialApp).
+    final configStatus = ref.watch(configServiceProvider.select((v) => (
+          isLoading: v.isLoading,
+          hasError: v.hasError,
+          error: v.error,
+          hasValue: v.hasValue,
+        )));
 
-    return configState.when(
-      loading: () => const SizedBox.shrink(),
+    if (configStatus.isLoading) {
+      return const SizedBox.shrink();
+    }
 
-      error: (err, stack) => MaterialApp(
+    if (configStatus.hasError) {
+      return MaterialApp(
         theme: ThemeData.light(),
         darkTheme: ThemeData.dark(),
         themeMode: ThemeMode.system,
-        home: Scaffold(body: Center(child: Text('Disk Error: $err'))),
-      ),
+        home: Scaffold(body: Center(child: Text('Disk Error: ${configStatus.error}'))),
+      );
+    }
 
-      data: (config) {
-        // Depends on configProvider.requireValue
-        final themeData = ref.watch(activeThemeProvider);
+    if (!configStatus.hasValue) {
+      return const SizedBox.shrink();
+    }
 
-        return MaterialApp.router(
-          routerConfig: router,
-          title: 'Nordplayer',
-          theme: themeData,
-          builder: (context, child) {
-            return Shortcuts(
-              shortcuts: <ShortcutActivator, Intent>{
-                const SingleActivator(LogicalKeyboardKey.keyK, control: true): const FocusSearchIntent(),
-                const SingleActivator(LogicalKeyboardKey.space): const PlayOrPauseIntent(),
-                const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): const SkipToNextIntent(),
-                const SingleActivator(LogicalKeyboardKey.arrowLeft, control: true): const SkipToPreviousIntent(),
-                const CharacterActivator('s', control: true): const ToggleShuffleIntent(),
-                const CharacterActivator('l', control: true): const CycleLoopIntent(),
-                const SingleActivator(LogicalKeyboardKey.arrowUp, control: true): const VolumeUpIntent(),
-                const SingleActivator(LogicalKeyboardKey.arrowDown, control: true): const VolumeDownIntent(),
-                const CharacterActivator('m'): const MuteIntent(),
-              },
-              child: Actions(
-                actions: <Type, Action<Intent>>{
-                  FocusSearchIntent: FocusSearchAction(ref),
-                  PlayOrPauseIntent: PlayOrPauseAction(ref),
-                  SkipToNextIntent: SkipToNextAction(ref),
-                  SkipToPreviousIntent: SkipToPreviousAction(ref),
-                  ToggleShuffleIntent: ToggleShuffleAction(ref),
-                  CycleLoopIntent: CycleLoopAction(ref),
-                  VolumeUpIntent: VolumeUpAction(ref),
-                  VolumeDownIntent: VolumeDownAction(ref),
-                  MuteIntent: MuteAction(ref),
-                },
-                child: Focus(
-                  child: MediaQuery(
-                    data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(config.textScale)),
-                    child: AdaptiveScaffold(body: child!),
-                  ),
-                ),
-              ),
-            );
+    // Depends on activeThemeProvider, which only rebuilds when theme or fontFamily changes
+    final themeData = ref.watch(activeThemeProvider);
+
+    return MaterialApp.router(
+      routerConfig: router,
+      title: 'Nordplayer',
+      theme: themeData,
+      builder: (context, child) {
+        return Shortcuts(
+          shortcuts: <ShortcutActivator, Intent>{
+            const SingleActivator(LogicalKeyboardKey.keyK, control: true): const FocusSearchIntent(),
+            const SingleActivator(LogicalKeyboardKey.space): const PlayOrPauseIntent(),
+            const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): const SkipToNextIntent(),
+            const SingleActivator(LogicalKeyboardKey.arrowLeft, control: true): const SkipToPreviousIntent(),
+            const CharacterActivator('s', control: true): const ToggleShuffleIntent(),
+            const CharacterActivator('l', control: true): const CycleLoopIntent(),
+            const SingleActivator(LogicalKeyboardKey.arrowUp, control: true): const VolumeUpIntent(),
+            const SingleActivator(LogicalKeyboardKey.arrowDown, control: true): const VolumeDownIntent(),
+            const CharacterActivator('m'): const MuteIntent(),
           },
+          child: Actions(
+            actions: <Type, Action<Intent>>{
+              FocusSearchIntent: FocusSearchAction(ref),
+              PlayOrPauseIntent: PlayOrPauseAction(ref),
+              SkipToNextIntent: SkipToNextAction(ref),
+              SkipToPreviousIntent: SkipToPreviousAction(ref),
+              ToggleShuffleIntent: ToggleShuffleAction(ref),
+              CycleLoopIntent: CycleLoopAction(ref),
+              VolumeUpIntent: VolumeUpAction(ref),
+              VolumeDownIntent: VolumeDownAction(ref),
+              MuteIntent: MuteAction(ref),
+            },
+            child: Focus(
+              child: Consumer(
+                builder: (context, ref, _) {
+                  // Localize text scale rebuilds to this sub-tree instead of rebuilding the entire MaterialApp.
+                  final textScale = ref.watch(configServiceProvider.select((v) => v.value?.textScale ?? 1.0));
+                  return MediaQuery(
+                    data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(textScale)),
+                    child: AdaptiveScaffold(body: child!),
+                  );
+                },
+              ),
+            ),
+          ),
         );
       },
     );

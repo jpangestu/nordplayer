@@ -13,19 +13,23 @@ class AdaptiveScaffold extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final adaptiveBg = ref.watch(configServiceProvider.select((v) => v.value?.adaptiveBg ?? false));
+    final blur = ref.watch(configServiceProvider.select((v) => v.value?.adaptiveBgAlbumBlur ?? 0.0));
+    final fit = ref.watch(configServiceProvider.select((v) => v.value?.adaptiveBgAlbumFit ?? BoxFit.cover));
+    final themeOverlay = ref.watch(configServiceProvider.select((v) => v.value?.adaptiveBgThemeOverlay ?? 0.0));
+
     final currentTrack = ref.watch(currentTrackProvider);
     final currentAlbumArtPath = currentTrack?.album.albumArtPath;
 
-    final cacheW = _getCacheWidth(appConfig.adaptiveBgAlbumBlur);
+    final cacheW = _getCacheWidth(blur);
 
     return Material(
       type: MaterialType.transparency,
       child: Stack(
         children: [
           // LAYER 1: The Album Art
-          if (appConfig.adaptiveBg) ...[
-            // Show stretched album art to fill the gap. The edget of BoxFit.cover
+          if (adaptiveBg) ...[
+            // Show stretched album art to fill the gap. The edges of BoxFit.cover
             // and fill if blur == 100 will be transparent, hence need this layer
             RepaintBoundary(
               child: AnimatedSwitcher(
@@ -43,11 +47,11 @@ class AdaptiveScaffold extends ConsumerWidget {
                             cacheWidth: cacheW,
                             gaplessPlayback: true,
                             errorBuilder: (_, _, _) =>
-                                getFallbackBackground(context, cacheW, appConfig.adaptiveBgAlbumBlur),
+                                getFallbackBackground(context, cacheW, blur),
                           ),
                         ),
                       )
-                    : getFallbackBackground(context, cacheW, appConfig.adaptiveBgAlbumBlur),
+                    : getFallbackBackground(context, cacheW, blur),
               ),
             ),
 
@@ -62,22 +66,22 @@ class AdaptiveScaffold extends ConsumerWidget {
                         key: ValueKey(currentAlbumArtPath),
                         child: ImageFiltered(
                           imageFilter: ImageFilter.blur(
-                            sigmaX: appConfig.adaptiveBgAlbumBlur,
-                            sigmaY: appConfig.adaptiveBgAlbumBlur,
+                            sigmaX: blur,
+                            sigmaY: blur,
                             // tileMode not set to make sure the blur of the main album art
                             // is bound to the image size. Important for BoxFit.contain
                           ),
                           child: Image.file(
                             File(currentAlbumArtPath),
-                            fit: appConfig.adaptiveBgAlbumFit,
+                            fit: fit,
                             cacheWidth: cacheW,
                             gaplessPlayback: true,
                             errorBuilder: (_, _, _) =>
-                                getFallbackBackground(context, cacheW, appConfig.adaptiveBgAlbumBlur),
+                                getFallbackBackground(context, cacheW, blur),
                           ),
                         ),
                       )
-                    : getFallbackBackground(context, cacheW, appConfig.adaptiveBgAlbumBlur),
+                    : getFallbackBackground(context, cacheW, blur),
               ),
             ),
 
@@ -117,7 +121,7 @@ class AdaptiveScaffold extends ConsumerWidget {
                     //         ? dominantColorAsync.value!
                     //         : Theme.of(context).colorScheme.surface)
                     //     .withValues(alpha: appConfig.adaptiveBgThemeOverlay),
-                    Theme.of(context).colorScheme.surface.withValues(alpha: appConfig.adaptiveBgThemeOverlay),
+                    Theme.of(context).colorScheme.surface.withValues(alpha: themeOverlay),
               ),
             ),
           ],
