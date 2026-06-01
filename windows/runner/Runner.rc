@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.nordplayer" "\0"
-            VALUE "FileDescription", "nordplayer" "\0"
+            VALUE "FileDescription", "Nordplayer" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "nordplayer" "\0"
+            VALUE "InternalName", "Nordplayer" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.nordplayer. All rights reserved." "\0"
-            VALUE "OriginalFilename", "nordplayer.exe" "\0"
-            VALUE "ProductName", "nordplayer" "\0"
+            VALUE "OriginalFilename", "Nordplayer.exe" "\0"
+            VALUE "ProductName", "Nordplayer" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
