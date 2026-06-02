@@ -1,0 +1,3 @@
+# Normalize line endings automatically to prevent cross-platform (Windows/Linux/Unix) diff issues
+* text=auto
+*.dart text eol=lf
