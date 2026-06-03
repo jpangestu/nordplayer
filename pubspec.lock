@@ -675,10 +675,11 @@ packages:
   media_kit:
     dependency: "direct main"
     description:
-      name: media_kit
-      sha256: ae9e79597500c7ad6083a3c7b7b7544ddabfceacce7ae5c9709b0ec16a5d6643
-      url: "https://pub.dev"
-    source: hosted
+      path: media_kit
+      ref: main
+      resolved-ref: c6c7dc00ae981a4046fe08261350c8dad483c42e
+      url: "https://github.com/jpangestu/media-kit.git"
+    source: git
     version: "1.2.6"
   media_kit_libs_android_audio:
     dependency: transitive

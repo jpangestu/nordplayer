@@ -104,4 +104,10 @@ flutter:
         - asset: assets/fonts/Rubik/Rubik-Bold.ttf
           weight: 700
 dependency_overrides:
-  freezed_annotation: ^3.1.0 # Resolve conflict between audiotags (requires ^2.4.1) and riverpod_lint (requires ^3.0.0)
+  freezed_annotation: ^3.0.0
+  media_kit:
+    git:
+      url: https://github.com/jpangestu/media-kit.git
+      path: media_kit
+      ref: main
+
