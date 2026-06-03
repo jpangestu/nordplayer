@@ -96,7 +96,6 @@ class _QueuePageState extends ConsumerState<QueuePage> {
       child: SizedBox(
         width: 300,
         child: Scaffold(
-          extendBodyBehindAppBar: true,
           appBar: AppBar(
             backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surfaceContainer,
             toolbarHeight: 60,
@@ -144,7 +143,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
               ? theme.colorScheme.surfaceContainerLow.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
               : theme.colorScheme.surfaceContainerLow,
           body: ReorderableList(
-            padding: const EdgeInsets.only(top: 66, bottom: 4),
+            padding: const .symmetric(vertical: 8),
             controller: _scrollController,
             onReorderStart: (index) {
               ref.read(queueIsDraggingProvider.notifier).setDragging(true);
@@ -316,7 +315,7 @@ class _QueueItemState extends ConsumerState<_QueueItem> {
                   index: widget.index,
                   child: MusicTile(
                     selected: widget.isCurrentlyPlaying,
-                    padding: EdgeInsets.only(left: 16, top: 8, bottom: 8, right: effectiveHover ? 90.0 : 16.0),
+                    padding: .only(left: 16, top: 8, bottom: 8, right: effectiveHover ? 90.0 : 16.0),
                     title: widget.trackItem.track.title,
                     artists: widget.trackItem.artists.map<String>((artist) => artist.name).toList(),
                     albumArtPath: widget.trackItem.album.albumArtPath,
@@ -327,7 +326,7 @@ class _QueueItemState extends ConsumerState<_QueueItem> {
               // Show action buttons only when hovered
               if (effectiveHover)
                 Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
+                  padding: const .only(right: 8.0),
                   child: MouseRegion(
                     onEnter: (_) => _isHoveringActions = true,
                     onExit: (_) => _isHoveringActions = false,

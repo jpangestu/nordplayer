@@ -12,14 +12,14 @@ class SectionCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final appConfig = ref.watch(configServiceProvider).requireValue;
-    final surfaceContainer = Theme.of(context).colorScheme.surfaceContainer;
+    final surfaceContainerLow = Theme.of(context).colorScheme.surfaceContainerLow;
 
     final defaultBackgroundColor = appConfig.adaptiveBg
-        ? surfaceContainer.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
-        : surfaceContainer;
+        ? surfaceContainerLow.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
+        : surfaceContainerLow;
 
     return FrostedGlass(
-      blurSigma: 10,
+      blurSigma: appConfig.adaptiveBgPanelBlur,
       backgroundColor: backgroundColor != null
           ? appConfig.adaptiveBg
                 ? backgroundColor!.withValues(alpha: appConfig.adaptiveBgThemeOverlay)

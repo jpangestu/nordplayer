@@ -47,32 +47,48 @@ class AppearancePage extends ConsumerWidget {
                       ),
                       const SizedBox(height: 24),
                       if (appConfig.theme == 'adaptive') ...[
-                        Row(
-                          children: [
-                            Text('Base Brightness', style: theme.textTheme.bodyLarge),
-                            const SizedBox(width: 48),
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  ChoiceTile(
-                                    label: 'Light',
-                                    verticalPadding: 8,
-                                    isSelected: appConfig.themeBrightness == .light,
-                                    onTap: () =>
-                                        ref.read(configServiceProvider.notifier).updateConfig(themeBrightness: .light),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  ChoiceTile(
-                                    label: 'Dark',
-                                    verticalPadding: 8,
-                                    isSelected: appConfig.themeBrightness == .dark,
-                                    onTap: () =>
-                                        ref.read(configServiceProvider.notifier).updateConfig(themeBrightness: .dark),
-                                  ),
-                                ],
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final useVerticalLayout = constraints.maxWidth < 380;
+                            final tiles = [
+                              ChoiceTile(
+                                label: 'Light',
+                                verticalPadding: 8,
+                                isSelected: appConfig.themeBrightness == Brightness.light,
+                                onTap: () => ref
+                                    .read(configServiceProvider.notifier)
+                                    .updateConfig(themeBrightness: Brightness.light),
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 8),
+                              ChoiceTile(
+                                label: 'Dark',
+                                verticalPadding: 8,
+                                isSelected: appConfig.themeBrightness == Brightness.dark,
+                                onTap: () => ref
+                                    .read(configServiceProvider.notifier)
+                                    .updateConfig(themeBrightness: Brightness.dark),
+                              ),
+                            ];
+
+                            if (useVerticalLayout) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Base Brightness', style: theme.textTheme.bodyLarge),
+                                  const SizedBox(height: 12),
+                                  Row(children: tiles),
+                                ],
+                              );
+                            }
+
+                            return Row(
+                              children: [
+                                Text('Base Brightness', style: theme.textTheme.bodyLarge),
+                                const SizedBox(width: 48),
+                                Expanded(child: Row(children: tiles)),
+                              ],
+                            );
+                          },
                         ),
                       ] else ...[
                         Row(

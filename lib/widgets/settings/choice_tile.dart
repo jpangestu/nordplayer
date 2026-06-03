@@ -21,7 +21,7 @@ class ChoiceTile extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    final Color borderColor = isSelected ? colorScheme.primary : colorScheme.outlineVariant;
+    final Color borderColor = isSelected ? colorScheme.primary : colorScheme.outline;
     final Color backgroundColor = isSelected ? colorScheme.primary.withValues(alpha: 0.1) : Colors.transparent;
     final Color contentColor = isSelected ? colorScheme.primary : colorScheme.onSurface;
 

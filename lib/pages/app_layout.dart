@@ -141,7 +141,7 @@ class AdaptiveDivider extends ConsumerWidget {
     final appConfig = ref.watch(configServiceProvider).requireValue;
 
     if (!appConfig.adaptiveBg) {
-      return const Divider(height: 2, thickness: 2);
+      return Divider(height: 2, thickness: 2, color: Theme.of(context).colorScheme.outlineVariant);
     }
 
     return Divider(
@@ -149,7 +149,7 @@ class AdaptiveDivider extends ConsumerWidget {
       thickness: 2,
       color: appConfig.adaptiveBgThemeOverlay != 1.0
           ? Colors.transparent
-          : Theme.of(context).colorScheme.outlineVariant.withValues(alpha: appConfig.adaptiveBgThemeOverlay),
+          : Theme.of(context).colorScheme.outlineVariant,
     );
   }
 }
@@ -162,7 +162,7 @@ class AdaptiveVerticalDivider extends ConsumerWidget {
     final appConfig = ref.watch(configServiceProvider).requireValue;
 
     if (!appConfig.adaptiveBg) {
-      return const VerticalDivider(width: 2, thickness: 2);
+      return VerticalDivider(width: 2, thickness: 2, color: Theme.of(context).colorScheme.outlineVariant);
     }
 
     return VerticalDivider(
@@ -170,7 +170,7 @@ class AdaptiveVerticalDivider extends ConsumerWidget {
       thickness: 2,
       color: appConfig.adaptiveBgThemeOverlay != 1.0
           ? Colors.transparent
-          : Theme.of(context).colorScheme.outlineVariant.withValues(alpha: appConfig.adaptiveBgThemeOverlay),
+          : Theme.of(context).colorScheme.outlineVariant,
     );
   }
 }

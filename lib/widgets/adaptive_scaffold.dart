@@ -27,6 +27,11 @@ class AdaptiveScaffold extends ConsumerWidget {
       type: MaterialType.transparency,
       child: Stack(
         children: [
+          // Solid background to prevent transparency during transitions or due to sub-pixel rendering gaps
+          // Color is outlineVariant to create a workaround for windows fractional scale transparency issues on divider
+          // TODO: Create a github issue for divider transparency problem on windows fractional scale
+          Positioned.fill(child: Container(color: Theme.of(context).colorScheme.outlineVariant)),
+
           // LAYER 1: The Album Art
           if (adaptiveBg) ...[
             // Show stretched album art to fill the gap. The edges of BoxFit.cover
@@ -46,8 +51,7 @@ class AdaptiveScaffold extends ConsumerWidget {
                             fit: .fill,
                             cacheWidth: cacheW,
                             gaplessPlayback: true,
-                            errorBuilder: (_, _, _) =>
-                                getFallbackBackground(context, cacheW, blur),
+                            errorBuilder: (_, _, _) => getFallbackBackground(context, cacheW, blur),
                           ),
                         ),
                       )
@@ -76,8 +80,7 @@ class AdaptiveScaffold extends ConsumerWidget {
                             fit: fit,
                             cacheWidth: cacheW,
                             gaplessPlayback: true,
-                            errorBuilder: (_, _, _) =>
-                                getFallbackBackground(context, cacheW, blur),
+                            errorBuilder: (_, _, _) => getFallbackBackground(context, cacheW, blur),
                           ),
                         ),
                       )
