@@ -7,6 +7,7 @@ import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/logger.dart';
+import 'package:nordplayer/utils/string_extension.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -35,7 +36,13 @@ class LibraryScanner with LoggerMixin {
     log.i("Initializing library scan for ${_appConfig.musicPaths.length} folders");
 
     final existingTracks = await _db.select(_db.tracks).get();
-    final Set<String> knownTrackPaths = existingTracks.map((track) => track.filePath).toSet();
+    
+    // Normalize and lowercase known paths for case-insensitive matching
+    final Map<String, String> knownTrackPathsMap = {
+      for (final track in existingTracks) track.filePath.normalizePath().toLowerCase(): track.filePath
+    };
+    final Set<String> knownTrackPathsNormalized = knownTrackPathsMap.keys.toSet();
+    
     final Set<String> filesFoundOnDisk = {};
     List<File> newTrackToProcess = [];
 
@@ -51,9 +58,10 @@ class LibraryScanner with LoggerMixin {
 
         await for (FileSystemEntity entity in entities) {
           if (entity is File && supportedExtensions.contains(p.extension(entity.path).toLowerCase())) {
-            filesFoundOnDisk.add(entity.path);
+            final normalizedDiskPath = entity.path.normalizePath().toLowerCase();
+            filesFoundOnDisk.add(normalizedDiskPath);
 
-            if (!knownTrackPaths.contains(entity.path)) {
+            if (!knownTrackPathsNormalized.contains(normalizedDiskPath)) {
               newTrackToProcess.add(entity);
               // log.d('New Track Found: ${p.basename(entity.path)}');
             }
@@ -75,20 +83,23 @@ class LibraryScanner with LoggerMixin {
       log.i('No new tracks found. Library is up to date');
     }
 
-    final tracksToRemove = knownTrackPaths.difference(filesFoundOnDisk);
-    if (tracksToRemove.isNotEmpty) {
+    final tracksToRemoveNormalized = knownTrackPathsNormalized.difference(filesFoundOnDisk);
+    if (tracksToRemoveNormalized.isNotEmpty) {
+      final tracksToRemove = tracksToRemoveNormalized.map((path) => knownTrackPathsMap[path]!).toList();
       log.i('Cleaning up ${tracksToRemove.length} removed tracks from database...');
       await (_db.delete(_db.tracks)..where((track) => track.filePath.isIn(tracksToRemove))).go();
     }
   }
 
   Future<void> removeTrackByPath(String path) async {
-    await (_db.delete(_db.tracks)..where((track) => track.filePath.equals(path))).go();
+    final normalizedPath = path.normalizePath().toLowerCase();
+    await (_db.delete(_db.tracks)..where((track) => track.filePath.lower().equals(normalizedPath))).go();
   }
 
   Future<void> removeTracksInDirectory(String directoryPath) async {
     log.i("Removing tracks under: $directoryPath");
-    await (_db.delete(_db.tracks)..where((track) => track.filePath.like('$directoryPath%'))).go();
+    final normalizedDir = directoryPath.normalizePath().toLowerCase();
+    await (_db.delete(_db.tracks)..where((track) => track.filePath.lower().like('$normalizedDir%'))).go();
   }
 
   Future<void> processSingleFile(File file) async {

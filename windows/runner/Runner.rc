@@ -89,7 +89,9 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.nordplayer" "\0"
+            // Left empty so path_provider collapses AppData directory paths
+            // (e.g. AppData\Local\Nordplayer instead of AppData\Local\com.nordplayer\Nordplayer)
+            VALUE "CompanyName", "" "\0"
             VALUE "FileDescription", "Nordplayer" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "Nordplayer" "\0"

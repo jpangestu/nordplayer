@@ -1,3 +1,5 @@
+import 'package:path/path.dart' as p;
+
 extension StringExtension on String {
   String toTitleCase() {
     if (trim().isEmpty) return this;
@@ -27,5 +29,16 @@ extension StringExtension on String {
         .where((word) => word.isNotEmpty)
         .map((word) => word[0].toUpperCase() + word.substring(1).toLowerCase())
         .join('');
+  }
+
+  /// Normalizes a file path or file URI into a standard platform-native path.
+  String normalizePath() {
+    String path = this;
+    if (startsWith('file:/')) {
+      try {
+        path = Uri.parse(this).toFilePath();
+      } catch (_) {}
+    }
+    return p.normalize(path);
   }
 }

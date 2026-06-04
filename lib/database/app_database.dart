@@ -2,7 +2,8 @@ import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/database/schema.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:nordplayer/utils/directory_helper.dart';
+import 'package:nordplayer/utils/string_extension.dart';
 
 part 'app_database.g.dart';
 
@@ -17,7 +18,7 @@ class AppDatabase extends _$AppDatabase {
     return driftDatabase(
       name: 'database',
       native: DriftNativeOptions(
-        databaseDirectory: getApplicationSupportDirectory,
+        databaseDirectory: getDatabaseDirectory,
         setup: (db) {
           // Enable WAL (Write-Ahead Logging) Mode (Higher concurrency, less locking)
           db.execute('PRAGMA journal_mode=WAL;');
@@ -119,7 +120,7 @@ class AppDatabase extends _$AppDatabase {
       for (final row in rows) {
         final track = row.readTable(tracks);
         final album = row.readTable(albums);
-        final artist = row.readTable(artists);
+        final artist = row.readTableOrNull(artists);
 
         // If track is new, create the entry
         if (!groupedTracks.containsKey(track.id)) {
@@ -131,7 +132,7 @@ class AppDatabase extends _$AppDatabase {
         final currentArtists = groupedTracks[track.id]!.artists;
 
         // Safety check: Because it's a leftOuterJoin, ensure we don't add a null/empty artist
-        if (artist.id != 0 && !currentArtists.any((a) => a.id == artist.id)) {
+        if (artist != null && artist.id != 0 && !currentArtists.any((a) => a.id == artist.id)) {
           currentArtists.add(artist);
         }
       }
@@ -153,7 +154,8 @@ class AppDatabase extends _$AppDatabase {
     final track = rows.first.readTable(tracks);
     final album = rows.first.readTable(albums);
     final artistList = rows
-        .map((row) => row.readTable(artists))
+        .map((row) => row.readTableOrNull(artists))
+        .whereType<Artist>()
         .where((a) => a.id != 0) // filter null-joined rows
         .fold<List<Artist>>([], (list, a) {
           if (!list.any((x) => x.id == a.id)) list.add(a);
@@ -182,15 +184,17 @@ class AppDatabase extends _$AppDatabase {
       for (final row in rows) {
         final track = row.readTable(tracks);
         final album = row.readTable(albums);
-        final artist = row.readTable(artists);
+        final artist = row.readTableOrNull(artists);
 
         if (!groupedTracks.containsKey(track.id)) {
           groupedTracks[track.id] = TrackWithArtists(track: track, album: album, artists: []);
         }
 
-        final currentArtists = groupedTracks[track.id]!.artists;
-        if (!currentArtists.any((a) => a.id == artist.id)) {
-          currentArtists.add(artist);
+        if (artist != null && artist.id != 0) {
+          final currentArtists = groupedTracks[track.id]!.artists;
+          if (!currentArtists.any((a) => a.id == artist.id)) {
+            currentArtists.add(artist);
+          }
         }
       }
 
@@ -337,15 +341,17 @@ class AppDatabase extends _$AppDatabase {
       track = track.copyWith(dateAdded: pt.dateAdded);
 
       final album = row.readTable(albums);
-      final artist = row.readTable(artists);
+      final artist = row.readTableOrNull(artists);
 
       if (!groupedTracks.containsKey(track.id)) {
         groupedTracks[track.id] = TrackWithArtists(track: track, album: album, artists: []);
       }
 
-      final currentArtists = groupedTracks[track.id]!.artists;
-      if (!currentArtists.any((a) => a.id == artist.id)) {
-        currentArtists.add(artist);
+      if (artist != null && artist.id != 0) {
+        final currentArtists = groupedTracks[track.id]!.artists;
+        if (!currentArtists.any((a) => a.id == artist.id)) {
+          currentArtists.add(artist);
+        }
       }
     }
 
@@ -370,15 +376,17 @@ class AppDatabase extends _$AppDatabase {
         track = track.copyWith(dateAdded: pt.dateAdded);
 
         final album = row.readTable(albums);
-        final artist = row.readTable(artists);
+        final artist = row.readTableOrNull(artists);
 
         if (!groupedTracks.containsKey(track.id)) {
           groupedTracks[track.id] = TrackWithArtists(track: track, album: album, artists: []);
         }
 
-        final currentArtists = groupedTracks[track.id]!.artists;
-        if (!currentArtists.any((a) => a.id == artist.id)) {
-          currentArtists.add(artist);
+        if (artist != null && artist.id != 0) {
+          final currentArtists = groupedTracks[track.id]!.artists;
+          if (!currentArtists.any((a) => a.id == artist.id)) {
+            currentArtists.add(artist);
+          }
         }
       }
 
@@ -433,16 +441,17 @@ class AppDatabase extends _$AppDatabase {
       for (final row in rows) {
         final track = row.readTable(tracks);
         final album = row.readTable(albums);
-        final artist = row.readTable(artists);
+        final artist = row.readTableOrNull(artists);
 
         if (!groupedTracks.containsKey(track.id)) {
           groupedTracks[track.id] = TrackWithArtists(track: track, album: album, artists: []);
         }
 
-        final currentArtists = groupedTracks[track.id]!.artists;
-        // Make sure we don't add null/empty artists if the join fails
-        if (artist.id != 0 && !currentArtists.any((a) => a.id == artist.id)) {
-          currentArtists.add(artist);
+        if (artist != null && artist.id != 0) {
+          final currentArtists = groupedTracks[track.id]!.artists;
+          if (!currentArtists.any((a) => a.id == artist.id)) {
+            currentArtists.add(artist);
+          }
         }
       }
 
@@ -473,7 +482,8 @@ class AppDatabase extends _$AppDatabase {
 
       for (var i = 0; i < originalQueue.length; i++) {
         // Check if this specific track's file path matches the one actively playing in the engine
-        final isPlaying = originalQueue[i].track.filePath == currentlyPlayedTrackPath;
+        final isPlaying = currentlyPlayedTrackPath != null &&
+            originalQueue[i].track.filePath.normalizePath().toLowerCase() == currentlyPlayedTrackPath.normalizePath().toLowerCase();
 
         companions.add(
           QueueEntriesCompanion.insert(

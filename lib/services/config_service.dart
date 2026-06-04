@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/services/logger.dart';
+import 'package:nordplayer/utils/directory_helper.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 final configServiceProvider = AsyncNotifierProvider<ConfigService, AppConfig>(() {
   return ConfigService();
@@ -17,7 +17,7 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
 
   @override
   Future<AppConfig> build() async {
-    final configDir = await getApplicationSupportDirectory();
+    final configDir = await getConfigDirectory();
     log.d("Initializing ConfigService. Directory: ${configDir.path}");
 
     _configFile = File(p.join(configDir.path, 'config.json'));
@@ -150,7 +150,7 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
   Future<void> _backupInvalidConfig() async {
     if (_configFile == null || !_configFile!.existsSync()) return;
     try {
-      final configDir = await getApplicationSupportDirectory();
+      final configDir = await getConfigDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final backupPath = p.join(configDir.path, 'invalid_config.$timestamp.json');
 

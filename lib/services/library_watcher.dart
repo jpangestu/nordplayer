@@ -13,7 +13,9 @@ final libraryWatcherProvider = Provider<LibraryWatcher>((ref) {
   final appConfig = ref.watch(configServiceProvider).requireValue;
   final libraryScanner = ref.watch(libraryScannerProvider);
 
-  return LibraryWatcher(appConfig, libraryScanner);
+  final watcher = LibraryWatcher(appConfig, libraryScanner);
+  ref.onDispose(() => watcher.dispose());
+  return watcher;
 });
 
 class LibraryWatcher with LoggerMixin {
