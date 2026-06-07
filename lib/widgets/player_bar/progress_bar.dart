@@ -375,19 +375,14 @@ class _RenderProgressBar extends RenderBox {
   }
 
   Rect get _leftLabelHitRect {
-    final verticalOffset = size.height / 2 - _leftLabelSize.height / 2;
     final maxLeftWidth = max(_maxLeftLabelWidth, _leftLabelSize.width);
-    final leftLabelDx = maxLeftWidth - _leftLabelSize.width;
-
-    return Rect.fromLTWH(leftLabelDx, verticalOffset, _leftLabelSize.width, _leftLabelSize.height);
+    return Rect.fromLTWH(0, 0, maxLeftWidth + timeLabelPadding, size.height);
   }
 
   Rect get _rightLabelHitRect {
-    final verticalOffset = size.height / 2 - _rightLabelSize.height / 2;
     final maxRightWidth = max(_maxRightLabelWidth, _rightLabelSize.width);
-    final rightLabelDx = size.width - maxRightWidth;
-
-    return Rect.fromLTWH(rightLabelDx, verticalOffset, _rightLabelSize.width, _rightLabelSize.height);
+    final leftDx = size.width - (maxRightWidth + timeLabelPadding);
+    return Rect.fromLTWH(leftDx, 0, maxRightWidth + timeLabelPadding, size.height);
   }
 
   @override
@@ -401,12 +396,32 @@ class _RenderProgressBar extends RenderBox {
   void handleEvent(PointerEvent event, BoxHitTestEntry entry) {
     assert(debugHandleEvent(event, entry));
     if (event is PointerDownEvent) {
+      final dx = event.localPosition.dx;
+
+      final currentLeftWidth = _leftLabelSize.width;
+      final effectiveLeftWidth = max(_maxLeftLabelWidth, currentLeftWidth);
+      final lengthBefore = effectiveLeftWidth + _totalLabelPadding;
+      final lengthAfter = _maxRightLabelWidth + _totalLabelPadding;
+      final barCapRadius = _barHeight / 2;
+      final double barStart = lengthBefore + barCapRadius;
+      final double barEnd = size.width - lengthAfter - barCapRadius;
+      final double barWidth = barEnd - barStart;
+
+      final double thumbCenterDx = barStart + _thumbValue * barWidth;
+      final double distanceToThumb = (event.localPosition - Offset(thumbCenterDx, size.height / 2)).distance;
+
+      // Clickable seek region matches the progress bar's hover tooltip bounds
+      final double progressStart = lengthBefore;
+      final double progressEnd = size.width - lengthAfter;
+
       if (_rightLabelHitRect.contains(event.localPosition)) {
         _tap?.addPointer(event);
       } else if (_leftLabelHitRect.contains(event.localPosition)) {
         return;
-      } else {
+      } else if ((dx >= progressStart && dx <= progressEnd) || distanceToThumb <= max(thumbRadius, 15.0)) {
         _drag?.addPointer(event);
+      } else {
+        return;
       }
     }
   }
@@ -864,6 +879,7 @@ class _RenderProgressBar extends RenderBox {
           style: _tooltipTextStyle.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
         ),
         textDirection: TextDirection.ltr,
+        textScaler: _textScaler,
       )..layout();
     }
 
@@ -888,10 +904,13 @@ class _RenderProgressBar extends RenderBox {
     final bgPaint = Paint()..color = _tooltipBgColor;
     canvas.drawRRect(tooltipRRect, bgPaint);
 
+    // Clamp the pointer arrow horizontally so it never detaches from the tooltip bubble
+    final double clampedTriangleDx = tooltipCenterDx.clamp(tooltipRect.left + 6.0, tooltipRect.right - 6.0);
+
     final trianglePath = Path();
-    trianglePath.moveTo(tooltipCenterDx - 5, tooltipRect.bottom - 1);
-    trianglePath.lineTo(tooltipCenterDx + 5, tooltipRect.bottom - 1);
-    trianglePath.lineTo(tooltipCenterDx, tooltipRect.bottom + 5);
+    trianglePath.moveTo(clampedTriangleDx - 5, tooltipRect.bottom - 1);
+    trianglePath.lineTo(clampedTriangleDx + 5, tooltipRect.bottom - 1);
+    trianglePath.lineTo(clampedTriangleDx, tooltipRect.bottom + 5);
     trianglePath.close();
     canvas.drawPath(trianglePath, bgPaint);
 
