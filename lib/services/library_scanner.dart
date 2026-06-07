@@ -154,6 +154,8 @@ class LibraryScanner with LoggerMixin {
           )..where((a) => a.id.equals(albumId))).write(AlbumsCompanion(albumArtPath: Value(artPath)));
         }
 
+        final fileHash = _calculateFileHash(file);
+
         final newTrackId = await _db
             .into(_db.tracks)
             .insert(
@@ -167,6 +169,7 @@ class LibraryScanner with LoggerMixin {
                 genre: Value(tag.genre),
                 fileSize: Value(file.lengthSync()),
                 filePath: Value(file.path),
+                fileHash: Value(fileHash),
                 artistId: Value(primaryArtistId),
                 albumId: Value(albumId),
               ),
@@ -272,5 +275,26 @@ class LibraryScanner with LoggerMixin {
 
     _albumCache[cacheKey] = newId;
     return newId;
+  }
+
+  String _calculateFileHash(File file) {
+    try {
+      final size = file.lengthSync();
+      final numBytesToRead = size < 65536 ? size : 65536;
+      final raf = file.openSync(mode: FileMode.read);
+      final bytes = raf.readSync(numBytesToRead);
+      raf.closeSync();
+
+      // FNV-1a 32-bit hash
+      int hash = 2166136261;
+      for (final byte in bytes) {
+        hash ^= byte;
+        hash = (hash * 16777619) & 0xFFFFFFFF;
+      }
+      return '${hash.toRadixString(16)}_$size';
+    } catch (e) {
+      // Fallback to simple hash of path & size if file reading fails
+      return '${file.path.hashCode.toRadixString(16)}_${file.lengthSync()}';
+    }
   }
 }

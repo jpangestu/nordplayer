@@ -7,12 +7,54 @@ import 'package:nordplayer/utils/string_extension.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [Tracks, Artists, Albums, Playlists, TrackArtist, PlaylistTrack, QueueEntries])
+@DriftDatabase(tables: [
+  Tracks,
+  Artists,
+  Albums,
+  Playlists,
+  TrackArtist,
+  PlaylistTrack,
+  QueueEntries,
+  PlayHistory,
+  SourcePriorities,
+  ArtistMetadata,
+  AlbumMetadata,
+  UserFavorites,
+  UserBlacklist,
+  UserPins,
+])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration {
+    return MigrationStrategy(
+      onCreate: (m) async {
+        await m.createAll();
+      },
+      onUpgrade: (migrator, from, to) async {
+        if (from < 2) {
+          // 1. Add new columns to existing tables
+          await migrator.addColumn(artists, artists.artistImgPath);
+          await migrator.addColumn(tracks, tracks.fileHash);
+          await migrator.addColumn(tracks, tracks.audioFingerprint);
+          await migrator.addColumn(tracks, tracks.isMissing);
+
+          // 2. Create new tables
+          await migrator.createTable(playHistory);
+          await migrator.createTable(sourcePriorities);
+          await migrator.createTable(artistMetadata);
+          await migrator.createTable(albumMetadata);
+          await migrator.createTable(userFavorites);
+          await migrator.createTable(userBlacklist);
+          await migrator.createTable(userPins);
+        }
+      },
+    );
+  }
 
   static QueryExecutor _openConnection() {
     return driftDatabase(
@@ -277,6 +319,20 @@ class AppDatabase extends _$AppDatabase {
     return query.get();
   }
 
+  // ============================================= Artists Stuff ====================================================
+
+  /// Get all albums
+  /// Usage: main album page
+  Stream<List<Artist>> watchArtists() {
+    final query = select(artists)..orderBy([(u) => OrderingTerm(expression: u.name, mode: OrderingMode.asc)]);
+
+    return query.watch().map((rows) {
+      return rows.map((row) {
+        return Artist(id: row.id, name: row.name);
+      }).toList();
+    });
+  }
+
   // =========================================== Playlist Stuff =======================================================
 
   /// Watch a playlists with 5 albums art from this playlist
@@ -482,8 +538,10 @@ class AppDatabase extends _$AppDatabase {
 
       for (var i = 0; i < originalQueue.length; i++) {
         // Check if this specific track's file path matches the one actively playing in the engine
-        final isPlaying = currentlyPlayedTrackPath != null &&
-            originalQueue[i].track.filePath.normalizePath().toLowerCase() == currentlyPlayedTrackPath.normalizePath().toLowerCase();
+        final isPlaying =
+            currentlyPlayedTrackPath != null &&
+            originalQueue[i].track.filePath.normalizePath().toLowerCase() ==
+                currentlyPlayedTrackPath.normalizePath().toLowerCase();
 
         companions.add(
           QueueEntriesCompanion.insert(
@@ -661,6 +719,11 @@ final albumWithTracksProvider = StreamProvider.family<AlbumWithTracks?, int>((re
 final randomAlbumsProvider = FutureProvider<List<Album>>((ref) {
   final db = ref.watch(appDatabaseProvider);
   return db.getRandomAlbums(limitAmount: 10);
+});
+
+final artistsProvider = StreamProvider<List<Artist>>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return db.watchArtists();
 });
 
 final playlistsStreamProvider = StreamProvider<List<PlaylistWithDetails>>((ref) {
