@@ -807,7 +807,8 @@ class Current5TracksAlbumArtNotifier extends Notifier<List<String>> {
   List<String> build() {
     final player = ref.watch(playerServiceProvider).mkPlayer;
     final loopMode = ref.watch(preferenceServiceProvider.select((prefs) => prefs.loopMode));
-    final debouncer = Debouncer(const Duration(milliseconds: 50));
+    // Add debounce to prevent rapid changes when shuffling or playing a new queue/play list
+    final debouncer = Debouncer(const Duration(milliseconds: 150));
 
     final subscription = player.stream.playlist.listen((playlist) {
       debouncer(() {
