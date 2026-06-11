@@ -25,7 +25,7 @@ class Tracks extends Table {
   IntColumn get durationMs => integer().withDefault(const Constant(0))();
   TextColumn get genre => text().nullable()();
 
-  /// MD5/SHA-256 chunk hash.
+  /// FNV-1a hash.
   TextColumn get fileHash => text().unique()();
 
   /// Chromaprint base64 string. Used as a fallback identity if tags change.

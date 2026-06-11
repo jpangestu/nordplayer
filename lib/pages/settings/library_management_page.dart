@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/services/config_service.dart';
-import 'package:nordplayer/services/library_scanner.dart';
+import 'package:nordplayer/services/library_indexer.dart';
 import 'package:nordplayer/services/library_watcher.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
@@ -247,7 +247,7 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
           ref.read(libraryWatcherProvider).watchFolder(path);
         }
 
-        await ref.read(libraryScannerProvider).scanLibrary();
+        await ref.read(libraryIndexerProvider).scanLibrary();
       }
     }
   }
@@ -259,7 +259,7 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
 
     ref.read(libraryWatcherProvider).stopWatchingFolder(path);
 
-    await ref.read(libraryScannerProvider).removeTracksInDirectory(path);
+    await ref.read(libraryIndexerProvider).markTracksInDirectoryAsMissing(path);
   }
 
   void _addNewDelimiter() {

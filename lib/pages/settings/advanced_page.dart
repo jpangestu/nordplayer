@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/services/config_service.dart';
-import 'package:nordplayer/services/library_scanner.dart';
+import 'package:nordplayer/services/library_indexer.dart';
 import 'package:nordplayer/services/library_watcher.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
@@ -93,7 +93,7 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
       // Loop through the old paths and explicitly wipe them from the DB and Watcher
       for (final path in oldPaths) {
         ref.read(libraryWatcherProvider).stopWatchingFolder(path);
-        await ref.read(libraryScannerProvider).removeTracksInDirectory(path);
+        await ref.read(libraryIndexerProvider).markTracksInDirectoryAsMissing(path);
       }
 
       // Clean up orphaned metadata
@@ -140,13 +140,13 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
 
         // Invalidate libraryScanner before rescan
         ref.invalidate(randomAlbumsProvider);
-        ref.invalidate(libraryScannerProvider);
+        ref.invalidate(libraryIndexerProvider);
 
         // Trigger rescan library if music paths still exist
         final currentPaths = ref.read(configServiceProvider).requireValue.musicPaths;
         if (currentPaths.isNotEmpty) {
           log.i("Existing music paths found. Triggering library rescan...");
-          ref.read(libraryScannerProvider).scanLibrary();
+          ref.read(libraryIndexerProvider).scanLibrary();
         }
       } catch (e, s) {
         log.e("Error during data wipe", error: e, stackTrace: s);

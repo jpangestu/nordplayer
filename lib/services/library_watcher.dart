@@ -2,32 +2,32 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/services/config_service.dart';
+import 'package:nordplayer/services/library_indexer.dart';
+import 'package:nordplayer/services/logger.dart';
 import 'package:path/path.dart' as p;
 import 'package:watcher/watcher.dart';
-import 'package:nordplayer/models/app_config.dart';
-import 'package:nordplayer/services/library_scanner.dart';
-import 'package:nordplayer/services/logger.dart';
 
 final libraryWatcherProvider = Provider<LibraryWatcher>((ref) {
   final appConfig = ref.watch(configServiceProvider).requireValue;
-  final libraryScanner = ref.watch(libraryScannerProvider);
+  final libraryIndexer = ref.watch(libraryIndexerProvider);
 
-  final watcher = LibraryWatcher(appConfig, libraryScanner);
+  final watcher = LibraryWatcher(appConfig, libraryIndexer);
   ref.onDispose(() => watcher.dispose());
   return watcher;
 });
 
 class LibraryWatcher with LoggerMixin {
   final AppConfig _appConfig;
-  final LibraryScanner _libraryScanner;
+  final LibraryIndexer _libraryIndexer;
 
   final Map<String, StreamSubscription<WatchEvent>> _subscriptions = {};
 
   // A map to keep track of pending files to prevent premature parsing
   final Map<String, Timer> _debouncers = {};
 
-  LibraryWatcher(this._appConfig, this._libraryScanner);
+  LibraryWatcher(this._appConfig, this._libraryIndexer);
 
   void startWatching() {
     for (final folderPath in _appConfig.musicPaths) {
@@ -59,7 +59,7 @@ class LibraryWatcher with LoggerMixin {
     final ext = p.extension(path).toLowerCase();
 
     // Ignore non-music files
-    if (!_libraryScanner.supportedExtensions.contains(ext)) return;
+    if (!_libraryIndexer.supportedExtensions.contains(ext)) return;
 
     switch (event.type) {
       case ChangeType.ADD:
@@ -67,9 +67,9 @@ class LibraryWatcher with LoggerMixin {
         _debounceFileProcessing(path);
         break;
       case ChangeType.REMOVE:
-        log.d("File removed: $path");
+        log.d("File marked as missing: $path");
         _cancelDebounce(path);
-        _libraryScanner.removeTrackByPath(path);
+        _libraryIndexer.markTrackAsMissing(path);
         break;
     }
   }
@@ -115,7 +115,7 @@ class LibraryWatcher with LoggerMixin {
           final randomAccess = await file.open(mode: FileMode.read);
           await randomAccess.close();
 
-          await _libraryScanner.processSingleFile(file);
+          await _libraryIndexer.processSingleFile(file);
           return;
         }
 

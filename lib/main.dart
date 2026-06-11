@@ -7,7 +7,7 @@ import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/models/app_theme.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/config_service.dart';
-import 'package:nordplayer/services/library_scanner.dart';
+import 'package:nordplayer/services/library_indexer.dart';
 import 'package:nordplayer/services/library_watcher.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
@@ -108,19 +108,18 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp> with WindowListen
       if (previous is AsyncLoading && next is AsyncData) {
         ref.read(playerServiceProvider).init();
         ref.read(libraryWatcherProvider).startWatching();
-        ref.read(libraryScannerProvider).scanLibrary();
+        ref.read(libraryIndexerProvider).scanLibrary();
         ref.read(playerServiceProvider).initializeQueueFromDatabase();
       }
     });
 
     // Select only the loading/error/value status fields so that changing config fields
     // does not trigger a rebuild of the entire NordplayerApp (and therefore MaterialApp).
-    final configStatus = ref.watch(configServiceProvider.select((v) => (
-          isLoading: v.isLoading,
-          hasError: v.hasError,
-          error: v.error,
-          hasValue: v.hasValue,
-        )));
+    final configStatus = ref.watch(
+      configServiceProvider.select(
+        (v) => (isLoading: v.isLoading, hasError: v.hasError, error: v.error, hasValue: v.hasValue),
+      ),
+    );
 
     if (configStatus.isLoading) {
       return const SizedBox.shrink();
