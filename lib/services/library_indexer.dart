@@ -48,8 +48,8 @@ class LibraryIndexer with LoggerMixin {
     final Set<String> supportedFilesFoundOnDisk = {};
     List<File> newTracksToProcess = [];
 
-    // Loop through all the user's music paths and get all of the supported files
-    for (String path in _appConfig.musicPaths) {
+    // Loop through all the user's track directories and get all of the supported files
+    for (String path in _appConfig.trackDirectories) {
       final Directory trackDirectory = Directory(path);
 
       if (!await trackDirectory.exists()) {
@@ -158,8 +158,24 @@ class LibraryIndexer with LoggerMixin {
   Future<void> processSingleFile(File file) async {
     log.i("Processing individual file: ${file.path}");
 
-    // If the file already exists in the database but was marked as missing,
-    // restore it (set isMissing = false).
+    final trackHash = _calculateFileHash(file);
+    final existingTrackByHash = await (_db.select(
+      _db.tracks,
+    )..where((t) => t.fileHash.equals(trackHash))).getSingleOrNull();
+
+    if (existingTrackByHash != null) {
+      if (existingTrackByHash.filePath != file.path) {
+        log.i(
+          "Detected file moved/renamed via watcher: '${existingTrackByHash.filePath}' -> '${file.path}'. Reconnecting database entry...",
+        );
+      }
+      await (_db.update(_db.tracks)..where((t) => t.id.equals(existingTrackByHash.id))).write(
+        TracksCompanion(filePath: Value(file.path), isMissing: const Value(false)),
+      );
+      return;
+    }
+
+    // If the file already exists in the database by path, restore it (set isMissing = false).
     await (_db.update(
       _db.tracks,
     )..where((t) => t.filePath.equals(file.path))).write(const TracksCompanion(isMissing: Value(false)));

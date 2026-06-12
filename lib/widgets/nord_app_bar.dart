@@ -38,7 +38,7 @@ class _NordplayerAppBarState extends ConsumerState<NordAppBar> {
         currentRoute == Routes.appearancePage ||
         currentRoute == Routes.aboutPage ||
         currentRoute == Routes.advancePage ||
-        currentRoute == Routes.libraryManagementPage;
+        currentRoute == Routes.libraryIndexerPage;
     final bool isNestedPage = !isMainTabRoot && !isSettingsRoot;
 
     final bool showBackButton = isSettingsRoute || isNestedPage;

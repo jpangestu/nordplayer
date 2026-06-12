@@ -1,5 +1,15 @@
 import 'dart:async';
 
+/// A utility class to limit the rate at which a function is triggered.
+///
+/// **Usage:**
+/// ```dart
+/// final _debouncer = Debouncer(const Duration(milliseconds: 500));
+///
+/// _debouncer.call(() {
+///   // do stuff here (will only execute after 500ms of silence)
+/// });
+/// ```
 class Debouncer {
   Debouncer(this.duration);
 

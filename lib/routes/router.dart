@@ -11,7 +11,7 @@ import 'package:nordplayer/pages/playlists_page.dart';
 import 'package:nordplayer/pages/settings/about_page.dart';
 import 'package:nordplayer/pages/settings/advanced_page.dart';
 import 'package:nordplayer/pages/settings/appearance_page.dart';
-import 'package:nordplayer/pages/settings/library_management_page.dart';
+import 'package:nordplayer/pages/settings/library_indexer_page.dart';
 import 'package:nordplayer/pages/settings/license_page.dart';
 import 'package:nordplayer/pages/settings/settings_layout.dart';
 import 'package:nordplayer/pages/tracks_page.dart';
@@ -27,7 +27,7 @@ class Routes {
   static const licensesPage = 'licenses';
   static const advancePage = '/settings/advance';
   static const appearancePage = '/settings/appearance';
-  static const libraryManagementPage = '/settings/library-management';
+  static const libraryIndexerPage = '/settings/library-management';
 }
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -99,10 +99,7 @@ final router = GoRouter(
                 ),
                 StatefulShellBranch(
                   routes: [
-                    GoRoute(
-                      path: Routes.libraryManagementPage,
-                      builder: (context, state) => const LibraryManagementPage(),
-                    ),
+                    GoRoute(path: Routes.libraryIndexerPage, builder: (context, state) => const LibraryIndexerPage()),
                   ],
                 ),
                 StatefulShellBranch(

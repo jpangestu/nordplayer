@@ -3,7 +3,7 @@ import 'package:logger/logger.dart';
 import 'package:nordplayer/models/app_theme.dart';
 
 class AppConfig {
-  final List<String> musicPaths;
+  final List<String> trackDirectories;
   final List<String> artistDelimiters;
   final String theme;
   final Brightness themeBrightness;
@@ -16,7 +16,7 @@ class AppConfig {
   final String fontFamily;
   final double textScale;
 
-  static const List<String> _defaultMusicPaths = [];
+  static const List<String> _defaultTrackDirectories = [];
   // Not private because settings page need access
   static const List<String> defaultArtistDelimiters = [',', ';', '/', '+', '&'];
   static const String _defaultTheme = 'nord';
@@ -31,7 +31,7 @@ class AppConfig {
   static const double _defaultTextScale = 1.0;
 
   AppConfig({
-    this.musicPaths = _defaultMusicPaths,
+    this.trackDirectories = _defaultTrackDirectories,
     this.artistDelimiters = defaultArtistDelimiters,
     this.theme = _defaultTheme,
     this.themeBrightness = _defaultThemeBrightness,
@@ -46,7 +46,7 @@ class AppConfig {
   });
 
   AppConfig copyWith({
-    List<String>? musicPaths,
+    List<String>? trackDirectories,
     List<String>? artistDelimiters,
     String? theme,
     Brightness? themeBrightness,
@@ -60,7 +60,7 @@ class AppConfig {
     double? textScale,
   }) {
     return AppConfig(
-      musicPaths: musicPaths ?? this.musicPaths,
+      trackDirectories: trackDirectories ?? this.trackDirectories,
       artistDelimiters: artistDelimiters ?? this.artistDelimiters,
       theme: theme ?? this.theme,
       themeBrightness: themeBrightness ?? this.themeBrightness,
@@ -77,7 +77,7 @@ class AppConfig {
 
   factory AppConfig.fromJson(Map<String, dynamic> json, {required Logger logger}) {
     return AppConfig(
-      musicPaths: _parseMusicPaths(json['musicPaths'], logger: logger),
+      trackDirectories: _parsetrackDirectories(json['trackDirectories'], logger: logger),
       artistDelimiters: _parseArtistDelimiters(json['artistDelimiters'], logger: logger),
       theme: _parseTheme(json['theme'], logger: logger),
       themeBrightness: _parseThemeBrightness(json['themeBrightness'], logger: logger),
@@ -92,10 +92,10 @@ class AppConfig {
     );
   }
 
-  static List<String> _parseMusicPaths(dynamic value, {required Logger logger}) {
+  static List<String> _parsetrackDirectories(dynamic value, {required Logger logger}) {
     if (value is! List) {
-      logger.w("Invalid music path(s): $value. Replaced with '$_defaultMusicPaths'.");
-      return _defaultMusicPaths;
+      logger.w("Invalid track directory: $value. Replaced with '$_defaultTrackDirectories'.");
+      return _defaultTrackDirectories;
     }
 
     final safeList = value.whereType<String>().toList();
@@ -219,7 +219,7 @@ class AppConfig {
 
   Map<String, dynamic> toJson() {
     return {
-      'musicPaths': musicPaths,
+      'trackDirectories': trackDirectories,
       'artistDelimiters': artistDelimiters,
       'theme': theme,
       'themeBrightness': themeBrightness.name,

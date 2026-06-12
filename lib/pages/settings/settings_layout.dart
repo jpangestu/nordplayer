@@ -35,7 +35,7 @@ class SettingsLayout extends ConsumerWidget {
       SidebarDestination(
         icon: AppIcon(appIconSet.librarySettings),
         selectedIcon: AppIcon(appIconSet.librarySettings),
-        label: const Text('Library Management'),
+        label: const Text('Library Indexer'),
       ),
       SidebarDestination(
         icon: AppIcon(appIconSet.advancedSettings),

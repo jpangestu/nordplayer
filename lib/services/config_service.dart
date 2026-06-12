@@ -60,7 +60,7 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
   }
 
   void updateConfig({
-    List<String>? musicPaths,
+    List<String>? trackDirectories,
     List<String>? artistDelimiters,
     String? theme,
     Brightness? themeBrightness,
@@ -85,7 +85,7 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
     }
 
     final newConfig = currentConfig.copyWith(
-      musicPaths: musicPaths,
+      trackDirectories: trackDirectories,
       artistDelimiters: artistDelimiters,
       theme: theme,
       themeBrightness: themeBrightness,
@@ -103,7 +103,7 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
 
     if (save) {
       final changes = [
-        if (musicPaths != null) 'musicPath',
+        if (trackDirectories != null) 'trackDirectories',
         if (artistDelimiters != null) 'artistDelimiters',
         if (theme != null) 'theme',
         if (themeBrightness != null) 'themeBrightness',

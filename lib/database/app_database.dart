@@ -7,22 +7,24 @@ import 'package:nordplayer/utils/string_extension.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [
-  Tracks,
-  Artists,
-  Albums,
-  Playlists,
-  TrackArtist,
-  PlaylistTrack,
-  QueueEntries,
-  PlayHistory,
-  SourcePriorities,
-  ArtistMetadata,
-  AlbumMetadata,
-  UserFavorites,
-  UserBlacklist,
-  UserPins,
-])
+@DriftDatabase(
+  tables: [
+    Tracks,
+    Artists,
+    Albums,
+    Playlists,
+    TrackArtist,
+    PlaylistTrack,
+    QueueEntries,
+    PlayHistory,
+    SourcePriorities,
+    ArtistMetadata,
+    AlbumMetadata,
+    UserFavorites,
+    UserBlacklist,
+    UserPins,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
@@ -118,13 +120,13 @@ class AppDatabase extends _$AppDatabase {
     // We use a single raw SQL query to get all counts and sums at once for maximum performance.
     const query = '''
       SELECT
-        (SELECT COUNT(*) FROM tracks) AS trackCount,
-        (SELECT COUNT(*) FROM albums) AS albumCount,
-        (SELECT COUNT(*) FROM artists) AS artistCount,
+        (SELECT COUNT(*) FROM tracks WHERE is_missing = 0) AS trackCount,
+        (SELECT COUNT(DISTINCT album_id) FROM tracks WHERE album_id IS NOT NULL AND is_missing = 0) AS albumCount,
+        (SELECT COUNT(DISTINCT track_artist.artist_id) FROM track_artist INNER JOIN tracks ON tracks.id = track_artist.track_id WHERE tracks.is_missing = 0) AS artistCount,
         (SELECT COUNT(*) FROM playlists) AS playlistCount,
-        (SELECT COUNT(DISTINCT genre) FROM tracks WHERE genre IS NOT NULL AND genre != '') AS genreCount,
-        (SELECT SUM(file_size) FROM tracks) AS totalSize,
-        (SELECT SUM(duration_ms) FROM tracks) AS totalDuration
+        (SELECT COUNT(DISTINCT genre) FROM tracks WHERE genre IS NOT NULL AND genre != '' AND is_missing = 0) AS genreCount,
+        (SELECT SUM(file_size) FROM tracks WHERE is_missing = 0) AS totalSize,
+        (SELECT SUM(duration_ms) FROM tracks WHERE is_missing = 0) AS totalDuration
     ''';
 
     return customSelect(
@@ -150,7 +152,7 @@ class AppDatabase extends _$AppDatabase {
 
   /// Watch all tracks in the library, sorted alphabetically.
   Stream<List<TrackWithArtists>> watchAllTracks() {
-    final query = select(tracks).join([
+    final query = (select(tracks)..where((t) => t.isMissing.equals(false))).join([
       leftOuterJoin(albums, albums.id.equalsExp(tracks.albumId)),
       leftOuterJoin(trackArtist, trackArtist.trackId.equalsExp(tracks.id)),
       leftOuterJoin(artists, artists.id.equalsExp(trackArtist.artistId)),
@@ -208,7 +210,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Stream<List<TrackWithArtists>> watchRecentlyAddedTracks({int limitAmount = 10}) {
-    final query = select(tracks).join([
+    final query = (select(tracks)..where((t) => t.isMissing.equals(false))).join([
       leftOuterJoin(albums, albums.id.equalsExp(tracks.albumId)),
       leftOuterJoin(trackArtist, trackArtist.trackId.equalsExp(tracks.id)),
       leftOuterJoin(artists, artists.id.equalsExp(trackArtist.artistId)),
@@ -268,7 +270,7 @@ class AppDatabase extends _$AppDatabase {
 
   Stream<AlbumWithTracks?> watchAlbumWithTracks(int albumId) {
     final query = select(albums).join([
-      leftOuterJoin(tracks, tracks.albumId.equalsExp(albums.id)),
+      leftOuterJoin(tracks, tracks.albumId.equalsExp(albums.id) & tracks.isMissing.equals(false)),
       leftOuterJoin(trackArtist, trackArtist.trackId.equalsExp(tracks.id)),
       leftOuterJoin(artists, artists.id.equalsExp(trackArtist.artistId)),
     ])..where(albums.id.equals(albumId));
@@ -346,7 +348,7 @@ class AppDatabase extends _$AppDatabase {
     final query =
         select(playlists).join([
             leftOuterJoin(playlistTrack, playlistTrack.playlistId.equalsExp(playlists.id)),
-            leftOuterJoin(tracks, tracks.id.equalsExp(playlistTrack.trackId)),
+            leftOuterJoin(tracks, tracks.id.equalsExp(playlistTrack.trackId) & tracks.isMissing.equals(false)),
             leftOuterJoin(albums, albums.id.equalsExp(tracks.albumId)),
           ])
           ..addColumns([trackCount, coverPaths]) // Ask SQL for the concatenated string
@@ -385,7 +387,7 @@ class AppDatabase extends _$AppDatabase {
       // Join Artists
       leftOuterJoin(trackArtist, trackArtist.trackId.equalsExp(tracks.id)),
       leftOuterJoin(artists, artists.id.equalsExp(trackArtist.artistId)),
-    ])..where(playlistTrack.playlistId.equals(playlistId));
+    ])..where(playlistTrack.playlistId.equals(playlistId) & tracks.isMissing.equals(false));
 
     final rows = await query.get();
     final Map<int, TrackWithArtists> groupedTracks = {};
@@ -420,7 +422,7 @@ class AppDatabase extends _$AppDatabase {
       leftOuterJoin(albums, albums.id.equalsExp(tracks.albumId)),
       leftOuterJoin(trackArtist, trackArtist.trackId.equalsExp(tracks.id)),
       leftOuterJoin(artists, artists.id.equalsExp(trackArtist.artistId)),
-    ])..where(playlistTrack.playlistId.equals(playlistId));
+    ])..where(playlistTrack.playlistId.equals(playlistId) & tracks.isMissing.equals(false));
 
     return query.watch().map((rows) {
       final Map<int, TrackWithArtists> groupedTracks = {};
@@ -485,7 +487,8 @@ class AppDatabase extends _$AppDatabase {
           leftOuterJoin(artists, artists.id.equalsExp(trackArtist.artistId)),
         ])..where(
           // Use the | operator for SQL OR to search across multiple tables
-          tracks.title.like(searchTerm) | albums.title.like(searchTerm) | artists.name.like(searchTerm),
+          (tracks.title.like(searchTerm) | albums.title.like(searchTerm) | artists.name.like(searchTerm)) &
+              tracks.isMissing.equals(false),
         );
 
     // Order alphabetically by track title

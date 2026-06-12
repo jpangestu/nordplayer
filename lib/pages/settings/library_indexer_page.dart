@@ -13,14 +13,14 @@ import 'package:nordplayer/widgets/settings/section_card.dart';
 import 'package:nordplayer/widgets/settings/section_divider.dart';
 import 'package:nordplayer/widgets/settings/section_header.dart';
 
-class LibraryManagementPage extends ConsumerStatefulWidget {
-  const LibraryManagementPage({super.key});
+class LibraryIndexerPage extends ConsumerStatefulWidget {
+  const LibraryIndexerPage({super.key});
 
   @override
-  ConsumerState<LibraryManagementPage> createState() => _LibraryManagementPageState();
+  ConsumerState<LibraryIndexerPage> createState() => _LibraryIndexerPageState();
 }
 
-class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
+class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
   final TextEditingController _addDelimiterController = TextEditingController();
   final FocusNode _addDelimiterFocusNode = FocusNode();
 
@@ -35,7 +35,7 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final appConfig = ref.watch(configServiceProvider).requireValue;
-    List<String> musicPaths = appConfig.musicPaths;
+    List<String> trackDirectories = appConfig.trackDirectories;
     List<String> currentDelimiters = appConfig.artistDelimiters;
 
     return Scaffold(
@@ -56,7 +56,7 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
                     label: const Text("Add Folders"),
                   ),
                 ),
-                if (musicPaths.isEmpty) ...[
+                if (trackDirectories.isEmpty) ...[
                   const SectionDivider(),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
@@ -64,7 +64,7 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
                   ),
                 ] else ...[
                   const SectionDivider(),
-                  ...musicPaths.map(
+                  ...trackDirectories.map(
                     (path) => ListTile(
                       leading: const AppIcon(Icons.folder_outlined),
                       title: Text(path),
@@ -228,7 +228,7 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
     final selectedPaths = await getDirectoryPaths();
 
     if (selectedPaths.isNotEmpty) {
-      final currentPaths = ref.read(configServiceProvider).requireValue.musicPaths;
+      final currentPaths = ref.read(configServiceProvider).requireValue.trackDirectories;
       final List<String> updatedPaths = List<String>.from(currentPaths);
 
       bool hasChanges = false;
@@ -241,10 +241,10 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
       }
 
       if (hasChanges) {
-        ref.read(configServiceProvider.notifier).updateConfig(musicPaths: updatedPaths);
+        ref.read(configServiceProvider.notifier).updateConfig(trackDirectories: updatedPaths);
 
         for (var path in updatedPaths) {
-          ref.read(libraryWatcherProvider).watchFolder(path);
+          ref.read(libraryWatcherProvider).watchTrackDirectory(path);
         }
 
         await ref.read(libraryIndexerProvider).scanLibrary();
@@ -253,11 +253,11 @@ class _LibraryManagementPageState extends ConsumerState<LibraryManagementPage> {
   }
 
   Future<void> _removeFolder(String path) async {
-    List<String> updatedPaths = List<String>.from(ref.read(configServiceProvider).requireValue.musicPaths);
+    List<String> updatedPaths = List<String>.from(ref.read(configServiceProvider).requireValue.trackDirectories);
     updatedPaths.remove(path);
-    ref.read(configServiceProvider.notifier).updateConfig(musicPaths: updatedPaths);
+    ref.read(configServiceProvider.notifier).updateConfig(trackDirectories: updatedPaths);
 
-    ref.read(libraryWatcherProvider).stopWatchingFolder(path);
+    ref.read(libraryWatcherProvider).stopWatchingTrackDirectory(path);
 
     await ref.read(libraryIndexerProvider).markTracksInDirectoryAsMissing(path);
   }

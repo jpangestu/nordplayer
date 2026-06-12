@@ -39,7 +39,7 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
                 style: TextStyle(color: theme.colorScheme.onError, fontWeight: FontWeight.w600),
               ),
               subtitle: Text(
-                'Theme, music paths, and player preferences',
+                'Theme, track directories, and player preferences',
                 style: TextStyle(color: theme.colorScheme.onError.withValues(alpha: 0.74)),
               ),
               onTap: () => _showResetSettingsDialog(context, ref),
@@ -73,7 +73,7 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
       context,
       title: 'Reset Settings?',
       content:
-          'This will reset your theme, music paths, and player preferences.\n\nYour library database will remain intact.',
+          'This will reset your theme, track directories, and player preferences.\n\nYour library database will remain intact.',
       buttonText: 'Reset Settings',
     );
 
@@ -81,7 +81,7 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
       log.w("Resetting all settings to default.");
 
       // Grab the paths BEFORE we overwrite the config
-      final oldPaths = ref.read(configServiceProvider).requireValue.musicPaths;
+      final oldPaths = ref.read(configServiceProvider).requireValue.trackDirectories;
 
       // Stop playback and clear the queue
       await ref.read(playerServiceProvider).clearQueue();
@@ -92,7 +92,7 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
 
       // Loop through the old paths and explicitly wipe them from the DB and Watcher
       for (final path in oldPaths) {
-        ref.read(libraryWatcherProvider).stopWatchingFolder(path);
+        ref.read(libraryWatcherProvider).stopWatchingTrackDirectory(path);
         await ref.read(libraryIndexerProvider).markTracksInDirectoryAsMissing(path);
       }
 
@@ -142,10 +142,10 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
         ref.invalidate(randomAlbumsProvider);
         ref.invalidate(libraryIndexerProvider);
 
-        // Trigger rescan library if music paths still exist
-        final currentPaths = ref.read(configServiceProvider).requireValue.musicPaths;
+        // Trigger rescan library if track directories still exist
+        final currentPaths = ref.read(configServiceProvider).requireValue.trackDirectories;
         if (currentPaths.isNotEmpty) {
-          log.i("Existing music paths found. Triggering library rescan...");
+          log.i("Existing track directories found. Triggering library rescan...");
           ref.read(libraryIndexerProvider).scanLibrary();
         }
       } catch (e, s) {
