@@ -10,21 +10,35 @@ import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/utils/string_extension.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:nordplayer/services/player_service.dart';
 
 final libraryIndexerProvider = Provider<LibraryIndexer>((ref) {
   final db = ref.watch(appDatabaseProvider);
-  final appConfig = ref.watch(configServiceProvider).requireValue;
-
-  return LibraryIndexer(appConfig, db);
+  return LibraryIndexer(ref, db);
 });
 
 class LibraryIndexer with LoggerMixin {
-  LibraryIndexer(this._appConfig, this._db);
+  LibraryIndexer(this._ref, this._db);
 
-  final AppConfig _appConfig;
+  final Ref _ref;
   final AppDatabase _db;
 
-  Set<String> supportedExtensions = {'.mp3', '.m4a', '.flac'};
+  AppConfig get _appConfig => _ref.read(configServiceProvider).requireValue;
+
+  Set<String> supportedExtensions = {
+    '.mp3',
+    '.m4a',
+    '.flac',
+    '.wav',
+    '.ogg',
+    '.oga',
+    '.opus',
+    '.aac',
+    '.wma',
+    '.mka',
+    '.ape',
+    '.wv',
+  };
 
   // Map<ArtistName, ArtistId>
   final Map<String, int> _artistCache = {};
@@ -33,12 +47,15 @@ class LibraryIndexer with LoggerMixin {
 
   // ============================================= Main Function ======================================================
 
-  Future<void> scanLibrary() async {
+  /// Scans music directories, updates database track statuses (handles moved/missing files),
+  /// indexes new tracks, and reports progress via [onProgress].
+  Future<void> scanLibrary({void Function(int processed, int total)? onProgress}) async {
     log.i('Starting full library scan...');
+    onProgress?.call(0, 0);
 
-    final existingTracks = await _db.select(_db.tracks).get();
     // Maps normalized (lowercase, standard slash) paths to original case-sensitive DB paths to prevent duplicate
     // inserts and safely target records during updates/deletes.
+    final existingTracks = await _db.select(_db.tracks).get();
     final Map<String, String> existingTracksPathMap = {
       for (final track in existingTracks) track.filePath.normalizePath().toLowerCase(): track.filePath,
     };
@@ -121,7 +138,7 @@ class LibraryIndexer with LoggerMixin {
     if (newTracksToProcess.isNotEmpty) {
       log.i('Found ${newTracksToProcess.length} new track(s). Processing...');
 
-      await _indexTracks(newTracksToProcess);
+      await _indexTracks(newTracksToProcess, onProgress: onProgress);
     } else {
       log.i('No new tracks found. Library is up to date');
     }
@@ -145,14 +162,37 @@ class LibraryIndexer with LoggerMixin {
     await (_db.update(_db.tracks)..where((track) => track.filePath.lower().equals(normalizedPath))).write(
       const TracksCompanion(isMissing: Value(true)),
     );
+
+    // Also remove from player queue if currently loaded
+    try {
+      await _ref.read(playerServiceProvider).removeTrackByPath(path);
+    } catch (e) {
+      log.e("Failed to remove track from player service queue: $e");
+    }
   }
 
   Future<void> markTracksInDirectoryAsMissing(String directoryPath) async {
     log.i("Marking tracks under $directoryPath as missing...");
     final normalizedDir = directoryPath.normalizePath().toLowerCase();
+
+    // Get all track paths under this directory first to remove them from the queue
+    final tracksInDir = await (_db.select(_db.tracks)
+          ..where((track) => track.filePath.lower().like('$normalizedDir%')))
+        .get();
+
     await (_db.update(_db.tracks)..where((track) => track.filePath.lower().like('$normalizedDir%'))).write(
       const TracksCompanion(isMissing: Value(true)),
     );
+
+    // Also remove them from the player queue
+    try {
+      final playerService = _ref.read(playerServiceProvider);
+      for (final track in tracksInDir) {
+        await playerService.removeTrackByPath(track.filePath);
+      }
+    } catch (e) {
+      log.e("Failed to remove tracks from player service queue: $e");
+    }
   }
 
   Future<void> processSingleFile(File file) async {
@@ -184,20 +224,136 @@ class LibraryIndexer with LoggerMixin {
     await _indexTracks([file]);
   }
 
+  /// Performs a forced, in-place metadata re-indexing of all tracks in the database.
+  ///
+  /// Re-reads audio tags directly from all files on disk to update basic metadata, artist splits, and albums.
+  /// Preserves track database IDs so that user playlists, favorites, and play history remain intact.
+  ///
+  /// The optional [onProgress] callback is invoked after each processed track.
+  Future<void> reindexMetadata({void Function(int processed, int total)? onProgress}) async {
+    log.i('Starting forced in-place metadata re-indexing of all tracks...');
+
+    // Clear caches so we fetch fresh IDs and resolve splits correctly
+    _artistCache.clear();
+    _albumCache.clear();
+
+    final existingTracks = await _db.select(_db.tracks).get();
+    if (existingTracks.isEmpty) {
+      log.i('No tracks in database to re-index.');
+      return;
+    }
+
+    final total = existingTracks.length;
+    int processed = 0;
+
+    onProgress?.call(processed, total);
+
+    for (final track in existingTracks) {
+      final file = File(track.filePath);
+      if (!await file.exists()) {
+        processed++;
+        onProgress?.call(processed, total);
+        continue;
+      }
+
+      try {
+        final trackTag = await AudioTags.read(file.path);
+        if (trackTag == null) {
+          processed++;
+          onProgress?.call(processed, total);
+          continue;
+        }
+
+        final trackHash = _calculateFileHash(file);
+
+        List<int> allArtistIds = await _splitArtistsAndGetOrCreateArtist(trackTag);
+        final primaryArtistId = allArtistIds.first;
+
+        int albumId = await _getOrCreateAlbum(trackTag, primaryArtistId);
+
+        final artPath = await _saveAlbumArt(trackTag, albumId);
+        if (artPath != null) {
+          await (_db.update(
+            _db.albums,
+          )..where((a) => a.id.equals(albumId))).write(AlbumsCompanion(albumArtPath: Value(artPath)));
+        }
+
+        // =========================== Update Track in Database ===================================
+
+        await _db.transaction(() async {
+          // Update track info in-place
+          await (_db.update(_db.tracks)..where((t) => t.id.equals(track.id))).write(
+            TracksCompanion(
+              title: Value(trackTag.title ?? p.basename(file.path)),
+              trackNumber: Value(trackTag.trackNumber ?? 0),
+              trackTotal: Value(trackTag.trackTotal ?? 0),
+              discNumber: Value(trackTag.discNumber ?? 0),
+              discTotal: Value(trackTag.discTotal ?? 0),
+              durationMs: Value((trackTag.duration ?? 0) * 1000),
+              genre: Value(trackTag.genre),
+              fileSize: Value(file.lengthSync()),
+              fileHash: Value(trackHash),
+              artistId: Value(primaryArtistId),
+              albumId: Value(albumId),
+              isMissing: const Value(false),
+            ),
+          );
+
+          // Clear old artist relations for this track
+          await (_db.delete(_db.trackArtist)..where((ta) => ta.trackId.equals(track.id))).go();
+
+          // Re-insert the updated artist relations
+          for (final artistId in allArtistIds) {
+            await _db
+                .into(_db.trackArtist)
+                .insert(
+                  TrackArtistCompanion(trackId: Value(track.id), artistId: Value(artistId)),
+                  mode: InsertMode.insertOrIgnore,
+                );
+          }
+        });
+      } catch (e) {
+        log.e("Error re-indexing track ${track.filePath}: $e");
+      }
+
+      processed++;
+      onProgress?.call(processed, total);
+    }
+
+    // Clean up orphaned artists and albums
+    await _db.deleteOrphanedMetadata();
+    log.i('Forced metadata re-indexing complete.');
+  }
+
   // =========================================== Helper Function ======================================================
 
-  Future<void> _indexTracks(List<File> files) async {
+  Future<void> _indexTracks(List<File> files, {void Function(int processed, int total)? onProgress}) async {
     const int chunkSize = 50;
+    final total = files.length;
+    int processed = 0;
+
+    onProgress?.call(0, total);
 
     for (var i = 0; i < files.length; i += chunkSize) {
       final end = (i + chunkSize < files.length) ? i + chunkSize : files.length;
       final chunk = files.sublist(i, end);
 
-      await _indexTracksChunk(chunk);
+      await _indexTracksChunk(
+        chunk,
+        onProgress: (insertedInChunk) {
+          onProgress?.call(processed + insertedInChunk, total);
+        },
+      );
+      processed += chunk.length;
+      onProgress?.call(processed, total);
     }
   }
 
-  Future<void> _indexTracksChunk(List<File> files) async {
+  /// Indexes a chunk of track files in the database within a single transaction.
+  ///
+  /// Parses tag metadata for each file, resolves/inserts relevant artist and album records,
+  /// extracts and saves album art, and writes the track and track-artist relations.
+  Future<void> _indexTracksChunk(List<File> files, {void Function(int inserted)? onProgress}) async {
     // Read all metadata, put it in a list
     final metadataList = await Future.wait(
       files.map((file) async {
@@ -211,6 +367,7 @@ class LibraryIndexer with LoggerMixin {
       }),
     );
 
+    int insertedCount = 0;
     await _db.transaction(() async {
       for (var item in metadataList) {
         final trackPath = item.$1;
@@ -218,6 +375,8 @@ class LibraryIndexer with LoggerMixin {
 
         if (trackTag == null) {
           log.w("Skipped file due to parsing error: $trackPath");
+          insertedCount++;
+          onProgress?.call(insertedCount);
           continue;
         }
 
@@ -225,84 +384,10 @@ class LibraryIndexer with LoggerMixin {
 
         String trackHash = _calculateFileHash(trackFile);
 
-        // ================================= Artists Split ========================================
-
-        final rawArtistString = trackTag.trackArtist ?? 'Unknown Artist';
-        final String pattern = _appConfig.artistDelimiters.map((d) => RegExp.escape(d)).join('|');
-
-        final RegExp separator = RegExp('\\s*(?:$pattern)\\s*', caseSensitive: false);
-
-        // Split, trim whitespace, and remove empty strings
-        List<String> artistNames = rawArtistString
-            .split(separator)
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .toList();
-
-        if (artistNames.isEmpty) artistNames = ['Unknown Artist'];
-
-        final List<int> allArtistIds = [];
-
-        // ============================== Resolve Artist IDs ======================================
-
-        // Resolve IDs for ALL artists found. Use a Set to avoid duplicates
-        for (final name in artistNames.toSet()) {
-          int id;
-
-          if (_artistCache.containsKey(name)) {
-            id = _artistCache[name]!;
-          }
-
-          final existing = await (_db.select(_db.artists)..where((a) => a.name.equals(name))).getSingleOrNull();
-
-          if (existing != null) {
-            _artistCache[name] = existing.id;
-            id = existing.id;
-          } else {
-            final newId = await _db.into(_db.artists).insert(ArtistsCompanion(name: Value(name)));
-            _artistCache[name] = newId;
-            id = newId;
-          }
-
-          allArtistIds.add(id);
-        }
-
+        List<int> allArtistIds = await _splitArtistsAndGetOrCreateArtist(trackTag);
         final primaryArtistId = allArtistIds.first;
 
-        // =============================== Resolve Album ID =======================================
-
-        int albumId;
-        final albumTitle = trackTag.album ?? 'Unknown Album';
-        final albumCacheKey = '$albumTitle-$primaryArtistId';
-
-        if (_albumCache.containsKey(albumCacheKey)) {
-          albumId = _albumCache[albumCacheKey]!;
-        }
-
-        final existing = await (_db.select(
-          _db.albums,
-        )..where((a) => a.title.equals(albumTitle) & a.artistId.equals(primaryArtistId))).getSingleOrNull();
-
-        if (existing != null) {
-          _albumCache[albumCacheKey] = existing.id;
-          albumId = existing.id;
-        } else {
-          final newId = await _db
-              .into(_db.albums)
-              .insert(
-                AlbumsCompanion(
-                  title: Value(albumTitle),
-                  artistId: Value(primaryArtistId),
-                  year: Value(trackTag.year ?? 0),
-                  albumArtist: Value(trackTag.albumArtist),
-                ),
-              );
-
-          _albumCache[albumCacheKey] = newId;
-          albumId = newId;
-        }
-
-        // ================================ Save Album Art ========================================
+        int albumId = await _getOrCreateAlbum(trackTag, primaryArtistId);
 
         final artPath = await _saveAlbumArt(trackTag, albumId);
         if (artPath != null) {
@@ -341,6 +426,9 @@ class LibraryIndexer with LoggerMixin {
                 mode: InsertMode.insertOrIgnore,
               );
         }
+
+        insertedCount++;
+        onProgress?.call(insertedCount);
       }
     });
   }
@@ -397,5 +485,87 @@ class LibraryIndexer with LoggerMixin {
       // Fallback to simple hash of path & size if file reading fails
       return '${file.path.hashCode.toRadixString(16)}_${file.lengthSync()}';
     }
+  }
+
+  /// Splits the artist string in [trackTag] using the configured artist delimiters, get or create the
+  /// corresponding artist records, and returns their database IDs.
+  /// The first element in the returned list is always the primary artist ID.
+  Future<List<int>> _splitArtistsAndGetOrCreateArtist(Tag trackTag) async {
+    final rawArtistString = trackTag.trackArtist ?? 'Unknown Artist';
+
+    // Sort delimiters by length in descending order to avoid prefix matching issues (e.g. matching 'feat' before 'feat.')
+    final sortedDelimiters = List<String>.from(_appConfig.artistDelimiters)
+      ..sort((a, b) => b.length.compareTo(a.length));
+
+    final String pattern = sortedDelimiters.map((d) => RegExp.escape(d)).join('|');
+    final RegExp separator = RegExp('\\s*(?:$pattern)\\s*', caseSensitive: false);
+
+    // Split, trim whitespace, and remove empty strings
+    List<String> artistNames = rawArtistString
+        .split(separator)
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    if (artistNames.isEmpty) artistNames = ['Unknown Artist'];
+
+    final List<int> allArtistIds = [];
+
+    // Resolve IDs for ALL artists found. Use a Set to avoid duplicates
+    for (final name in artistNames.toSet()) {
+      int id;
+      if (_artistCache.containsKey(name)) {
+        id = _artistCache[name]!;
+      } else {
+        final existing = await (_db.select(_db.artists)..where((a) => a.name.equals(name))).getSingleOrNull();
+        if (existing != null) {
+          _artistCache[name] = existing.id;
+          id = existing.id;
+        } else {
+          final newId = await _db.into(_db.artists).insert(ArtistsCompanion(name: Value(name)));
+          _artistCache[name] = newId;
+          id = newId;
+        }
+      }
+      allArtistIds.add(id);
+    }
+
+    return allArtistIds;
+  }
+
+  /// Gets the database ID of the album in [trackTag] or create the album record if it doesn't exist.
+  /// Returns the album id. Require primary artist id to avoid duplicate albums.
+  Future<int> _getOrCreateAlbum(Tag trackTag, int primaryArtistId) async {
+    int albumId;
+    final albumTitle = trackTag.album ?? 'Unknown Album';
+    final albumCacheKey = '$albumTitle-$primaryArtistId';
+
+    if (_albumCache.containsKey(albumCacheKey)) {
+      albumId = _albumCache[albumCacheKey]!;
+    } else {
+      final existing = await (_db.select(
+        _db.albums,
+      )..where((a) => a.title.equals(albumTitle) & a.artistId.equals(primaryArtistId))).getSingleOrNull();
+
+      if (existing != null) {
+        _albumCache[albumCacheKey] = existing.id;
+        albumId = existing.id;
+      } else {
+        final newId = await _db
+            .into(_db.albums)
+            .insert(
+              AlbumsCompanion(
+                title: Value(albumTitle),
+                artistId: Value(primaryArtistId),
+                year: Value(trackTag.year ?? 0),
+                albumArtist: Value(trackTag.albumArtist),
+              ),
+            );
+        _albumCache[albumCacheKey] = newId;
+        albumId = newId;
+      }
+    }
+
+    return albumId;
   }
 }

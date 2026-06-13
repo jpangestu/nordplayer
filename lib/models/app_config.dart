@@ -4,6 +4,7 @@ import 'package:nordplayer/models/app_theme.dart';
 
 class AppConfig {
   final List<String> trackDirectories;
+  final bool watchTrackDirectories;
   final List<String> artistDelimiters;
   final String theme;
   final Brightness themeBrightness;
@@ -18,7 +19,18 @@ class AppConfig {
 
   static const List<String> _defaultTrackDirectories = [];
   // Not private because settings page need access
-  static const List<String> defaultArtistDelimiters = [',', ';', '/', '+', '&'];
+  static const List<String> defaultArtistDelimiters = [
+    ',',
+    ';',
+    '/',
+    '+',
+    '&',
+    'feat.',
+    'feat',
+    'ft.',
+    'ft',
+    'featuring',
+  ];
   static const String _defaultTheme = 'nord';
   static const Brightness _defaultThemeBrightness = Brightness.dark;
   static const String _defaultIconSet = 'lucide';
@@ -29,9 +41,11 @@ class AppConfig {
   static const double _defaultAdaptiveBgThemeOverlay = 0.5;
   static const String _defaultFontFamily = 'outfit';
   static const double _defaultTextScale = 1.0;
+  static const bool _defaultWatchTrackDirectories = true;
 
   AppConfig({
     this.trackDirectories = _defaultTrackDirectories,
+    this.watchTrackDirectories = _defaultWatchTrackDirectories,
     this.artistDelimiters = defaultArtistDelimiters,
     this.theme = _defaultTheme,
     this.themeBrightness = _defaultThemeBrightness,
@@ -47,6 +61,7 @@ class AppConfig {
 
   AppConfig copyWith({
     List<String>? trackDirectories,
+    bool? watchTrackDirectories,
     List<String>? artistDelimiters,
     String? theme,
     Brightness? themeBrightness,
@@ -61,6 +76,7 @@ class AppConfig {
   }) {
     return AppConfig(
       trackDirectories: trackDirectories ?? this.trackDirectories,
+      watchTrackDirectories: watchTrackDirectories ?? this.watchTrackDirectories,
       artistDelimiters: artistDelimiters ?? this.artistDelimiters,
       theme: theme ?? this.theme,
       themeBrightness: themeBrightness ?? this.themeBrightness,
@@ -78,6 +94,7 @@ class AppConfig {
   factory AppConfig.fromJson(Map<String, dynamic> json, {required Logger logger}) {
     return AppConfig(
       trackDirectories: _parsetrackDirectories(json['trackDirectories'], logger: logger),
+      watchTrackDirectories: _parseWatchTrackDirectories(json['watchTrackDirectories'], logger: logger),
       artistDelimiters: _parseArtistDelimiters(json['artistDelimiters'], logger: logger),
       theme: _parseTheme(json['theme'], logger: logger),
       themeBrightness: _parseThemeBrightness(json['themeBrightness'], logger: logger),
@@ -100,6 +117,15 @@ class AppConfig {
 
     final safeList = value.whereType<String>().toList();
     return safeList;
+  }
+
+  static bool _parseWatchTrackDirectories(dynamic value, {required Logger logger}) {
+    if (value is! bool) {
+      logger.w("Invalid watchTrackDirectories: $value. Fallback to '$_defaultWatchTrackDirectories'.");
+      return _defaultWatchTrackDirectories;
+    }
+
+    return value;
   }
 
   static List<String> _parseArtistDelimiters(dynamic value, {required Logger logger}) {
@@ -220,6 +246,7 @@ class AppConfig {
   Map<String, dynamic> toJson() {
     return {
       'trackDirectories': trackDirectories,
+      'watchTrackDirectories': watchTrackDirectories,
       'artistDelimiters': artistDelimiters,
       'theme': theme,
       'themeBrightness': themeBrightness.name,
@@ -232,17 +259,5 @@ class AppConfig {
       'fontFamily': fontFamily,
       'textScale': textScale,
     };
-  }
-
-  /// Splits a raw artist string into a list of individual artists using the configured delimiters.
-  List<String> splitArtists(String rawArtist) {
-    if (artistDelimiters.isEmpty) return [rawArtist.trim()];
-
-    // Escape each delimiter so regex treats characters like '+' or '&' literally,
-    // then join them with the regex OR operator '|'
-    final pattern = artistDelimiters.map((d) => RegExp.escape(d)).join('|');
-    final regex = RegExp(pattern, caseSensitive: false);
-
-    return rawArtist.split(regex).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
   }
 }

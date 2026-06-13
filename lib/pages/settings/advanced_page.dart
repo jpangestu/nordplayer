@@ -39,7 +39,7 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
                 style: TextStyle(color: theme.colorScheme.onError, fontWeight: FontWeight.w600),
               ),
               subtitle: Text(
-                'Theme, track directories, and player preferences',
+                'Themes, music locations, and player preferences',
                 style: TextStyle(color: theme.colorScheme.onError.withValues(alpha: 0.74)),
               ),
               onTap: () => _showResetSettingsDialog(context, ref),

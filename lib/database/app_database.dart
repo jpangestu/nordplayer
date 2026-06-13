@@ -105,11 +105,12 @@ class AppDatabase extends _$AppDatabase {
       WHERE id NOT IN (SELECT DISTINCT album_id FROM tracks WHERE album_id IS NOT NULL);
     ''');
 
-      // Delete artists who no longer have any tracks OR albums pointing to them
+      // Delete artists who no longer have any tracks OR albums OR track_artist relations pointing to them
       await customStatement('''
       DELETE FROM artists 
       WHERE id NOT IN (SELECT DISTINCT artist_id FROM tracks WHERE artist_id IS NOT NULL)
-        AND id NOT IN (SELECT DISTINCT artist_id FROM albums WHERE artist_id IS NOT NULL);
+        AND id NOT IN (SELECT DISTINCT artist_id FROM albums WHERE artist_id IS NOT NULL)
+        AND id NOT IN (SELECT DISTINCT artist_id FROM track_artist);
     ''');
     });
   }
@@ -252,19 +253,14 @@ class AppDatabase extends _$AppDatabase {
   /// Get all albums
   /// Usage: main album page
   Stream<List<Album>> watchAlbums() {
-    final query = select(albums)..orderBy([(u) => OrderingTerm(expression: u.title, mode: OrderingMode.asc)]);
+    final query = select(albums).join([
+      innerJoin(tracks, tracks.albumId.equalsExp(albums.id) & tracks.isMissing.equals(false)),
+    ])
+    ..groupBy([albums.id])
+    ..orderBy([OrderingTerm.asc(albums.title)]);
 
     return query.watch().map((rows) {
-      return rows.map((row) {
-        return Album(
-          id: row.id,
-          title: row.title,
-          year: row.year,
-          albumArtPath: row.albumArtPath,
-          albumArtist: row.albumArtist,
-          artistId: row.artistId,
-        );
-      }).toList();
+      return rows.map((row) => row.readTable(albums)).toList();
     });
   }
 
@@ -313,12 +309,14 @@ class AppDatabase extends _$AppDatabase {
   /// Fetches a list of random albums.
   /// Using a Future instead of a Stream prevents the UI from re-shuffling every time the database receives an update.
   Future<List<Album>> getRandomAlbums({int limitAmount = 10}) {
-    final query = select(albums)
-      // Use SQLite's native RANDOM() function to sort the rows arbitrarily
-      ..orderBy([(a) => OrderingTerm(expression: const CustomExpression('RANDOM()'))])
-      ..limit(limitAmount);
+    final query = select(albums).join([
+      innerJoin(tracks, tracks.albumId.equalsExp(albums.id) & tracks.isMissing.equals(false)),
+    ])
+    ..groupBy([albums.id])
+    ..orderBy([OrderingTerm(expression: const CustomExpression('RANDOM()'))])
+    ..limit(limitAmount);
 
-    return query.get();
+    return query.get().then((rows) => rows.map((row) => row.readTable(albums)).toList());
   }
 
   // ============================================= Artists Stuff ====================================================
@@ -326,12 +324,15 @@ class AppDatabase extends _$AppDatabase {
   /// Get all albums
   /// Usage: main album page
   Stream<List<Artist>> watchArtists() {
-    final query = select(artists)..orderBy([(u) => OrderingTerm(expression: u.name, mode: OrderingMode.asc)]);
+    final query = select(artists).join([
+      innerJoin(trackArtist, trackArtist.artistId.equalsExp(artists.id)),
+      innerJoin(tracks, tracks.id.equalsExp(trackArtist.trackId) & tracks.isMissing.equals(false)),
+    ])
+    ..groupBy([artists.id])
+    ..orderBy([OrderingTerm.asc(artists.name)]);
 
     return query.watch().map((rows) {
-      return rows.map((row) {
-        return Artist(id: row.id, name: row.name);
-      }).toList();
+      return rows.map((row) => row.readTable(artists)).toList();
     });
   }
 
@@ -593,7 +594,7 @@ class AppDatabase extends _$AppDatabase {
       // Reconstruct the actual track data from the metadata tables
       final track = await getTrackWithArtistsById(entry.trackId);
 
-      if (track != null) {
+      if (track != null && !track.track.isMissing) {
         originalQueue.add(track);
         if (entry.isCurrentlyPlaying) {
           lastPlayedIndex = originalQueue.length - 1;

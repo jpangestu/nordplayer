@@ -10,16 +10,27 @@ import 'package:path/path.dart' as p;
 import 'package:watcher/watcher.dart';
 
 final libraryWatcherProvider = Provider<LibraryWatcher>((ref) {
-  final appConfig = ref.watch(configServiceProvider).requireValue;
   final libraryIndexer = ref.watch(libraryIndexerProvider);
 
-  final watcher = LibraryWatcher(appConfig, libraryIndexer);
+  final watcher = LibraryWatcher(libraryIndexer);
+
+  ref.listen<AsyncValue<AppConfig>>(
+    configServiceProvider,
+    (previous, next) {
+      if (next is AsyncData<AppConfig>) {
+        watcher.updateConfig(next.value);
+      }
+    },
+    fireImmediately: true,
+  );
+
   ref.onDispose(() => watcher.dispose());
   return watcher;
 });
 
 class LibraryWatcher with LoggerMixin {
-  final AppConfig _appConfig;
+  LibraryWatcher(this._libraryIndexer);
+
   final LibraryIndexer _libraryIndexer;
 
   final Map<String, StreamSubscription<WatchEvent>> _subscriptions = {};
@@ -27,11 +38,29 @@ class LibraryWatcher with LoggerMixin {
   // A map to keep track of pending files to prevent premature parsing
   final Map<String, Timer> _debouncers = {};
 
-  LibraryWatcher(this._appConfig, this._libraryIndexer);
+  /// Synchronizes directory watchers when the application configuration is updated.
+  ///
+  /// Cancels all subscriptions if directory watching is disabled, stops watchers for
+  /// removed folders, and starts watching newly added folders.
+  void updateConfig(AppConfig newConfig) {
+    if (!newConfig.watchTrackDirectories) {
+      if (_subscriptions.isNotEmpty) {
+        log.i("Directory watching disabled. Canceling all active subscriptions.");
+        dispose();
+      }
+      return;
+    }
 
-  // Watch all folder in _appConfig.trackDirectories. Used in app startup
-  void watchAllTrackDirectories() {
-    for (final folderPath in _appConfig.trackDirectories) {
+    // Stop watching folders that are no longer in the list
+    final currentlyWatched = List<String>.from(_subscriptions.keys);
+    for (final folderPath in currentlyWatched) {
+      if (!newConfig.trackDirectories.contains(folderPath)) {
+        stopWatchingTrackDirectory(folderPath);
+      }
+    }
+
+    // Start watching folders that are in the list but not yet watched
+    for (final folderPath in newConfig.trackDirectories) {
       watchTrackDirectory(folderPath);
     }
   }

@@ -107,7 +107,7 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp> with WindowListen
     ref.listen<AsyncValue<AppConfig>>(configServiceProvider, (previous, next) {
       if (previous is AsyncLoading && next is AsyncData) {
         ref.read(playerServiceProvider).init();
-        ref.read(libraryWatcherProvider).watchAllTrackDirectories();
+        ref.read(libraryWatcherProvider);
         ref.read(libraryIndexerProvider).scanLibrary();
         ref.read(playerServiceProvider).initializeQueueFromDatabase();
       }

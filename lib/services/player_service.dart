@@ -384,6 +384,25 @@ class PlayerService with LoggerMixin {
     }
   }
 
+  /// Removes all instances of a track with the given path from the queue.
+  Future<void> removeTrackByPath(String path) async {
+    try {
+      final normalizedPath = path.normalizePath().toLowerCase();
+      final indicesToRemove = <int>[];
+      final medias = _mkPlayer.state.playlist.medias;
+      for (int i = 0; i < medias.length; i++) {
+        if (medias[i].uri.normalizePath().toLowerCase() == normalizedPath) {
+          indicesToRemove.add(i);
+        }
+      }
+      if (indicesToRemove.isNotEmpty) {
+        await removeTracks(indicesToRemove);
+      }
+    } catch (e) {
+      log.e("Error removing track by path: $e");
+    }
+  }
+
   // ============================================= Playback ===========================================================
 
   Future<void> playOrPause() async {
