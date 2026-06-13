@@ -109,7 +109,7 @@ class AppDatabase extends _$AppDatabase {
       await customStatement('''
       DELETE FROM artists 
       WHERE id NOT IN (SELECT DISTINCT artist_id FROM tracks WHERE artist_id IS NOT NULL)
-        AND id NOT IN (SELECT DISTINCT artist_id FROM albums WHERE artist_id IS NOT NULL)
+        AND id NOT IN (SELECT DISTINCT album_artist_id FROM albums WHERE album_artist_id IS NOT NULL)
         AND id NOT IN (SELECT DISTINCT artist_id FROM track_artist);
     ''');
     });
@@ -253,11 +253,10 @@ class AppDatabase extends _$AppDatabase {
   /// Get all albums
   /// Usage: main album page
   Stream<List<Album>> watchAlbums() {
-    final query = select(albums).join([
-      innerJoin(tracks, tracks.albumId.equalsExp(albums.id) & tracks.isMissing.equals(false)),
-    ])
-    ..groupBy([albums.id])
-    ..orderBy([OrderingTerm.asc(albums.title)]);
+    final query =
+        select(albums).join([innerJoin(tracks, tracks.albumId.equalsExp(albums.id) & tracks.isMissing.equals(false))])
+          ..groupBy([albums.id])
+          ..orderBy([OrderingTerm.asc(albums.title)]);
 
     return query.watch().map((rows) {
       return rows.map((row) => row.readTable(albums)).toList();
@@ -306,15 +305,26 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
+  Future<List<Artist>> getTrackArtists({required int albumId}) {
+    final query =
+        select(artists, distinct: true).join([
+            innerJoin(trackArtist, trackArtist.artistId.equalsExp(artists.id)),
+            innerJoin(tracks, tracks.id.equalsExp(trackArtist.trackId)),
+          ])
+          ..where(tracks.albumId.equals(albumId) & tracks.isMissing.equals(false))
+          ..orderBy([OrderingTerm.asc(artists.name)]);
+
+    return query.get().then((rows) => rows.map((row) => row.readTable(artists)).toList());
+  }
+
   /// Fetches a list of random albums.
   /// Using a Future instead of a Stream prevents the UI from re-shuffling every time the database receives an update.
   Future<List<Album>> getRandomAlbums({int limitAmount = 10}) {
-    final query = select(albums).join([
-      innerJoin(tracks, tracks.albumId.equalsExp(albums.id) & tracks.isMissing.equals(false)),
-    ])
-    ..groupBy([albums.id])
-    ..orderBy([OrderingTerm(expression: const CustomExpression('RANDOM()'))])
-    ..limit(limitAmount);
+    final query =
+        select(albums).join([innerJoin(tracks, tracks.albumId.equalsExp(albums.id) & tracks.isMissing.equals(false))])
+          ..groupBy([albums.id])
+          ..orderBy([OrderingTerm(expression: const CustomExpression('RANDOM()'))])
+          ..limit(limitAmount);
 
     return query.get().then((rows) => rows.map((row) => row.readTable(albums)).toList());
   }
@@ -324,12 +334,13 @@ class AppDatabase extends _$AppDatabase {
   /// Get all albums
   /// Usage: main album page
   Stream<List<Artist>> watchArtists() {
-    final query = select(artists).join([
-      innerJoin(trackArtist, trackArtist.artistId.equalsExp(artists.id)),
-      innerJoin(tracks, tracks.id.equalsExp(trackArtist.trackId) & tracks.isMissing.equals(false)),
-    ])
-    ..groupBy([artists.id])
-    ..orderBy([OrderingTerm.asc(artists.name)]);
+    final query =
+        select(artists).join([
+            innerJoin(trackArtist, trackArtist.artistId.equalsExp(artists.id)),
+            innerJoin(tracks, tracks.id.equalsExp(trackArtist.trackId) & tracks.isMissing.equals(false)),
+          ])
+          ..groupBy([artists.id])
+          ..orderBy([OrderingTerm.asc(artists.name)]);
 
     return query.watch().map((rows) {
       return rows.map((row) => row.readTable(artists)).toList();
@@ -718,6 +729,11 @@ final albumsProvider = StreamProvider<List<Album>>((ref) {
 final albumWithTracksProvider = StreamProvider.family<AlbumWithTracks?, int>((ref, albumId) {
   final db = ref.watch(appDatabaseProvider);
   return db.watchAlbumWithTracks(albumId);
+});
+
+final trackArtistsProvider = FutureProvider.family<List<Artist>, int>((ref, albumId) {
+  final db = ref.watch(appDatabaseProvider);
+  return db.getTrackArtists(albumId: albumId);
 });
 
 final randomAlbumsProvider = FutureProvider<List<Album>>((ref) {

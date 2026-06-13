@@ -7,6 +7,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/config_service.dart';
+import 'package:nordplayer/widgets/context_menu.dart';
 
 class AlbumsPage extends ConsumerWidget {
   const AlbumsPage({super.key});
@@ -55,7 +56,6 @@ class AlbumsPage extends ConsumerWidget {
 
                                 context.push('$basePath/$targetId');
                               },
-                              albumArtist: album.albumArtist ?? 'Unknown Artist',
                             ),
                           ),
                         );
@@ -72,29 +72,21 @@ class AlbumsPage extends ConsumerWidget {
   }
 }
 
-class AlbumCard extends StatefulWidget {
+class AlbumCard extends ConsumerStatefulWidget {
   final Album album;
 
   /// Default = 180
   final double? albumSize;
   final VoidCallback onAlbumTap;
-  final String? albumArtist;
   final VoidCallback? onAlbumArtistTap;
 
-  const AlbumCard({
-    super.key,
-    required this.album,
-    this.albumSize,
-    required this.onAlbumTap,
-    this.albumArtist,
-    this.onAlbumArtistTap,
-  });
+  const AlbumCard({super.key, required this.album, this.albumSize, required this.onAlbumTap, this.onAlbumArtistTap});
 
   @override
-  State<AlbumCard> createState() => _AlbumCardState();
+  ConsumerState<AlbumCard> createState() => _AlbumCardState();
 }
 
-class _AlbumCardState extends State<AlbumCard> {
+class _AlbumCardState extends ConsumerState<AlbumCard> {
   bool _isHoveringAlbum = false;
   bool _isHoveringAlbumArtist = false;
 
@@ -171,7 +163,7 @@ class _AlbumCardState extends State<AlbumCard> {
           ),
         ),
 
-        if (widget.albumArtist != null)
+        if (widget.album.albumArtistId != null) ...[
           MouseRegion(
             cursor: SystemMouseCursors.click,
             onEnter: (_) => setState(() => _isHoveringAlbumArtist = true),
@@ -179,7 +171,7 @@ class _AlbumCardState extends State<AlbumCard> {
             child: GestureDetector(
               onTap: widget.onAlbumArtistTap,
               child: Text(
-                widget.albumArtist!,
+                widget.album.albumArtist!,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.titleSmall?.copyWith(
@@ -189,6 +181,47 @@ class _AlbumCardState extends State<AlbumCard> {
               ),
             ),
           ),
+        ] else ...[
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            onEnter: (_) => setState(() => _isHoveringAlbumArtist = true),
+            onExit: (_) => setState(() => _isHoveringAlbumArtist = false),
+            child: GestureDetector(
+              onTapDown: (details) {
+                // Fetch featured artists for this album
+                final artistsAsync = ref.read(trackArtistsProvider(widget.album.id));
+
+                artistsAsync.whenData((artists) {
+                  if (artists.isEmpty) return;
+
+                  ContextMenu.show(
+                    context: context,
+                    isAdaptive: true,
+                    globalPosition: details.globalPosition,
+                    actionMenus: artists.map((artist) {
+                      return ContextMenuActions(
+                        icon: Icons.person,
+                        label: artist.name,
+                        onTap: () {
+                          // context.go('${Routes.artistsPage}/${artist.id}');
+                        },
+                      );
+                    }).toList(),
+                  );
+                });
+              },
+              child: Text(
+                widget.album.albumArtist!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  decoration: _isHoveringAlbumArtist ? TextDecoration.underline : TextDecoration.none,
+                ),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

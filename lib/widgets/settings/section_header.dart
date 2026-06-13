@@ -11,7 +11,7 @@ class SectionHeader extends StatelessWidget {
     super.key,
     required this.label,
     required this.labelType,
-    this.padding = const .symmetric(vertical: 8),
+    this.padding = const EdgeInsets.symmetric(vertical: 8),
   });
 
   @override

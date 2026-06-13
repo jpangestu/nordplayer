@@ -1,17 +1,18 @@
 import 'dart:async';
 
 import 'package:file_selector/file_selector.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/library_indexer.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
-import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/nord_snack_bar.dart';
 import 'package:nordplayer/widgets/settings/section_card.dart';
 import 'package:nordplayer/widgets/settings/section_divider.dart';
 import 'package:nordplayer/widgets/settings/section_header.dart';
+import 'package:nordplayer/widgets/settings/settings_chip.dart';
 
 class LibraryIndexerPage extends ConsumerStatefulWidget {
   const LibraryIndexerPage({super.key});
@@ -23,51 +24,83 @@ class LibraryIndexerPage extends ConsumerStatefulWidget {
 class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
   final TextEditingController _addDelimiterController = TextEditingController();
   final FocusNode _addDelimiterFocusNode = FocusNode();
+  final TextEditingController _addExclusionController = TextEditingController();
+  final FocusNode _addExclusionFocusNode = FocusNode();
+  late final TapGestureRecognizer _delimitersTapRecognizer;
+  late final TapGestureRecognizer _exclusionsTapRecognizer;
+
+  bool _showDefaultExclusions = false;
 
   bool _isScanning = false;
-  bool _isReindexing = false;
   int _scanProcessed = 0;
   int _scanTotal = 0;
+  bool _isReindexing = false;
   int _reindexProcessed = 0;
   int _reindexTotal = 0;
 
-  bool get _isBusy => _isScanning || _isReindexing;
+  bool get isBusy => _isScanning || _isReindexing;
+
+  @override
+  void initState() {
+    super.initState();
+    _delimitersTapRecognizer = TapGestureRecognizer()..onTap = _handleLinkReindex;
+    _exclusionsTapRecognizer = TapGestureRecognizer()..onTap = _handleLinkReindex;
+  }
 
   @override
   void dispose() {
     _addDelimiterController.dispose();
     _addDelimiterFocusNode.dispose();
+    _addExclusionController.dispose();
+    _addExclusionFocusNode.dispose();
+    _delimitersTapRecognizer.dispose();
+    _exclusionsTapRecognizer.dispose();
     super.dispose();
   }
 
-  Future<void> _triggerScan() async {
-    setState(() {
-      _isScanning = true;
-      _scanProcessed = 0;
-      _scanTotal = 0;
-    });
+  void _handleLinkReindex() {
+    if (!isBusy) {
+      _triggerReindex();
+    }
+  }
 
+  DateTime _lastUpdate = DateTime.fromMillisecondsSinceEpoch(0);
+
+  void _onProgress(int processed, int total, {required bool isScanning}) {
+    final now = DateTime.now();
+    if (processed == total || now.difference(_lastUpdate).inMilliseconds > 100) {
+      if (mounted) {
+        setState(() {
+          if (isScanning) {
+            _scanProcessed = processed;
+            _scanTotal = total;
+          } else {
+            _reindexProcessed = processed;
+            _reindexTotal = total;
+          }
+        });
+      }
+      _lastUpdate = now;
+    }
+  }
+
+  Future<void> _triggerScan() async {
+    if (isBusy) return;
+    _lastUpdate = DateTime.fromMillisecondsSinceEpoch(0);
+    if (mounted) {
+      setState(() {
+        _isScanning = true;
+        _scanProcessed = 0;
+        _scanTotal = 0;
+      });
+    }
     try {
       await ref
           .read(libraryIndexerProvider)
-          .scanLibrary(
-            onProgress: (processed, total) {
-              if (mounted) {
-                setState(() {
-                  _scanProcessed = processed;
-                  _scanTotal = total;
-                });
-              }
-            },
-          );
-
-      if (mounted) {
-        showNordSnackBar(message: 'Library scan complete', type: .success);
-      }
+          .scanLibrary(onProgress: (processed, total) => _onProgress(processed, total, isScanning: true));
+      showNordSnackBar(message: 'Library scan complete', type: NordSnackBarType.success);
     } catch (e) {
-      if (mounted) {
-        showNordSnackBar(message: 'Unable to scan library: $e', type: .error);
-      }
+      showNordSnackBar(message: 'Unable to scan library: $e', type: NordSnackBarType.error);
     } finally {
       if (mounted) {
         setState(() {
@@ -78,33 +111,23 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
   }
 
   Future<void> _triggerReindex() async {
-    setState(() {
-      _isReindexing = true;
-      _reindexProcessed = 0;
-      _reindexTotal = 0;
-    });
-
+    if (isBusy) return;
+    _lastUpdate = DateTime.fromMillisecondsSinceEpoch(0);
+    if (mounted) {
+      setState(() {
+        _isReindexing = true;
+        _reindexProcessed = 0;
+        _reindexTotal = 0;
+      });
+    }
+    showNordSnackBar(message: 'Re-indexing metadata...', type: NordSnackBarType.info);
     try {
       await ref
           .read(libraryIndexerProvider)
-          .reindexMetadata(
-            onProgress: (processed, total) {
-              if (mounted) {
-                setState(() {
-                  _reindexProcessed = processed;
-                  _reindexTotal = total;
-                });
-              }
-            },
-          );
-
-      if (mounted) {
-        showNordSnackBar(message: 'Library re-indexed successfully', type: .success);
-      }
+          .reindexMetadata(onProgress: (processed, total) => _onProgress(processed, total, isScanning: false));
+      showNordSnackBar(message: 'Library re-indexed successfully', type: NordSnackBarType.success);
     } catch (e) {
-      if (mounted) {
-        showNordSnackBar(message: 'Unable to re-index metadata: $e', type: .error);
-      }
+      showNordSnackBar(message: 'Unable to re-index metadata: $e', type: NordSnackBarType.error);
     } finally {
       if (mounted) {
         setState(() {
@@ -120,13 +143,20 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
     final appConfig = ref.watch(configServiceProvider).requireValue;
     List<String> trackDirectories = appConfig.trackDirectories;
     List<String> currentDelimiters = appConfig.artistDelimiters;
+    List<String> currentExclusions = appConfig.artistExclusions;
+
+    final defaultSet = AppConfig.defaultArtistExclusions.map((e) => e.toLowerCase().trim()).toSet();
+    final customExclusions = currentExclusions.where((e) => !defaultSet.contains(e.toLowerCase().trim())).toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    final activeDefaultExclusions = currentExclusions.where((e) => defaultSet.contains(e.toLowerCase().trim())).toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
     return Scaffold(
       backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          const SectionHeader(label: 'Library', labelType: .h1, padding: .only(bottom: 8)),
+          const SectionHeader(label: 'Library', labelType: LabelType.h1, padding: EdgeInsets.only(bottom: 8)),
           SectionCard(
             child: Column(
               children: [
@@ -134,7 +164,7 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                   title: const Text('Music locations'),
                   subtitle: const Text("Manage folders to scan for music"),
                   trailing: OutlinedButton.icon(
-                    onPressed: _isBusy ? null : () => _addFolder(),
+                    onPressed: isBusy ? null : () => _addFolder(),
                     icon: const AppIcon(Icons.add),
                     label: const Text("Add Folders"),
                   ),
@@ -152,7 +182,7 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                       leading: const AppIcon(Icons.folder_outlined),
                       title: Text(path),
                       trailing: IconButton(
-                        onPressed: _isBusy ? null : () => _removeFolder(path),
+                        onPressed: isBusy ? null : () => _removeFolder(path),
                         icon: const AppIcon(Icons.delete_outline),
                         tooltip: "Remove folder",
                       ),
@@ -166,7 +196,7 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                   title: Text('Watch folders for changes', style: theme.textTheme.bodyLarge),
                   subtitle: const Text('Automatically detect new, moved, or deleted music files in your locations.'),
                   value: appConfig.watchTrackDirectories,
-                  onChanged: _isBusy
+                  onChanged: isBusy
                       ? null
                       : (val) {
                           ref.read(configServiceProvider.notifier).updateConfig(watchTrackDirectories: val);
@@ -178,90 +208,54 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
 
           const SizedBox(height: 8),
 
-          const SectionHeader(label: 'Multi-artist parsing', labelType: .h1),
+          const SectionHeader(label: 'Multi-artist parsing', labelType: LabelType.h1),
           SectionCard(
             child: Column(
               children: [
                 Padding(
-                  padding: const .only(left: 16, right: 16, top: 8, bottom: 16),
+                  padding: const EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 16),
                   child: Column(
-                    crossAxisAlignment: .start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Current Delimiters', style: theme.textTheme.titleMedium),
-                      const SizedBox(height: 12),
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
-                            flex: 9,
-                            child: Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: currentDelimiters.map((delimiter) {
-                                final isAdaptive = appConfig.adaptiveBg;
-
-                                // Not use flutter input chip because for some reason
-                                // it can't set to be translucent
-                                return FrostedGlass(
-                                  borderRadius: 8.0,
-                                  backgroundColor: isAdaptive
-                                      ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)
-                                      : theme.colorScheme.surfaceContainerHighest,
-                                  blurSigma: isAdaptive ? 8.0 : 0.0,
-                                  child: Container(
-                                    height: 32, // Matches VisualDensity.compact
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(8.0),
-                                      border: Border.all(
-                                        color: theme.colorScheme.outline.withValues(alpha: isAdaptive ? 0.3 : 0.8),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    // MaterialType.transparency keeps the background invisible
-                                    // but allows the InkWell splash effect to still work!
-                                    child: Material(
-                                      type: MaterialType.transparency,
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const SizedBox(width: 10),
-                                          Text('"$delimiter"', style: theme.textTheme.labelLarge),
-
-                                          // Only show the delete button if there's more than 1 delimiter
-                                          if (currentDelimiters.length > 1) ...[
-                                            const SizedBox(width: 4),
-                                            InkWell(
-                                              borderRadius: BorderRadius.circular(50),
-                                              onTap: _isBusy ? null : () => _removeDelimiter(delimiter),
-                                              child: Padding(
-                                                padding: const EdgeInsets.all(4.0),
-                                                child: AppIcon(
-                                                  Icons.close,
-                                                  size: 16,
-                                                  color: theme.colorScheme.onSurfaceVariant,
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 4),
-                                          ] else ...[
-                                            const SizedBox(width: 10), // Padding when no icon is present
-                                          ],
-                                        ],
-                                      ),
-                                    ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Artist Delimiters', style: theme.textTheme.titleMedium),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Delimiters are used to split collaborative artist names and identify collaborative release albums.',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
                                   ),
-                                );
-                              }).toList(),
+                                ),
+                              ],
                             ),
                           ),
-                          const Spacer(flex: 1),
-                          SizedBox(
-                            child: OutlinedButton.icon(
-                              onPressed: _isBusy ? null : _resetDelimitersToDefault,
-                              icon: const AppIcon(Icons.restore),
-                              label: const Text('Reset to Defaults'),
-                            ),
+                          OutlinedButton.icon(
+                            onPressed: isBusy ? null : _resetDelimitersToDefault,
+                            icon: const AppIcon(Icons.restore),
+                            label: const Text('Reset to Defaults'),
                           ),
                         ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: currentDelimiters.map((delimiter) {
+                          return SettingsChip(
+                            label: delimiter,
+                            onDelete: (currentDelimiters.length > 1 && !isBusy)
+                                ? () => _removeDelimiter(delimiter)
+                                : null,
+                          );
+                        }).toList(),
                       ),
                     ],
                   ),
@@ -271,15 +265,11 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                 const SizedBox(height: 8),
 
                 Padding(
-                  padding: const .only(left: 16, right: 16, top: 8, bottom: 16),
+                  padding: const EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 16),
                   child: Column(
-                    crossAxisAlignment: .start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Add New Delimiter', style: theme.textTheme.titleMedium),
-                      Text(
-                        'Case insensitive ("Feat." and "feat." are considered the same)',
-                        style: theme.textTheme.bodyMedium,
-                      ),
                       const SizedBox(height: 12),
                       Row(
                         children: [
@@ -287,19 +277,19 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                             child: TextField(
                               controller: _addDelimiterController,
                               focusNode: _addDelimiterFocusNode,
-                              enabled: !_isBusy,
+                              enabled: !isBusy,
                               decoration: const InputDecoration(
-                                hintText: 'e.g., / or ;',
+                                hintText: 'Example: / or ; (case insensitive)',
                                 border: OutlineInputBorder(),
                                 isDense: true,
                                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                               ),
-                              onSubmitted: _isBusy ? null : (_) => _addNewDelimiter(),
+                              onSubmitted: isBusy ? null : (_) => _addNewDelimiter(),
                             ),
                           ),
                           const SizedBox(width: 12),
                           OutlinedButton(
-                            onPressed: _isBusy ? null : _addNewDelimiter,
+                            onPressed: isBusy ? null : _addNewDelimiter,
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.all(14),
                               shape: const CircleBorder(),
@@ -314,9 +304,24 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                           AppIcon(Icons.info_outline, size: 16, color: theme.colorScheme.onSurfaceVariant),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: Text(
-                              'To apply delimiter changes to existing tracks, run Re-index Metadata below.',
-                              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                            child: RichText(
+                              text: TextSpan(
+                                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                                children: [
+                                  const TextSpan(text: 'To apply changes to already indexed tracks, run '),
+                                  TextSpan(
+                                    text: 'Re-index Metadata',
+                                    style: TextStyle(
+                                      color: theme.colorScheme.primary,
+                                      fontWeight: FontWeight.w600,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                    recognizer: _delimitersTapRecognizer,
+                                    mouseCursor: SystemMouseCursors.click,
+                                  ),
+                                  const TextSpan(text: '.'),
+                                ],
+                              ),
                             ),
                           ),
                         ],
@@ -330,7 +335,179 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
 
           const SizedBox(height: 8),
 
-          const SectionHeader(label: 'Library maintenance', labelType: .h1),
+          SectionCard(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Artist Exclusions', style: theme.textTheme.titleMedium),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Exclusions prevent splitting collaborative artist names containing active delimiters.',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: isBusy ? null : _resetExclusionsToDefault,
+                            icon: const AppIcon(Icons.restore),
+                            label: const Text('Reset to Defaults'),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      if (customExclusions.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: Text('No custom exclusions configured.', style: TextStyle(color: theme.disabledColor)),
+                        )
+                      else
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: customExclusions.map((exclusion) {
+                            return SettingsChip(
+                              label: exclusion,
+                              onDelete: isBusy ? null : () => _removeExclusion(exclusion),
+                            );
+                          }).toList(),
+                        ),
+
+                      const SizedBox(height: 16),
+
+                      Row(
+                        children: [
+                          TextButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _showDefaultExclusions = !_showDefaultExclusions;
+                              });
+                            },
+                            icon: Icon(_showDefaultExclusions ? Icons.expand_less : Icons.expand_more),
+                            label: Text(
+                              _showDefaultExclusions
+                                  ? 'Hide Default Exclusions'
+                                  : 'Show Default Exclusions (${activeDefaultExclusions.length} active)',
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_showDefaultExclusions) ...[
+                        const SizedBox(height: 8),
+                        if (activeDefaultExclusions.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Text(
+                              'All default exclusions have been removed.',
+                              style: TextStyle(color: theme.disabledColor),
+                            ),
+                          )
+                        else
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: activeDefaultExclusions.map((exclusion) {
+                              return SettingsChip(
+                                label: exclusion,
+                                onDelete: isBusy ? null : () => _removeExclusion(exclusion),
+                              );
+                            }).toList(),
+                          ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                const SectionDivider(),
+                const SizedBox(height: 8),
+
+                Padding(
+                  padding: const EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Add New Exclusion', style: theme.textTheme.titleMedium),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _addExclusionController,
+                              focusNode: _addExclusionFocusNode,
+                              enabled: !isBusy,
+                              decoration: const InputDecoration(
+                                hintText: 'Example: Earth, Wind & Fire (case insensitive)',
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                              ),
+                              onSubmitted: isBusy ? null : (_) => _addNewExclusion(),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          OutlinedButton(
+                            onPressed: isBusy ? null : _addNewExclusion,
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.all(14),
+                              shape: const CircleBorder(),
+                            ),
+                            child: const AppIcon(Icons.add),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          AppIcon(Icons.info_outline, size: 16, color: theme.colorScheme.onSurfaceVariant),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: RichText(
+                              text: TextSpan(
+                                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                                children: [
+                                  const TextSpan(text: 'To apply changes to already indexed tracks, run '),
+                                  TextSpan(
+                                    text: 'Re-index Metadata',
+                                    style: TextStyle(
+                                      color: theme.colorScheme.primary,
+                                      fontWeight: FontWeight.w600,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                    recognizer: _exclusionsTapRecognizer,
+                                    mouseCursor: SystemMouseCursors.click,
+                                  ),
+                                  const TextSpan(text: '.'),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          const SectionHeader(label: 'Library maintenance', labelType: LabelType.h1),
           SectionCard(
             child: Column(
               children: [
@@ -340,7 +517,7 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                   trailing: _isScanning
                       ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5))
                       : OutlinedButton.icon(
-                          onPressed: _isBusy ? null : _triggerScan,
+                          onPressed: isBusy ? null : _triggerScan,
                           icon: const AppIcon(Icons.search),
                           label: const Text("Scan"),
                         ),
@@ -373,7 +550,7 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                   trailing: _isReindexing
                       ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5))
                       : OutlinedButton.icon(
-                          onPressed: _isBusy ? null : _triggerReindex,
+                          onPressed: isBusy ? null : _triggerReindex,
                           icon: const AppIcon(Icons.sync),
                           label: const Text("Re-index"),
                         ),
@@ -421,39 +598,7 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
 
       if (hasChanges) {
         ref.read(configServiceProvider.notifier).updateConfig(trackDirectories: updatedPaths);
-
-        if (mounted) {
-          setState(() {
-            _isScanning = true;
-            _scanProcessed = 0;
-            _scanTotal = 0;
-          });
-        }
-
-        try {
-          await ref
-              .read(libraryIndexerProvider)
-              .scanLibrary(
-                onProgress: (processed, total) {
-                  if (mounted) {
-                    setState(() {
-                      _scanProcessed = processed;
-                      _scanTotal = total;
-                    });
-                  }
-                },
-              );
-        } catch (e) {
-          if (mounted) {
-            showNordSnackBar(message: 'Unable to scan library: $e', type: .error);
-          }
-        } finally {
-          if (mounted) {
-            setState(() {
-              _isScanning = false;
-            });
-          }
-        }
+        _triggerScan();
       }
     }
   }
@@ -476,9 +621,7 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
         _addDelimiterController.clear();
         _addDelimiterFocusNode.requestFocus();
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Delimiter "$newDelimiter" already exists.')));
+        showNordSnackBar(message: 'Delimiter "$newDelimiter" already exists.', type: .warning);
       }
     }
   }
@@ -491,5 +634,31 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
 
   void _resetDelimitersToDefault() {
     ref.read(configServiceProvider.notifier).updateConfig(artistDelimiters: AppConfig.defaultArtistDelimiters);
+  }
+
+  void _addNewExclusion() {
+    final newExclusion = _addExclusionController.text.trim();
+    if (newExclusion.isNotEmpty) {
+      final currentExclusions = ref.read(configServiceProvider).requireValue.artistExclusions;
+      final alreadyExists = currentExclusions.any((e) => e.toLowerCase() == newExclusion.toLowerCase());
+      if (!alreadyExists) {
+        final updatedExclusions = List<String>.from(currentExclusions)..add(newExclusion);
+        ref.read(configServiceProvider.notifier).updateConfig(artistExclusions: updatedExclusions);
+        _addExclusionController.clear();
+        _addExclusionFocusNode.requestFocus();
+      } else {
+        showNordSnackBar(message: 'Exclusion "$newExclusion" already exists.', type: .warning);
+      }
+    }
+  }
+
+  void _removeExclusion(String exclusion) {
+    final updatedExclusions = List<String>.from(ref.read(configServiceProvider).requireValue.artistExclusions);
+    updatedExclusions.remove(exclusion);
+    ref.read(configServiceProvider.notifier).updateConfig(artistExclusions: updatedExclusions);
+  }
+
+  void _resetExclusionsToDefault() {
+    ref.read(configServiceProvider.notifier).updateConfig(artistExclusions: AppConfig.defaultArtistExclusions);
   }
 }

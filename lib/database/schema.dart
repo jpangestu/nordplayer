@@ -12,7 +12,10 @@ class Albums extends Table {
   IntColumn get year => integer().withDefault(const Constant(0))();
   TextColumn get albumArtist => text().nullable()();
   TextColumn get albumArtPath => text().nullable()();
-  IntColumn get artistId => integer().references(Artists, #id)();
+
+  /// The database ID of the solo album artist (fallback to the track's primary artist if the albumArtist is empty).
+  /// Set to null for compilation albums or multi-artist releases to avoid database clutter in the artists table.
+  IntColumn get albumArtistId => integer().nullable().references(Artists, #id)();
 }
 
 class Tracks extends Table {

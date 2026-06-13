@@ -6,6 +6,7 @@ class AppConfig {
   final List<String> trackDirectories;
   final bool watchTrackDirectories;
   final List<String> artistDelimiters;
+  final List<String> artistExclusions;
   final String theme;
   final Brightness themeBrightness;
   final String iconSet;
@@ -31,6 +32,36 @@ class AppConfig {
     'ft',
     'featuring',
   ];
+  static const List<String> defaultArtistExclusions = [
+    'Bob Marley and the Wailers',
+    'Bondan Prakoso & Fade2Black',
+    'Brooks & Dunn',
+    'Bruce Springsteen & The E Street Band',
+    'Bruce Springsteen and the E Street Band',
+    'Crosby, Stills, Nash & Young',
+    'Earth, Wind & Fire',
+    'Fitz & The Tantrums',
+    'Florence + The Machine',
+    'Florence and the Machine',
+    'Hall & Oates',
+    'Katrina & The Waves',
+    'KC and the Sunshine Band',
+    'Kool & The Gang',
+    'Kool and the Gang',
+    'Marina & The Diamonds',
+    'Marina and the Diamonds',
+    'Mumford & Sons',
+    'Mumford and Sons',
+    'Prince & The Revolution',
+    'Simon & Garfunkel',
+    'Simon and Garfunkel',
+    'Sly & The Family Stone',
+    'Sly and the Family Stone',
+    'Tom Petty & The Heartbreakers',
+    'Tom Petty and the Heartbreakers',
+    'Tony Orlando and Dawn',
+    'Tyler, The Creator',
+  ];
   static const String _defaultTheme = 'nord';
   static const Brightness _defaultThemeBrightness = Brightness.dark;
   static const String _defaultIconSet = 'lucide';
@@ -47,6 +78,7 @@ class AppConfig {
     this.trackDirectories = _defaultTrackDirectories,
     this.watchTrackDirectories = _defaultWatchTrackDirectories,
     this.artistDelimiters = defaultArtistDelimiters,
+    this.artistExclusions = defaultArtistExclusions,
     this.theme = _defaultTheme,
     this.themeBrightness = _defaultThemeBrightness,
     this.iconSet = _defaultIconSet,
@@ -63,6 +95,7 @@ class AppConfig {
     List<String>? trackDirectories,
     bool? watchTrackDirectories,
     List<String>? artistDelimiters,
+    List<String>? artistExclusions,
     String? theme,
     Brightness? themeBrightness,
     String? iconSet,
@@ -78,6 +111,7 @@ class AppConfig {
       trackDirectories: trackDirectories ?? this.trackDirectories,
       watchTrackDirectories: watchTrackDirectories ?? this.watchTrackDirectories,
       artistDelimiters: artistDelimiters ?? this.artistDelimiters,
+      artistExclusions: artistExclusions ?? this.artistExclusions,
       theme: theme ?? this.theme,
       themeBrightness: themeBrightness ?? this.themeBrightness,
       iconSet: iconSet ?? this.iconSet,
@@ -96,6 +130,7 @@ class AppConfig {
       trackDirectories: _parsetrackDirectories(json['trackDirectories'], logger: logger),
       watchTrackDirectories: _parseWatchTrackDirectories(json['watchTrackDirectories'], logger: logger),
       artistDelimiters: _parseArtistDelimiters(json['artistDelimiters'], logger: logger),
+      artistExclusions: _parseArtistExclusions(json['artistExclusions'], logger: logger),
       theme: _parseTheme(json['theme'], logger: logger),
       themeBrightness: _parseThemeBrightness(json['themeBrightness'], logger: logger),
       iconSet: _parseIconSet(json['iconSet'], logger: logger),
@@ -132,6 +167,17 @@ class AppConfig {
     if (value is! List) {
       logger.w("Invalid artist delimiters: $value. Fallback to default.");
       return defaultArtistDelimiters;
+    }
+
+    final safeList = value.whereType<String>().toList();
+
+    return safeList;
+  }
+
+  static List<String> _parseArtistExclusions(dynamic value, {required Logger logger}) {
+    if (value is! List) {
+      logger.w("Invalid artist exclusions: $value. Fallback to default.");
+      return defaultArtistExclusions;
     }
 
     final safeList = value.whereType<String>().toList();
@@ -248,6 +294,7 @@ class AppConfig {
       'trackDirectories': trackDirectories,
       'watchTrackDirectories': watchTrackDirectories,
       'artistDelimiters': artistDelimiters,
+      'artistExclusions': artistExclusions,
       'theme': theme,
       'themeBrightness': themeBrightness.name,
       'iconSet': iconSet,

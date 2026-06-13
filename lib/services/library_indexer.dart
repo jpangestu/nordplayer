@@ -7,15 +7,18 @@ import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/logger.dart';
+import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/utils/string_extension.dart';
+
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:nordplayer/services/player_service.dart';
 
 final libraryIndexerProvider = Provider<LibraryIndexer>((ref) {
   final db = ref.watch(appDatabaseProvider);
   return LibraryIndexer(ref, db);
 });
+
+
 
 class LibraryIndexer with LoggerMixin {
   LibraryIndexer(this._ref, this._db);
@@ -42,8 +45,10 @@ class LibraryIndexer with LoggerMixin {
 
   // Map<ArtistName, ArtistId>
   final Map<String, int> _artistCache = {};
-  // Map<"AlbumName-ArtistId", AlbumId>
+  // Map<"AlbumName-AlbumArtist", AlbumId>
   final Map<String, int> _albumCache = {};
+  // Cache of lowercase exclusions for the current scan
+  Set<String>? _exclusionSetCache;
 
   // ============================================= Main Function ======================================================
 
@@ -52,6 +57,7 @@ class LibraryIndexer with LoggerMixin {
   Future<void> scanLibrary({void Function(int processed, int total)? onProgress}) async {
     log.i('Starting full library scan...');
     onProgress?.call(0, 0);
+    _exclusionSetCache = null;
 
     // Maps normalized (lowercase, standard slash) paths to original case-sensitive DB paths to prevent duplicate
     // inserts and safely target records during updates/deletes.
@@ -176,9 +182,9 @@ class LibraryIndexer with LoggerMixin {
     final normalizedDir = directoryPath.normalizePath().toLowerCase();
 
     // Get all track paths under this directory first to remove them from the queue
-    final tracksInDir = await (_db.select(_db.tracks)
-          ..where((track) => track.filePath.lower().like('$normalizedDir%')))
-        .get();
+    final tracksInDir = await (_db.select(
+      _db.tracks,
+    )..where((track) => track.filePath.lower().like('$normalizedDir%'))).get();
 
     await (_db.update(_db.tracks)..where((track) => track.filePath.lower().like('$normalizedDir%'))).write(
       const TracksCompanion(isMissing: Value(true)),
@@ -236,6 +242,7 @@ class LibraryIndexer with LoggerMixin {
     // Clear caches so we fetch fresh IDs and resolve splits correctly
     _artistCache.clear();
     _albumCache.clear();
+    _exclusionSetCache = null;
 
     final existingTracks = await _db.select(_db.tracks).get();
     if (existingTracks.isEmpty) {
@@ -492,12 +499,38 @@ class LibraryIndexer with LoggerMixin {
   /// The first element in the returned list is always the primary artist ID.
   Future<List<int>> _splitArtistsAndGetOrCreateArtist(Tag trackTag) async {
     final rawArtistString = trackTag.trackArtist ?? 'Unknown Artist';
+    final trimmedRaw = rawArtistString.trim();
 
-    // Sort delimiters by length in descending order to avoid prefix matching issues (e.g. matching 'feat' before 'feat.')
+    final exclusions = _exclusionSetCache ??= _appConfig.artistExclusions.map((e) => e.toLowerCase().trim()).toSet();
+    if (exclusions.contains(trimmedRaw.toLowerCase())) {
+      final id = await _getOrCreateSingleArtist(trimmedRaw);
+      return [id];
+    }
+
+    // Sort delimiters by length in descending order to avoid prefix matching issues
+    // (e.g. matching 'feat' before 'feat.' would leave a stray dot behind).
     final sortedDelimiters = List<String>.from(_appConfig.artistDelimiters)
       ..sort((a, b) => b.length.compareTo(a.length));
 
-    final String pattern = sortedDelimiters.map((d) => RegExp.escape(d)).join('|');
+    // Build the regex parts, wrapping alphabetical word-based delimiters (like 'feat' or 'ft')
+    // in word boundaries (\b) to prevent splitting inside normal words (like 'After' or 'Left').
+    final List<String> regexParts = [];
+    for (final delimiter in sortedDelimiters) {
+      final escaped = RegExp.escape(delimiter);
+      final startsWithWordChar = RegExp(r'^\w').hasMatch(delimiter);
+      final endsWithWordChar = RegExp(r'\w$').hasMatch(delimiter);
+      String part = escaped;
+      if (startsWithWordChar) {
+        part = '\\b$part';
+      }
+      if (endsWithWordChar) {
+        part = '$part\\b';
+      }
+      regexParts.add(part);
+    }
+
+    // Join with OR (|) and match optional surrounding whitespace.
+    final String pattern = regexParts.join('|');
     final RegExp separator = RegExp('\\s*(?:$pattern)\\s*', caseSensitive: false);
 
     // Split, trim whitespace, and remove empty strings
@@ -533,32 +566,96 @@ class LibraryIndexer with LoggerMixin {
     return allArtistIds;
   }
 
+  /// Determines if [albumArtist] represents a multi-artist release or compilation
+  /// by evaluating configured split delimiters and compilation keywords.
+  bool _isMultiArtistOrCompilation(String albumArtist) {
+    final lower = albumArtist.toLowerCase().trim();
+    if (lower == 'various artists' || lower == 'various' || lower == 'soundtrack') {
+      return true;
+    }
+
+    final exclusions = _exclusionSetCache ??= _appConfig.artistExclusions.map((e) => e.toLowerCase().trim()).toSet();
+    if (exclusions.contains(lower)) {
+      return false;
+    }
+
+    // Sort delimiters by length in descending order to avoid prefix matching issues.
+    final sortedDelimiters = List<String>.from(_appConfig.artistDelimiters)
+      ..sort((a, b) => b.length.compareTo(a.length));
+
+    // Evaluate each delimiter, ensuring word-based delimiters (like 'feat' or 'ft')
+    // use word boundaries (\b) so we don't accidentally match normal words (like 'After').
+    for (final delimiter in sortedDelimiters) {
+      final escaped = RegExp.escape(delimiter);
+      final startsWithWordChar = RegExp(r'^\w').hasMatch(delimiter);
+      final endsWithWordChar = RegExp(r'\w$').hasMatch(delimiter);
+      String part = escaped;
+      if (startsWithWordChar) {
+        part = '\\b$part';
+      }
+      if (endsWithWordChar) {
+        part = '$part\\b';
+      }
+      // Match the delimiter surrounded by optional whitespace
+      final regex = RegExp('\\s*(?:$part)\\s*', caseSensitive: false);
+      if (regex.hasMatch(albumArtist)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Resolves or inserts a single artist record by name and returns its database ID.
+  Future<int> _getOrCreateSingleArtist(String name) async {
+    final trimmedName = name.trim();
+    if (_artistCache.containsKey(trimmedName)) {
+      return _artistCache[trimmedName]!;
+    }
+
+    final existing = await (_db.select(_db.artists)..where((a) => a.name.equals(trimmedName))).getSingleOrNull();
+    if (existing != null) {
+      _artistCache[trimmedName] = existing.id;
+      return existing.id;
+    } else {
+      final newId = await _db.into(_db.artists).insert(ArtistsCompanion(name: Value(trimmedName)));
+      _artistCache[trimmedName] = newId;
+      return newId;
+    }
+  }
+
   /// Gets the database ID of the album in [trackTag] or create the album record if it doesn't exist.
-  /// Returns the album id. Require primary artist id to avoid duplicate albums.
+  /// Returns the album id. Uses text-based album grouping for deduplication.
   Future<int> _getOrCreateAlbum(Tag trackTag, int primaryArtistId) async {
     int albumId;
     final albumTitle = trackTag.album ?? 'Unknown Album';
-    final albumCacheKey = '$albumTitle-$primaryArtistId';
+    final albumArtist = trackTag.albumArtist ?? trackTag.trackArtist ?? 'Unknown Artist';
+    final albumCacheKey = '$albumTitle-$albumArtist';
 
     if (_albumCache.containsKey(albumCacheKey)) {
       albumId = _albumCache[albumCacheKey]!;
     } else {
-      final existing = await (_db.select(
+      final existingAlbumArtist = await (_db.select(
         _db.albums,
-      )..where((a) => a.title.equals(albumTitle) & a.artistId.equals(primaryArtistId))).getSingleOrNull();
+      )..where((a) => a.title.equals(albumTitle) & a.albumArtist.equals(albumArtist))).getSingleOrNull();
 
-      if (existing != null) {
-        _albumCache[albumCacheKey] = existing.id;
-        albumId = existing.id;
+      if (existingAlbumArtist != null) {
+        _albumCache[albumCacheKey] = existingAlbumArtist.id;
+        albumId = existingAlbumArtist.id;
       } else {
+        final bool isMulti = _isMultiArtistOrCompilation(albumArtist);
+        int? targetArtistId;
+        if (!isMulti) {
+          targetArtistId = await _getOrCreateSingleArtist(albumArtist);
+        }
+
         final newId = await _db
             .into(_db.albums)
             .insert(
               AlbumsCompanion(
                 title: Value(albumTitle),
-                artistId: Value(primaryArtistId),
                 year: Value(trackTag.year ?? 0),
-                albumArtist: Value(trackTag.albumArtist),
+                albumArtist: Value(albumArtist),
+                albumArtistId: Value(targetArtistId),
               ),
             );
         _albumCache[albumCacheKey] = newId;
