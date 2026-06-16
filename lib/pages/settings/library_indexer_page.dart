@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/models/app_config.dart';
+import 'package:nordplayer/services/background_task_service.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/library_indexer.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
@@ -31,15 +32,6 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
 
   bool _showDefaultExclusions = false;
 
-  bool _isScanning = false;
-  int _scanProcessed = 0;
-  int _scanTotal = 0;
-  bool _isReindexing = false;
-  int _reindexProcessed = 0;
-  int _reindexTotal = 0;
-
-  bool get isBusy => _isScanning || _isReindexing;
-
   @override
   void initState() {
     super.initState();
@@ -59,82 +51,23 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
   }
 
   void _handleLinkReindex() {
-    if (!isBusy) {
+    final tasks = ref.read(backgroundTaskServiceProvider);
+    final isAnyRunning = tasks.any((t) => t.status == BackgroundTaskStatus.running);
+    if (!isAnyRunning) {
       _triggerReindex();
     }
   }
 
-  DateTime _lastUpdate = DateTime.fromMillisecondsSinceEpoch(0);
-
-  void _onProgress(int processed, int total, {required bool isScanning}) {
-    final now = DateTime.now();
-    if (processed == total || now.difference(_lastUpdate).inMilliseconds > 100) {
-      if (mounted) {
-        setState(() {
-          if (isScanning) {
-            _scanProcessed = processed;
-            _scanTotal = total;
-          } else {
-            _reindexProcessed = processed;
-            _reindexTotal = total;
-          }
-        });
-      }
-      _lastUpdate = now;
-    }
-  }
-
   Future<void> _triggerScan() async {
-    if (isBusy) return;
-    _lastUpdate = DateTime.fromMillisecondsSinceEpoch(0);
-    if (mounted) {
-      setState(() {
-        _isScanning = true;
-        _scanProcessed = 0;
-        _scanTotal = 0;
-      });
-    }
     try {
-      await ref
-          .read(libraryIndexerProvider)
-          .scanLibrary(onProgress: (processed, total) => _onProgress(processed, total, isScanning: true));
-      showNordSnackBar(message: 'Library scan complete', type: NordSnackBarType.success);
-    } catch (e) {
-      showNordSnackBar(message: 'Unable to scan library: $e', type: NordSnackBarType.error);
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isScanning = false;
-        });
-      }
-    }
+      await ref.read(libraryIndexerProvider).scanLibrary();
+    } catch (_) {}
   }
 
   Future<void> _triggerReindex() async {
-    if (isBusy) return;
-    _lastUpdate = DateTime.fromMillisecondsSinceEpoch(0);
-    if (mounted) {
-      setState(() {
-        _isReindexing = true;
-        _reindexProcessed = 0;
-        _reindexTotal = 0;
-      });
-    }
-    showNordSnackBar(message: 'Re-indexing metadata...', type: NordSnackBarType.info);
     try {
-      await ref
-          .read(libraryIndexerProvider)
-          .reindexMetadata(onProgress: (processed, total) => _onProgress(processed, total, isScanning: false));
-      showNordSnackBar(message: 'Library re-indexed successfully', type: NordSnackBarType.success);
-    } catch (e) {
-      showNordSnackBar(message: 'Unable to re-index metadata: $e', type: NordSnackBarType.error);
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isReindexing = false;
-        });
-      }
-    }
+      await ref.read(libraryIndexerProvider).reindexMetadata();
+    } catch (_) {}
   }
 
   @override
@@ -151,6 +84,11 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
     final activeDefaultExclusions = currentExclusions.where((e) => defaultSet.contains(e.toLowerCase().trim())).toList()
       ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
+    final tasks = ref.watch(backgroundTaskServiceProvider);
+    final isScanning = tasks.any((t) => t.id == 'library-scan' && t.status == BackgroundTaskStatus.running);
+    final isReindexing = tasks.any((t) => t.id == 'metadata-reindex' && t.status == BackgroundTaskStatus.running);
+    final isAnyRunning = isScanning || isReindexing;
+
     return Scaffold(
       backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
       body: ListView(
@@ -164,7 +102,7 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                   title: const Text('Music locations'),
                   subtitle: const Text("Manage folders to scan for music"),
                   trailing: OutlinedButton.icon(
-                    onPressed: isBusy ? null : () => _addFolder(),
+                    onPressed: () => _addFolder(),
                     icon: const AppIcon(Icons.add),
                     label: const Text("Add Folders"),
                   ),
@@ -182,7 +120,7 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                       leading: const AppIcon(Icons.folder_outlined),
                       title: Text(path),
                       trailing: IconButton(
-                        onPressed: isBusy ? null : () => _removeFolder(path),
+                        onPressed: () => _removeFolder(path),
                         icon: const AppIcon(Icons.delete_outline),
                         tooltip: "Remove folder",
                       ),
@@ -196,11 +134,9 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                   title: Text('Watch folders for changes', style: theme.textTheme.bodyLarge),
                   subtitle: const Text('Automatically detect new, moved, or deleted music files in your locations.'),
                   value: appConfig.watchTrackDirectories,
-                  onChanged: isBusy
-                      ? null
-                      : (val) {
-                          ref.read(configServiceProvider.notifier).updateConfig(watchTrackDirectories: val);
-                        },
+                  onChanged: (val) {
+                    ref.read(configServiceProvider.notifier).updateConfig(watchTrackDirectories: val);
+                  },
                 ),
               ],
             ),
@@ -236,7 +172,7 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                             ),
                           ),
                           OutlinedButton.icon(
-                            onPressed: isBusy ? null : _resetDelimitersToDefault,
+                            onPressed: _resetDelimitersToDefault,
                             icon: const AppIcon(Icons.restore),
                             label: const Text('Reset to Defaults'),
                           ),
@@ -251,7 +187,7 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                         children: currentDelimiters.map((delimiter) {
                           return SettingsChip(
                             label: delimiter,
-                            onDelete: (currentDelimiters.length > 1 && !isBusy)
+                            onDelete: (currentDelimiters.length > 1)
                                 ? () => _removeDelimiter(delimiter)
                                 : null,
                           );
@@ -277,19 +213,18 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                             child: TextField(
                               controller: _addDelimiterController,
                               focusNode: _addDelimiterFocusNode,
-                              enabled: !isBusy,
                               decoration: const InputDecoration(
                                 hintText: 'Example: / or ; (case insensitive)',
                                 border: OutlineInputBorder(),
                                 isDense: true,
                                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                               ),
-                              onSubmitted: isBusy ? null : (_) => _addNewDelimiter(),
+                              onSubmitted: (_) => _addNewDelimiter(),
                             ),
                           ),
                           const SizedBox(width: 12),
                           OutlinedButton(
-                            onPressed: isBusy ? null : _addNewDelimiter,
+                            onPressed: _addNewDelimiter,
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.all(14),
                               shape: const CircleBorder(),
@@ -362,7 +297,7 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                             ),
                           ),
                           OutlinedButton.icon(
-                            onPressed: isBusy ? null : _resetExclusionsToDefault,
+                            onPressed: _resetExclusionsToDefault,
                             icon: const AppIcon(Icons.restore),
                             label: const Text('Reset to Defaults'),
                           ),
@@ -383,7 +318,7 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                           children: customExclusions.map((exclusion) {
                             return SettingsChip(
                               label: exclusion,
-                              onDelete: isBusy ? null : () => _removeExclusion(exclusion),
+                              onDelete: () => _removeExclusion(exclusion),
                             );
                           }).toList(),
                         ),
@@ -424,7 +359,7 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                             children: activeDefaultExclusions.map((exclusion) {
                               return SettingsChip(
                                 label: exclusion,
-                                onDelete: isBusy ? null : () => _removeExclusion(exclusion),
+                                onDelete: () => _removeExclusion(exclusion),
                               );
                             }).toList(),
                           ),
@@ -449,19 +384,18 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                             child: TextField(
                               controller: _addExclusionController,
                               focusNode: _addExclusionFocusNode,
-                              enabled: !isBusy,
                               decoration: const InputDecoration(
                                 hintText: 'Example: Earth, Wind & Fire (case insensitive)',
                                 border: OutlineInputBorder(),
                                 isDense: true,
                                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                               ),
-                              onSubmitted: isBusy ? null : (_) => _addNewExclusion(),
+                              onSubmitted: (_) => _addNewExclusion(),
                             ),
                           ),
                           const SizedBox(width: 12),
                           OutlinedButton(
-                            onPressed: isBusy ? null : _addNewExclusion,
+                            onPressed: _addNewExclusion,
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.all(14),
                               shape: const CircleBorder(),
@@ -514,64 +448,36 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                 ListTile(
                   title: const Text('Scan for new files'),
                   subtitle: const Text("Scan your music locations for new, moved, or deleted audio files."),
-                  trailing: _isScanning
-                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5))
-                      : OutlinedButton.icon(
-                          onPressed: isBusy ? null : _triggerScan,
-                          icon: const AppIcon(Icons.search),
-                          label: const Text("Scan"),
-                        ),
-                ),
-                if (_isScanning) ...[
-                  const SectionDivider(),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        LinearProgressIndicator(value: _scanTotal > 0 ? _scanProcessed / _scanTotal : null),
-                        const SizedBox(height: 8),
-                        Text(
-                          _scanTotal > 0
-                              ? 'Processing track $_scanProcessed of $_scanTotal...'
-                              : 'Scanning folders for audio files...',
-                          style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
+                  trailing: OutlinedButton.icon(
+                    onPressed: isAnyRunning ? null : _triggerScan,
+                    icon: isScanning
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2.0),
+                          )
+                        : const AppIcon(Icons.search),
+                    label: Text(isScanning ? "Scanning..." : "Scan"),
                   ),
-                ],
+                ),
                 const SectionDivider(),
                 ListTile(
                   title: const Text('Re-index Metadata'),
                   subtitle: const Text(
                     "Re-scan files to apply new delimiters, refresh tag edits, and reload missing album art.",
                   ),
-                  trailing: _isReindexing
-                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5))
-                      : OutlinedButton.icon(
-                          onPressed: isBusy ? null : _triggerReindex,
-                          icon: const AppIcon(Icons.sync),
-                          label: const Text("Re-index"),
-                        ),
-                ),
-                if (_isReindexing) ...[
-                  const SectionDivider(),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        LinearProgressIndicator(value: _reindexTotal > 0 ? _reindexProcessed / _reindexTotal : 0.0),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Re-indexing track $_reindexProcessed of $_reindexTotal...',
-                          style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
+                  trailing: OutlinedButton.icon(
+                    onPressed: isAnyRunning ? null : _triggerReindex,
+                    icon: isReindexing
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2.0),
+                          )
+                        : const AppIcon(Icons.sync),
+                    label: Text(isReindexing ? "Re-indexing..." : "Re-index"),
                   ),
-                ],
+                ),
               ],
             ),
           ),

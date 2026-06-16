@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:nordplayer/services/background_task_service.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/performance_tracker.dart';
 import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
+import 'package:nordplayer/widgets/background_task_panel.dart';
 import 'package:nordplayer/widgets/performance_panel.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/keyboard_shortcuts_panel.dart';
@@ -55,6 +57,8 @@ class _NordplayerTitleBarState extends ConsumerState<NordTitleBar> {
               const Expanded(
                 child: DragToMoveArea(child: Row(children: [Text('Nordplayer'), Spacer()])),
               ),
+
+              const _BackgroundTaskButton(),
 
               _Performance(appIconSet: appIconSet),
 
@@ -301,6 +305,133 @@ class _BreezeWindowControlState extends State<BreezeWindowControl> with WindowLi
           },
         ),
         const SizedBox(width: 4),
+      ],
+    );
+  }
+}
+
+class _BackgroundTaskButton extends ConsumerStatefulWidget {
+  const _BackgroundTaskButton();
+
+  @override
+  ConsumerState<_BackgroundTaskButton> createState() => _BackgroundTaskButtonState();
+}
+
+class _BackgroundTaskButtonState extends ConsumerState<_BackgroundTaskButton> with SingleTickerProviderStateMixin {
+  final GlobalKey _buttonKey = GlobalKey();
+  late AnimationController _rotationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _rotationController = AnimationController(vsync: this, duration: const Duration(seconds: 2));
+  }
+
+  @override
+  void dispose() {
+    _rotationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tasks = ref.watch(backgroundTaskServiceProvider);
+    if (tasks.isEmpty) return const SizedBox.shrink();
+
+    final runningTasks = tasks.where((t) => t.status == BackgroundTaskStatus.running).toList();
+    final isRunning = runningTasks.isNotEmpty;
+
+    if (isRunning) {
+      if (!_rotationController.isAnimating) {
+        _rotationController.repeat();
+      }
+    } else {
+      if (_rotationController.isAnimating) {
+        _rotationController.stop();
+      }
+    }
+
+    final colorScheme = Theme.of(context).colorScheme;
+
+    // Calculate aggregate progress for running tasks
+    double? progress;
+    bool hasIndeterminate = false;
+    int totalProcessed = 0;
+    int totalCount = 0;
+
+    for (final BackgroundTask task in runningTasks) {
+      if (task.isIndeterminate) {
+        hasIndeterminate = true;
+      }
+      totalProcessed += task.processed;
+      totalCount += task.total;
+    }
+
+    if (isRunning && !hasIndeterminate && totalCount > 0) {
+      progress = totalProcessed / totalCount;
+    }
+
+    final hasFailed = tasks.any((t) => t.status == BackgroundTaskStatus.failed);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TitleBarButton(
+          key: _buttonKey,
+          hoverOverlaySize: 28,
+          hoverOverlayOpacity: 0.1,
+          tooltip: isRunning ? 'Active Background Tasks' : 'Background Task History',
+          onTap: () {
+            showBackgroundTaskPanel(context, _buttonKey);
+          },
+          child: SizedBox(
+            width: 28,
+            height: 28,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                if (isRunning) ...[
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      value: progress,
+                      strokeWidth: 1.8,
+                      valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                      backgroundColor: colorScheme.onSurface.withValues(alpha: 0.1),
+                    ),
+                  ),
+                  RotationTransition(
+                    turns: _rotationController,
+                    child: Icon(Icons.sync, size: 10, color: colorScheme.primary),
+                  ),
+                ] else ...[
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          value: 1.0,
+                          strokeWidth: 1.8,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            hasFailed ? colorScheme.error : colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        hasFailed ? Icons.close : Icons.check,
+                        size: 10,
+                        color: hasFailed ? colorScheme.error : colorScheme.primary,
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }

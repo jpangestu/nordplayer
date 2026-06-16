@@ -15,11 +15,13 @@ class TitleBarButton extends StatefulWidget {
   final double hoverOverlaySize;
   final double hoverOverlayOpacity;
   final String? tooltip;
+  final Widget? child;
 
   const TitleBarButton({
     super.key,
     this.icon,
     this.svgPath,
+    this.child,
     required this.onTap,
     this.isClose = false,
     this.buttonSize = 32,
@@ -65,31 +67,33 @@ class _TitleBarButtonState extends State<TitleBarButton> {
                           : colorScheme.onSurface.withValues(alpha: widget.hoverOverlayOpacity))
                     : Colors.transparent,
               ),
-              child: widget.icon != null
-                  ? AppIcon(
-                      widget.icon!,
-                      size: widget.iconSize,
-                      color: _isHovering
-                          ? widget.isClose
-                                ? colorScheme.onError
-                                : baseIconColor
-                          : colorScheme.onSurface,
-                    )
-                  : Center(
-                      child: SvgPicture.asset(
-                        widget.svgPath!,
-                        width: widget.iconSize,
-                        height: widget.iconSize,
-                        colorFilter: ColorFilter.mode(
-                          _isHovering
+              child:
+                  widget.child ??
+                  (widget.icon != null
+                      ? AppIcon(
+                          widget.icon!,
+                          size: widget.iconSize,
+                          color: _isHovering
                               ? widget.isClose
                                     ? colorScheme.onError
                                     : baseIconColor
                               : colorScheme.onSurface,
-                          BlendMode.srcIn,
-                        ),
-                      ),
-                    ),
+                        )
+                      : Center(
+                          child: SvgPicture.asset(
+                            widget.svgPath!,
+                            width: widget.iconSize,
+                            height: widget.iconSize,
+                            colorFilter: ColorFilter.mode(
+                              _isHovering
+                                  ? widget.isClose
+                                        ? colorScheme.onError
+                                        : baseIconColor
+                                  : colorScheme.onSurface,
+                              BlendMode.srcIn,
+                            ),
+                          ),
+                        )),
             ),
           ),
         ),

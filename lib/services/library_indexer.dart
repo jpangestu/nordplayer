@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/models/app_config.dart';
+import 'package:nordplayer/services/background_task_service.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
@@ -57,109 +58,138 @@ class LibraryIndexer with LoggerMixin {
   Future<void> scanLibrary({void Function(int processed, int total)? onProgress}) async {
     log.i('Starting full library scan...');
     onProgress?.call(0, 0);
-    _exclusionSetCache = null;
 
-    // Maps normalized (lowercase, standard slash) paths to original case-sensitive DB paths to prevent duplicate
-    // inserts and safely target records during updates/deletes.
-    final existingTracks = await _db.select(_db.tracks).get();
-    final Map<String, String> existingTracksPathMap = {
-      for (final track in existingTracks) track.filePath.normalizePath().toLowerCase(): track.filePath,
-    };
-    // Fast O(1) lookup set of normalized paths to quickly identify new files and perform set difference logic for
-    // missing tracks.
-    final Set<String> existingTracksPathNormalized = existingTracksPathMap.keys.toSet();
-    final Set<String> supportedFilesFoundOnDisk = {};
-    List<File> newTracksToProcess = [];
+    final taskService = _ref.read(backgroundTaskServiceProvider.notifier);
+    taskService.startTask(
+      id: 'library-scan',
+      name: 'Scanning Library',
+      message: 'Scanning folders for audio files...',
+      isIndeterminate: true,
+    );
 
-    // Loop through all the user's track directories and get all of the supported files
-    for (String path in _appConfig.trackDirectories) {
-      final Directory trackDirectory = Directory(path);
+    try {
+      _exclusionSetCache = null;
 
-      if (!await trackDirectory.exists()) {
-        log.w("Path $path does not exist, skipping");
-        continue;
-      }
+      // Maps normalized (lowercase, standard slash) paths to original case-sensitive DB paths to prevent duplicate
+      // inserts and safely target records during updates/deletes.
+      final existingTracks = await _db.select(_db.tracks).get();
+      final Map<String, String> existingTracksPathMap = {
+        for (final track in existingTracks) track.filePath.normalizePath().toLowerCase(): track.filePath,
+      };
+      // Fast O(1) lookup set of normalized paths to quickly identify new files and perform set difference logic for
+      // missing tracks.
+      final Set<String> existingTracksPathNormalized = existingTracksPathMap.keys.toSet();
+      final Set<String> supportedFilesFoundOnDisk = {};
+      List<File> newTracksToProcess = [];
 
-      // Loop through directory and find all files recursively
-      final entities = trackDirectory.list(recursive: true, followLinks: false).handleError((error) {
-        log.e('Could not access folder: $error');
-      });
+      // Loop through all the user's track directories and get all of the supported files
+      for (String path in _appConfig.trackDirectories) {
+        final Directory trackDirectory = Directory(path);
 
-      // Select only supported files
-      await for (FileSystemEntity entity in entities) {
-        if (entity is File && supportedExtensions.contains(p.extension(entity.path).toLowerCase())) {
-          final normalizedEntityPath = entity.path.normalizePath().toLowerCase();
-          supportedFilesFoundOnDisk.add(normalizedEntityPath);
+        if (!await trackDirectory.exists()) {
+          log.w("Path $path does not exist, skipping");
+          continue;
+        }
 
-          if (!existingTracksPathNormalized.contains(normalizedEntityPath)) {
-            newTracksToProcess.add(entity);
+        // Loop through directory and find all files recursively
+        final entities = trackDirectory.list(recursive: true, followLinks: false).handleError((error) {
+          log.e('Could not access folder: $error');
+        });
+
+        // Select only supported files
+        await for (FileSystemEntity entity in entities) {
+          if (entity is File && supportedExtensions.contains(p.extension(entity.path).toLowerCase())) {
+            final normalizedEntityPath = entity.path.normalizePath().toLowerCase();
+            supportedFilesFoundOnDisk.add(normalizedEntityPath);
+
+            if (!existingTracksPathNormalized.contains(normalizedEntityPath)) {
+              newTracksToProcess.add(entity);
+            }
           }
         }
       }
-    }
 
-    // Tracks exist in database but not in supportedFilesFoundOnDisk
-    final tracksToMarkAsMissingNormalized = existingTracksPathNormalized.difference(supportedFilesFoundOnDisk);
-    final tracksToMarkAsMissing = tracksToMarkAsMissingNormalized.map((path) => existingTracksPathMap[path]!).toList();
+      // Tracks exist in database but not in supportedFilesFoundOnDisk
+      final tracksToMarkAsMissingNormalized = existingTracksPathNormalized.difference(supportedFilesFoundOnDisk);
+      final tracksToMarkAsMissing = tracksToMarkAsMissingNormalized.map((path) => existingTracksPathMap[path]!).toList();
 
-    final missingTracks = await (_db.select(_db.tracks)..where((t) => t.filePath.isIn(tracksToMarkAsMissing))).get();
+      final missingTracks = await (_db.select(_db.tracks)..where((t) => t.filePath.isIn(tracksToMarkAsMissing))).get();
 
-    if (newTracksToProcess.isNotEmpty && tracksToMarkAsMissingNormalized.isNotEmpty) {
-      Map<String, Track> missingTracksByHash = {for (final track in missingTracks) track.fileHash: track};
-      List<File> remainingNewTracks = [];
+      if (newTracksToProcess.isNotEmpty && tracksToMarkAsMissingNormalized.isNotEmpty) {
+        Map<String, Track> missingTracksByHash = {for (final track in missingTracks) track.fileHash: track};
+        List<File> remainingNewTracks = [];
 
-      for (File newTrack in newTracksToProcess) {
-        final newTrackHash = _calculateFileHash(newTrack);
+        for (File newTrack in newTracksToProcess) {
+          final newTrackHash = _calculateFileHash(newTrack);
 
-        if (missingTracksByHash.containsKey(newTrackHash)) {
-          final oldTrack = missingTracksByHash[newTrackHash]!;
-          log.i(
-            "Detected file moved/renamed: '${oldTrack.filePath}' -> '${newTrack.path}'. Reconnecting database entry...",
-          );
+          if (missingTracksByHash.containsKey(newTrackHash)) {
+            final oldTrack = missingTracksByHash[newTrackHash]!;
+            log.i(
+              "Detected file moved/renamed: '${oldTrack.filePath}' -> '${newTrack.path}'. Reconnecting database entry...",
+            );
 
-          // Update database entry with new path and set isMissing = false
-          await (_db.update(_db.tracks)..where((t) => t.id.equals(oldTrack.id))).write(
-            TracksCompanion(filePath: Value(newTrack.path), isMissing: const Value(false)),
-          );
+            // Update database entry with new path and set isMissing = false
+            await (_db.update(_db.tracks)..where((t) => t.id.equals(oldTrack.id))).write(
+              TracksCompanion(filePath: Value(newTrack.path), isMissing: const Value(false)),
+            );
 
-          // Prevent this track from being marked as missing later
-          tracksToMarkAsMissing.remove(oldTrack.filePath);
-        } else {
-          remainingNewTracks.add(newTrack);
+            // Prevent this track from being marked as missing later
+            tracksToMarkAsMissing.remove(oldTrack.filePath);
+          } else {
+            remainingNewTracks.add(newTrack);
+          }
+        }
+
+        newTracksToProcess = remainingNewTracks;
+      }
+
+      if (tracksToMarkAsMissing.isNotEmpty) {
+        log.i('Marking ${tracksToMarkAsMissing.length} removed tracks as missing in database...');
+
+        // A single bulk update query using isIn()
+        await (_db.update(_db.tracks)..where((track) => track.filePath.isIn(tracksToMarkAsMissing))).write(
+          const TracksCompanion(isMissing: Value(true)),
+        );
+      }
+
+      if (newTracksToProcess.isNotEmpty) {
+        log.i('Found ${newTracksToProcess.length} new track(s). Processing...');
+
+        await _indexTracks(
+          newTracksToProcess,
+          onProgress: (processed, total) {
+            onProgress?.call(processed, total);
+            taskService.updateProgress(
+              'library-scan',
+              processed: processed,
+              total: total,
+              message: 'Processing track $processed of $total...',
+              isIndeterminate: false,
+            );
+          },
+        );
+      } else {
+        log.i('No new tracks found. Library is up to date');
+      }
+
+      // Mark all found tracks as not missing
+      if (supportedFilesFoundOnDisk.isNotEmpty) {
+        final foundPathsInDb = supportedFilesFoundOnDisk
+            .map((path) => existingTracksPathMap[path])
+            .whereType<String>()
+            .toList();
+        if (foundPathsInDb.isNotEmpty) {
+          await (_db.update(
+            _db.tracks,
+          )..where((track) => track.filePath.isIn(foundPathsInDb))).write(const TracksCompanion(isMissing: Value(false)));
         }
       }
 
-      newTracksToProcess = remainingNewTracks;
-    }
-
-    if (tracksToMarkAsMissing.isNotEmpty) {
-      log.i('Marking ${tracksToMarkAsMissing.length} removed tracks as missing in database...');
-
-      // A single bulk update query using isIn()
-      await (_db.update(_db.tracks)..where((track) => track.filePath.isIn(tracksToMarkAsMissing))).write(
-        const TracksCompanion(isMissing: Value(true)),
-      );
-    }
-
-    if (newTracksToProcess.isNotEmpty) {
-      log.i('Found ${newTracksToProcess.length} new track(s). Processing...');
-
-      await _indexTracks(newTracksToProcess, onProgress: onProgress);
-    } else {
-      log.i('No new tracks found. Library is up to date');
-    }
-
-    // Mark all found tracks as not missing
-    if (supportedFilesFoundOnDisk.isNotEmpty) {
-      final foundPathsInDb = supportedFilesFoundOnDisk
-          .map((path) => existingTracksPathMap[path])
-          .whereType<String>()
-          .toList();
-      if (foundPathsInDb.isNotEmpty) {
-        await (_db.update(
-          _db.tracks,
-        )..where((track) => track.filePath.isIn(foundPathsInDb))).write(const TracksCompanion(isMissing: Value(false)));
-      }
+      taskService.completeTask('library-scan');
+    } catch (e, s) {
+      log.e("Error scanning library: $e", error: e, stackTrace: s);
+      taskService.failTask('library-scan', e.toString());
+      rethrow;
     }
   }
 
@@ -180,13 +210,15 @@ class LibraryIndexer with LoggerMixin {
   Future<void> markTracksInDirectoryAsMissing(String directoryPath) async {
     log.i("Marking tracks under $directoryPath as missing...");
     final normalizedDir = directoryPath.normalizePath().toLowerCase();
+    final String separator = p.separator;
+    final String queryPrefix = normalizedDir.endsWith(separator) ? normalizedDir : '$normalizedDir$separator';
 
     // Get all track paths under this directory first to remove them from the queue
     final tracksInDir = await (_db.select(
       _db.tracks,
-    )..where((track) => track.filePath.lower().like('$normalizedDir%'))).get();
+    )..where((track) => track.filePath.lower().like('$queryPrefix%'))).get();
 
-    await (_db.update(_db.tracks)..where((track) => track.filePath.lower().like('$normalizedDir%'))).write(
+    await (_db.update(_db.tracks)..where((track) => track.filePath.lower().like('$queryPrefix%'))).write(
       const TracksCompanion(isMissing: Value(true)),
     );
 
@@ -239,97 +271,138 @@ class LibraryIndexer with LoggerMixin {
   Future<void> reindexMetadata({void Function(int processed, int total)? onProgress}) async {
     log.i('Starting forced in-place metadata re-indexing of all tracks...');
 
-    // Clear caches so we fetch fresh IDs and resolve splits correctly
-    _artistCache.clear();
-    _albumCache.clear();
-    _exclusionSetCache = null;
+    final taskService = _ref.read(backgroundTaskServiceProvider.notifier);
+    taskService.startTask(
+      id: 'metadata-reindex',
+      name: 'Reindexing Metadata',
+      message: 'Fetching track list...',
+      isIndeterminate: true,
+    );
 
-    final existingTracks = await _db.select(_db.tracks).get();
-    if (existingTracks.isEmpty) {
-      log.i('No tracks in database to re-index.');
-      return;
-    }
+    try {
+      // Clear caches so we fetch fresh IDs and resolve splits correctly
+      _artistCache.clear();
+      _albumCache.clear();
+      _exclusionSetCache = null;
 
-    final total = existingTracks.length;
-    int processed = 0;
-
-    onProgress?.call(processed, total);
-
-    for (final track in existingTracks) {
-      final file = File(track.filePath);
-      if (!await file.exists()) {
-        processed++;
-        onProgress?.call(processed, total);
-        continue;
+      final existingTracks = await _db.select(_db.tracks).get();
+      if (existingTracks.isEmpty) {
+        log.i('No tracks in database to re-index.');
+        taskService.completeTask('metadata-reindex');
+        return;
       }
 
-      try {
-        final trackTag = await AudioTags.read(file.path);
-        if (trackTag == null) {
+      final total = existingTracks.length;
+      int processed = 0;
+
+      onProgress?.call(processed, total);
+      taskService.updateProgress(
+        'metadata-reindex',
+        processed: processed,
+        total: total,
+        message: 'Re-indexing track $processed of $total...',
+        isIndeterminate: false,
+      );
+
+      for (final track in existingTracks) {
+        final file = File(track.filePath);
+        if (!await file.exists()) {
           processed++;
           onProgress?.call(processed, total);
+          taskService.updateProgress(
+            'metadata-reindex',
+            processed: processed,
+            total: total,
+            message: 'Re-indexing track $processed of $total...',
+          );
           continue;
         }
 
-        final trackHash = _calculateFileHash(file);
+        try {
+          final trackTag = await AudioTags.read(file.path);
+          if (trackTag == null) {
+            processed++;
+            onProgress?.call(processed, total);
+            taskService.updateProgress(
+              'metadata-reindex',
+              processed: processed,
+              total: total,
+              message: 'Re-indexing track $processed of $total...',
+            );
+            continue;
+          }
 
-        List<int> allArtistIds = await _splitArtistsAndGetOrCreateArtist(trackTag);
-        final primaryArtistId = allArtistIds.first;
+          final trackHash = _calculateFileHash(file);
 
-        int albumId = await _getOrCreateAlbum(trackTag, primaryArtistId);
+          List<int> allArtistIds = await _splitArtistsAndGetOrCreateArtist(trackTag);
+          final primaryArtistId = allArtistIds.first;
 
-        final artPath = await _saveAlbumArt(trackTag, albumId);
-        if (artPath != null) {
-          await (_db.update(
-            _db.albums,
-          )..where((a) => a.id.equals(albumId))).write(AlbumsCompanion(albumArtPath: Value(artPath)));
+          int albumId = await _getOrCreateAlbum(trackTag, primaryArtistId);
+
+          final artPath = await _saveAlbumArt(trackTag, albumId);
+          if (artPath != null) {
+            await (_db.update(
+              _db.albums,
+            )..where((a) => a.id.equals(albumId))).write(AlbumsCompanion(albumArtPath: Value(artPath)));
+          }
+
+          // =========================== Update Track in Database ===================================
+
+          await _db.transaction(() async {
+            // Update track info in-place
+            await (_db.update(_db.tracks)..where((t) => t.id.equals(track.id))).write(
+              TracksCompanion(
+                title: Value(trackTag.title ?? p.basename(file.path)),
+                trackNumber: Value(trackTag.trackNumber ?? 0),
+                trackTotal: Value(trackTag.trackTotal ?? 0),
+                discNumber: Value(trackTag.discNumber ?? 0),
+                discTotal: Value(trackTag.discTotal ?? 0),
+                durationMs: Value((trackTag.duration ?? 0) * 1000),
+                genre: Value(trackTag.genre),
+                fileSize: Value(file.lengthSync()),
+                fileHash: Value(trackHash),
+                artistId: Value(primaryArtistId),
+                albumId: Value(albumId),
+                isMissing: const Value(false),
+              ),
+            );
+
+            // Clear old artist relations for this track
+            await (_db.delete(_db.trackArtist)..where((ta) => ta.trackId.equals(track.id))).go();
+
+            // Re-insert the updated artist relations
+            for (final artistId in allArtistIds) {
+              await _db
+                  .into(_db.trackArtist)
+                  .insert(
+                    TrackArtistCompanion(trackId: Value(track.id), artistId: Value(artistId)),
+                    mode: InsertMode.insertOrIgnore,
+                  );
+            }
+          });
+        } catch (e) {
+          log.e("Error re-indexing track ${track.filePath}: $e");
         }
 
-        // =========================== Update Track in Database ===================================
-
-        await _db.transaction(() async {
-          // Update track info in-place
-          await (_db.update(_db.tracks)..where((t) => t.id.equals(track.id))).write(
-            TracksCompanion(
-              title: Value(trackTag.title ?? p.basename(file.path)),
-              trackNumber: Value(trackTag.trackNumber ?? 0),
-              trackTotal: Value(trackTag.trackTotal ?? 0),
-              discNumber: Value(trackTag.discNumber ?? 0),
-              discTotal: Value(trackTag.discTotal ?? 0),
-              durationMs: Value((trackTag.duration ?? 0) * 1000),
-              genre: Value(trackTag.genre),
-              fileSize: Value(file.lengthSync()),
-              fileHash: Value(trackHash),
-              artistId: Value(primaryArtistId),
-              albumId: Value(albumId),
-              isMissing: const Value(false),
-            ),
-          );
-
-          // Clear old artist relations for this track
-          await (_db.delete(_db.trackArtist)..where((ta) => ta.trackId.equals(track.id))).go();
-
-          // Re-insert the updated artist relations
-          for (final artistId in allArtistIds) {
-            await _db
-                .into(_db.trackArtist)
-                .insert(
-                  TrackArtistCompanion(trackId: Value(track.id), artistId: Value(artistId)),
-                  mode: InsertMode.insertOrIgnore,
-                );
-          }
-        });
-      } catch (e) {
-        log.e("Error re-indexing track ${track.filePath}: $e");
+        processed++;
+        onProgress?.call(processed, total);
+        taskService.updateProgress(
+          'metadata-reindex',
+          processed: processed,
+          total: total,
+          message: 'Re-indexing track $processed of $total...',
+        );
       }
 
-      processed++;
-      onProgress?.call(processed, total);
+      // Clean up orphaned artists and albums
+      await _db.deleteOrphanedMetadata();
+      log.i('Forced metadata re-indexing complete.');
+      taskService.completeTask('metadata-reindex');
+    } catch (e, s) {
+      log.e("Error during metadata re-indexing: $e", error: e, stackTrace: s);
+      taskService.failTask('metadata-reindex', e.toString());
+      rethrow;
     }
-
-    // Clean up orphaned artists and albums
-    await _db.deleteOrphanedMetadata();
-    log.i('Forced metadata re-indexing complete.');
   }
 
   // =========================================== Helper Function ======================================================
