@@ -17,23 +17,24 @@ class PerformanceTracker extends ChangeNotifier {
 
   final List<DateTime> _frameTimes = [];
   final List<double> _recentFrameTimes = [];
-  int _fps = 0;
+  int _actualFrameRate = 0;
   bool _isIdle = true;
   Timer? _timer;
   DateTime _lastFrameTime = DateTime.now();
   DateTime _lastNotificationTime = DateTime.fromMillisecondsSinceEpoch(0);
 
   final Map<String, bool> _visibility = {
-    'simulatedFps': false,
-    'avgSimulatedFps': false,
-    'minSimulatedFps': false,
-    'maxSimulatedFps': false,
+    'potentialFps': false,
+    'avgPotentialFps': false,
+    'minPotentialFps': false,
+    'maxPotentialFps': false,
     'frameLatency': false,
+    'averageFrameTime': false,
     'minFrameTime': false,
     'maxFrameTime': false,
+    'actualFrameRate': false,
     'cpuUsage': false,
     'ramUsage': false,
-    'actualFps': false,
   };
 
   bool isVisible(String key) => _visibility[key] ?? false;
@@ -42,7 +43,7 @@ class PerformanceTracker extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       for (final key in _visibility.keys) {
-        final val = prefs.getBool('perf_visibility_$key');
+        final val = prefs.getBool('perf_vis_$key');
         if (val != null) {
           _visibility[key] = val;
         }
@@ -70,7 +71,7 @@ class PerformanceTracker extends ChangeNotifier {
   double _cpuUsage = 0.0;
   int _ramBytes = 0;
 
-  int get fps => _fps;
+  int get actualFrameRate => _actualFrameRate;
   bool get isIdle => _isIdle;
   double get currentFrameTime => _currentFrameTime;
   double get minFrameTime => _minFrameTime;
@@ -97,17 +98,17 @@ class PerformanceTracker extends ChangeNotifier {
     return '${ms.toStringAsFixed(1)} ms';
   }
 
-  int get simulatedFps {
+  int get potentialFps {
     if (_isIdle || _currentFrameTime == 0.0) return 0;
     return (1000.0 / _currentFrameTime).round();
   }
 
-  int get minSimulatedFps {
+  int get minPotentialFps {
     if (_maxFrameTime == 0.0) return 0;
     return (1000.0 / _maxFrameTime).round();
   }
 
-  int get maxSimulatedFps {
+  int get maxPotentialFps {
     if (_minFrameTime == 0.0) return 0;
     return (1000.0 / _minFrameTime).round();
   }
@@ -118,7 +119,7 @@ class PerformanceTracker extends ChangeNotifier {
     return sum / _recentFrameTimes.length;
   }
 
-  int get averageSimulatedFps {
+  int get averagePotentialFps {
     final avg = averageFrameTime;
     if (_isIdle || avg == 0.0) return 0;
     return (1000.0 / avg).round();
@@ -153,7 +154,7 @@ class PerformanceTracker extends ChangeNotifier {
       if (now.difference(_lastFrameTime).inMilliseconds > 1500) {
         if (!_isIdle) {
           _isIdle = true;
-          _fps = 0;
+          _actualFrameRate = 0;
           _currentFrameTime = 0.0;
           _currentUiTime = 0.0;
           _currentGpuTime = 0.0;
@@ -161,7 +162,7 @@ class PerformanceTracker extends ChangeNotifier {
         }
       } else {
         _isIdle = false;
-        _fps = _frameTimes.length;
+        _actualFrameRate = _frameTimes.length;
         notifyListeners();
       }
     });

@@ -110,6 +110,8 @@ class MaterialIconSet implements AppIconSet {
   @override
   IconData get navigationDown => Icons.keyboard_arrow_down;
   @override
+  IconData get performance => Icons.speed;
+  @override
   IconData get playtime => Icons.schedule;
   @override
   IconData get preference => Icons.tune;
@@ -117,4 +119,8 @@ class MaterialIconSet implements AppIconSet {
   IconData get statistic => Icons.bar_chart;
   @override
   IconData get storage => Icons.storage;
+  @override
+  IconData get visible => Icons.visibility;
+  @override
+  IconData get invisible => Icons.visibility_off;
 }
