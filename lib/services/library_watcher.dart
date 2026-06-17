@@ -91,6 +91,7 @@ class LibraryWatcher with LoggerMixin {
   }
 
   void _handleFileSystemEvent(WatchEvent event) {
+    log.i("Watcher received event: ${event.type} for path: ${event.path}");
     final path = event.path;
     final ext = p.extension(path).toLowerCase();
 

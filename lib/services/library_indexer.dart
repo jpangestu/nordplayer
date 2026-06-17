@@ -9,6 +9,7 @@ import 'package:nordplayer/services/background_task_service.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
+import 'package:nordplayer/utils/audio_metadata_hasher.dart';
 import 'package:nordplayer/utils/string_extension.dart';
 
 import 'package:path/path.dart' as p;
@@ -18,8 +19,6 @@ final libraryIndexerProvider = Provider<LibraryIndexer>((ref) {
   final db = ref.watch(appDatabaseProvider);
   return LibraryIndexer(ref, db);
 });
-
-
 
 class LibraryIndexer with LoggerMixin {
   LibraryIndexer(this._ref, this._db);
@@ -70,15 +69,15 @@ class LibraryIndexer with LoggerMixin {
     try {
       _exclusionSetCache = null;
 
-      // Maps normalized (lowercase, standard slash) paths to original case-sensitive DB paths to prevent duplicate
-      // inserts and safely target records during updates/deletes.
+      // Maps normalized (lowercase, standard slash) paths to Track objects to prevent duplicate
+      // inserts, safely target records during updates/deletes, and check for in-place updates.
       final existingTracks = await _db.select(_db.tracks).get();
-      final Map<String, String> existingTracksPathMap = {
-        for (final track in existingTracks) track.filePath.normalizePath().toLowerCase(): track.filePath,
+      final Map<String, Track> existingTracksMap = {
+        for (final track in existingTracks) track.filePath.normalizePath().toLowerCase(): track,
       };
       // Fast O(1) lookup set of normalized paths to quickly identify new files and perform set difference logic for
       // missing tracks.
-      final Set<String> existingTracksPathNormalized = existingTracksPathMap.keys.toSet();
+      final Set<String> existingTracksPathNormalized = existingTracksMap.keys.toSet();
       final Set<String> supportedFilesFoundOnDisk = {};
       List<File> newTracksToProcess = [];
 
@@ -104,6 +103,28 @@ class LibraryIndexer with LoggerMixin {
 
             if (!existingTracksPathNormalized.contains(normalizedEntityPath)) {
               newTracksToProcess.add(entity);
+            } else {
+              // Check if the file tag was modified (hash mismatch)
+              final track = existingTracksMap[normalizedEntityPath]!;
+              final currentHash = AudioMetadataHasher.calculateHash(entity);
+              if (currentHash != track.fileHash) {
+                log.i("Detected file tag modification for '${entity.path}' during library scan. Updating metadata...");
+                try {
+                  final trackTag = await AudioTags.read(entity.path);
+                  if (trackTag != null) {
+                    await _updateTrackMetadataInTransaction(
+                      trackId: track.id,
+                      file: entity,
+                      trackTag: trackTag,
+                      trackHash: currentHash,
+                    );
+                  } else {
+                    log.w("Failed to read tags for modified file: ${entity.path}");
+                  }
+                } catch (e) {
+                  log.e("Failed to update metadata for '${entity.path}': $e");
+                }
+              }
             }
           }
         }
@@ -111,7 +132,9 @@ class LibraryIndexer with LoggerMixin {
 
       // Tracks exist in database but not in supportedFilesFoundOnDisk
       final tracksToMarkAsMissingNormalized = existingTracksPathNormalized.difference(supportedFilesFoundOnDisk);
-      final tracksToMarkAsMissing = tracksToMarkAsMissingNormalized.map((path) => existingTracksPathMap[path]!).toList();
+      final tracksToMarkAsMissing = tracksToMarkAsMissingNormalized
+          .map((path) => existingTracksMap[path]!.filePath)
+          .toList();
 
       final missingTracks = await (_db.select(_db.tracks)..where((t) => t.filePath.isIn(tracksToMarkAsMissing))).get();
 
@@ -120,7 +143,7 @@ class LibraryIndexer with LoggerMixin {
         List<File> remainingNewTracks = [];
 
         for (File newTrack in newTracksToProcess) {
-          final newTrackHash = _calculateFileHash(newTrack);
+          final newTrackHash = AudioMetadataHasher.calculateHash(newTrack);
 
           if (missingTracksByHash.containsKey(newTrackHash)) {
             final oldTrack = missingTracksByHash[newTrackHash]!;
@@ -175,13 +198,13 @@ class LibraryIndexer with LoggerMixin {
       // Mark all found tracks as not missing
       if (supportedFilesFoundOnDisk.isNotEmpty) {
         final foundPathsInDb = supportedFilesFoundOnDisk
-            .map((path) => existingTracksPathMap[path])
+            .map((path) => existingTracksMap[path]?.filePath)
             .whereType<String>()
             .toList();
         if (foundPathsInDb.isNotEmpty) {
-          await (_db.update(
-            _db.tracks,
-          )..where((track) => track.filePath.isIn(foundPathsInDb))).write(const TracksCompanion(isMissing: Value(false)));
+          await (_db.update(_db.tracks)..where((track) => track.filePath.isIn(foundPathsInDb))).write(
+            const TracksCompanion(isMissing: Value(false)),
+          );
         }
       }
 
@@ -236,13 +259,18 @@ class LibraryIndexer with LoggerMixin {
   Future<void> processSingleFile(File file) async {
     log.i("Processing individual file: ${file.path}");
 
-    final trackHash = _calculateFileHash(file);
+    final trackHash = AudioMetadataHasher.calculateHash(file);
+
+    // Check if the file was moved/renamed (hash matches an existing track)
     final existingTrackByHash = await (_db.select(
       _db.tracks,
     )..where((t) => t.fileHash.equals(trackHash))).getSingleOrNull();
 
+    final normalizedPath = file.path.normalizePath().toLowerCase();
+
     if (existingTrackByHash != null) {
-      if (existingTrackByHash.filePath != file.path) {
+      final normalizedDbPath = existingTrackByHash.filePath.normalizePath().toLowerCase();
+      if (normalizedDbPath != normalizedPath) {
         log.i(
           "Detected file moved/renamed via watcher: '${existingTrackByHash.filePath}' -> '${file.path}'. Reconnecting database entry...",
         );
@@ -253,10 +281,47 @@ class LibraryIndexer with LoggerMixin {
       return;
     }
 
-    // If the file already exists in the database by path, restore it (set isMissing = false).
-    await (_db.update(
-      _db.tracks,
-    )..where((t) => t.filePath.equals(file.path))).write(const TracksCompanion(isMissing: Value(false)));
+    // Check if the file already exists in the database by path (potential tag edit)
+    final existingTrackByPath =
+        await (_db.select(_db.tracks)
+              ..where((t) => t.filePath.lower().equals(normalizedPath) & t.isMissing.equals(false))
+              ..limit(1))
+            .getSingleOrNull();
+
+    if (existingTrackByPath != null) {
+      try {
+        final trackTag = await AudioTags.read(file.path);
+        if (trackTag != null) {
+          // Safeguard: Verify if it is the same audio file by checking if the duration matches (within 1 second)
+          // Should be replaced with audio fingerprint instead
+          final newDurationMs = (trackTag.duration ?? 0) * 1000;
+          final durationDifferenceMs = (existingTrackByPath.durationMs - newDurationMs).abs();
+
+          if (durationDifferenceMs <= 1000) {
+            log.i("Detected file modified in-place: '${file.path}'. Updating metadata...");
+            await _updateTrackMetadataInTransaction(
+              trackId: existingTrackByPath.id,
+              file: file,
+              trackTag: trackTag,
+              trackHash: trackHash,
+            );
+          } else {
+            log.i(
+              "File at '${file.path}' was replaced with different audio content (duration mismatch: DB has ${existingTrackByPath.durationMs}ms, file has ${newDurationMs}ms). Re-indexing as new...",
+            );
+            // Soft-delete the old track record
+            await markTrackAsMissing(file.path);
+            // Index the new file as a brand new track
+            await _indexTracks([file]);
+          }
+        } else {
+          log.w("Failed to read tags for modified file: ${file.path}");
+        }
+      } catch (e) {
+        log.e("Error processing tag updates for modified file: $e");
+      }
+      return;
+    }
 
     // Index the file (this will parse tags and insert it if it's completely new)
     await _indexTracks([file]);
@@ -332,54 +397,14 @@ class LibraryIndexer with LoggerMixin {
             continue;
           }
 
-          final trackHash = _calculateFileHash(file);
+          final trackHash = AudioMetadataHasher.calculateHash(file);
 
-          List<int> allArtistIds = await _splitArtistsAndGetOrCreateArtist(trackTag);
-          final primaryArtistId = allArtistIds.first;
-
-          int albumId = await _getOrCreateAlbum(trackTag, primaryArtistId);
-
-          final artPath = await _saveAlbumArt(trackTag, albumId);
-          if (artPath != null) {
-            await (_db.update(
-              _db.albums,
-            )..where((a) => a.id.equals(albumId))).write(AlbumsCompanion(albumArtPath: Value(artPath)));
-          }
-
-          // =========================== Update Track in Database ===================================
-
-          await _db.transaction(() async {
-            // Update track info in-place
-            await (_db.update(_db.tracks)..where((t) => t.id.equals(track.id))).write(
-              TracksCompanion(
-                title: Value(trackTag.title ?? p.basename(file.path)),
-                trackNumber: Value(trackTag.trackNumber ?? 0),
-                trackTotal: Value(trackTag.trackTotal ?? 0),
-                discNumber: Value(trackTag.discNumber ?? 0),
-                discTotal: Value(trackTag.discTotal ?? 0),
-                durationMs: Value((trackTag.duration ?? 0) * 1000),
-                genre: Value(trackTag.genre),
-                fileSize: Value(file.lengthSync()),
-                fileHash: Value(trackHash),
-                artistId: Value(primaryArtistId),
-                albumId: Value(albumId),
-                isMissing: const Value(false),
-              ),
-            );
-
-            // Clear old artist relations for this track
-            await (_db.delete(_db.trackArtist)..where((ta) => ta.trackId.equals(track.id))).go();
-
-            // Re-insert the updated artist relations
-            for (final artistId in allArtistIds) {
-              await _db
-                  .into(_db.trackArtist)
-                  .insert(
-                    TrackArtistCompanion(trackId: Value(track.id), artistId: Value(artistId)),
-                    mode: InsertMode.insertOrIgnore,
-                  );
-            }
-          });
+          await _updateTrackMetadataInTransaction(
+            trackId: track.id,
+            file: file,
+            trackTag: trackTag,
+            trackHash: trackHash,
+          );
         } catch (e) {
           log.e("Error re-indexing track ${track.filePath}: $e");
         }
@@ -406,6 +431,59 @@ class LibraryIndexer with LoggerMixin {
   }
 
   // =========================================== Helper Function ======================================================
+
+  /// Updates a track's metadata, album, and artist relations in the database in a transaction.
+  Future<void> _updateTrackMetadataInTransaction({
+    required int trackId,
+    required File file,
+    required Tag trackTag,
+    required String trackHash,
+  }) async {
+    List<int> allArtistIds = await _splitArtistsAndGetOrCreateArtist(trackTag);
+    final primaryArtistId = allArtistIds.first;
+
+    int albumId = await _getOrCreateAlbum(trackTag, primaryArtistId);
+
+    final artPath = await _saveAlbumArt(trackTag, albumId);
+    if (artPath != null) {
+      await (_db.update(
+        _db.albums,
+      )..where((a) => a.id.equals(albumId))).write(AlbumsCompanion(albumArtPath: Value(artPath)));
+    }
+
+    await _db.transaction(() async {
+      // Update track info in-place
+      await (_db.update(_db.tracks)..where((t) => t.id.equals(trackId))).write(
+        TracksCompanion(
+          title: Value(trackTag.title ?? p.basename(file.path)),
+          trackNumber: Value(trackTag.trackNumber ?? 0),
+          trackTotal: Value(trackTag.trackTotal ?? 0),
+          discNumber: Value(trackTag.discNumber ?? 0),
+          discTotal: Value(trackTag.discTotal ?? 0),
+          durationMs: Value((trackTag.duration ?? 0) * 1000),
+          genre: Value(trackTag.genre),
+          fileSize: Value(file.lengthSync()),
+          fileHash: Value(trackHash),
+          artistId: Value(primaryArtistId),
+          albumId: Value(albumId),
+          isMissing: const Value(false),
+        ),
+      );
+
+      // Clear old artist relations for this track
+      await (_db.delete(_db.trackArtist)..where((ta) => ta.trackId.equals(trackId))).go();
+
+      // Re-insert the updated artist relations
+      for (final artistId in allArtistIds) {
+        await _db
+            .into(_db.trackArtist)
+            .insert(
+              TrackArtistCompanion(trackId: Value(trackId), artistId: Value(artistId)),
+              mode: InsertMode.insertOrIgnore,
+            );
+      }
+    });
+  }
 
   Future<void> _indexTracks(List<File> files, {void Function(int processed, int total)? onProgress}) async {
     const int chunkSize = 50;
@@ -462,7 +540,7 @@ class LibraryIndexer with LoggerMixin {
 
         final trackFile = File(trackPath);
 
-        String trackHash = _calculateFileHash(trackFile);
+        String trackHash = AudioMetadataHasher.calculateHash(trackFile);
 
         List<int> allArtistIds = await _splitArtistsAndGetOrCreateArtist(trackTag);
         final primaryArtistId = allArtistIds.first;
@@ -540,30 +618,6 @@ class LibraryIndexer with LoggerMixin {
     } catch (e) {
       log.e("Failed to save album art: $e");
       return null;
-    }
-  }
-
-  // Generate file hash using FNV-1a + file size
-  String _calculateFileHash(File file) {
-    try {
-      final size = file.lengthSync();
-      final numBytesToRead = size < 65536 ? size : 65536;
-      final raf = file.openSync(mode: FileMode.read);
-      final bytes = raf.readSync(numBytesToRead);
-      raf.closeSync();
-
-      // FNV-1a 32-bit hash
-      int hash = 2166136261;
-      for (final byte in bytes) {
-        hash ^= byte;
-        hash = (hash * 16777619) & 0xFFFFFFFF;
-      }
-
-      // Convert FNV-1a result to hexadecimal
-      return '${hash.toRadixString(16)}_$size';
-    } catch (e) {
-      // Fallback to simple hash of path & size if file reading fails
-      return '${file.path.hashCode.toRadixString(16)}_${file.lengthSync()}';
     }
   }
 
