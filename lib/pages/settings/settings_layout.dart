@@ -56,7 +56,7 @@ class SettingsLayout extends ConsumerWidget {
           Sidebar(
             isExtended: isExtended,
             destinations: destinations,
-            onDestinationSelected: navigationShell.goBranch,
+            onDestinationSelected: (index) => navigationShell.goBranch(index, initialLocation: true),
             selectedIndex: navigationShell.currentIndex,
             leading: const SizedBox(height: 16),
             backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,

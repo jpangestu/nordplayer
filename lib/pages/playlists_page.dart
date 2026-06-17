@@ -276,7 +276,7 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
           final basePath = Routes.playlistsPage;
           final targetId = widget.playlistWithDetails.playlist.id;
 
-          context.push('$basePath/$targetId');
+          context.go('$basePath/$targetId');
           log.i('Navigate to playlist ${widget.playlistWithDetails.playlist.id}');
         },
         onSecondaryTapDown: (details) {

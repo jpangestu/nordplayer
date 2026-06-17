@@ -54,7 +54,7 @@ class AlbumsPage extends ConsumerWidget {
                                 final basePath = Routes.albumsPage;
                                 final targetId = album.id;
 
-                                context.push('$basePath/$targetId');
+                                context.go('$basePath/$targetId');
                               },
                             ),
                           ),

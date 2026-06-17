@@ -77,7 +77,7 @@ class AppLayout extends ConsumerWidget {
                     Sidebar(
                       isExtended: isExtended,
                       destinations: destinations,
-                      onDestinationSelected: navigationShell.goBranch,
+                      onDestinationSelected: (index) => navigationShell.goBranch(index, initialLocation: true),
                       selectedIndex: navigationShell.currentIndex,
                       leading: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
