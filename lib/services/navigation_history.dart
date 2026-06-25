@@ -72,7 +72,12 @@ class NavigationHistory extends Notifier<NavigationHistoryState> {
     final targetIndex = state.currentIndex - 1;
     final target = state.history[targetIndex];
     state = state.copyWith(currentIndex: targetIndex);
-    ref.read(goRouterProvider).go(target);
+    final router = ref.read(goRouterProvider);
+    if (router.canPop()) {
+      router.pop();
+    } else {
+      router.go(target);
+    }
   }
 
   void goForward() {

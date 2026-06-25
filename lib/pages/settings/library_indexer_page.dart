@@ -4,9 +4,12 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:nordplayer/models/app_config.dart';
+import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/background_task_service.dart';
 import 'package:nordplayer/services/config_service.dart';
+import 'package:nordplayer/services/duplicate_detector.dart';
 import 'package:nordplayer/services/library_indexer.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/nord_snack_bar.dart';
@@ -31,6 +34,8 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
   late final TapGestureRecognizer _exclusionsTapRecognizer;
 
   bool _showDefaultExclusions = false;
+  bool _isScanningDuplicates = false;
+  List<DuplicateGroup>? _duplicateGroups;
 
   @override
   void initState() {
@@ -76,6 +81,25 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
     } catch (_) {}
   }
 
+  Future<void> _scanDuplicates() async {
+    setState(() {
+      _isScanningDuplicates = true;
+    });
+    try {
+      final detector = ref.read(duplicateDetectorProvider);
+      final groups = await detector.findDuplicates();
+      setState(() {
+        _duplicateGroups = groups;
+      });
+    } catch (e) {
+      showNordSnackBar(message: 'Duplicate scan failed: $e', type: NordSnackBarType.error);
+    } finally {
+      setState(() {
+        _isScanningDuplicates = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -93,8 +117,10 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
     final tasks = ref.watch(backgroundTaskServiceProvider);
     final isScanning = tasks.any((t) => t.id == 'library-scan' && t.status == BackgroundTaskStatus.running);
     final isReindexing = tasks.any((t) => t.id == 'metadata-reindex' && t.status == BackgroundTaskStatus.running);
-    final isFingerprinting = tasks.any((t) => t.id == 'fingerprint-generation' && t.status == BackgroundTaskStatus.running);
-    final isAnyRunning = isScanning || isReindexing || isFingerprinting;
+    final isFingerprinting = tasks.any(
+      (t) => t.id == 'fingerprint-generation' && t.status == BackgroundTaskStatus.running,
+    );
+    final isAnyRunning = isScanning || isReindexing || isFingerprinting || _isScanningDuplicates;
 
     return Scaffold(
       backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
@@ -194,9 +220,7 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                         children: currentDelimiters.map((delimiter) {
                           return SettingsChip(
                             label: delimiter,
-                            onDelete: (currentDelimiters.length > 1)
-                                ? () => _removeDelimiter(delimiter)
-                                : null,
+                            onDelete: (currentDelimiters.length > 1) ? () => _removeDelimiter(delimiter) : null,
                           );
                         }).toList(),
                       ),
@@ -323,10 +347,7 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                           spacing: 8,
                           runSpacing: 8,
                           children: customExclusions.map((exclusion) {
-                            return SettingsChip(
-                              label: exclusion,
-                              onDelete: () => _removeExclusion(exclusion),
-                            );
+                            return SettingsChip(label: exclusion, onDelete: () => _removeExclusion(exclusion));
                           }).toList(),
                         ),
 
@@ -364,10 +385,7 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                             spacing: 8,
                             runSpacing: 8,
                             children: activeDefaultExclusions.map((exclusion) {
-                              return SettingsChip(
-                                label: exclusion,
-                                onDelete: () => _removeExclusion(exclusion),
-                              );
+                              return SettingsChip(label: exclusion, onDelete: () => _removeExclusion(exclusion));
                             }).toList(),
                           ),
                       ],
@@ -458,11 +476,7 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                   trailing: OutlinedButton.icon(
                     onPressed: isAnyRunning ? null : _triggerScan,
                     icon: isScanning
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2.0),
-                          )
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2.0))
                         : const AppIcon(Icons.search),
                     label: Text(isScanning ? "Scanning..." : "Scan"),
                   ),
@@ -476,11 +490,7 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                   trailing: OutlinedButton.icon(
                     onPressed: isAnyRunning ? null : _triggerReindex,
                     icon: isReindexing
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2.0),
-                          )
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2.0))
                         : const AppIcon(Icons.sync),
                     label: Text(isReindexing ? "Re-indexing..." : "Re-index"),
                   ),
@@ -494,15 +504,64 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                   trailing: OutlinedButton.icon(
                     onPressed: isAnyRunning ? null : _triggerFingerprint,
                     icon: isFingerprinting
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2.0),
-                          )
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2.0))
                         : const AppIcon(Icons.fingerprint),
                     label: Text(isFingerprinting ? "Analyzing..." : "Generate"),
                   ),
                 ),
+                const SectionDivider(),
+                ListTile(
+                  title: const Text('Find Duplicate Tracks'),
+                  subtitle: const Text(
+                    "Scan your library using acoustic fingerprinting to find and clean up duplicate tracks.",
+                  ),
+                  trailing: OutlinedButton.icon(
+                    onPressed: isAnyRunning ? null : _scanDuplicates,
+                    icon: _isScanningDuplicates
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2.0))
+                        : const AppIcon(Icons.search),
+                    label: Text(_isScanningDuplicates ? "Scanning..." : "Scan"),
+                  ),
+                ),
+                if (_duplicateGroups != null) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _duplicateGroups!.isNotEmpty
+                              ? '${_duplicateGroups!.length} duplicate group${_duplicateGroups!.length == 1 ? "" : "s"} found'
+                              : 'No duplicates found',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: _duplicateGroups!.isNotEmpty ? FontWeight.w600 : FontWeight.normal,
+                            color: _duplicateGroups!.isNotEmpty ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        if (_duplicateGroups!.isNotEmpty)
+                          TextButton(
+                            onPressed: () {
+                              context.push(
+                                '${Routes.libraryIndexerPage}/${Routes.duplicatesPage}',
+                                extra: _duplicateGroups!,
+                              ).then((_) {
+                                _scanDuplicates();
+                              });
+                            },
+                            style: TextButton.styleFrom(foregroundColor: theme.colorScheme.primary),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('Manage duplicates'),
+                                SizedBox(width: 4),
+                                AppIcon(Icons.chevron_right, size: 20),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
