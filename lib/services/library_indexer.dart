@@ -5,13 +5,13 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/models/app_config.dart';
+import 'package:nordplayer/services/audio_fingerprinter.dart';
 import 'package:nordplayer/services/background_task_service.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/utils/audio_metadata_hasher.dart';
 import 'package:nordplayer/utils/string_extension.dart';
-
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -50,11 +50,12 @@ class LibraryIndexer with LoggerMixin {
   // Cache of lowercase exclusions for the current scan
   Set<String>? _exclusionSetCache;
 
+  bool _isFingerprintTaskCancelled = false;
+
   // ============================================= Main Function ======================================================
 
-  /// Scans music directories, updates database track statuses (handles moved/missing files),
-  /// indexes new tracks, and reports progress via [onProgress].
   Future<void> scanLibrary({void Function(int processed, int total)? onProgress}) async {
+    _isFingerprintTaskCancelled = true;
     log.i('Starting full library scan...');
     onProgress?.call(0, 0);
 
@@ -139,7 +140,10 @@ class LibraryIndexer with LoggerMixin {
       final missingTracks = await (_db.select(_db.tracks)..where((t) => t.filePath.isIn(tracksToMarkAsMissing))).get();
 
       if (newTracksToProcess.isNotEmpty && tracksToMarkAsMissingNormalized.isNotEmpty) {
-        Map<String, Track> missingTracksByHash = {for (final track in missingTracks) track.fileHash: track};
+        Map<String, Track> missingTracksByHash = {};
+        for (final track in missingTracks) {
+          missingTracksByHash[track.fileHash] = track;
+        }
         List<File> remainingNewTracks = [];
 
         for (File newTrack in newTracksToProcess) {
@@ -209,6 +213,7 @@ class LibraryIndexer with LoggerMixin {
       }
 
       taskService.completeTask('library-scan');
+      _startBackgroundFingerprintGenerationIfIdle();
     } catch (e, s) {
       log.e("Error scanning library: $e", error: e, stackTrace: s);
       taskService.failTask('library-scan', e.toString());
@@ -216,124 +221,12 @@ class LibraryIndexer with LoggerMixin {
     }
   }
 
-  Future<void> markTrackAsMissing(String path) async {
-    final normalizedPath = path.normalizePath().toLowerCase();
-    await (_db.update(_db.tracks)..where((track) => track.filePath.lower().equals(normalizedPath))).write(
-      const TracksCompanion(isMissing: Value(true)),
-    );
-
-    // Also remove from player queue if currently loaded
-    try {
-      await _ref.read(playerServiceProvider).removeTrackByPath(path);
-    } catch (e) {
-      log.e("Failed to remove track from player service queue: $e");
-    }
-  }
-
-  Future<void> markTracksInDirectoryAsMissing(String directoryPath) async {
-    log.i("Marking tracks under $directoryPath as missing...");
-    final normalizedDir = directoryPath.normalizePath().toLowerCase();
-    final String separator = p.separator;
-    final String queryPrefix = normalizedDir.endsWith(separator) ? normalizedDir : '$normalizedDir$separator';
-
-    // Get all track paths under this directory first to remove them from the queue
-    final tracksInDir = await (_db.select(
-      _db.tracks,
-    )..where((track) => track.filePath.lower().like('$queryPrefix%'))).get();
-
-    await (_db.update(_db.tracks)..where((track) => track.filePath.lower().like('$queryPrefix%'))).write(
-      const TracksCompanion(isMissing: Value(true)),
-    );
-
-    // Also remove them from the player queue
-    try {
-      final playerService = _ref.read(playerServiceProvider);
-      for (final track in tracksInDir) {
-        await playerService.removeTrackByPath(track.filePath);
-      }
-    } catch (e) {
-      log.e("Failed to remove tracks from player service queue: $e");
-    }
-  }
-
-  Future<void> processSingleFile(File file) async {
-    log.i("Processing individual file: ${file.path}");
-
-    final trackHash = AudioMetadataHasher.calculateHash(file);
-
-    // Check if the file was moved/renamed (hash matches an existing track)
-    final existingTrackByHash = await (_db.select(
-      _db.tracks,
-    )..where((t) => t.fileHash.equals(trackHash))).getSingleOrNull();
-
-    final normalizedPath = file.path.normalizePath().toLowerCase();
-
-    if (existingTrackByHash != null) {
-      final normalizedDbPath = existingTrackByHash.filePath.normalizePath().toLowerCase();
-      if (normalizedDbPath != normalizedPath) {
-        log.i(
-          "Detected file moved/renamed via watcher: '${existingTrackByHash.filePath}' -> '${file.path}'. Reconnecting database entry...",
-        );
-      }
-      await (_db.update(_db.tracks)..where((t) => t.id.equals(existingTrackByHash.id))).write(
-        TracksCompanion(filePath: Value(file.path), isMissing: const Value(false)),
-      );
-      return;
-    }
-
-    // Check if the file already exists in the database by path (potential tag edit)
-    final existingTrackByPath =
-        await (_db.select(_db.tracks)
-              ..where((t) => t.filePath.lower().equals(normalizedPath) & t.isMissing.equals(false))
-              ..limit(1))
-            .getSingleOrNull();
-
-    if (existingTrackByPath != null) {
-      try {
-        final trackTag = await AudioTags.read(file.path);
-        if (trackTag != null) {
-          // Safeguard: Verify if it is the same audio file by checking if the duration matches (within 1 second)
-          // Should be replaced with audio fingerprint instead
-          final newDurationMs = (trackTag.duration ?? 0) * 1000;
-          final durationDifferenceMs = (existingTrackByPath.durationMs - newDurationMs).abs();
-
-          if (durationDifferenceMs <= 1000) {
-            log.i("Detected file modified in-place: '${file.path}'. Updating metadata...");
-            await _updateTrackMetadataInTransaction(
-              trackId: existingTrackByPath.id,
-              file: file,
-              trackTag: trackTag,
-              trackHash: trackHash,
-            );
-          } else {
-            log.i(
-              "File at '${file.path}' was replaced with different audio content (duration mismatch: DB has ${existingTrackByPath.durationMs}ms, file has ${newDurationMs}ms). Re-indexing as new...",
-            );
-            // Soft-delete the old track record
-            await markTrackAsMissing(file.path);
-            // Index the new file as a brand new track
-            await _indexTracks([file]);
-          }
-        } else {
-          log.w("Failed to read tags for modified file: ${file.path}");
-        }
-      } catch (e) {
-        log.e("Error processing tag updates for modified file: $e");
-      }
-      return;
-    }
-
-    // Index the file (this will parse tags and insert it if it's completely new)
-    await _indexTracks([file]);
-  }
-
   /// Performs a forced, in-place metadata re-indexing of all tracks in the database.
   ///
   /// Re-reads audio tags directly from all files on disk to update basic metadata, artist splits, and albums.
   /// Preserves track database IDs so that user playlists, favorites, and play history remain intact.
-  ///
-  /// The optional [onProgress] callback is invoked after each processed track.
   Future<void> reindexMetadata({void Function(int processed, int total)? onProgress}) async {
+    _isFingerprintTaskCancelled = true;
     log.i('Starting forced in-place metadata re-indexing of all tracks...');
 
     final taskService = _ref.read(backgroundTaskServiceProvider.notifier);
@@ -404,6 +297,7 @@ class LibraryIndexer with LoggerMixin {
             file: file,
             trackTag: trackTag,
             trackHash: trackHash,
+            audioFingerprint: track.audioFingerprint,
           );
         } catch (e) {
           log.e("Error re-indexing track ${track.filePath}: $e");
@@ -423,10 +317,241 @@ class LibraryIndexer with LoggerMixin {
       await _db.deleteOrphanedMetadata();
       log.i('Forced metadata re-indexing complete.');
       taskService.completeTask('metadata-reindex');
+      _startBackgroundFingerprintGenerationIfIdle();
     } catch (e, s) {
       log.e("Error during metadata re-indexing: $e", error: e, stackTrace: s);
       taskService.failTask('metadata-reindex', e.toString());
       rethrow;
+    }
+  }
+
+  Future<void> generateMissingFingerprints({void Function(int processed, int total)? onProgress}) async {
+    _isFingerprintTaskCancelled = false;
+    log.i('Starting background generation of missing audio fingerprints...');
+
+    final taskService = _ref.read(backgroundTaskServiceProvider.notifier);
+    taskService.startTask(
+      id: 'fingerprint-generation',
+      name: 'Generating Audio Fingerprints',
+      message: 'Fetching tracks lacking fingerprints...',
+      isIndeterminate: true,
+    );
+
+    try {
+      final tracksLackingFingerprint = await (_db.select(
+        _db.tracks,
+      )..where((t) => t.audioFingerprint.isNull() & t.isMissing.equals(false))).get();
+
+      if (tracksLackingFingerprint.isEmpty) {
+        log.i('No tracks lack fingerprints.');
+        taskService.completeTask('fingerprint-generation');
+        return;
+      }
+
+      final total = tracksLackingFingerprint.length;
+      int processed = 0;
+
+      onProgress?.call(processed, total);
+      taskService.updateProgress(
+        'fingerprint-generation',
+        processed: processed,
+        total: total,
+        message: 'Generating fingerprint $processed of $total...',
+        isIndeterminate: false,
+      );
+
+      for (final track in tracksLackingFingerprint) {
+        if (_isFingerprintTaskCancelled) {
+          log.i('Fingerprint generation task cancelled due to incoming scan/re-index.');
+          taskService.completeTask('fingerprint-generation');
+          return;
+        }
+
+        final file = File(track.filePath);
+        if (!await file.exists()) {
+          processed++;
+          onProgress?.call(processed, total);
+          taskService.updateProgress(
+            'fingerprint-generation',
+            processed: processed,
+            total: total,
+            message: 'Generating fingerprint $processed of $total...',
+          );
+          continue;
+        }
+
+        try {
+          final fingerprintRes = await _ref.read(audioFingerprinterProvider).calculateFingerprint(file.path);
+          if (fingerprintRes != null) {
+            await (_db.update(_db.tracks)..where((t) => t.id.equals(track.id))).write(
+              TracksCompanion(audioFingerprint: Value(fingerprintRes.fingerprintBytes)),
+            );
+          }
+        } catch (e) {
+          log.e("Error generating fingerprint for ${track.filePath}: $e");
+        }
+
+        processed++;
+        onProgress?.call(processed, total);
+        taskService.updateProgress(
+          'fingerprint-generation',
+          processed: processed,
+          total: total,
+          message: 'Generating fingerprint $processed of $total...',
+        );
+      }
+
+      log.i('Background audio fingerprint generation complete.');
+      taskService.completeTask('fingerprint-generation');
+    } catch (e, s) {
+      log.e("Error during audio fingerprint generation: $e", error: e, stackTrace: s);
+      taskService.failTask('fingerprint-generation', e.toString());
+      rethrow;
+    }
+  }
+
+  Future<void> processSingleFile(File file) async {
+    log.i("Processing individual file: ${file.path}");
+
+    final trackHash = AudioMetadataHasher.calculateHash(file);
+
+    // Check if the file was moved/renamed (hash matches an existing track)
+    final existingTrackByHash =
+        await (_db.select(_db.tracks)
+              ..where((t) => t.fileHash.equals(trackHash))
+              ..limit(1))
+            .getSingleOrNull();
+
+    final normalizedPath = file.path.normalizePath().toLowerCase();
+
+    if (existingTrackByHash != null) {
+      final normalizedDbPath = existingTrackByHash.filePath.normalizePath().toLowerCase();
+      if (normalizedDbPath != normalizedPath) {
+        log.i(
+          "Detected file moved/renamed via watcher: '${existingTrackByHash.filePath}' -> '${file.path}'. Reconnecting database entry...",
+        );
+      }
+      await (_db.update(_db.tracks)..where((t) => t.id.equals(existingTrackByHash.id))).write(
+        TracksCompanion(filePath: Value(file.path), isMissing: const Value(false)),
+      );
+      return;
+    }
+
+    // Check if the file already exists in the database by path
+    final existingTrackByPath =
+        await (_db.select(_db.tracks)
+              ..where((t) => t.filePath.lower().equals(normalizedPath))
+              ..limit(1))
+            .getSingleOrNull();
+
+    if (existingTrackByPath != null) {
+      try {
+        final trackTag = await AudioTags.read(file.path);
+        if (trackTag != null) {
+          // Safeguard: Verify if it is the same audio file by checking the audio fingerprint
+          final fingerprintRes = await _ref.read(audioFingerprinterProvider).calculateFingerprint(file.path);
+
+          bool isSameTrack = false;
+          if (fingerprintRes != null) {
+            final storedFingerprint = existingTrackByPath.audioFingerprint;
+            if (storedFingerprint != null) {
+              final fingerprinter = _ref.read(audioFingerprinterProvider);
+              final storedRaw = fingerprinter.parseRawFingerprint(storedFingerprint);
+              if (storedRaw != null) {
+                final similarity = fingerprinter.compareRawFingerprints(fingerprintRes.rawFingerprint, storedRaw);
+                isSameTrack = similarity >= 0.85;
+                log.i(
+                  "Calculated fingerprint similarity for '${file.path}': ${(similarity * 100).toStringAsFixed(1)}% (match: $isSameTrack)",
+                );
+              }
+            } else {
+              // Fallback to duration for existing tracks that do not have fingerprints yet
+              final newDurationMs = fingerprintRes.durationMs;
+              final durationDifferenceMs = (existingTrackByPath.durationMs - newDurationMs).abs();
+              isSameTrack = durationDifferenceMs <= 1000;
+
+              if (isSameTrack) {
+                // Cache the fingerprint back to the DB record
+                await (_db.update(_db.tracks)..where((t) => t.id.equals(existingTrackByPath.id))).write(
+                  TracksCompanion(audioFingerprint: Value(fingerprintRes.fingerprintBytes)),
+                );
+              }
+            }
+          } else {
+            // Hard fallback to duration if fingerprinting failed
+            final newDurationMs = (trackTag.duration ?? 0) * 1000;
+            final durationDifferenceMs = (existingTrackByPath.durationMs - newDurationMs).abs();
+            isSameTrack = durationDifferenceMs <= 1000;
+          }
+
+          if (isSameTrack) {
+            log.i("Detected file modified in-place: '${file.path}'. Updating metadata...");
+            await _updateTrackMetadataInTransaction(
+              trackId: existingTrackByPath.id,
+              file: file,
+              trackTag: trackTag,
+              trackHash: trackHash,
+              audioFingerprint: fingerprintRes?.fingerprintBytes ?? existingTrackByPath.audioFingerprint,
+            );
+          } else {
+            log.i(
+              "File at '${file.path}' was replaced with different audio content (fingerprint mismatch). Re-indexing as new...",
+            );
+            // Soft-delete the old track record
+            await markTrackAsMissing(file.path);
+            // Index the new file as a brand new track
+            await _indexTracks([file]);
+          }
+        } else {
+          log.w("Failed to read tags for modified file: ${file.path}");
+        }
+      } catch (e) {
+        log.e("Error processing tag updates for modified file: $e");
+      }
+      return;
+    }
+
+    // Index the file (this will parse tags and insert it if it's completely new)
+    await _indexTracks([file]);
+  }
+
+  Future<void> markTrackAsMissing(String path) async {
+    final normalizedPath = path.normalizePath().toLowerCase();
+    await (_db.update(_db.tracks)..where((track) => track.filePath.lower().equals(normalizedPath))).write(
+      const TracksCompanion(isMissing: Value(true)),
+    );
+
+    // Also remove from player queue if currently loaded
+    try {
+      await _ref.read(playerServiceProvider).removeTrackByPath(path);
+    } catch (e) {
+      log.e("Failed to remove track from player service queue: $e");
+    }
+  }
+
+  Future<void> markTracksInDirectoryAsMissing(String directoryPath) async {
+    log.i("Marking tracks under $directoryPath as missing...");
+    final normalizedDir = directoryPath.normalizePath().toLowerCase();
+    final String separator = p.separator;
+    final String queryPrefix = normalizedDir.endsWith(separator) ? normalizedDir : '$normalizedDir$separator';
+
+    // Get all track paths under this directory first to remove them from the queue
+    final tracksInDir = await (_db.select(
+      _db.tracks,
+    )..where((track) => track.filePath.lower().like('$queryPrefix%'))).get();
+
+    await (_db.update(_db.tracks)..where((track) => track.filePath.lower().like('$queryPrefix%'))).write(
+      const TracksCompanion(isMissing: Value(true)),
+    );
+
+    // Also remove them from the player queue
+    try {
+      final playerService = _ref.read(playerServiceProvider);
+      for (final track in tracksInDir) {
+        await playerService.removeTrackByPath(track.filePath);
+      }
+    } catch (e) {
+      log.e("Failed to remove tracks from player service queue: $e");
     }
   }
 
@@ -438,6 +563,7 @@ class LibraryIndexer with LoggerMixin {
     required File file,
     required Tag trackTag,
     required String trackHash,
+    Uint8List? audioFingerprint,
   }) async {
     List<int> allArtistIds = await _splitArtistsAndGetOrCreateArtist(trackTag);
     final primaryArtistId = allArtistIds.first;
@@ -464,6 +590,7 @@ class LibraryIndexer with LoggerMixin {
           genre: Value(trackTag.genre),
           fileSize: Value(file.lengthSync()),
           fileHash: Value(trackHash),
+          audioFingerprint: Value(audioFingerprint),
           artistId: Value(primaryArtistId),
           albumId: Value(albumId),
           isMissing: const Value(false),
@@ -791,5 +918,18 @@ class LibraryIndexer with LoggerMixin {
     }
 
     return albumId;
+  }
+
+  void _startBackgroundFingerprintGenerationIfIdle() {
+    final tasks = _ref.read(backgroundTaskServiceProvider);
+    final isBusy = tasks.any(
+      (t) => (t.id == 'library-scan' || t.id == 'metadata-reindex') && t.status == BackgroundTaskStatus.running,
+    );
+
+    if (!isBusy) {
+      generateMissingFingerprints().catchError((e) {
+        log.e('Idle fingerprint generation failed: $e');
+      });
+    }
   }
 }

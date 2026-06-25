@@ -74,7 +74,7 @@ class LibraryWatcher with LoggerMixin {
 
     _subscriptions[trackDirectory] = watcher.events.listen(
       (WatchEvent event) {
-        _handleFileSystemEvent(event);
+        _handleFileSystemEvent(event, trackDirectory);
       },
       onError: (e) {
         log.e("Error when trying to listen for changes in $trackDirectory: $e");
@@ -90,9 +90,12 @@ class LibraryWatcher with LoggerMixin {
     log.i("Stopped watching directory: $trackDirectory");
   }
 
-  void _handleFileSystemEvent(WatchEvent event) {
-    log.i("Watcher received event: ${event.type} for path: ${event.path}");
-    final path = event.path;
+  void _handleFileSystemEvent(WatchEvent event, String trackDirectory) {
+    final path = p.isAbsolute(event.path)
+        ? event.path
+        : p.join(trackDirectory, event.path);
+
+    log.i("Watcher received event: ${event.type} for path: $path");
     final ext = p.extension(path).toLowerCase();
 
     // Ignore non-music files

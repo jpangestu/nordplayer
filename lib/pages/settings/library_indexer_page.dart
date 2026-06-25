@@ -70,6 +70,12 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
     } catch (_) {}
   }
 
+  Future<void> _triggerFingerprint() async {
+    try {
+      await ref.read(libraryIndexerProvider).generateMissingFingerprints();
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -87,7 +93,8 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
     final tasks = ref.watch(backgroundTaskServiceProvider);
     final isScanning = tasks.any((t) => t.id == 'library-scan' && t.status == BackgroundTaskStatus.running);
     final isReindexing = tasks.any((t) => t.id == 'metadata-reindex' && t.status == BackgroundTaskStatus.running);
-    final isAnyRunning = isScanning || isReindexing;
+    final isFingerprinting = tasks.any((t) => t.id == 'fingerprint-generation' && t.status == BackgroundTaskStatus.running);
+    final isAnyRunning = isScanning || isReindexing || isFingerprinting;
 
     return Scaffold(
       backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
@@ -476,6 +483,24 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                           )
                         : const AppIcon(Icons.sync),
                     label: Text(isReindexing ? "Re-indexing..." : "Re-index"),
+                  ),
+                ),
+                const SectionDivider(),
+                ListTile(
+                  title: const Text('Generate Audio Fingerprints'),
+                  subtitle: const Text(
+                    "Analyze audio content to generate missing AcoustID Chromaprints for track matching.",
+                  ),
+                  trailing: OutlinedButton.icon(
+                    onPressed: isAnyRunning ? null : _triggerFingerprint,
+                    icon: isFingerprinting
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2.0),
+                          )
+                        : const AppIcon(Icons.fingerprint),
+                    label: Text(isFingerprinting ? "Analyzing..." : "Generate"),
                   ),
                 ),
               ],
