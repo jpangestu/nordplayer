@@ -29,10 +29,10 @@ class Tracks extends Table {
   TextColumn get genre => text().nullable()();
 
   /// FNV-1a hash.
-  TextColumn get fileHash => text().unique()();
+  TextColumn get fileHash => text()();
 
-  /// Chromaprint base64 string. Used as a fallback identity if tags change.
-  TextColumn get audioFingerprint => text().nullable()();
+  /// Chromaprint raw fingerprint stored as binary blob (Uint32List bytes).
+  BlobColumn get audioFingerprint => blob().nullable()();
 
   /// Soft-delete flag. Flips to true if file vanishes, false if rediscovered.
   BoolColumn get isMissing => boolean().withDefault(const Constant(false))();
