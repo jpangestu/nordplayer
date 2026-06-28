@@ -68,10 +68,13 @@ abstract class AppIconSet {
   IconData get navigationRight;
   IconData get navigationUp;
   IconData get navigationDown;
+  IconData get performance;
   IconData get playtime;
   IconData get preference;
   IconData get statistic;
   IconData get storage;
+  IconData get visible;
+  IconData get invisible;
 }
 
 final appIconProvider = Provider<AppIconSet>((ref) {

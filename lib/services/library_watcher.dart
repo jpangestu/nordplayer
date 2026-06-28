@@ -2,64 +2,104 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/services/config_service.dart';
+import 'package:nordplayer/services/library_indexer.dart';
+import 'package:nordplayer/services/logger.dart';
 import 'package:path/path.dart' as p;
 import 'package:watcher/watcher.dart';
-import 'package:nordplayer/models/app_config.dart';
-import 'package:nordplayer/services/library_scanner.dart';
-import 'package:nordplayer/services/logger.dart';
 
 final libraryWatcherProvider = Provider<LibraryWatcher>((ref) {
-  final appConfig = ref.watch(configServiceProvider).requireValue;
-  final libraryScanner = ref.watch(libraryScannerProvider);
+  final libraryIndexer = ref.watch(libraryIndexerProvider);
 
-  final watcher = LibraryWatcher(appConfig, libraryScanner);
+  final watcher = LibraryWatcher(libraryIndexer);
+
+  ref.listen<AsyncValue<AppConfig>>(
+    configServiceProvider,
+    (previous, next) {
+      if (next is AsyncData<AppConfig>) {
+        watcher.updateConfig(next.value);
+      }
+    },
+    fireImmediately: true,
+  );
+
   ref.onDispose(() => watcher.dispose());
   return watcher;
 });
 
 class LibraryWatcher with LoggerMixin {
-  final AppConfig _appConfig;
-  final LibraryScanner _libraryScanner;
+  LibraryWatcher(this._libraryIndexer);
+
+  final LibraryIndexer _libraryIndexer;
 
   final Map<String, StreamSubscription<WatchEvent>> _subscriptions = {};
 
   // A map to keep track of pending files to prevent premature parsing
   final Map<String, Timer> _debouncers = {};
 
-  LibraryWatcher(this._appConfig, this._libraryScanner);
+  /// Synchronizes directory watchers when the application configuration is updated.
+  ///
+  /// Cancels all subscriptions if directory watching is disabled, stops watchers for
+  /// removed folders, and starts watching newly added folders.
+  void updateConfig(AppConfig newConfig) {
+    if (!newConfig.watchTrackDirectories) {
+      if (_subscriptions.isNotEmpty) {
+        log.i("Directory watching disabled. Canceling all active subscriptions.");
+        dispose();
+      }
+      return;
+    }
 
-  void startWatching() {
-    for (final folderPath in _appConfig.musicPaths) {
-      watchFolder(folderPath);
+    // Stop watching folders that are no longer in the list
+    final currentlyWatched = List<String>.from(_subscriptions.keys);
+    for (final folderPath in currentlyWatched) {
+      if (!newConfig.trackDirectories.contains(folderPath)) {
+        stopWatchingTrackDirectory(folderPath);
+      }
+    }
+
+    // Start watching folders that are in the list but not yet watched
+    for (final folderPath in newConfig.trackDirectories) {
+      watchTrackDirectory(folderPath);
     }
   }
 
-  void watchFolder(String folderPath) {
-    if (_subscriptions.containsKey(folderPath)) return;
+  void watchTrackDirectory(String trackDirectory) {
+    if (_subscriptions.containsKey(trackDirectory)) return;
 
-    if (!Directory(folderPath).existsSync()) return;
+    if (!Directory(trackDirectory).existsSync()) return;
 
-    final watcher = DirectoryWatcher(folderPath);
+    final watcher = DirectoryWatcher(trackDirectory);
 
-    _subscriptions[folderPath] = watcher.events.listen(
+    _subscriptions[trackDirectory] = watcher.events.listen(
       (WatchEvent event) {
-        _handleFileSystemEvent(event);
+        _handleFileSystemEvent(event, trackDirectory);
       },
       onError: (e) {
-        log.e("Error when trying to listen for changes in $folderPath: $e");
+        log.e("Error when trying to listen for changes in $trackDirectory: $e");
       },
     );
 
-    log.i("Start listening for changes in directory: $folderPath");
+    log.i("Start listening for changes in directory: $trackDirectory");
   }
 
-  void _handleFileSystemEvent(WatchEvent event) {
-    final path = event.path;
+  void stopWatchingTrackDirectory(String trackDirectory) {
+    _subscriptions[trackDirectory]?.cancel();
+    _subscriptions.remove(trackDirectory);
+    log.i("Stopped watching directory: $trackDirectory");
+  }
+
+  void _handleFileSystemEvent(WatchEvent event, String trackDirectory) {
+    final path = p.isAbsolute(event.path)
+        ? event.path
+        : p.join(trackDirectory, event.path);
+
+    log.i("Watcher received event: ${event.type} for path: $path");
     final ext = p.extension(path).toLowerCase();
 
     // Ignore non-music files
-    if (!_libraryScanner.supportedExtensions.contains(ext)) return;
+    if (!_libraryIndexer.supportedExtensions.contains(ext)) return;
 
     switch (event.type) {
       case ChangeType.ADD:
@@ -67,81 +107,71 @@ class LibraryWatcher with LoggerMixin {
         _debounceFileProcessing(path);
         break;
       case ChangeType.REMOVE:
-        log.d("File removed: $path");
-        _cancelDebounce(path);
-        _libraryScanner.removeTrackByPath(path);
+        log.d("File marked as missing: $path");
+
+        if (_debouncers.containsKey(path)) {
+          _debouncers[path]?.cancel();
+          _debouncers.remove(path);
+        }
+
+        _libraryIndexer.markTrackAsMissing(path);
         break;
     }
   }
 
-  void _debounceFileProcessing(String path) {
-    _cancelDebounce(path);
-
-    _debouncers[path] = Timer(const Duration(milliseconds: 500), () async {
-      _debouncers.remove(path);
-
-      await _processWhenFileIsReady(path);
-    });
-  }
-
   /// Verifies file stabilization before processing.
   ///
-  /// Since OS file events (MODIFY/ADD) can trigger while a file is still being
-  /// written, this function polls the file size until it stops changing to
-  /// ensure the file is complete and unlocked.
-  Future<void> _processWhenFileIsReady(String path) async {
-    final file = File(path);
-    int lastSize = -1;
-    int retries = 0;
-    const maxRetries = 60; // Max wait: 30 seconds (60 * 500ms)
-
-    while (retries < maxRetries) {
-      try {
-        if (!await file.exists()) {
-          log.w("File disappeared before we could process it: $path");
-          return;
-        }
-
-        final currentSize = await file.length();
-
-        // If the file size is greater than 0 AND hasn't changed since last check,
-        // the OS most likely has finished copying/downloading the file!
-        if (currentSize > 0 && currentSize == lastSize) {
-          log.i("File stabilization complete. Ready to process: $path");
-
-          // Attempt to acquire a read lock to verify the OS has released the file.
-          // This prevents 'File in Use' exceptions during metadata extraction,
-          // particularly on Windows or during slow I/O operations.
-          final randomAccess = await file.open(mode: FileMode.read);
-          await randomAccess.close();
-
-          await _libraryScanner.processSingleFile(file);
-          return;
-        }
-
-        lastSize = currentSize;
-      } catch (e) {
-        log.d("File $path is locked or unreadable, retrying...");
-      }
-
-      retries++;
-      await Future.delayed(const Duration(milliseconds: 500));
-    }
-
-    log.e("Timeout waiting for file to be ready: $path");
-  }
-
-  void _cancelDebounce(String path) {
+  /// Since OS file events (MODIFY/ADD) can trigger while a file is still being written, this function polls the file
+  /// size until it stops changing to ensure the file is complete and unlocked.
+  void _debounceFileProcessing(String path) {
     if (_debouncers.containsKey(path)) {
       _debouncers[path]?.cancel();
       _debouncers.remove(path);
     }
-  }
 
-  void stopWatchingFolder(String folderPath) {
-    _subscriptions[folderPath]?.cancel();
-    _subscriptions.remove(folderPath);
-    log.i("Stopped watching directory: $folderPath");
+    _debouncers[path] = Timer(const Duration(milliseconds: 500), () async {
+      _debouncers.remove(path);
+
+      final file = File(path);
+      int lastSize = -1;
+      int retries = 0;
+      const maxRetries = 60; // Max wait: 30 seconds (60 * 500ms)
+
+      while (retries < maxRetries) {
+        try {
+          if (!await file.exists()) {
+            log.w("File disappeared before we could process it: $path");
+            return;
+          }
+
+          final currentSize = await file.length();
+
+          // If the file size is greater than 0 AND hasn't changed since last check,
+          // the OS most likely has finished copying/downloading the file!
+          if (currentSize > 0 && currentSize == lastSize) {
+            log.i("File stabilization complete. Ready to process: $path");
+
+            // Attempt to acquire a read lock to verify the OS has released the file.
+            // This prevents 'File in Use' exceptions during metadata extraction,
+            // particularly on Windows or during slow I/O operations.
+            final randomAccess = await file.open(mode: FileMode.read);
+            await randomAccess.close();
+
+            await _libraryIndexer.processSingleFile(file);
+            return;
+          }
+
+          lastSize = currentSize;
+        } catch (e) {
+          log.d("File $path is locked or unreadable, retrying...");
+        }
+
+        retries++;
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
+
+      log.e("Timeout waiting for file to be ready: $path");
+    });
   }
 
   void dispose() {

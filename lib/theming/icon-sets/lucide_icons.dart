@@ -111,6 +111,8 @@ class LucideIconSet implements AppIconSet {
   @override
   IconData get navigationDown => LucideIcons.chevronDown;
   @override
+  IconData get performance => LucideIcons.gauge;
+  @override
   IconData get playtime => LucideIcons.clock;
   @override
   IconData get preference => LucideIcons.settings2;
@@ -118,4 +120,8 @@ class LucideIconSet implements AppIconSet {
   IconData get statistic => LucideIcons.chartNoAxesColumn;
   @override
   IconData get storage => LucideIcons.hardDrive;
+  @override
+  IconData get visible => LucideIcons.eye;
+  @override
+  IconData get invisible => LucideIcons.eyeClosed;
 }

@@ -200,11 +200,10 @@ class AlbumDetailPageHeader extends ConsumerWidget {
 
                   // Descriptions
                   Expanded(
-                    child: Expanded(
-                      child: Column(
-                        mainAxisAlignment: .center,
-                        crossAxisAlignment: .start,
-                        children: [
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                           // Album title
                           Text(
                             albumWithTracks.album.title,
@@ -244,8 +243,7 @@ class AlbumDetailPageHeader extends ConsumerWidget {
                         ],
                       ),
                     ),
-                  ),
-                ],
+                  ],
               ),
             ),
 

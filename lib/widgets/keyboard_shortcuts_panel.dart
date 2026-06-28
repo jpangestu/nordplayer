@@ -21,8 +21,8 @@ void showShortcutsPanel(BuildContext context, GlobalKey buttonKey) {
             // Position 8 pixels below the bottom edge of the button
             top: offset.dy + renderBox.size.height + 8,
             // Align the right edge of the panel with the right edge of the button
-            // 320 is the fixed width of the panel
-            left: offset.dx - 320 + renderBox.size.width,
+            // 280 is the fixed width of the panel
+            left: offset.dx - 280 + renderBox.size.width,
             child: FadeTransition(opacity: animation, child: const KeyboardShortcutsPanel()),
           ),
         ],
@@ -67,7 +67,7 @@ class KeyboardShortcutsPanel extends ConsumerWidget {
         blurSigma: appConfig.adaptiveBgPanelBlur,
         borderRadius: 12.0,
         child: Container(
-          width: 320, // Fixed width for the popover
+          width: 280, // Fixed width for the popover
           constraints: const BoxConstraints(maxHeight: 450), // Won't grow taller than this
           decoration: BoxDecoration(
             border: Border.all(color: theme.colorScheme.outlineVariant, width: appConfig.adaptiveBg ? 0 : 2),
@@ -83,6 +83,7 @@ class KeyboardShortcutsPanel extends ConsumerWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Section Header
                   Text(
                     cat.title.toUpperCase(),
                     style: theme.textTheme.labelSmall?.copyWith(
@@ -106,7 +107,14 @@ class KeyboardShortcutsPanel extends ConsumerWidget {
                                 if (i < item.keys.length - 1)
                                   Padding(
                                     padding: const .symmetric(horizontal: 4),
-                                    child: Text('+', style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
+                                    child: Text(
+                                      '+',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        fontFamily: 'jetbrains_mono',
+                                        color: theme.colorScheme.onSurface,
+                                      ),
+                                    ),
                                   ),
                               ],
                             ],

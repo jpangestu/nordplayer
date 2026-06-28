@@ -35,7 +35,7 @@ class SettingsLayout extends ConsumerWidget {
       SidebarDestination(
         icon: AppIcon(appIconSet.librarySettings),
         selectedIcon: AppIcon(appIconSet.librarySettings),
-        label: const Text('Library Management'),
+        label: const Text('Library Indexer'),
       ),
       SidebarDestination(
         icon: AppIcon(appIconSet.advancedSettings),
@@ -56,7 +56,7 @@ class SettingsLayout extends ConsumerWidget {
           Sidebar(
             isExtended: isExtended,
             destinations: destinations,
-            onDestinationSelected: navigationShell.goBranch,
+            onDestinationSelected: (index) => navigationShell.goBranch(index, initialLocation: true),
             selectedIndex: navigationShell.currentIndex,
             leading: const SizedBox(height: 16),
             backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,

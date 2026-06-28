@@ -7,12 +7,57 @@ import 'package:nordplayer/utils/string_extension.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [Tracks, Artists, Albums, Playlists, TrackArtist, PlaylistTrack, QueueEntries])
+@DriftDatabase(
+  tables: [
+    Tracks,
+    Artists,
+    Albums,
+    Playlists,
+    TrackArtist,
+    PlaylistTrack,
+    QueueEntries,
+    PlayHistory,
+    SourcePriorities,
+    ArtistMetadata,
+    AlbumMetadata,
+    UserFavorites,
+    UserBlacklist,
+    UserPins,
+    IgnoredPaths,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration {
+    return MigrationStrategy(
+      onCreate: (m) async {
+        await m.createAll();
+      },
+      onUpgrade: (migrator, from, to) async {
+        if (from < 2) {
+          await migrator.addColumn(artists, artists.artistImgPath);
+          await migrator.addColumn(albums, albums.albumArtistId);
+          await migrator.addColumn(tracks, tracks.fileHash);
+          await migrator.addColumn(tracks, tracks.audioFingerprint);
+          await migrator.addColumn(tracks, tracks.isMissing);
+
+          await migrator.createTable(playHistory);
+          await migrator.createTable(sourcePriorities);
+          await migrator.createTable(artistMetadata);
+          await migrator.createTable(albumMetadata);
+          await migrator.createTable(userFavorites);
+          await migrator.createTable(userBlacklist);
+          await migrator.createTable(userPins);
+          await migrator.createTable(ignoredPaths);
+        }
+      },
+    );
+  }
 
   static QueryExecutor _openConnection() {
     return driftDatabase(
@@ -42,6 +87,7 @@ class AppDatabase extends _$AppDatabase {
         await customStatement('DELETE FROM tracks;');
         await customStatement('DELETE FROM albums;');
         await customStatement('DELETE FROM artists;');
+        await customStatement('DELETE FROM ignored_paths;');
       });
 
       await customStatement('PRAGMA foreign_keys = ON;');
@@ -61,11 +107,12 @@ class AppDatabase extends _$AppDatabase {
       WHERE id NOT IN (SELECT DISTINCT album_id FROM tracks WHERE album_id IS NOT NULL);
     ''');
 
-      // Delete artists who no longer have any tracks OR albums pointing to them
+      // Delete artists who no longer have any tracks OR albums OR track_artist relations pointing to them
       await customStatement('''
       DELETE FROM artists 
       WHERE id NOT IN (SELECT DISTINCT artist_id FROM tracks WHERE artist_id IS NOT NULL)
-        AND id NOT IN (SELECT DISTINCT artist_id FROM albums WHERE artist_id IS NOT NULL);
+        AND id NOT IN (SELECT DISTINCT album_artist_id FROM albums WHERE album_artist_id IS NOT NULL)
+        AND id NOT IN (SELECT DISTINCT artist_id FROM track_artist);
     ''');
     });
   }
@@ -76,13 +123,13 @@ class AppDatabase extends _$AppDatabase {
     // We use a single raw SQL query to get all counts and sums at once for maximum performance.
     const query = '''
       SELECT
-        (SELECT COUNT(*) FROM tracks) AS trackCount,
-        (SELECT COUNT(*) FROM albums) AS albumCount,
-        (SELECT COUNT(*) FROM artists) AS artistCount,
+        (SELECT COUNT(*) FROM tracks WHERE is_missing = 0) AS trackCount,
+        (SELECT COUNT(DISTINCT album_id) FROM tracks WHERE album_id IS NOT NULL AND is_missing = 0) AS albumCount,
+        (SELECT COUNT(DISTINCT track_artist.artist_id) FROM track_artist INNER JOIN tracks ON tracks.id = track_artist.track_id WHERE tracks.is_missing = 0) AS artistCount,
         (SELECT COUNT(*) FROM playlists) AS playlistCount,
-        (SELECT COUNT(DISTINCT genre) FROM tracks WHERE genre IS NOT NULL AND genre != '') AS genreCount,
-        (SELECT SUM(file_size) FROM tracks) AS totalSize,
-        (SELECT SUM(duration_ms) FROM tracks) AS totalDuration
+        (SELECT COUNT(DISTINCT genre) FROM tracks WHERE genre IS NOT NULL AND genre != '' AND is_missing = 0) AS genreCount,
+        (SELECT SUM(file_size) FROM tracks WHERE is_missing = 0) AS totalSize,
+        (SELECT SUM(duration_ms) FROM tracks WHERE is_missing = 0) AS totalDuration
     ''';
 
     return customSelect(
@@ -108,7 +155,7 @@ class AppDatabase extends _$AppDatabase {
 
   /// Watch all tracks in the library, sorted alphabetically.
   Stream<List<TrackWithArtists>> watchAllTracks() {
-    final query = select(tracks).join([
+    final query = (select(tracks)..where((t) => t.isMissing.equals(false))).join([
       leftOuterJoin(albums, albums.id.equalsExp(tracks.albumId)),
       leftOuterJoin(trackArtist, trackArtist.trackId.equalsExp(tracks.id)),
       leftOuterJoin(artists, artists.id.equalsExp(trackArtist.artistId)),
@@ -166,7 +213,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Stream<List<TrackWithArtists>> watchRecentlyAddedTracks({int limitAmount = 10}) {
-    final query = select(tracks).join([
+    final query = (select(tracks)..where((t) => t.isMissing.equals(false))).join([
       leftOuterJoin(albums, albums.id.equalsExp(tracks.albumId)),
       leftOuterJoin(trackArtist, trackArtist.trackId.equalsExp(tracks.id)),
       leftOuterJoin(artists, artists.id.equalsExp(trackArtist.artistId)),
@@ -208,25 +255,19 @@ class AppDatabase extends _$AppDatabase {
   /// Get all albums
   /// Usage: main album page
   Stream<List<Album>> watchAlbums() {
-    final query = select(albums)..orderBy([(u) => OrderingTerm(expression: u.title, mode: OrderingMode.asc)]);
+    final query =
+        select(albums).join([innerJoin(tracks, tracks.albumId.equalsExp(albums.id) & tracks.isMissing.equals(false))])
+          ..groupBy([albums.id])
+          ..orderBy([OrderingTerm.asc(albums.title)]);
 
     return query.watch().map((rows) {
-      return rows.map((row) {
-        return Album(
-          id: row.id,
-          title: row.title,
-          year: row.year,
-          albumArtPath: row.albumArtPath,
-          albumArtist: row.albumArtist,
-          artistId: row.artistId,
-        );
-      }).toList();
+      return rows.map((row) => row.readTable(albums)).toList();
     });
   }
 
   Stream<AlbumWithTracks?> watchAlbumWithTracks(int albumId) {
     final query = select(albums).join([
-      leftOuterJoin(tracks, tracks.albumId.equalsExp(albums.id)),
+      leftOuterJoin(tracks, tracks.albumId.equalsExp(albums.id) & tracks.isMissing.equals(false)),
       leftOuterJoin(trackArtist, trackArtist.trackId.equalsExp(tracks.id)),
       leftOuterJoin(artists, artists.id.equalsExp(trackArtist.artistId)),
     ])..where(albums.id.equals(albumId));
@@ -266,15 +307,46 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
+  Future<List<Artist>> getTrackArtists({required int albumId}) {
+    final query =
+        select(artists, distinct: true).join([
+            innerJoin(trackArtist, trackArtist.artistId.equalsExp(artists.id)),
+            innerJoin(tracks, tracks.id.equalsExp(trackArtist.trackId)),
+          ])
+          ..where(tracks.albumId.equals(albumId) & tracks.isMissing.equals(false))
+          ..orderBy([OrderingTerm.asc(artists.name)]);
+
+    return query.get().then((rows) => rows.map((row) => row.readTable(artists)).toList());
+  }
+
   /// Fetches a list of random albums.
   /// Using a Future instead of a Stream prevents the UI from re-shuffling every time the database receives an update.
   Future<List<Album>> getRandomAlbums({int limitAmount = 10}) {
-    final query = select(albums)
-      // Use SQLite's native RANDOM() function to sort the rows arbitrarily
-      ..orderBy([(a) => OrderingTerm(expression: const CustomExpression('RANDOM()'))])
-      ..limit(limitAmount);
+    final query =
+        select(albums).join([innerJoin(tracks, tracks.albumId.equalsExp(albums.id) & tracks.isMissing.equals(false))])
+          ..groupBy([albums.id])
+          ..orderBy([OrderingTerm(expression: const CustomExpression('RANDOM()'))])
+          ..limit(limitAmount);
 
-    return query.get();
+    return query.get().then((rows) => rows.map((row) => row.readTable(albums)).toList());
+  }
+
+  // ============================================= Artists Stuff ====================================================
+
+  /// Get all albums
+  /// Usage: main album page
+  Stream<List<Artist>> watchArtists() {
+    final query =
+        select(artists).join([
+            innerJoin(trackArtist, trackArtist.artistId.equalsExp(artists.id)),
+            innerJoin(tracks, tracks.id.equalsExp(trackArtist.trackId) & tracks.isMissing.equals(false)),
+          ])
+          ..groupBy([artists.id])
+          ..orderBy([OrderingTerm.asc(artists.name)]);
+
+    return query.watch().map((rows) {
+      return rows.map((row) => row.readTable(artists)).toList();
+    });
   }
 
   // =========================================== Playlist Stuff =======================================================
@@ -290,7 +362,7 @@ class AppDatabase extends _$AppDatabase {
     final query =
         select(playlists).join([
             leftOuterJoin(playlistTrack, playlistTrack.playlistId.equalsExp(playlists.id)),
-            leftOuterJoin(tracks, tracks.id.equalsExp(playlistTrack.trackId)),
+            leftOuterJoin(tracks, tracks.id.equalsExp(playlistTrack.trackId) & tracks.isMissing.equals(false)),
             leftOuterJoin(albums, albums.id.equalsExp(tracks.albumId)),
           ])
           ..addColumns([trackCount, coverPaths]) // Ask SQL for the concatenated string
@@ -329,7 +401,7 @@ class AppDatabase extends _$AppDatabase {
       // Join Artists
       leftOuterJoin(trackArtist, trackArtist.trackId.equalsExp(tracks.id)),
       leftOuterJoin(artists, artists.id.equalsExp(trackArtist.artistId)),
-    ])..where(playlistTrack.playlistId.equals(playlistId));
+    ])..where(playlistTrack.playlistId.equals(playlistId) & tracks.isMissing.equals(false));
 
     final rows = await query.get();
     final Map<int, TrackWithArtists> groupedTracks = {};
@@ -364,7 +436,7 @@ class AppDatabase extends _$AppDatabase {
       leftOuterJoin(albums, albums.id.equalsExp(tracks.albumId)),
       leftOuterJoin(trackArtist, trackArtist.trackId.equalsExp(tracks.id)),
       leftOuterJoin(artists, artists.id.equalsExp(trackArtist.artistId)),
-    ])..where(playlistTrack.playlistId.equals(playlistId));
+    ])..where(playlistTrack.playlistId.equals(playlistId) & tracks.isMissing.equals(false));
 
     return query.watch().map((rows) {
       final Map<int, TrackWithArtists> groupedTracks = {};
@@ -429,7 +501,8 @@ class AppDatabase extends _$AppDatabase {
           leftOuterJoin(artists, artists.id.equalsExp(trackArtist.artistId)),
         ])..where(
           // Use the | operator for SQL OR to search across multiple tables
-          tracks.title.like(searchTerm) | albums.title.like(searchTerm) | artists.name.like(searchTerm),
+          (tracks.title.like(searchTerm) | albums.title.like(searchTerm) | artists.name.like(searchTerm)) &
+              tracks.isMissing.equals(false),
         );
 
     // Order alphabetically by track title
@@ -482,8 +555,10 @@ class AppDatabase extends _$AppDatabase {
 
       for (var i = 0; i < originalQueue.length; i++) {
         // Check if this specific track's file path matches the one actively playing in the engine
-        final isPlaying = currentlyPlayedTrackPath != null &&
-            originalQueue[i].track.filePath.normalizePath().toLowerCase() == currentlyPlayedTrackPath.normalizePath().toLowerCase();
+        final isPlaying =
+            currentlyPlayedTrackPath != null &&
+            originalQueue[i].track.filePath.normalizePath().toLowerCase() ==
+                currentlyPlayedTrackPath.normalizePath().toLowerCase();
 
         companions.add(
           QueueEntriesCompanion.insert(
@@ -532,7 +607,7 @@ class AppDatabase extends _$AppDatabase {
       // Reconstruct the actual track data from the metadata tables
       final track = await getTrackWithArtistsById(entry.trackId);
 
-      if (track != null) {
+      if (track != null && !track.track.isMissing) {
         originalQueue.add(track);
         if (entry.isCurrentlyPlaying) {
           lastPlayedIndex = originalQueue.length - 1;
@@ -658,9 +733,19 @@ final albumWithTracksProvider = StreamProvider.family<AlbumWithTracks?, int>((re
   return db.watchAlbumWithTracks(albumId);
 });
 
+final trackArtistsProvider = FutureProvider.family<List<Artist>, int>((ref, albumId) {
+  final db = ref.watch(appDatabaseProvider);
+  return db.getTrackArtists(albumId: albumId);
+});
+
 final randomAlbumsProvider = FutureProvider<List<Album>>((ref) {
   final db = ref.watch(appDatabaseProvider);
   return db.getRandomAlbums(limitAmount: 10);
+});
+
+final artistsProvider = StreamProvider<List<Artist>>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return db.watchArtists();
 });
 
 final playlistsStreamProvider = StreamProvider<List<PlaylistWithDetails>>((ref) {

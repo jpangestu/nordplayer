@@ -3,8 +3,10 @@ import 'package:logger/logger.dart';
 import 'package:nordplayer/models/app_theme.dart';
 
 class AppConfig {
-  final List<String> musicPaths;
+  final List<String> trackDirectories;
+  final bool watchTrackDirectories;
   final List<String> artistDelimiters;
+  final List<String> artistExclusions;
   final String theme;
   final Brightness themeBrightness;
   final String iconSet;
@@ -16,9 +18,50 @@ class AppConfig {
   final String fontFamily;
   final double textScale;
 
-  static const List<String> _defaultMusicPaths = [];
+  static const List<String> _defaultTrackDirectories = [];
   // Not private because settings page need access
-  static const List<String> defaultArtistDelimiters = [',', ';', '/', '+', '&'];
+  static const List<String> defaultArtistDelimiters = [
+    ',',
+    ';',
+    '/',
+    '+',
+    '&',
+    'feat.',
+    'feat',
+    'ft.',
+    'ft',
+    'featuring',
+  ];
+  static const List<String> defaultArtistExclusions = [
+    'Bob Marley and the Wailers',
+    'Bondan Prakoso & Fade2Black',
+    'Brooks & Dunn',
+    'Bruce Springsteen & The E Street Band',
+    'Bruce Springsteen and the E Street Band',
+    'Crosby, Stills, Nash & Young',
+    'Earth, Wind & Fire',
+    'Fitz & The Tantrums',
+    'Florence + The Machine',
+    'Florence and the Machine',
+    'Hall & Oates',
+    'Katrina & The Waves',
+    'KC and the Sunshine Band',
+    'Kool & The Gang',
+    'Kool and the Gang',
+    'Marina & The Diamonds',
+    'Marina and the Diamonds',
+    'Mumford & Sons',
+    'Mumford and Sons',
+    'Prince & The Revolution',
+    'Simon & Garfunkel',
+    'Simon and Garfunkel',
+    'Sly & The Family Stone',
+    'Sly and the Family Stone',
+    'Tom Petty & The Heartbreakers',
+    'Tom Petty and the Heartbreakers',
+    'Tony Orlando and Dawn',
+    'Tyler, The Creator',
+  ];
   static const String _defaultTheme = 'nord';
   static const Brightness _defaultThemeBrightness = Brightness.dark;
   static const String _defaultIconSet = 'lucide';
@@ -29,10 +72,13 @@ class AppConfig {
   static const double _defaultAdaptiveBgThemeOverlay = 0.5;
   static const String _defaultFontFamily = 'outfit';
   static const double _defaultTextScale = 1.0;
+  static const bool _defaultWatchTrackDirectories = true;
 
   AppConfig({
-    this.musicPaths = _defaultMusicPaths,
+    this.trackDirectories = _defaultTrackDirectories,
+    this.watchTrackDirectories = _defaultWatchTrackDirectories,
     this.artistDelimiters = defaultArtistDelimiters,
+    this.artistExclusions = defaultArtistExclusions,
     this.theme = _defaultTheme,
     this.themeBrightness = _defaultThemeBrightness,
     this.iconSet = _defaultIconSet,
@@ -46,8 +92,10 @@ class AppConfig {
   });
 
   AppConfig copyWith({
-    List<String>? musicPaths,
+    List<String>? trackDirectories,
+    bool? watchTrackDirectories,
     List<String>? artistDelimiters,
+    List<String>? artistExclusions,
     String? theme,
     Brightness? themeBrightness,
     String? iconSet,
@@ -60,8 +108,10 @@ class AppConfig {
     double? textScale,
   }) {
     return AppConfig(
-      musicPaths: musicPaths ?? this.musicPaths,
+      trackDirectories: trackDirectories ?? this.trackDirectories,
+      watchTrackDirectories: watchTrackDirectories ?? this.watchTrackDirectories,
       artistDelimiters: artistDelimiters ?? this.artistDelimiters,
+      artistExclusions: artistExclusions ?? this.artistExclusions,
       theme: theme ?? this.theme,
       themeBrightness: themeBrightness ?? this.themeBrightness,
       iconSet: iconSet ?? this.iconSet,
@@ -77,8 +127,10 @@ class AppConfig {
 
   factory AppConfig.fromJson(Map<String, dynamic> json, {required Logger logger}) {
     return AppConfig(
-      musicPaths: _parseMusicPaths(json['musicPaths'], logger: logger),
+      trackDirectories: _parsetrackDirectories(json['trackDirectories'], logger: logger),
+      watchTrackDirectories: _parseWatchTrackDirectories(json['watchTrackDirectories'], logger: logger),
       artistDelimiters: _parseArtistDelimiters(json['artistDelimiters'], logger: logger),
+      artistExclusions: _parseArtistExclusions(json['artistExclusions'], logger: logger),
       theme: _parseTheme(json['theme'], logger: logger),
       themeBrightness: _parseThemeBrightness(json['themeBrightness'], logger: logger),
       iconSet: _parseIconSet(json['iconSet'], logger: logger),
@@ -92,20 +144,40 @@ class AppConfig {
     );
   }
 
-  static List<String> _parseMusicPaths(dynamic value, {required Logger logger}) {
+  static List<String> _parsetrackDirectories(dynamic value, {required Logger logger}) {
     if (value is! List) {
-      logger.w("Invalid music path(s): $value. Replaced with '$_defaultMusicPaths'.");
-      return _defaultMusicPaths;
+      logger.w("Invalid track directory: $value. Replaced with '$_defaultTrackDirectories'.");
+      return _defaultTrackDirectories;
     }
 
     final safeList = value.whereType<String>().toList();
     return safeList;
   }
 
+  static bool _parseWatchTrackDirectories(dynamic value, {required Logger logger}) {
+    if (value is! bool) {
+      logger.w("Invalid watchTrackDirectories: $value. Fallback to '$_defaultWatchTrackDirectories'.");
+      return _defaultWatchTrackDirectories;
+    }
+
+    return value;
+  }
+
   static List<String> _parseArtistDelimiters(dynamic value, {required Logger logger}) {
     if (value is! List) {
       logger.w("Invalid artist delimiters: $value. Fallback to default.");
       return defaultArtistDelimiters;
+    }
+
+    final safeList = value.whereType<String>().toList();
+
+    return safeList;
+  }
+
+  static List<String> _parseArtistExclusions(dynamic value, {required Logger logger}) {
+    if (value is! List) {
+      logger.w("Invalid artist exclusions: $value. Fallback to default.");
+      return defaultArtistExclusions;
     }
 
     final safeList = value.whereType<String>().toList();
@@ -219,8 +291,10 @@ class AppConfig {
 
   Map<String, dynamic> toJson() {
     return {
-      'musicPaths': musicPaths,
+      'trackDirectories': trackDirectories,
+      'watchTrackDirectories': watchTrackDirectories,
       'artistDelimiters': artistDelimiters,
+      'artistExclusions': artistExclusions,
       'theme': theme,
       'themeBrightness': themeBrightness.name,
       'iconSet': iconSet,
@@ -232,17 +306,5 @@ class AppConfig {
       'fontFamily': fontFamily,
       'textScale': textScale,
     };
-  }
-
-  /// Splits a raw artist string into a list of individual artists using the configured delimiters.
-  List<String> splitArtists(String rawArtist) {
-    if (artistDelimiters.isEmpty) return [rawArtist.trim()];
-
-    // Escape each delimiter so regex treats characters like '+' or '&' literally,
-    // then join them with the regex OR operator '|'
-    final pattern = artistDelimiters.map((d) => RegExp.escape(d)).join('|');
-    final regex = RegExp(pattern, caseSensitive: false);
-
-    return rawArtist.split(regex).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
   }
 }

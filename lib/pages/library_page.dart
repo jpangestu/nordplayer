@@ -440,7 +440,6 @@ class _AlbumsPanelState extends ConsumerState<AlbumsPanel> {
 
                               context.go('$basePath/$targetId');
                             },
-                            albumArtist: albums[i].albumArtist,
                           ),
                         ),
                       ),
