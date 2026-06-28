@@ -41,6 +41,7 @@ class AppDatabase extends _$AppDatabase {
       onUpgrade: (migrator, from, to) async {
         if (from < 2) {
           await migrator.addColumn(artists, artists.artistImgPath);
+          await migrator.addColumn(albums, albums.albumArtistId);
           await migrator.addColumn(tracks, tracks.fileHash);
           await migrator.addColumn(tracks, tracks.audioFingerprint);
           await migrator.addColumn(tracks, tracks.isMissing);
