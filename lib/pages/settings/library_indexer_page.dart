@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/background_task_service.dart';
@@ -12,6 +13,7 @@ import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/duplicate_detector.dart';
 import 'package:nordplayer/services/library_indexer.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
+import 'package:nordplayer/widgets/nord_alert_dialog.dart';
 import 'package:nordplayer/widgets/nord_snack_bar.dart';
 import 'package:nordplayer/widgets/settings/section_card.dart';
 import 'package:nordplayer/widgets/settings/section_divider.dart';
@@ -506,15 +508,13 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                     icon: isFingerprinting
                         ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2.0))
                         : const AppIcon(Icons.fingerprint),
-                    label: Text(isFingerprinting ? "Analyzing..." : "Generate"),
+                    label: Text(isFingerprinting ? "Generating..." : "Generate"),
                   ),
                 ),
                 const SectionDivider(),
                 ListTile(
                   title: const Text('Find Duplicate Tracks'),
-                  subtitle: const Text(
-                    "Scan your library using acoustic fingerprinting to find and clean up duplicate tracks.",
-                  ),
+                  subtitle: const Text("Scan your library using acoustic fingerprinting to find duplicate tracks."),
                   trailing: OutlinedButton.icon(
                     onPressed: isAnyRunning ? null : _scanDuplicates,
                     icon: _isScanningDuplicates
@@ -535,18 +535,22 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                               : 'No duplicates found',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: _duplicateGroups!.isNotEmpty ? FontWeight.w600 : FontWeight.normal,
-                            color: _duplicateGroups!.isNotEmpty ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant,
+                            color: _duplicateGroups!.isNotEmpty
+                                ? theme.colorScheme.error
+                                : theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
                         if (_duplicateGroups!.isNotEmpty)
                           TextButton(
                             onPressed: () {
-                              context.push(
-                                '${Routes.libraryIndexerPage}/${Routes.duplicatesPage}',
-                                extra: _duplicateGroups!,
-                              ).then((_) {
-                                _scanDuplicates();
-                              });
+                              context
+                                  .push(
+                                    '${Routes.libraryIndexerPage}/${Routes.duplicatesPage}',
+                                    extra: _duplicateGroups!,
+                                  )
+                                  .then((_) {
+                                    _scanDuplicates();
+                                  });
                             },
                             style: TextButton.styleFrom(foregroundColor: theme.colorScheme.primary),
                             child: const Row(
@@ -562,6 +566,18 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                     ),
                   ),
                 ],
+                const SectionDivider(),
+                ListTile(
+                  title: const Text('Reset Ignored Tracks'),
+                  subtitle: const Text(
+                    "Clear the list of duplicate files kept on disk but hidden from the library, allowing them to be scanned again.",
+                  ),
+                  trailing: OutlinedButton.icon(
+                    onPressed: isAnyRunning ? null : _resetIgnoredTracks,
+                    icon: const AppIcon(Icons.restore),
+                    label: const Text("Reset"),
+                  ),
+                ),
               ],
             ),
           ),
@@ -650,5 +666,36 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
 
   void _resetExclusionsToDefault() {
     ref.read(configServiceProvider.notifier).updateConfig(artistExclusions: AppConfig.defaultArtistExclusions);
+  }
+
+  Future<void> _resetIgnoredTracks() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return NordAlertDialog(
+          title: 'Reset Ignored Tracks?',
+          content: const Text(
+            'This will clear the list of duplicate files that were kept on disk but hidden from the library, allowing them to be scanned and indexed again.',
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Reset')),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      try {
+        final db = ref.read(appDatabaseProvider);
+        await db.delete(db.ignoredPaths).go();
+        showNordSnackBar(
+          message: 'Ignored tracks reset successfully. Run scan to re-index them.',
+          type: NordSnackBarType.success,
+        );
+      } catch (e) {
+        showNordSnackBar(message: 'Failed to reset: $e', type: NordSnackBarType.error);
+      }
+    }
   }
 }

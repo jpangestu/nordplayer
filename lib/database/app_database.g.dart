@@ -5754,6 +5754,221 @@ class UserPinsCompanion extends UpdateCompanion<UserPin> {
   }
 }
 
+class $IgnoredPathsTable extends IgnoredPaths
+    with TableInfo<$IgnoredPathsTable, IgnoredPath> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $IgnoredPathsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _filePathMeta = const VerificationMeta(
+    'filePath',
+  );
+  @override
+  late final GeneratedColumn<String> filePath = GeneratedColumn<String>(
+    'file_path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dateAddedMeta = const VerificationMeta(
+    'dateAdded',
+  );
+  @override
+  late final GeneratedColumn<DateTime> dateAdded = GeneratedColumn<DateTime>(
+    'date_added',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [filePath, dateAdded];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'ignored_paths';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<IgnoredPath> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('file_path')) {
+      context.handle(
+        _filePathMeta,
+        filePath.isAcceptableOrUnknown(data['file_path']!, _filePathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_filePathMeta);
+    }
+    if (data.containsKey('date_added')) {
+      context.handle(
+        _dateAddedMeta,
+        dateAdded.isAcceptableOrUnknown(data['date_added']!, _dateAddedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {filePath};
+  @override
+  IgnoredPath map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return IgnoredPath(
+      filePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}file_path'],
+      )!,
+      dateAdded: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}date_added'],
+      )!,
+    );
+  }
+
+  @override
+  $IgnoredPathsTable createAlias(String alias) {
+    return $IgnoredPathsTable(attachedDatabase, alias);
+  }
+}
+
+class IgnoredPath extends DataClass implements Insertable<IgnoredPath> {
+  final String filePath;
+  final DateTime dateAdded;
+  const IgnoredPath({required this.filePath, required this.dateAdded});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['file_path'] = Variable<String>(filePath);
+    map['date_added'] = Variable<DateTime>(dateAdded);
+    return map;
+  }
+
+  IgnoredPathsCompanion toCompanion(bool nullToAbsent) {
+    return IgnoredPathsCompanion(
+      filePath: Value(filePath),
+      dateAdded: Value(dateAdded),
+    );
+  }
+
+  factory IgnoredPath.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return IgnoredPath(
+      filePath: serializer.fromJson<String>(json['filePath']),
+      dateAdded: serializer.fromJson<DateTime>(json['dateAdded']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'filePath': serializer.toJson<String>(filePath),
+      'dateAdded': serializer.toJson<DateTime>(dateAdded),
+    };
+  }
+
+  IgnoredPath copyWith({String? filePath, DateTime? dateAdded}) => IgnoredPath(
+    filePath: filePath ?? this.filePath,
+    dateAdded: dateAdded ?? this.dateAdded,
+  );
+  IgnoredPath copyWithCompanion(IgnoredPathsCompanion data) {
+    return IgnoredPath(
+      filePath: data.filePath.present ? data.filePath.value : this.filePath,
+      dateAdded: data.dateAdded.present ? data.dateAdded.value : this.dateAdded,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('IgnoredPath(')
+          ..write('filePath: $filePath, ')
+          ..write('dateAdded: $dateAdded')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(filePath, dateAdded);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is IgnoredPath &&
+          other.filePath == this.filePath &&
+          other.dateAdded == this.dateAdded);
+}
+
+class IgnoredPathsCompanion extends UpdateCompanion<IgnoredPath> {
+  final Value<String> filePath;
+  final Value<DateTime> dateAdded;
+  final Value<int> rowid;
+  const IgnoredPathsCompanion({
+    this.filePath = const Value.absent(),
+    this.dateAdded = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  IgnoredPathsCompanion.insert({
+    required String filePath,
+    this.dateAdded = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : filePath = Value(filePath);
+  static Insertable<IgnoredPath> custom({
+    Expression<String>? filePath,
+    Expression<DateTime>? dateAdded,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (filePath != null) 'file_path': filePath,
+      if (dateAdded != null) 'date_added': dateAdded,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  IgnoredPathsCompanion copyWith({
+    Value<String>? filePath,
+    Value<DateTime>? dateAdded,
+    Value<int>? rowid,
+  }) {
+    return IgnoredPathsCompanion(
+      filePath: filePath ?? this.filePath,
+      dateAdded: dateAdded ?? this.dateAdded,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (filePath.present) {
+      map['file_path'] = Variable<String>(filePath.value);
+    }
+    if (dateAdded.present) {
+      map['date_added'] = Variable<DateTime>(dateAdded.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('IgnoredPathsCompanion(')
+          ..write('filePath: $filePath, ')
+          ..write('dateAdded: $dateAdded, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5773,6 +5988,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $UserFavoritesTable userFavorites = $UserFavoritesTable(this);
   late final $UserBlacklistTable userBlacklist = $UserBlacklistTable(this);
   late final $UserPinsTable userPins = $UserPinsTable(this);
+  late final $IgnoredPathsTable ignoredPaths = $IgnoredPathsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5792,6 +6008,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     userFavorites,
     userBlacklist,
     userPins,
+    ignoredPaths,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -13130,6 +13347,149 @@ typedef $$UserPinsTableProcessedTableManager =
         bool playlistId,
       })
     >;
+typedef $$IgnoredPathsTableCreateCompanionBuilder =
+    IgnoredPathsCompanion Function({
+      required String filePath,
+      Value<DateTime> dateAdded,
+      Value<int> rowid,
+    });
+typedef $$IgnoredPathsTableUpdateCompanionBuilder =
+    IgnoredPathsCompanion Function({
+      Value<String> filePath,
+      Value<DateTime> dateAdded,
+      Value<int> rowid,
+    });
+
+class $$IgnoredPathsTableFilterComposer
+    extends Composer<_$AppDatabase, $IgnoredPathsTable> {
+  $$IgnoredPathsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get filePath => $composableBuilder(
+    column: $table.filePath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get dateAdded => $composableBuilder(
+    column: $table.dateAdded,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$IgnoredPathsTableOrderingComposer
+    extends Composer<_$AppDatabase, $IgnoredPathsTable> {
+  $$IgnoredPathsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get filePath => $composableBuilder(
+    column: $table.filePath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get dateAdded => $composableBuilder(
+    column: $table.dateAdded,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$IgnoredPathsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $IgnoredPathsTable> {
+  $$IgnoredPathsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get filePath =>
+      $composableBuilder(column: $table.filePath, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get dateAdded =>
+      $composableBuilder(column: $table.dateAdded, builder: (column) => column);
+}
+
+class $$IgnoredPathsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $IgnoredPathsTable,
+          IgnoredPath,
+          $$IgnoredPathsTableFilterComposer,
+          $$IgnoredPathsTableOrderingComposer,
+          $$IgnoredPathsTableAnnotationComposer,
+          $$IgnoredPathsTableCreateCompanionBuilder,
+          $$IgnoredPathsTableUpdateCompanionBuilder,
+          (
+            IgnoredPath,
+            BaseReferences<_$AppDatabase, $IgnoredPathsTable, IgnoredPath>,
+          ),
+          IgnoredPath,
+          PrefetchHooks Function()
+        > {
+  $$IgnoredPathsTableTableManager(_$AppDatabase db, $IgnoredPathsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$IgnoredPathsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$IgnoredPathsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$IgnoredPathsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> filePath = const Value.absent(),
+                Value<DateTime> dateAdded = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => IgnoredPathsCompanion(
+                filePath: filePath,
+                dateAdded: dateAdded,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String filePath,
+                Value<DateTime> dateAdded = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => IgnoredPathsCompanion.insert(
+                filePath: filePath,
+                dateAdded: dateAdded,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$IgnoredPathsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $IgnoredPathsTable,
+      IgnoredPath,
+      $$IgnoredPathsTableFilterComposer,
+      $$IgnoredPathsTableOrderingComposer,
+      $$IgnoredPathsTableAnnotationComposer,
+      $$IgnoredPathsTableCreateCompanionBuilder,
+      $$IgnoredPathsTableUpdateCompanionBuilder,
+      (
+        IgnoredPath,
+        BaseReferences<_$AppDatabase, $IgnoredPathsTable, IgnoredPath>,
+      ),
+      IgnoredPath,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -13162,4 +13522,6 @@ class $AppDatabaseManager {
       $$UserBlacklistTableTableManager(_db, _db.userBlacklist);
   $$UserPinsTableTableManager get userPins =>
       $$UserPinsTableTableManager(_db, _db.userPins);
+  $$IgnoredPathsTableTableManager get ignoredPaths =>
+      $$IgnoredPathsTableTableManager(_db, _db.ignoredPaths);
 }

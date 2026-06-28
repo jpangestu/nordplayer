@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/services/audio_fingerprinter.dart';
 import 'package:nordplayer/services/duplicate_detector.dart';
+import 'package:nordplayer/utils/string_extension.dart';
 
 void main() {
   late AppDatabase db;
@@ -182,7 +183,7 @@ void main() {
       expect(groups.isEmpty, true); // No duplicates because they are outside duration window
     });
 
-    test('deleteTrack cascade deletes track relationships', () async {
+    test('ignorePath cascade deletes track relationships', () async {
       await db.into(db.artists).insert(
             ArtistsCompanion.insert(id: const Value(1), name: 'Artist'),
           );
@@ -214,7 +215,7 @@ void main() {
 
       // Delete Track via service
       final track = await (db.select(db.tracks)..where((t) => t.id.equals(10))).getSingle();
-      await detector.deleteTrack(track, deleteFromDisk: false);
+      await detector.ignorePath(track);
 
       // Check track is deleted
       final tracksLeft = await db.select(db.tracks).get();
@@ -223,6 +224,11 @@ void main() {
       // Verify cascade delete worked on trackArtist relationship
       trackArtists = await db.select(db.trackArtist).get();
       expect(trackArtists.isEmpty, true);
+
+      // Verify track path was inserted into ignored_paths on database-only delete
+      final ignoredPaths = await db.select(db.ignoredPaths).get();
+      expect(ignoredPaths.length, 1);
+      expect(ignoredPaths.first.filePath, 'C:/Music/delete_me.mp3'.normalizePath().toLowerCase());
     });
   });
 }

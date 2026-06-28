@@ -79,6 +79,13 @@ class LibraryIndexer with LoggerMixin {
       // Fast O(1) lookup set of normalized paths to quickly identify new files and perform set difference logic for
       // missing tracks.
       final Set<String> existingTracksPathNormalized = existingTracksMap.keys.toSet();
+
+      // Load all ignored paths to prevent re-adding duplicate files kept on disk
+      final ignoredPathsList = await _db.select(_db.ignoredPaths).get();
+      final Set<String> ignoredPathsSet = {
+        for (final p in ignoredPathsList) p.filePath.normalizePath().toLowerCase(),
+      };
+
       final Set<String> supportedFilesFoundOnDisk = {};
       List<File> newTracksToProcess = [];
 
@@ -100,6 +107,11 @@ class LibraryIndexer with LoggerMixin {
         await for (FileSystemEntity entity in entities) {
           if (entity is File && supportedExtensions.contains(p.extension(entity.path).toLowerCase())) {
             final normalizedEntityPath = entity.path.normalizePath().toLowerCase();
+
+            if (ignoredPathsSet.contains(normalizedEntityPath)) {
+              continue;
+            }
+
             supportedFilesFoundOnDisk.add(normalizedEntityPath);
 
             if (!existingTracksPathNormalized.contains(normalizedEntityPath)) {

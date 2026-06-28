@@ -219,3 +219,11 @@ class UserPins extends Table {
     )''',
   ];
 }
+
+class IgnoredPaths extends Table {
+  TextColumn get filePath => text()();
+  DateTimeColumn get dateAdded => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {filePath};
+}

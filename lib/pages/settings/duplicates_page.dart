@@ -126,16 +126,22 @@ class _DuplicatesPageState extends ConsumerState<DuplicatesPage> {
         children: [
           Row(
             children: [
-              OutlinedButton.icon(onPressed: _runScan, icon: const AppIcon(Icons.refresh), label: const Text('Rescan')),
+              OutlinedButton.icon(
+                onPressed: _isScanning ? null : _runScan,
+                icon: _isScanning
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const AppIcon(Icons.refresh),
+                label: Text(_isScanning ? 'Scanning...' : 'Rescan'),
+              ),
               const SizedBox(width: 12),
               FilledButton.icon(
-                onPressed: () => _confirmCleanAll(context, _groups!, detector),
-                style: FilledButton.styleFrom(
-                  backgroundColor: theme.colorScheme.error,
-                  foregroundColor: theme.colorScheme.onError,
-                ),
-                icon: const AppIcon(Icons.auto_delete),
-                label: const Text('Clean Up All'),
+                onPressed: _isScanning ? null : () => _confirmCleanAll(context, _groups!, detector),
+                icon: const AppIcon(Icons.remove_circle_outline),
+                label: const Text('Ignore All'),
               ),
             ],
           ),
@@ -223,7 +229,7 @@ class _DuplicatesPageState extends ConsumerState<DuplicatesPage> {
                                       ),
                                     ),
                                     OutlinedButton.icon(
-                                      onPressed: () => _cleanSingleGroup(context, group, detector),
+                                      onPressed: _isScanning ? null : () => _cleanSingleGroup(context, group, detector),
                                       icon: const AppIcon(Icons.check_circle_outline),
                                       label: const Text('Keep Best Copy'),
                                     ),
@@ -300,9 +306,9 @@ class _DuplicatesPageState extends ConsumerState<DuplicatesPage> {
                                           ],
                                           const SizedBox(width: 4),
                                           IconButton(
-                                            onPressed: () => _confirmDelete(context, track, detector),
-                                            icon: AppIcon(Icons.delete_outline, color: theme.colorScheme.error),
-                                            tooltip: 'Delete this copy',
+                                            onPressed: _isScanning ? null : () => _confirmIgnore(context, track, detector),
+                                            icon: AppIcon(Icons.remove_circle_outline, color: theme.colorScheme.onSurfaceVariant),
+                                            tooltip: 'Ignore this copy',
                                           ),
                                         ],
                                       ),
@@ -330,52 +336,33 @@ class _DuplicatesPageState extends ConsumerState<DuplicatesPage> {
   }
 
   Future<void> _cleanSingleGroup(BuildContext context, DuplicateGroup group, DuplicateDetector detector) async {
-    bool deleteFromDisk = false;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return NordAlertDialog(
-              title: 'Keep Best Copy?',
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'This will delete all duplicate copies of "${group.title}", keeping only the preferred version:',
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    group.preferredTrack.filePath,
-                    style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  CheckboxListTile(
-                    title: const Text('Delete duplicate physical files from disk permanently'),
-                    value: deleteFromDisk,
-                    onChanged: (val) {
-                      if (val != null) {
-                        setDialogState(() {
-                          deleteFromDisk = val;
-                        });
-                      }
-                    },
-                    contentPadding: EdgeInsets.zero,
-                    controlAffinity: ListTileControlAffinity.leading,
-                  ),
-                ],
+        return NordAlertDialog(
+          title: 'Keep Best Copy?',
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'This will ignore all other duplicate copies of "${group.title}", keeping only the preferred version:',
               ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-                FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Keep Best'),
-                ),
-              ],
-            );
-          },
+              const SizedBox(height: 8),
+              Text(
+                group.preferredTrack.filePath,
+                style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Keep Best'),
+            ),
+          ],
         );
       },
     );
@@ -387,10 +374,10 @@ class _DuplicatesPageState extends ConsumerState<DuplicatesPage> {
       try {
         for (final track in group.tracks) {
           if (track.id != group.preferredTrack.id) {
-            await detector.deleteTrack(track, deleteFromDisk: deleteFromDisk);
+            await detector.ignorePath(track);
           }
         }
-        showNordSnackBar(message: 'Cleaned duplicates for "${group.title}"', type: NordSnackBarType.success);
+        showNordSnackBar(message: 'Ignored duplicates for "${group.title}"', type: NordSnackBarType.success);
       } catch (e) {
         showNordSnackBar(message: 'Error: $e', type: NordSnackBarType.error);
       } finally {
@@ -399,54 +386,31 @@ class _DuplicatesPageState extends ConsumerState<DuplicatesPage> {
     }
   }
 
-  Future<void> _confirmDelete(BuildContext context, Track track, DuplicateDetector detector) async {
-    bool deleteFromDisk = false;
+  Future<void> _confirmIgnore(BuildContext context, Track track, DuplicateDetector detector) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return NordAlertDialog(
-              title: 'Delete Track Copy?',
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Are you sure you want to delete this duplicate copy?'),
-                  const SizedBox(height: 12),
-                  Text(
-                    track.filePath,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.error),
-                  ),
-                  const SizedBox(height: 16),
-                  CheckboxListTile(
-                    title: const Text('Delete physical file from disk permanently'),
-                    value: deleteFromDisk,
-                    onChanged: (val) {
-                      if (val != null) {
-                        setDialogState(() {
-                          deleteFromDisk = val;
-                        });
-                      }
-                    },
-                    contentPadding: EdgeInsets.zero,
-                    controlAffinity: ListTileControlAffinity.leading,
-                  ),
-                ],
+        return NordAlertDialog(
+          title: 'Ignore Track Copy?',
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Are you sure you want to ignore this duplicate copy?'),
+              const SizedBox(height: 12),
+              Text(
+                track.filePath,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.error),
               ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-                FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.error,
-                    foregroundColor: Theme.of(context).colorScheme.onError,
-                  ),
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Delete'),
-                ),
-              ],
-            );
-          },
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Ignore'),
+            ),
+          ],
         );
       },
     );
@@ -456,8 +420,8 @@ class _DuplicatesPageState extends ConsumerState<DuplicatesPage> {
         _isScanning = true;
       });
       try {
-        await detector.deleteTrack(track, deleteFromDisk: deleteFromDisk);
-        showNordSnackBar(message: 'Deleted copy successfully!', type: NordSnackBarType.success);
+        await detector.ignorePath(track);
+        showNordSnackBar(message: 'Ignored copy successfully!', type: NordSnackBarType.success);
       } catch (e) {
         showNordSnackBar(message: 'Error: $e', type: NordSnackBarType.error);
       } finally {
@@ -467,50 +431,27 @@ class _DuplicatesPageState extends ConsumerState<DuplicatesPage> {
   }
 
   Future<void> _confirmCleanAll(BuildContext context, List<DuplicateGroup> groups, DuplicateDetector detector) async {
-    bool deleteFromDisk = false;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return NordAlertDialog(
-              title: 'Clean Up All Duplicates?',
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'This will automatically delete all duplicates, keeping only the highest quality version for each of the ${groups.length} groups.',
-                  ),
-                  const SizedBox(height: 16),
-                  CheckboxListTile(
-                    title: const Text('Delete physical files from disk permanently'),
-                    value: deleteFromDisk,
-                    onChanged: (val) {
-                      if (val != null) {
-                        setDialogState(() {
-                          deleteFromDisk = val;
-                        });
-                      }
-                    },
-                    contentPadding: EdgeInsets.zero,
-                    controlAffinity: ListTileControlAffinity.leading,
-                  ),
-                ],
+        return NordAlertDialog(
+          title: 'Ignore All Duplicates?',
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'This will automatically ignore all duplicate copies, keeping only the highest quality version for each of the ${groups.length} groups.',
               ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-                FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.error,
-                    foregroundColor: Theme.of(context).colorScheme.onError,
-                  ),
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Clean Up'),
-                ),
-              ],
-            );
-          },
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Ignore All'),
+            ),
+          ],
         );
       },
     );
@@ -523,11 +464,11 @@ class _DuplicatesPageState extends ConsumerState<DuplicatesPage> {
         for (final group in groups) {
           for (final track in group.tracks) {
             if (track.id != group.preferredTrack.id) {
-              await detector.deleteTrack(track, deleteFromDisk: deleteFromDisk);
+              await detector.ignorePath(track);
             }
           }
         }
-        showNordSnackBar(message: 'Cleaned up duplicates successfully!', type: NordSnackBarType.success);
+        showNordSnackBar(message: 'Ignored duplicates successfully!', type: NordSnackBarType.success);
       } catch (e) {
         showNordSnackBar(message: 'Error cleaning up: $e', type: NordSnackBarType.error);
       } finally {

@@ -1,9 +1,9 @@
-import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/services/audio_fingerprinter.dart';
 import 'package:nordplayer/services/logger.dart';
+import 'package:nordplayer/utils/string_extension.dart';
 import 'package:path/path.dart' as p;
 
 final duplicateDetectorProvider = Provider<DuplicateDetector>((ref) {
@@ -129,25 +129,15 @@ class DuplicateDetector with LoggerMixin {
     return duplicateGroups;
   }
 
-  /// Deletes a track from the library (database) and optionally from disk.
-  Future<void> deleteTrack(Track track, {required bool deleteFromDisk}) async {
-    log.i("Deleting track '${track.title}' (ID: ${track.id}) from database. Disk delete: $deleteFromDisk");
+  /// Ignores a track by removing it from the database and adding it to the ignored paths table.
+  Future<void> ignorePath(Track track) async {
+    log.i("Ignoring track '${track.title}' (ID: ${track.id}) by removing from database and adding to ignored paths.");
 
     await (_db.delete(_db.tracks)..where((t) => t.id.equals(track.id))).go();
 
-    if (deleteFromDisk) {
-      try {
-        final file = File(track.filePath);
-        if (await file.exists()) {
-          await file.delete();
-          log.i("Successfully deleted physical file: ${track.filePath}");
-        } else {
-          log.w("File not found on disk: ${track.filePath}");
-        }
-      } catch (e) {
-        log.e("Failed to delete physical file: ${track.filePath}, error: $e");
-      }
-    }
+    await _db
+        .into(_db.ignoredPaths)
+        .insertOnConflictUpdate(IgnoredPathsCompanion(filePath: Value(track.filePath.normalizePath().toLowerCase())));
   }
 
   /// Determines the preferred/highest quality track copy in a list.

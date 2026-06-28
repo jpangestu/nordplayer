@@ -23,6 +23,7 @@ part 'app_database.g.dart';
     UserFavorites,
     UserBlacklist,
     UserPins,
+    IgnoredPaths,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -39,13 +40,11 @@ class AppDatabase extends _$AppDatabase {
       },
       onUpgrade: (migrator, from, to) async {
         if (from < 2) {
-          // 1. Add new columns to existing tables
           await migrator.addColumn(artists, artists.artistImgPath);
           await migrator.addColumn(tracks, tracks.fileHash);
           await migrator.addColumn(tracks, tracks.audioFingerprint);
           await migrator.addColumn(tracks, tracks.isMissing);
 
-          // 2. Create new tables
           await migrator.createTable(playHistory);
           await migrator.createTable(sourcePriorities);
           await migrator.createTable(artistMetadata);
@@ -53,6 +52,7 @@ class AppDatabase extends _$AppDatabase {
           await migrator.createTable(userFavorites);
           await migrator.createTable(userBlacklist);
           await migrator.createTable(userPins);
+          await migrator.createTable(ignoredPaths);
         }
       },
     );
@@ -86,6 +86,7 @@ class AppDatabase extends _$AppDatabase {
         await customStatement('DELETE FROM tracks;');
         await customStatement('DELETE FROM albums;');
         await customStatement('DELETE FROM artists;');
+        await customStatement('DELETE FROM ignored_paths;');
       });
 
       await customStatement('PRAGMA foreign_keys = ON;');
