@@ -324,7 +324,9 @@ class PlayerService with LoggerMixin {
       final oldIndexPath = _mkPlayer.state.playlist.medias[oldIndex].uri;
 
       // Move in Engine
-      await _mkPlayer.move(oldIndex, newIndex);
+      // media_kit's move expects the unadjusted index (i.e. if moving downwards, we need to pass newIndex + 1)
+      final engineNewIndex = oldIndex < newIndex ? newIndex + 1 : newIndex;
+      await _mkPlayer.move(oldIndex, engineNewIndex);
 
       // Save changes from manual moving to original queue only when shuffle is off
       final originalQueueOldIndex = _originalQueue.indexWhere(
@@ -809,9 +811,8 @@ class CurrentTracksInQueueNotifier extends Notifier<List<TrackWithArtists>> {
 
   void moveTrackOptimistically(int oldIndex, int newIndex) {
     final list = List<TrackWithArtists>.from(state);
-    final finalIndex = oldIndex < newIndex ? newIndex - 1 : newIndex;
     final item = list.removeAt(oldIndex);
-    list.insert(finalIndex, item);
+    list.insert(newIndex, item);
     state = list;
   }
 }

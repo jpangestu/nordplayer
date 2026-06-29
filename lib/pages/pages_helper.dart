@@ -47,8 +47,8 @@ class SelectedTracksIndex extends Notifier<Set<int>> {
 
   /// Maps the current selected indices to their new positions after a track is moved.
   void updateIndicesOnReorder(int oldIndex, int newIndex) {
-    // Flutter's ReorderableList: if moving downwards, newIndex is the index *after* removal.
-    final actualNewIndex = oldIndex < newIndex ? newIndex - 1 : newIndex;
+    // Flutter's ReorderableList: newIndex is already adjusted (the final destination index).
+    final actualNewIndex = newIndex;
 
     int mapIndex(int i) {
       if (i == oldIndex) return actualNewIndex;
