@@ -1,7 +1,7 @@
 name: nordplayer
 description: "A highly customizable music player with extensive theming."
 publish_to: "none"
-version: 0.1.17-alpha+1
+version: 0.1.20-alpha+2
 
 environment:
   sdk: ^3.10.4

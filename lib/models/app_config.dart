@@ -67,9 +67,9 @@ class AppConfig {
   static const String _defaultIconSet = 'lucide';
   static const bool _defaultAdaptiveBg = false;
   static const BoxFit _defaultAdaptiveBgAlbumFit = BoxFit.cover;
-  static const double _defaultAdaptiveBgAlbumBlur = 20;
-  static const double _defaultAdaptiveBgPanelBlur = 20;
-  static const double _defaultAdaptiveBgThemeOverlay = 0.5;
+  static const double _defaultAdaptiveBgAlbumBlur = 40;
+  static const double _defaultAdaptiveBgPanelBlur = 10;
+  static const double _defaultAdaptiveBgThemeOverlay = 0.4;
   static const String _defaultFontFamily = 'outfit';
   static const double _defaultTextScale = 1.0;
   static const bool _defaultWatchTrackDirectories = true;
