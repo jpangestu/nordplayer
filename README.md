@@ -22,6 +22,11 @@
 
 ## Installation
 
+**Windows**
+
+Download the setup from the [Releases](https://github.com/jpangestu/nordplayer/releases/latest) page and run it.
+
+
 **Arch-based Linux**
 
 ```bash
@@ -32,7 +37,30 @@ paru -S nordplayer-bin
 
 **Other Linux Distributions**
 
-Grab the latest pre-compiled `.tar.gz` archive from the [Releases](https://github.com/jpangestu/nordplayer/releases) page, extract it, and run the `nordplayer` executable inside. If it fail to run, it's probably because of missing dependency. So run the `nordplayer` executable from terminal to see the missing dependency and install those.
+Grab the pre-compiled `.tar.gz` from the [Releases](https://github.com/jpangestu/nordplayer/releases/latest) page, extract it, and run the `nordplayer` executable inside. If it fail to run, it's probably because of missing dependency. So run the `nordplayer` executable from terminal to see the missing dependencies and install those.
+
+**Build from source**
+
+Make sure you have the [Flutter SDK](https://docs.flutter.dev/get-started/install) installed along with desktop development requirements for your platform.
+
+1. Clone the repository:
+```bash
+git clone https://github.com/jpangestu/nordplayer.git
+cd nordplayer
+```
+2. Get dependencies:
+```bash
+flutter pub get
+```
+3. Build the application:
+```bash
+# For Linux
+flutter build linux
+
+# For Windows
+flutter build windows
+```
+The compiled executable will be located in `build/linux/x64/release/bundle/` for Linux or `build/windows/x64/runner/Release/` for Windows.
 
 ## But Why?
 Of all the music players I've tried (I tried a lot of them, btw), I still haven't found one that's of my preference. The closest I could get was MusicBee, but that only runs on Windows.
@@ -42,8 +70,7 @@ A lot of the other options, especially the ones that also run on linux, still ha
 And since I'm something of a programmer myself, why can't I just build one? Or try, at least. So, here we are.
 
 ## Current App State
-This app is still very early in the development stage. But if you want to try it, you can download it in the release section --linux only for now. 
-it's by no means a stable release, it's an alpha build. So, expect some bugs and unimplemented features.
+This app is still very early in the development stage. Expect some bugs and unimplemented features.
 
 ## Screenshot
 <img width="1920" height="1030" alt="Nordplayer_preview1" src="https://github.com/user-attachments/assets/4014cdad-00ee-43e7-9e55-b439c7c59f6c" />
@@ -51,6 +78,3 @@ it's by no means a stable release, it's an alpha build. So, expect some bugs and
 <img width="1920" height="1030" alt="Nordplayer_preview3" src="https://github.com/user-attachments/assets/0e77a6c5-a05c-49ef-8ffd-cd009e12dc1c" />
 <video src="https://github.com/user-attachments/assets/5f1836f0-81bc-4463-abe5-96bbc47126eb" controls="controls" style="max-width: 100%;">
 </video>
-
-
-
