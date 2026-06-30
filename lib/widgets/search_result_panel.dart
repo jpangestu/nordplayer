@@ -6,7 +6,7 @@ import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
-import 'package:nordplayer/widgets/shortcuts.dart';
+import 'package:nordplayer/utils/shortcuts.dart';
 
 class SearchResultsDropdown extends ConsumerWidget {
   const SearchResultsDropdown({super.key});

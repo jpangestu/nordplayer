@@ -6,7 +6,7 @@ import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/services/navigation_history.dart';
-import 'package:nordplayer/widgets/nord_seaarch_bar.dart';
+import 'package:nordplayer/widgets/nord_search_bar.dart';
 
 class NordAppBar extends ConsumerStatefulWidget implements PreferredSizeWidget {
   const NordAppBar({super.key});
