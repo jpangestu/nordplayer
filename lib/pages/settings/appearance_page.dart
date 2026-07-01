@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/models/app_theme.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/widgets/settings/choice_tile.dart';
-import 'package:nordplayer/widgets/settings/section_card.dart';
+import 'package:nordplayer/widgets/settings/section_container.dart';
 import 'package:nordplayer/widgets/settings/section_divider.dart';
 import 'package:nordplayer/widgets/settings/section_header.dart';
 import 'package:nordplayer/widgets/settings/slider_tile.dart';
@@ -24,7 +24,7 @@ class AppearancePage extends ConsumerWidget {
           const SectionHeader(label: 'Theme', labelType: .h1, padding: EdgeInsets.only(bottom: 8)),
           Column(
             children: [
-              SectionCard(
+              SectionContainer(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -130,7 +130,7 @@ class AppearancePage extends ConsumerWidget {
 
               const SizedBox(height: 4),
 
-              SectionCard(
+              SectionContainer(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: ListTile(
@@ -164,7 +164,7 @@ class AppearancePage extends ConsumerWidget {
 
               const SizedBox(height: 4),
 
-              SectionCard(
+              SectionContainer(
                 child: Column(
                   children: [
                     SwitchListTile(
@@ -266,7 +266,7 @@ class AppearancePage extends ConsumerWidget {
 
           const SectionHeader(label: 'Typography', labelType: .h1),
 
-          SectionCard(
+          SectionContainer(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: ListTile(
@@ -308,7 +308,7 @@ class AppearancePage extends ConsumerWidget {
 
           const SizedBox(height: 4),
 
-          SectionCard(
+          SectionContainer(
             child: SliderTile(
               label: 'Font Scale',
               value: appConfig.textScale,

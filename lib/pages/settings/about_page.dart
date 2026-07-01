@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/utils/string_extension.dart';
-import 'package:nordplayer/widgets/settings/section_card.dart';
+import 'package:nordplayer/widgets/settings/section_container.dart';
 import 'package:nordplayer/widgets/settings/section_divider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -45,7 +45,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
       body: ListView(
         padding: const EdgeInsets.all(24.0),
         children: [
-          SectionCard(
+          SectionContainer(
             child: Column(
               children: [
                 // Force the Wrap to take up the full width so spaceBetween works

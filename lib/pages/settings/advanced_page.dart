@@ -10,7 +10,7 @@ import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
 import 'package:nordplayer/widgets/nord_alert_dialog.dart';
-import 'package:nordplayer/widgets/settings/section_card.dart';
+import 'package:nordplayer/widgets/settings/section_container.dart';
 import 'package:nordplayer/widgets/settings/section_header.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -31,7 +31,7 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
         children: [
           const SectionHeader(label: 'Reset', labelType: .h1, padding: .only(bottom: 8)),
 
-          SectionCard(
+          SectionContainer(
             backgroundColor: theme.colorScheme.errorContainer,
             child: ListTile(
               title: Text(
@@ -48,7 +48,7 @@ class AdvancedPage extends ConsumerWidget with LoggerMixin {
 
           const SizedBox(height: 4),
 
-          SectionCard(
+          SectionContainer(
             backgroundColor: theme.colorScheme.error,
             child: ListTile(
               title: Text(

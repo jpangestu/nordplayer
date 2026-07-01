@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 
-class SectionCard extends ConsumerWidget {
-  const SectionCard({super.key, this.backgroundColor, required this.child});
+class SectionContainer extends ConsumerWidget {
+  const SectionContainer({super.key, this.backgroundColor, required this.child});
 
   final Color? backgroundColor;
   final Widget child;
@@ -26,7 +26,7 @@ class SectionCard extends ConsumerWidget {
                 : backgroundColor!
           : defaultBackgroundColor,
       borderRadius: 8,
-      child: Padding(padding: const EdgeInsets.all(4.0), child: child), // TODO: fix layout
+      child: child,
     );
   }
 }

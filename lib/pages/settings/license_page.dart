@@ -27,10 +27,8 @@ class _LicensesPageState extends ConsumerState<LicensesPage> {
   Future<void> _initData() async {
     final info = await PackageInfo.fromPlatform();
 
-    // Fetch all raw licenses from the system
+    // Fetch all raw licenses from the system and group them by package name
     final licenses = await LicenseRegistry.licenses.toList();
-
-    // Group them by package name
     for (final license in licenses) {
       for (final package in license.packages) {
         _packageLicenses.putIfAbsent(package, () => []).add(license);
@@ -76,15 +74,18 @@ class _LicensesPageState extends ConsumerState<LicensesPage> {
       backgroundColor: Colors.transparent,
       body: FrostedGlass(
         backgroundColor: appConfig.adaptiveBg
-            ? theme.colorScheme.surface.withValues(alpha: 0.6)
+            ? theme.colorScheme.surface.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
             : theme.colorScheme.surface,
+        blurSigma: appConfig.adaptiveBgPanelBlur,
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : ListView.builder(
                 padding: const EdgeInsets.all(24),
                 itemCount: packageNames.length,
                 itemBuilder: (context, index) {
-                  // --- HEADER BLOCK ---
+                  final packageName = packageNames[index];
+                  final licenses = _packageLicenses[packageName]!;
+
                   if (index == 0) {
                     return Column(
                       children: [
@@ -103,17 +104,12 @@ class _LicensesPageState extends ConsumerState<LicensesPage> {
                     );
                   }
 
-                  // --- LIST ITEMS (Subtract 1 from index because of header) ---
-                  final packageName = packageNames[index];
-                  final licenses = _packageLicenses[packageName]!;
-
                   return ExpansionTile(
                     tilePadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                     title: Text(packageName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    // Matches the flutter default layout text style
                     subtitle: Text(
                       '${licenses.length} license${licenses.length > 1 ? 's' : ''}.',
-                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurface),
                     ),
                     children: licenses.map((license) {
                       return Padding(
