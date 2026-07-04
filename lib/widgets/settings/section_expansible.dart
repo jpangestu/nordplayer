@@ -5,10 +5,11 @@ import 'package:nordplayer/widgets/app_icon.dart';
 
 class SectionExpansible extends ConsumerStatefulWidget {
   final String title;
+  final String? subtitle;
   final Widget body;
   final VoidCallback? onTitleClick;
 
-  const SectionExpansible({super.key, required this.title, required this.body, this.onTitleClick});
+  const SectionExpansible({super.key, required this.title, this.subtitle, required this.body, this.onTitleClick});
 
   @override
   ConsumerState<SectionExpansible> createState() => _SectionExpansibleState();
@@ -38,7 +39,18 @@ class _SectionExpansibleState extends ConsumerState<SectionExpansible> {
               child: Row(
                 children: [
                   if (widget.onTitleClick == null) ...[
-                    Text(widget.title, style: theme.textTheme.titleMedium),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(widget.title, style: theme.textTheme.titleMedium),
+                        widget.subtitle != null
+                            ? Text(
+                                widget.subtitle!,
+                                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                              )
+                            : const SizedBox.shrink(),
+                      ],
+                    ),
                   ] else ...[
                     MouseRegion(
                       cursor: SystemMouseCursors.click,
