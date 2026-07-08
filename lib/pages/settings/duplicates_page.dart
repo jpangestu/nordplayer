@@ -7,7 +7,7 @@ import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/background_task_service.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/duplicate_detector.dart';
-import 'package:nordplayer/services/library_indexer.dart';
+import 'package:nordplayer/services/library_indexer/library_indexer.dart';
 import 'package:nordplayer/utils/int_extension.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/settings/section_container.dart';
@@ -204,7 +204,9 @@ class _DuplicatesPageState extends ConsumerState<DuplicatesPage> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                duplicateGroups.isEmpty ? "No duplicates found!" : 'Found ${duplicateGroups.length} duplicate groups.',
+                                                duplicateGroups.isEmpty
+                                                    ? "No duplicates found!"
+                                                    : 'Found ${duplicateGroups.length} duplicate groups.',
                                                 style: Theme.of(context).textTheme.titleMedium,
                                               ),
                                               const SizedBox(height: 8),

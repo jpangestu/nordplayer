@@ -60,9 +60,12 @@ class AppDatabase extends _$AppDatabase {
   }
 
   static QueryExecutor _openConnection() {
+    // Using driftDatabase instead of nativeDatabase is the recommended way for flutter project
     return driftDatabase(
       name: 'database',
       native: DriftNativeOptions(
+        // Important for enabling background task that run in isolate to access the database
+        shareAcrossIsolates: true,
         databaseDirectory: getDatabaseDirectory,
         setup: (db) {
           // Enable WAL (Write-Ahead Logging) Mode (Higher concurrency, less locking)

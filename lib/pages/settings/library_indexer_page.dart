@@ -9,7 +9,7 @@ import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/background_task_service.dart';
 import 'package:nordplayer/services/config_service.dart';
-import 'package:nordplayer/services/library_indexer.dart';
+import 'package:nordplayer/services/library_indexer/library_indexer.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/nord_snack_bar.dart';
 import 'package:nordplayer/widgets/settings/section_container.dart';
@@ -69,7 +69,7 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
 
   Future<void> _triggerReindex() async {
     try {
-      await ref.read(libraryIndexerProvider).reindexMetadata();
+      await ref.read(libraryIndexerProvider).reindexTracks();
     } catch (_) {}
   }
 

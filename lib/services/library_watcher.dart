@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/services/config_service.dart';
-import 'package:nordplayer/services/library_indexer.dart';
+import 'package:nordplayer/services/library_indexer/library_indexer.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:path/path.dart' as p;
 import 'package:watcher/watcher.dart';
@@ -14,15 +14,11 @@ final libraryWatcherProvider = Provider<LibraryWatcher>((ref) {
 
   final watcher = LibraryWatcher(libraryIndexer);
 
-  ref.listen<AsyncValue<AppConfig>>(
-    configServiceProvider,
-    (previous, next) {
-      if (next is AsyncData<AppConfig>) {
-        watcher.updateConfig(next.value);
-      }
-    },
-    fireImmediately: true,
-  );
+  ref.listen<AsyncValue<AppConfig>>(configServiceProvider, (previous, next) {
+    if (next is AsyncData<AppConfig>) {
+      watcher.updateConfig(next.value);
+    }
+  }, fireImmediately: true);
 
   ref.onDispose(() => watcher.dispose());
   return watcher;
@@ -91,9 +87,7 @@ class LibraryWatcher with LoggerMixin {
   }
 
   void _handleFileSystemEvent(WatchEvent event, String trackDirectory) {
-    final path = p.isAbsolute(event.path)
-        ? event.path
-        : p.join(trackDirectory, event.path);
+    final path = p.isAbsolute(event.path) ? event.path : p.join(trackDirectory, event.path);
 
     log.i("Watcher received event: ${event.type} for path: $path");
     final ext = p.extension(path).toLowerCase();

@@ -6155,7 +6155,7 @@ final class $$ArtistsTableReferences
     _$AppDatabase db,
   ) => MultiTypedResultKey.fromTable(
     db.albums,
-    aliasName: $_aliasNameGenerator(db.artists.id, db.albums.albumArtistId),
+    aliasName: 'artists__id__albums__album_artist_id',
   );
 
   $$AlbumsTableProcessedTableManager get albumsRefs {
@@ -6174,7 +6174,7 @@ final class $$ArtistsTableReferences
     _$AppDatabase db,
   ) => MultiTypedResultKey.fromTable(
     db.tracks,
-    aliasName: $_aliasNameGenerator(db.artists.id, db.tracks.artistId),
+    aliasName: 'artists__id__tracks__artist_id',
   );
 
   $$TracksTableProcessedTableManager get tracksRefs {
@@ -6192,7 +6192,7 @@ final class $$ArtistsTableReferences
   static MultiTypedResultKey<$TrackArtistTable, List<TrackArtistData>>
   _trackArtistRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.trackArtist,
-    aliasName: $_aliasNameGenerator(db.artists.id, db.trackArtist.artistId),
+    aliasName: 'artists__id__track_artist__artist_id',
   );
 
   $$TrackArtistTableProcessedTableManager get trackArtistRefs {
@@ -6210,7 +6210,7 @@ final class $$ArtistsTableReferences
   static MultiTypedResultKey<$ArtistMetadataTable, List<ArtistMetadataData>>
   _artistMetadataRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.artistMetadata,
-    aliasName: $_aliasNameGenerator(db.artists.id, db.artistMetadata.artistId),
+    aliasName: 'artists__id__artist_metadata__artist_id',
   );
 
   $$ArtistMetadataTableProcessedTableManager get artistMetadataRefs {
@@ -6228,7 +6228,7 @@ final class $$ArtistsTableReferences
   static MultiTypedResultKey<$UserFavoritesTable, List<UserFavorite>>
   _userFavoritesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.userFavorites,
-    aliasName: $_aliasNameGenerator(db.artists.id, db.userFavorites.artistId),
+    aliasName: 'artists__id__user_favorites__artist_id',
   );
 
   $$UserFavoritesTableProcessedTableManager get userFavoritesRefs {
@@ -6246,7 +6246,7 @@ final class $$ArtistsTableReferences
   static MultiTypedResultKey<$UserBlacklistTable, List<UserBlacklistData>>
   _userBlacklistRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.userBlacklist,
-    aliasName: $_aliasNameGenerator(db.artists.id, db.userBlacklist.artistId),
+    aliasName: 'artists__id__user_blacklist__artist_id',
   );
 
   $$UserBlacklistTableProcessedTableManager get userBlacklistRefs {
@@ -6265,7 +6265,7 @@ final class $$ArtistsTableReferences
     _$AppDatabase db,
   ) => MultiTypedResultKey.fromTable(
     db.userPins,
-    aliasName: $_aliasNameGenerator(db.artists.id, db.userPins.artistId),
+    aliasName: 'artists__id__user_pins__artist_id',
   );
 
   $$UserPinsTableProcessedTableManager get userPinsRefs {
@@ -6981,9 +6981,7 @@ final class $$AlbumsTableReferences
   $$AlbumsTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
   static $ArtistsTable _albumArtistIdTable(_$AppDatabase db) =>
-      db.artists.createAlias(
-        $_aliasNameGenerator(db.albums.albumArtistId, db.artists.id),
-      );
+      db.artists.createAlias('albums__album_artist_id__artists__id');
 
   $$ArtistsTableProcessedTableManager? get albumArtistId {
     final $_column = $_itemColumn<int>('album_artist_id');
@@ -7003,7 +7001,7 @@ final class $$AlbumsTableReferences
     _$AppDatabase db,
   ) => MultiTypedResultKey.fromTable(
     db.tracks,
-    aliasName: $_aliasNameGenerator(db.albums.id, db.tracks.albumId),
+    aliasName: 'albums__id__tracks__album_id',
   );
 
   $$TracksTableProcessedTableManager get tracksRefs {
@@ -7021,7 +7019,7 @@ final class $$AlbumsTableReferences
   static MultiTypedResultKey<$AlbumMetadataTable, List<AlbumMetadataData>>
   _albumMetadataRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.albumMetadata,
-    aliasName: $_aliasNameGenerator(db.albums.id, db.albumMetadata.albumId),
+    aliasName: 'albums__id__album_metadata__album_id',
   );
 
   $$AlbumMetadataTableProcessedTableManager get albumMetadataRefs {
@@ -7039,7 +7037,7 @@ final class $$AlbumsTableReferences
   static MultiTypedResultKey<$UserFavoritesTable, List<UserFavorite>>
   _userFavoritesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.userFavorites,
-    aliasName: $_aliasNameGenerator(db.albums.id, db.userFavorites.albumId),
+    aliasName: 'albums__id__user_favorites__album_id',
   );
 
   $$UserFavoritesTableProcessedTableManager get userFavoritesRefs {
@@ -7057,7 +7055,7 @@ final class $$AlbumsTableReferences
   static MultiTypedResultKey<$UserBlacklistTable, List<UserBlacklistData>>
   _userBlacklistRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.userBlacklist,
-    aliasName: $_aliasNameGenerator(db.albums.id, db.userBlacklist.albumId),
+    aliasName: 'albums__id__user_blacklist__album_id',
   );
 
   $$UserBlacklistTableProcessedTableManager get userBlacklistRefs {
@@ -7076,7 +7074,7 @@ final class $$AlbumsTableReferences
     _$AppDatabase db,
   ) => MultiTypedResultKey.fromTable(
     db.userPins,
-    aliasName: $_aliasNameGenerator(db.albums.id, db.userPins.albumId),
+    aliasName: 'albums__id__user_pins__album_id',
   );
 
   $$UserPinsTableProcessedTableManager get userPinsRefs {
@@ -7798,8 +7796,8 @@ final class $$TracksTableReferences
     extends BaseReferences<_$AppDatabase, $TracksTable, Track> {
   $$TracksTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static $ArtistsTable _artistIdTable(_$AppDatabase db) => db.artists
-      .createAlias($_aliasNameGenerator(db.tracks.artistId, db.artists.id));
+  static $ArtistsTable _artistIdTable(_$AppDatabase db) =>
+      db.artists.createAlias('tracks__artist_id__artists__id');
 
   $$ArtistsTableProcessedTableManager get artistId {
     final $_column = $_itemColumn<int>('artist_id')!;
@@ -7815,9 +7813,8 @@ final class $$TracksTableReferences
     );
   }
 
-  static $AlbumsTable _albumIdTable(_$AppDatabase db) => db.albums.createAlias(
-    $_aliasNameGenerator(db.tracks.albumId, db.albums.id),
-  );
+  static $AlbumsTable _albumIdTable(_$AppDatabase db) =>
+      db.albums.createAlias('tracks__album_id__albums__id');
 
   $$AlbumsTableProcessedTableManager get albumId {
     final $_column = $_itemColumn<int>('album_id')!;
@@ -7836,7 +7833,7 @@ final class $$TracksTableReferences
   static MultiTypedResultKey<$TrackArtistTable, List<TrackArtistData>>
   _trackArtistRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.trackArtist,
-    aliasName: $_aliasNameGenerator(db.tracks.id, db.trackArtist.trackId),
+    aliasName: 'tracks__id__track_artist__track_id',
   );
 
   $$TrackArtistTableProcessedTableManager get trackArtistRefs {
@@ -7854,7 +7851,7 @@ final class $$TracksTableReferences
   static MultiTypedResultKey<$PlaylistTrackTable, List<PlaylistTrackData>>
   _playlistTrackRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.playlistTrack,
-    aliasName: $_aliasNameGenerator(db.tracks.id, db.playlistTrack.trackId),
+    aliasName: 'tracks__id__playlist_track__track_id',
   );
 
   $$PlaylistTrackTableProcessedTableManager get playlistTrackRefs {
@@ -7872,7 +7869,7 @@ final class $$TracksTableReferences
   static MultiTypedResultKey<$QueueEntriesTable, List<QueueEntry>>
   _queueEntriesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.queueEntries,
-    aliasName: $_aliasNameGenerator(db.tracks.id, db.queueEntries.trackId),
+    aliasName: 'tracks__id__queue_entries__track_id',
   );
 
   $$QueueEntriesTableProcessedTableManager get queueEntriesRefs {
@@ -7890,7 +7887,7 @@ final class $$TracksTableReferences
   static MultiTypedResultKey<$PlayHistoryTable, List<PlayHistoryData>>
   _playHistoryRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.playHistory,
-    aliasName: $_aliasNameGenerator(db.tracks.id, db.playHistory.trackId),
+    aliasName: 'tracks__id__play_history__track_id',
   );
 
   $$PlayHistoryTableProcessedTableManager get playHistoryRefs {
@@ -7908,7 +7905,7 @@ final class $$TracksTableReferences
   static MultiTypedResultKey<$UserFavoritesTable, List<UserFavorite>>
   _userFavoritesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.userFavorites,
-    aliasName: $_aliasNameGenerator(db.tracks.id, db.userFavorites.trackId),
+    aliasName: 'tracks__id__user_favorites__track_id',
   );
 
   $$UserFavoritesTableProcessedTableManager get userFavoritesRefs {
@@ -7926,7 +7923,7 @@ final class $$TracksTableReferences
   static MultiTypedResultKey<$UserBlacklistTable, List<UserBlacklistData>>
   _userBlacklistRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.userBlacklist,
-    aliasName: $_aliasNameGenerator(db.tracks.id, db.userBlacklist.trackId),
+    aliasName: 'tracks__id__user_blacklist__track_id',
   );
 
   $$UserBlacklistTableProcessedTableManager get userBlacklistRefs {
@@ -7945,7 +7942,7 @@ final class $$TracksTableReferences
     _$AppDatabase db,
   ) => MultiTypedResultKey.fromTable(
     db.userPins,
-    aliasName: $_aliasNameGenerator(db.tracks.id, db.userPins.trackId),
+    aliasName: 'tracks__id__user_pins__track_id',
   );
 
   $$UserPinsTableProcessedTableManager get userPinsRefs {
@@ -9050,10 +9047,7 @@ final class $$PlaylistsTableReferences
   static MultiTypedResultKey<$PlaylistTrackTable, List<PlaylistTrackData>>
   _playlistTrackRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.playlistTrack,
-    aliasName: $_aliasNameGenerator(
-      db.playlists.id,
-      db.playlistTrack.playlistId,
-    ),
+    aliasName: 'playlists__id__playlist_track__playlist_id',
   );
 
   $$PlaylistTrackTableProcessedTableManager get playlistTrackRefs {
@@ -9072,7 +9066,7 @@ final class $$PlaylistsTableReferences
     _$AppDatabase db,
   ) => MultiTypedResultKey.fromTable(
     db.userPins,
-    aliasName: $_aliasNameGenerator(db.playlists.id, db.userPins.playlistId),
+    aliasName: 'playlists__id__user_pins__playlist_id',
   );
 
   $$UserPinsTableProcessedTableManager get userPinsRefs {
@@ -9400,9 +9394,8 @@ final class $$TrackArtistTableReferences
     extends BaseReferences<_$AppDatabase, $TrackArtistTable, TrackArtistData> {
   $$TrackArtistTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static $TracksTable _trackIdTable(_$AppDatabase db) => db.tracks.createAlias(
-    $_aliasNameGenerator(db.trackArtist.trackId, db.tracks.id),
-  );
+  static $TracksTable _trackIdTable(_$AppDatabase db) =>
+      db.tracks.createAlias('track_artist__track_id__tracks__id');
 
   $$TracksTableProcessedTableManager get trackId {
     final $_column = $_itemColumn<int>('track_id')!;
@@ -9419,9 +9412,7 @@ final class $$TrackArtistTableReferences
   }
 
   static $ArtistsTable _artistIdTable(_$AppDatabase db) =>
-      db.artists.createAlias(
-        $_aliasNameGenerator(db.trackArtist.artistId, db.artists.id),
-      );
+      db.artists.createAlias('track_artist__artist_id__artists__id');
 
   $$ArtistsTableProcessedTableManager get artistId {
     final $_column = $_itemColumn<int>('artist_id')!;
@@ -9757,9 +9748,7 @@ final class $$PlaylistTrackTableReferences
   );
 
   static $PlaylistsTable _playlistIdTable(_$AppDatabase db) =>
-      db.playlists.createAlias(
-        $_aliasNameGenerator(db.playlistTrack.playlistId, db.playlists.id),
-      );
+      db.playlists.createAlias('playlist_track__playlist_id__playlists__id');
 
   $$PlaylistsTableProcessedTableManager get playlistId {
     final $_column = $_itemColumn<int>('playlist_id')!;
@@ -9775,9 +9764,8 @@ final class $$PlaylistTrackTableReferences
     );
   }
 
-  static $TracksTable _trackIdTable(_$AppDatabase db) => db.tracks.createAlias(
-    $_aliasNameGenerator(db.playlistTrack.trackId, db.tracks.id),
-  );
+  static $TracksTable _trackIdTable(_$AppDatabase db) =>
+      db.tracks.createAlias('playlist_track__track_id__tracks__id');
 
   $$TracksTableProcessedTableManager get trackId {
     final $_column = $_itemColumn<int>('track_id')!;
@@ -10128,9 +10116,8 @@ final class $$QueueEntriesTableReferences
     extends BaseReferences<_$AppDatabase, $QueueEntriesTable, QueueEntry> {
   $$QueueEntriesTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static $TracksTable _trackIdTable(_$AppDatabase db) => db.tracks.createAlias(
-    $_aliasNameGenerator(db.queueEntries.trackId, db.tracks.id),
-  );
+  static $TracksTable _trackIdTable(_$AppDatabase db) =>
+      db.tracks.createAlias('queue_entries__track_id__tracks__id');
 
   $$TracksTableProcessedTableManager get trackId {
     final $_column = $_itemColumn<int>('track_id')!;
@@ -10471,9 +10458,8 @@ final class $$PlayHistoryTableReferences
     extends BaseReferences<_$AppDatabase, $PlayHistoryTable, PlayHistoryData> {
   $$PlayHistoryTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static $TracksTable _trackIdTable(_$AppDatabase db) => db.tracks.createAlias(
-    $_aliasNameGenerator(db.playHistory.trackId, db.tracks.id),
-  );
+  static $TracksTable _trackIdTable(_$AppDatabase db) =>
+      db.tracks.createAlias('play_history__track_id__tracks__id');
 
   $$TracksTableProcessedTableManager get trackId {
     final $_column = $_itemColumn<int>('track_id')!;
@@ -10992,9 +10978,7 @@ final class $$ArtistMetadataTableReferences
   );
 
   static $ArtistsTable _artistIdTable(_$AppDatabase db) =>
-      db.artists.createAlias(
-        $_aliasNameGenerator(db.artistMetadata.artistId, db.artists.id),
-      );
+      db.artists.createAlias('artist_metadata__artist_id__artists__id');
 
   $$ArtistsTableProcessedTableManager get artistId {
     final $_column = $_itemColumn<int>('artist_id')!;
@@ -11392,9 +11376,8 @@ final class $$AlbumMetadataTableReferences
     super.$_typedResult,
   );
 
-  static $AlbumsTable _albumIdTable(_$AppDatabase db) => db.albums.createAlias(
-    $_aliasNameGenerator(db.albumMetadata.albumId, db.albums.id),
-  );
+  static $AlbumsTable _albumIdTable(_$AppDatabase db) =>
+      db.albums.createAlias('album_metadata__album_id__albums__id');
 
   $$AlbumsTableProcessedTableManager get albumId {
     final $_column = $_itemColumn<int>('album_id')!;
@@ -11767,9 +11750,8 @@ final class $$UserFavoritesTableReferences
     super.$_typedResult,
   );
 
-  static $TracksTable _trackIdTable(_$AppDatabase db) => db.tracks.createAlias(
-    $_aliasNameGenerator(db.userFavorites.trackId, db.tracks.id),
-  );
+  static $TracksTable _trackIdTable(_$AppDatabase db) =>
+      db.tracks.createAlias('user_favorites__track_id__tracks__id');
 
   $$TracksTableProcessedTableManager? get trackId {
     final $_column = $_itemColumn<int>('track_id');
@@ -11785,9 +11767,8 @@ final class $$UserFavoritesTableReferences
     );
   }
 
-  static $AlbumsTable _albumIdTable(_$AppDatabase db) => db.albums.createAlias(
-    $_aliasNameGenerator(db.userFavorites.albumId, db.albums.id),
-  );
+  static $AlbumsTable _albumIdTable(_$AppDatabase db) =>
+      db.albums.createAlias('user_favorites__album_id__albums__id');
 
   $$AlbumsTableProcessedTableManager? get albumId {
     final $_column = $_itemColumn<int>('album_id');
@@ -11804,9 +11785,7 @@ final class $$UserFavoritesTableReferences
   }
 
   static $ArtistsTable _artistIdTable(_$AppDatabase db) =>
-      db.artists.createAlias(
-        $_aliasNameGenerator(db.userFavorites.artistId, db.artists.id),
-      );
+      db.artists.createAlias('user_favorites__artist_id__artists__id');
 
   $$ArtistsTableProcessedTableManager? get artistId {
     final $_column = $_itemColumn<int>('artist_id');
@@ -12266,9 +12245,8 @@ final class $$UserBlacklistTableReferences
     super.$_typedResult,
   );
 
-  static $TracksTable _trackIdTable(_$AppDatabase db) => db.tracks.createAlias(
-    $_aliasNameGenerator(db.userBlacklist.trackId, db.tracks.id),
-  );
+  static $TracksTable _trackIdTable(_$AppDatabase db) =>
+      db.tracks.createAlias('user_blacklist__track_id__tracks__id');
 
   $$TracksTableProcessedTableManager? get trackId {
     final $_column = $_itemColumn<int>('track_id');
@@ -12284,9 +12262,8 @@ final class $$UserBlacklistTableReferences
     );
   }
 
-  static $AlbumsTable _albumIdTable(_$AppDatabase db) => db.albums.createAlias(
-    $_aliasNameGenerator(db.userBlacklist.albumId, db.albums.id),
-  );
+  static $AlbumsTable _albumIdTable(_$AppDatabase db) =>
+      db.albums.createAlias('user_blacklist__album_id__albums__id');
 
   $$AlbumsTableProcessedTableManager? get albumId {
     final $_column = $_itemColumn<int>('album_id');
@@ -12303,9 +12280,7 @@ final class $$UserBlacklistTableReferences
   }
 
   static $ArtistsTable _artistIdTable(_$AppDatabase db) =>
-      db.artists.createAlias(
-        $_aliasNameGenerator(db.userBlacklist.artistId, db.artists.id),
-      );
+      db.artists.createAlias('user_blacklist__artist_id__artists__id');
 
   $$ArtistsTableProcessedTableManager? get artistId {
     final $_column = $_itemColumn<int>('artist_id');
@@ -12762,9 +12737,8 @@ final class $$UserPinsTableReferences
     extends BaseReferences<_$AppDatabase, $UserPinsTable, UserPin> {
   $$UserPinsTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static $TracksTable _trackIdTable(_$AppDatabase db) => db.tracks.createAlias(
-    $_aliasNameGenerator(db.userPins.trackId, db.tracks.id),
-  );
+  static $TracksTable _trackIdTable(_$AppDatabase db) =>
+      db.tracks.createAlias('user_pins__track_id__tracks__id');
 
   $$TracksTableProcessedTableManager? get trackId {
     final $_column = $_itemColumn<int>('track_id');
@@ -12780,9 +12754,8 @@ final class $$UserPinsTableReferences
     );
   }
 
-  static $AlbumsTable _albumIdTable(_$AppDatabase db) => db.albums.createAlias(
-    $_aliasNameGenerator(db.userPins.albumId, db.albums.id),
-  );
+  static $AlbumsTable _albumIdTable(_$AppDatabase db) =>
+      db.albums.createAlias('user_pins__album_id__albums__id');
 
   $$AlbumsTableProcessedTableManager? get albumId {
     final $_column = $_itemColumn<int>('album_id');
@@ -12798,8 +12771,8 @@ final class $$UserPinsTableReferences
     );
   }
 
-  static $ArtistsTable _artistIdTable(_$AppDatabase db) => db.artists
-      .createAlias($_aliasNameGenerator(db.userPins.artistId, db.artists.id));
+  static $ArtistsTable _artistIdTable(_$AppDatabase db) =>
+      db.artists.createAlias('user_pins__artist_id__artists__id');
 
   $$ArtistsTableProcessedTableManager? get artistId {
     final $_column = $_itemColumn<int>('artist_id');
@@ -12816,9 +12789,7 @@ final class $$UserPinsTableReferences
   }
 
   static $PlaylistsTable _playlistIdTable(_$AppDatabase db) =>
-      db.playlists.createAlias(
-        $_aliasNameGenerator(db.userPins.playlistId, db.playlists.id),
-      );
+      db.playlists.createAlias('user_pins__playlist_id__playlists__id');
 
   $$PlaylistsTableProcessedTableManager? get playlistId {
     final $_column = $_itemColumn<int>('playlist_id');

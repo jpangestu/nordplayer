@@ -1,5 +1,6 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
@@ -7,12 +8,12 @@ import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/models/app_theme.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/config_service.dart';
-import 'package:nordplayer/services/library_indexer.dart';
+import 'package:nordplayer/services/library_indexer/library_indexer.dart';
 import 'package:nordplayer/services/library_watcher.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
-import 'package:nordplayer/widgets/adaptive_scaffold.dart';
 import 'package:nordplayer/utils/shortcuts.dart';
+import 'package:nordplayer/widgets/adaptive_scaffold.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -108,7 +109,10 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp> with WindowListen
       if (previous is AsyncLoading && next is AsyncData) {
         ref.read(playerServiceProvider).init();
         ref.read(libraryWatcherProvider);
-        ref.read(libraryIndexerProvider).scanLibrary();
+
+        // Run scan library only when the main thread is idle (all UI render finished)
+        SchedulerBinding.instance.scheduleTask(() => ref.read(libraryIndexerProvider).scanLibrary(), Priority.idle);
+
         ref.read(playerServiceProvider).initializeQueueFromDatabase();
       }
     });
