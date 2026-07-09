@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/player_service.dart';
+import 'package:nordplayer/services/preference_service.dart';
 import 'package:nordplayer/theming/theme_builder.dart';
 import 'package:nordplayer/theming/themes/adaptive.dart';
 import 'package:nordplayer/theming/themes/graphite.dart';
@@ -64,12 +65,13 @@ class AppTheme {
 
 final adaptiveThemeProvider = FutureProvider<AdaptiveColorScheme>((ref) async {
   final track = ref.watch(currentTrackProvider);
-  
+  final cachedAlbumArtPath = ref.watch(preferenceServiceProvider.select((p) => p.cachedAlbumArtPath));
+
   final themeBrightness = ref.watch(
     configServiceProvider.select((asyncValue) => asyncValue.value?.themeBrightness ?? Brightness.dark),
   );
-  
-  final albumArtPath = track?.album.albumArtPath;
+
+  final albumArtPath = track?.album.albumArtPath ?? cachedAlbumArtPath;
 
   // Determine the correct ImageProvider based on the path
   final ImageProvider imageProvider;
@@ -121,4 +123,3 @@ final activeThemeProvider = Provider<ThemeData>((ref) {
     return AppTheme.getTheme('nord', currentFont);
   }
 });
-

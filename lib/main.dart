@@ -105,15 +105,17 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp> with WindowListen
   @override
   Widget build(BuildContext context) {
     // Scan and watch for changes in library after config loaded
-    ref.listen<AsyncValue<AppConfig>>(configServiceProvider, (previous, next) {
+    ref.listen<AsyncValue<AppConfig>>(configServiceProvider, (previous, next) async {
       if (previous is AsyncLoading && next is AsyncData) {
         ref.read(playerServiceProvider).init();
         ref.read(libraryWatcherProvider);
 
-        // Run scan library only when the main thread is idle (all UI render finished)
-        SchedulerBinding.instance.scheduleTask(() => ref.read(libraryIndexerProvider).scanLibrary(), Priority.idle);
+        await ref.read(playerServiceProvider).initializeQueueFromDatabase();
 
-        ref.read(playerServiceProvider).initializeQueueFromDatabase();
+        // Run scan library only when the main thread is idle (all UI render finished)
+        SchedulerBinding.instance.scheduleTask(() {
+          ref.read(libraryIndexerProvider).scanLibrary();
+        }, Priority.idle);
       }
     });
 

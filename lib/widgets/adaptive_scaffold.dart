@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/player_service.dart';
+import 'package:nordplayer/services/preference_service.dart';
 
 class AdaptiveScaffold extends ConsumerWidget {
   const AdaptiveScaffold({super.key, required this.body});
@@ -19,7 +20,8 @@ class AdaptiveScaffold extends ConsumerWidget {
     final themeOverlay = ref.watch(configServiceProvider.select((v) => v.value?.adaptiveBgThemeOverlay ?? 0.0));
 
     final currentTrack = ref.watch(currentTrackProvider);
-    final currentAlbumArtPath = currentTrack?.album.albumArtPath;
+    final cachedAlbumArtPath = ref.watch(preferenceServiceProvider.select((p) => p.cachedAlbumArtPath));
+    final currentAlbumArtPath = currentTrack?.album.albumArtPath ?? cachedAlbumArtPath;
 
     final cacheW = _getCacheWidth(blur);
 
@@ -48,7 +50,7 @@ class AdaptiveScaffold extends ConsumerWidget {
                           imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80, tileMode: TileMode.mirror),
                           child: Image.file(
                             File(currentAlbumArtPath),
-                            fit: .fill,
+                            fit: BoxFit.fill,
                             cacheWidth: cacheW,
                             gaplessPlayback: true,
                             errorBuilder: (_, _, _) => getFallbackBackground(context, cacheW, blur),

@@ -103,8 +103,6 @@ class PlayerService with LoggerMixin {
         final isShuffle = ref.read(preferenceServiceProvider).shuffleMode;
         if (isShuffle) {
           await _mkPlayer.setShuffle(true);
-          // Wait for shuffle to finish
-          await Future.delayed(const Duration(milliseconds: 100));
         }
 
         final lastTrackPlayedPath = _originalQueue[lastIndex].track.filePath;
@@ -116,11 +114,11 @@ class PlayerService with LoggerMixin {
         }
 
         // Give the engine time to settle before jumping to the exact millisecond
-        await Future.delayed(const Duration(milliseconds: 200));
+        // Wait for the player to reach an initialized duration state (ready to seek)
+        await _mkPlayer.stream.duration.firstWhere((duration) => duration.inMilliseconds > 0);
         await _mkPlayer.seek(lastPosition);
       }
     } finally {
-      await Future.delayed(const Duration(milliseconds: 500));
       _isRestoringQueue = false;
     }
   }
@@ -727,6 +725,7 @@ class CurrentTrackNotifier extends Notifier<TrackWithArtists?> {
 
     final subscription = trackStream.listen((currentTrack) {
       state = currentTrack;
+      ref.read(preferenceServiceProvider.notifier).setCachedAlbumArtPath(currentTrack?.album.albumArtPath);
     });
 
     ref.onDispose(() {
@@ -756,9 +755,7 @@ class CurrentTrackIndexNotifier extends Notifier<int> {
 
     final subscription = player.stream.playlist.listen((playlist) {
       debouncer(() {
-        final newIndex = playlist.index;
-
-        if (newIndex != state) {
+        if (state != playlist.index) {
           // Check if the scroll for this specific change should be suppressed
           if (playerService._shouldSuppressNextScroll) {
             playerService._shouldSuppressNextScroll = false;
@@ -769,7 +766,7 @@ class CurrentTrackIndexNotifier extends Notifier<int> {
               ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.animate);
             }
           }
-          state = newIndex;
+          state = playlist.index;
         }
       });
     });

@@ -8,6 +8,7 @@ import 'package:nordplayer/widgets/player_bar/progress_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PrefConstants {
+  static const String cachedCurrentAlbumArtPath = 'cachedAlbumArtPath';
   static const String isMuted = 'isMuted';
   static const String loopMode = 'loopMode';
   static const String showQueue = 'showQueue';
@@ -25,6 +26,7 @@ class PrefConstants {
   static const double defaultVolume = 100;
 
   static const Set<String> allowList = {
+    cachedCurrentAlbumArtPath,
     isMuted,
     loopMode,
     showQueue,
@@ -37,6 +39,7 @@ class PrefConstants {
 
 @immutable
 class PreferencesState {
+  final String? cachedAlbumArtPath;
   final bool isMuted;
   final PlaylistMode loopMode;
   final bool showQueue;
@@ -46,6 +49,7 @@ class PreferencesState {
   final double volume;
 
   const PreferencesState({
+    this.cachedAlbumArtPath,
     required this.isMuted,
     required this.loopMode,
     required this.showQueue,
@@ -56,6 +60,7 @@ class PreferencesState {
   });
 
   PreferencesState copyWith({
+    String? cachedAlbumArtPath,
     bool? isMuted,
     PlaylistMode? loopMode,
     bool? showQueue,
@@ -65,6 +70,7 @@ class PreferencesState {
     double? volume,
   }) {
     return PreferencesState(
+      cachedAlbumArtPath: cachedAlbumArtPath ?? this.cachedAlbumArtPath,
       isMuted: isMuted ?? this.isMuted,
       loopMode: loopMode ?? this.loopMode,
       showQueue: showQueue ?? this.showQueue,
@@ -81,10 +87,9 @@ final sharedPrefsProvider = Provider<SharedPreferencesWithCache>((ref) {
   throw UnimplementedError('Initialize this in main.dart');
 });
 
-final preferenceServiceProvider =
-    NotifierProvider<PreferenceService, PreferencesState>(() {
-      return PreferenceService();
-    });
+final preferenceServiceProvider = NotifierProvider<PreferenceService, PreferencesState>(() {
+  return PreferenceService();
+});
 
 class PreferenceService extends Notifier<PreferencesState> with LoggerMixin {
   late SharedPreferencesWithCache _prefs;
@@ -100,21 +105,14 @@ class PreferenceService extends Notifier<PreferencesState> with LoggerMixin {
 
     // Load everything synchronously from the cache
     return PreferencesState(
-      isMuted:
-          _prefs.getBool(PrefConstants.isMuted) ?? PrefConstants.defaultIsMuted,
+      cachedAlbumArtPath: _prefs.getString(PrefConstants.cachedCurrentAlbumArtPath),
+      isMuted: _prefs.getBool(PrefConstants.isMuted) ?? PrefConstants.defaultIsMuted,
       loopMode: _getLoopModeOrDefault(),
-      showQueue:
-          _prefs.getBool(PrefConstants.showQueue) ??
-          PrefConstants.defaultShowQueue,
-      shuffleMode:
-          _prefs.getBool(PrefConstants.shuffleMode) ??
-          PrefConstants.defaultShuffleMode,
-      sidebarExtended:
-          _prefs.getBool(PrefConstants.sidebarExtended) ??
-          PrefConstants.defaultSidebarExtended,
+      showQueue: _prefs.getBool(PrefConstants.showQueue) ?? PrefConstants.defaultShowQueue,
+      shuffleMode: _prefs.getBool(PrefConstants.shuffleMode) ?? PrefConstants.defaultShuffleMode,
+      sidebarExtended: _prefs.getBool(PrefConstants.sidebarExtended) ?? PrefConstants.defaultSidebarExtended,
       timeLabelType: _getTimeLabelTypeOrDefault(),
-      volume:
-          _prefs.getDouble(PrefConstants.volume) ?? PrefConstants.defaultVolume,
+      volume: _prefs.getDouble(PrefConstants.volume) ?? PrefConstants.defaultVolume,
     );
   }
 
@@ -138,6 +136,15 @@ class PreferenceService extends Notifier<PreferencesState> with LoggerMixin {
       }
     } catch (e, s) {
       log.e("Failed to save preference: $key", error: e, stackTrace: s);
+    }
+  }
+
+  void setCachedAlbumArtPath(String? path) {
+    state = state.copyWith(cachedAlbumArtPath: path);
+    if (path != null) {
+      _setValue(PrefConstants.cachedCurrentAlbumArtPath, path);
+    } else {
+      _prefs.remove(PrefConstants.cachedCurrentAlbumArtPath);
     }
   }
 
