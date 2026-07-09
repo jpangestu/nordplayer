@@ -8,9 +8,9 @@ import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/nord_app_bar.dart';
 import 'package:nordplayer/widgets/nord_sidebar.dart';
-import 'package:nordplayer/widgets/nord_title_bar.dart';
 import 'package:nordplayer/widgets/player_bar/nord_player_bar.dart';
 import 'package:nordplayer/widgets/search_result_panel.dart';
+import 'package:nordplayer/widgets/title_bar/nord_title_bar.dart';
 
 class AppLayout extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;

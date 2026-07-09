@@ -2,28 +2,29 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-final audioFingerprinterProvider = Provider<AudioFingerprinter>((ref) {
-  return AudioFingerprinter();
+final chromaprintServiceProvider = Provider<ChromaprintService>((ref) {
+  return ChromaprintService();
 });
 
-class FingerprintResult {
-  FingerprintResult({required this.rawFingerprint, required this.durationMs});
-  final List<int> rawFingerprint;
+class AudioFingerprintResult {
+  AudioFingerprintResult({required this.rawAudioFingerprint, required this.durationMs});
+  final List<int> rawAudioFingerprint;
   final int durationMs;
 
   Uint8List get fingerprintBytes {
-    final uint32list = Uint32List.fromList(rawFingerprint);
+    final uint32list = Uint32List.fromList(rawAudioFingerprint);
     return uint32list.buffer.asUint8List();
   }
 }
 
-class AudioFingerprinter with LoggerMixin {
-  AudioFingerprinter();
+class ChromaprintService with LoggerMixin {
+  ChromaprintService([this._fpcalcPath]);
 
   String? _fpcalcPath;
   Future<void>? _initFuture;
@@ -34,7 +35,7 @@ class AudioFingerprinter with LoggerMixin {
     return _fpcalcPath;
   }
 
-  Future<FingerprintResult?> calculateFingerprint(String filePath) async {
+  Future<AudioFingerprintResult?> calculateAudioFingerprint(String filePath) async {
     final execPath = await fpcalcPath;
     if (execPath == null) {
       log.w('fpcalc is not initialized. Skipping fingerprint calculation.');
@@ -53,8 +54,8 @@ class AudioFingerprinter with LoggerMixin {
         final duration = parsed['duration'];
         final fingerprint = parsed['fingerprint'];
         if (fingerprint is List && duration != null) {
-          return FingerprintResult(
-            rawFingerprint: List<int>.from(fingerprint),
+          return AudioFingerprintResult(
+            rawAudioFingerprint: List<int>.from(fingerprint),
             durationMs: (duration is num) ? (duration * 1000).round() : 0,
           );
         }
@@ -75,7 +76,7 @@ class AudioFingerprinter with LoggerMixin {
     return (x & 0x0000003F);
   }
 
-  List<int>? parseRawFingerprint(Uint8List? bytes) {
+  List<int>? parseRawAudioFingerprint(Uint8List? bytes) {
     if (bytes == null || bytes.isEmpty) return null;
     if (bytes.offsetInBytes % 4 != 0) {
       final alignedBytes = Uint8List.fromList(bytes);
@@ -84,10 +85,10 @@ class AudioFingerprinter with LoggerMixin {
     return Uint32List.view(bytes.buffer, bytes.offsetInBytes, bytes.lengthInBytes ~/ 4);
   }
 
-  double compareRawFingerprints(List<int> fp1, List<int> fp2) {
+  double compareRawAudioFingerprints(List<int> fp1, List<int> fp2) {
     if (fp1.isEmpty || fp2.isEmpty) return 0.0;
 
-    const int maxOffset = 40; 
+    const int maxOffset = 40;
     double maxSimilarity = 0.0;
 
     final int len1 = fp1.length;
@@ -177,12 +178,12 @@ class AudioFingerprinter with LoggerMixin {
           '-NoProfile',
           '-NonInteractive',
           '-Command',
-          'Expand-Archive -Path "$archivePath" -DestinationPath "$extractDir" -Force'
+          'Expand-Archive -Path "$archivePath" -DestinationPath "$extractDir" -Force',
         ]);
         if (extractRes.exitCode != 0) {
           throw Exception('Failed to extract ZIP via PowerShell: ${extractRes.stderr}');
         }
-        
+
         final extractedExe = File(p.join(extractDir, 'chromaprint-fpcalc-1.6.0-windows-x86_64', 'fpcalc.exe'));
         if (!await extractedExe.exists()) {
           throw Exception('fpcalc.exe not found in extracted archive.');
@@ -190,26 +191,21 @@ class AudioFingerprinter with LoggerMixin {
         await extractedExe.copy(targetPath);
       } else {
         // Use tar to extract tar.gz
-        final extractRes = await Process.run('tar', [
-          '-xzf',
-          archivePath,
-          '-C',
-          extractDir
-        ]);
+        final extractRes = await Process.run('tar', ['-xzf', archivePath, '-C', extractDir]);
         if (extractRes.exitCode != 0) {
           throw Exception('Failed to extract TAR via tar: ${extractRes.stderr}');
         }
-        
+
         final platformDir = Platform.isMacOS
             ? 'chromaprint-fpcalc-1.6.0-macos-universal'
             : 'chromaprint-fpcalc-1.6.0-linux-x86_64';
-            
+
         final extractedExe = File(p.join(extractDir, platformDir, 'fpcalc'));
         if (!await extractedExe.exists()) {
           throw Exception('fpcalc not found in extracted archive.');
         }
         await extractedExe.copy(targetPath);
-        
+
         // Make executable
         await Process.run('chmod', ['+x', targetPath]);
       }

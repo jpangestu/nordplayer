@@ -45,8 +45,8 @@ class LibraryScanner with LoggerMixin {
     log.i('Starting full library scan...');
     onProgress?.call(0, 0);
 
-    final taskService = _ref.read(backgroundTaskServiceProvider.notifier);
-    taskService.startTask(
+    final bgTaskService = _ref.read(backgroundTaskServiceProvider.notifier);
+    bgTaskService.startTask(
       id: 'library-scan',
       name: 'Scanning Library',
       message: 'Scanning folders for audio files...',
@@ -85,14 +85,36 @@ class LibraryScanner with LoggerMixin {
         for (final track in existingTracks) track.filePath.normalizePath().toLowerCase(): track.fileHash,
       };
 
+      final receivePort = ReceivePort();
+      final subscription = receivePort.listen((message) {
+        if (message is (int, int)) {
+          final processed = message.$1;
+          final total = message.$2;
+          bgTaskService.updateProgress(
+            'library-scan',
+            processed: processed,
+            total: total,
+            message: 'Scanning library for updates: $processed of $total',
+            isIndeterminate: false,
+          );
+        }
+      });
+
       final request = ScanLibraryIsolateRequest(
         trackDirectories: _appConfig.trackDirectories.toList(),
         supportedExtensions: supportedExtensions.toSet(),
         existingTrackHashes: existingTrackHashes,
         ignoredPathsSet: ignoredPathsSet,
+        sendPort: receivePort.sendPort,
       );
 
-      final isolateResponse = await Isolate.run(_buildScanLibraryIsolateClosure(request));
+      ScanLibraryIsolateResponse isolateResponse;
+      try {
+        isolateResponse = await Isolate.run(_buildScanLibraryIsolateClosure(request));
+      } finally {
+        subscription.cancel();
+        receivePort.close();
+      }
       log.i(
         '[Benchmark] Finished iterating Directory.list and hashing files in isolate in ${stepStopwatch.elapsedMilliseconds}ms',
       );
@@ -174,11 +196,11 @@ class LibraryScanner with LoggerMixin {
           newTracksToProcess,
           onProgress: (processed, total) {
             onProgress?.call(processed, total);
-            taskService.updateProgress(
+            bgTaskService.updateProgress(
               'library-scan',
               processed: processed,
               total: total,
-              message: 'Processing track $processed of $total...',
+              message: 'Indexing track metadata: $processed of $total',
               isIndeterminate: false,
             );
           },
@@ -204,13 +226,13 @@ class LibraryScanner with LoggerMixin {
         stepStopwatch.reset();
       }
 
-      taskService.completeTask('library-scan');
+      bgTaskService.completeTask('library-scan');
       log.i('[Benchmark] ====== SCAN LIBRARY COMPLETED IN ${benchmarkTotal.elapsedMilliseconds}ms ======');
 
       onComplete?.call();
     } catch (e, s) {
       log.e("Error scanning library: $e", error: e, stackTrace: s);
-      taskService.failTask('library-scan', e.toString());
+      bgTaskService.failTask('library-scan', e.toString());
       rethrow;
     }
   }
@@ -224,12 +246,14 @@ class ScanLibraryIsolateRequest {
     required this.supportedExtensions,
     required this.existingTrackHashes,
     required this.ignoredPathsSet,
+    required this.sendPort,
   });
 
   final List<String> trackDirectories;
   final Set<String> supportedExtensions;
   final Map<String, String> existingTrackHashes;
   final Set<String> ignoredPathsSet;
+  final SendPort sendPort;
 }
 
 class ScanLibraryIsolateResponse {
@@ -253,6 +277,8 @@ Future<ScanLibraryIsolateResponse> _scanDirectoriesAndHashIsolate(ScanLibraryIso
   final newTracks = <String, String>{};
   final modifiedTracks = <String, String>{};
 
+  final List<File> filesToScan = [];
+
   for (String path in request.trackDirectories) {
     final trackDirectory = Directory(path);
     if (!await trackDirectory.exists()) continue;
@@ -269,19 +295,32 @@ Future<ScanLibraryIsolateResponse> _scanDirectoriesAndHashIsolate(ScanLibraryIso
           continue;
         }
 
-        supportedFilesFoundOnDisk.add(normalizedEntityPath);
-
-        if (!request.existingTrackHashes.containsKey(normalizedEntityPath)) {
-          final hash = AudioMetadataHasher.calculateHash(entity);
-          newTracks[entity.path] = hash;
-        } else {
-          final oldHash = request.existingTrackHashes[normalizedEntityPath];
-          final currentHash = AudioMetadataHasher.calculateHash(entity);
-          if (currentHash != oldHash) {
-            modifiedTracks[entity.path] = currentHash;
-          }
-        }
+        filesToScan.add(entity);
       }
+    }
+  }
+
+  final total = filesToScan.length;
+  int processed = 0;
+
+  for (final file in filesToScan) {
+    final normalizedEntityPath = file.path.normalizePath().toLowerCase();
+    supportedFilesFoundOnDisk.add(normalizedEntityPath);
+
+    if (!request.existingTrackHashes.containsKey(normalizedEntityPath)) {
+      final hash = AudioMetadataHasher.calculateHash(file);
+      newTracks[file.path] = hash;
+    } else {
+      final oldHash = request.existingTrackHashes[normalizedEntityPath];
+      final currentHash = AudioMetadataHasher.calculateHash(file);
+      if (currentHash != oldHash) {
+        modifiedTracks[file.path] = currentHash;
+      }
+    }
+
+    processed++;
+    if (processed % 5 == 0 || processed == total) {
+      request.sendPort.send((processed, total));
     }
   }
 

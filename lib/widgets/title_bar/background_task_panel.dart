@@ -124,6 +124,7 @@ class _TaskItem extends ConsumerWidget {
                   task.message,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: isFailed ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant,
+                    fontFamily: 'jetbrains_mono',
                     fontSize: 11,
                   ),
                 ),

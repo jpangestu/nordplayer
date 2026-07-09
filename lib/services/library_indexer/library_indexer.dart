@@ -4,15 +4,16 @@ import 'package:audiotags/audiotags.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/database/app_database.dart';
-import 'package:nordplayer/services/audio_fingerprinter.dart';
 import 'package:nordplayer/services/background_task_service.dart';
+import 'package:nordplayer/services/chromaprint_service.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/utils/audio_metadata_hasher.dart';
 import 'package:nordplayer/utils/string_extension.dart';
 import 'package:path/path.dart' as p;
 
-import 'scan_library.dart';
+import 'audio_fingerprint_indexer.dart';
+import 'library_scanner.dart';
 import 'track_indexer.dart';
 
 final libraryIndexerProvider = Provider<LibraryIndexer>((ref) {
@@ -22,16 +23,16 @@ final libraryIndexerProvider = Provider<LibraryIndexer>((ref) {
 
 class LibraryIndexer with LoggerMixin {
   LibraryIndexer(this._ref, this._db) {
-    _trackIndexer = TrackIndexer(_ref, _db, () => _isFingerprintTaskCancelled = true);
-    _libraryScanner = LibraryScanner(_ref, _db, _trackIndexer, () => _isFingerprintTaskCancelled = true);
+    _audioFingerprintIndexer = AudioFingerprintIndexer(_ref, _db);
+    _trackIndexer = TrackIndexer(_ref, _db, _audioFingerprintIndexer.cancel);
+    _libraryScanner = LibraryScanner(_ref, _db, _trackIndexer, _audioFingerprintIndexer.cancel);
   }
 
   final Ref _ref;
   final AppDatabase _db;
   late final TrackIndexer _trackIndexer;
   late final LibraryScanner _libraryScanner;
-
-  bool _isFingerprintTaskCancelled = false;
+  late final AudioFingerprintIndexer _audioFingerprintIndexer;
 
   Future<void> scanLibrary({void Function(int processed, int total)? onProgress}) async {
     return _libraryScanner.scanLibrary(onProgress: onProgress, onComplete: _startBackgroundFingerprintGenerationIfIdle);
@@ -44,88 +45,7 @@ class LibraryIndexer with LoggerMixin {
   Set<String> get supportedExtensions => _libraryScanner.supportedExtensions;
 
   Future<void> generateMissingFingerprints({void Function(int processed, int total)? onProgress}) async {
-    _isFingerprintTaskCancelled = false;
-    log.i('Starting background generation of missing audio fingerprints...');
-
-    final taskService = _ref.read(backgroundTaskServiceProvider.notifier);
-    taskService.startTask(
-      id: 'fingerprint-generation',
-      name: 'Generating Audio Fingerprints',
-      message: 'Fetching tracks lacking fingerprints...',
-      isIndeterminate: true,
-    );
-
-    try {
-      final tracksLackingFingerprint = await (_db.select(
-        _db.tracks,
-      )..where((t) => t.audioFingerprint.isNull() & t.isMissing.equals(false))).get();
-
-      if (tracksLackingFingerprint.isEmpty) {
-        log.i('No tracks lack fingerprints.');
-        taskService.completeTask('fingerprint-generation');
-        return;
-      }
-
-      final total = tracksLackingFingerprint.length;
-      int processed = 0;
-
-      onProgress?.call(processed, total);
-      taskService.updateProgress(
-        'fingerprint-generation',
-        processed: processed,
-        total: total,
-        message: 'Generating fingerprint $processed of $total...',
-        isIndeterminate: false,
-      );
-
-      for (final track in tracksLackingFingerprint) {
-        if (_isFingerprintTaskCancelled) {
-          log.i('Fingerprint generation task cancelled due to incoming scan/re-index.');
-          taskService.completeTask('fingerprint-generation');
-          return;
-        }
-
-        final file = File(track.filePath);
-        if (!await file.exists()) {
-          processed++;
-          onProgress?.call(processed, total);
-          taskService.updateProgress(
-            'fingerprint-generation',
-            processed: processed,
-            total: total,
-            message: 'Generating fingerprint $processed of $total...',
-          );
-          continue;
-        }
-
-        try {
-          final fingerprintRes = await _ref.read(audioFingerprinterProvider).calculateFingerprint(file.path);
-          if (fingerprintRes != null) {
-            await (_db.update(_db.tracks)..where((t) => t.id.equals(track.id))).write(
-              TracksCompanion(audioFingerprint: Value(fingerprintRes.fingerprintBytes)),
-            );
-          }
-        } catch (e) {
-          log.e("Error generating fingerprint for ${track.filePath}: $e");
-        }
-
-        processed++;
-        onProgress?.call(processed, total);
-        taskService.updateProgress(
-          'fingerprint-generation',
-          processed: processed,
-          total: total,
-          message: 'Generating fingerprint $processed of $total...',
-        );
-      }
-
-      log.i('Background audio fingerprint generation complete.');
-      taskService.completeTask('fingerprint-generation');
-    } catch (e, s) {
-      log.e("Error during audio fingerprint generation: $e", error: e, stackTrace: s);
-      taskService.failTask('fingerprint-generation', e.toString());
-      rethrow;
-    }
+    return _audioFingerprintIndexer.generateAudioFingerprints(onProgress: onProgress);
   }
 
   Future<void> processSingleFile(File file) async {
@@ -167,16 +87,19 @@ class LibraryIndexer with LoggerMixin {
         final trackTag = await AudioTags.read(file.path);
         if (trackTag != null) {
           // Safeguard: Verify if it is the same audio file by checking the audio fingerprint
-          final fingerprintRes = await _ref.read(audioFingerprinterProvider).calculateFingerprint(file.path);
+          final fingerprintRes = await _ref.read(chromaprintServiceProvider).calculateAudioFingerprint(file.path);
 
           bool isSameTrack = false;
           if (fingerprintRes != null) {
             final storedFingerprint = existingTrackByPath.audioFingerprint;
             if (storedFingerprint != null) {
-              final fingerprinter = _ref.read(audioFingerprinterProvider);
-              final storedRaw = fingerprinter.parseRawFingerprint(storedFingerprint);
+              final fingerprinter = _ref.read(chromaprintServiceProvider);
+              final storedRaw = fingerprinter.parseRawAudioFingerprint(storedFingerprint);
               if (storedRaw != null) {
-                final similarity = fingerprinter.compareRawFingerprints(fingerprintRes.rawFingerprint, storedRaw);
+                final similarity = fingerprinter.compareRawAudioFingerprints(
+                  fingerprintRes.rawAudioFingerprint,
+                  storedRaw,
+                );
                 isSameTrack = similarity >= 0.85;
                 log.i(
                   "Calculated fingerprint similarity for '${file.path}': ${(similarity * 100).toStringAsFixed(1)}% (match: $isSameTrack)",
@@ -271,8 +194,8 @@ class LibraryIndexer with LoggerMixin {
   }
 
   void _startBackgroundFingerprintGenerationIfIdle() {
-    final tasks = _ref.read(backgroundTaskServiceProvider);
-    final isBusy = tasks.any(
+    final bgTaskService = _ref.read(backgroundTaskServiceProvider);
+    final isBusy = bgTaskService.any(
       (t) => (t.id == 'library-scan' || t.id == 'metadata-reindex') && t.status == BackgroundTaskStatus.running,
     );
 

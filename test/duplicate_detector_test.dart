@@ -1,28 +1,33 @@
 import 'dart:typed_data';
+
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/database/app_database.dart';
-import 'package:nordplayer/services/audio_fingerprinter.dart';
+import 'package:nordplayer/services/chromaprint_service.dart';
 import 'package:nordplayer/services/duplicate_detector.dart';
 import 'package:nordplayer/utils/string_extension.dart';
 
 void main() {
   late AppDatabase db;
-  late AudioFingerprinter fingerprinter;
+  late ChromaprintService fingerprinter;
   late DuplicateDetector detector;
   late ProviderContainer container;
 
   setUp(() {
-    db = AppDatabase(NativeDatabase.memory(setup: (database) {
-      database.execute('PRAGMA foreign_keys = ON;');
-    }));
-    fingerprinter = AudioFingerprinter();
+    db = AppDatabase(
+      NativeDatabase.memory(
+        setup: (database) {
+          database.execute('PRAGMA foreign_keys = ON;');
+        },
+      ),
+    );
+    fingerprinter = ChromaprintService();
     container = ProviderContainer(
       overrides: [
         appDatabaseProvider.overrideWithValue(db),
-        audioFingerprinterProvider.overrideWithValue(fingerprinter),
+        chromaprintServiceProvider.overrideWithValue(fingerprinter),
       ],
     );
     detector = container.read(duplicateDetectorProvider);
@@ -42,21 +47,17 @@ void main() {
   group('DuplicateDetector Tests', () {
     test('findDuplicates finds and groups duplicate tracks correctly', () async {
       // 1. Insert seed artist and album
-      await db.into(db.artists).insert(
-            ArtistsCompanion.insert(id: const Value(1), name: 'Avenged Sevenfold'),
-          );
-      await db.into(db.albums).insert(
-            AlbumsCompanion.insert(
-              id: const Value(1),
-              title: 'Life Is But a Dream...',
-              year: const Value(2023),
-            ),
-          );
+      await db.into(db.artists).insert(ArtistsCompanion.insert(id: const Value(1), name: 'Avenged Sevenfold'));
+      await db
+          .into(db.albums)
+          .insert(AlbumsCompanion.insert(id: const Value(1), title: 'Life Is But a Dream...', year: const Value(2023)));
 
       // 2. Insert tracks
       // songA: Cosmic (CD quality, flac)
       final cosmicCdFingerprint = makeBytes(List<int>.generate(20, (i) => i * 100));
-      await db.into(db.tracks).insert(
+      await db
+          .into(db.tracks)
+          .insert(
             TracksCompanion.insert(
               id: const Value(1),
               title: 'Cosmic',
@@ -71,7 +72,9 @@ void main() {
           );
 
       // songB: Cosmic (High-Res quality, flac) - duration within +3 seconds, identical fingerprint
-      await db.into(db.tracks).insert(
+      await db
+          .into(db.tracks)
+          .insert(
             TracksCompanion.insert(
               id: const Value(2),
               title: 'Cosmic',
@@ -86,7 +89,9 @@ void main() {
           );
 
       // songC: Cosmic (MP3 quality) - duration within +1 seconds, identical fingerprint
-      await db.into(db.tracks).insert(
+      await db
+          .into(db.tracks)
+          .insert(
             TracksCompanion.insert(
               id: const Value(3),
               title: 'Cosmic',
@@ -102,7 +107,9 @@ void main() {
 
       // songD: A Little Piece of Heaven (different song, same duration window)
       final lpohFingerprint = makeBytes(List<int>.generate(20, (i) => i * 9999));
-      await db.into(db.tracks).insert(
+      await db
+          .into(db.tracks)
+          .insert(
             TracksCompanion.insert(
               id: const Value(4),
               title: 'A Little Piece of Heaven',
@@ -136,21 +143,17 @@ void main() {
     });
 
     test('findDuplicates ignores tracks outside the 5-second duration window', () async {
-      await db.into(db.artists).insert(
-            ArtistsCompanion.insert(id: const Value(1), name: 'Avenged Sevenfold'),
-          );
-      await db.into(db.albums).insert(
-            AlbumsCompanion.insert(
-              id: const Value(1),
-              title: 'Life Is But a Dream...',
-              year: const Value(2023),
-            ),
-          );
+      await db.into(db.artists).insert(ArtistsCompanion.insert(id: const Value(1), name: 'Avenged Sevenfold'));
+      await db
+          .into(db.albums)
+          .insert(AlbumsCompanion.insert(id: const Value(1), title: 'Life Is But a Dream...', year: const Value(2023)));
 
       final fingerprint = makeBytes(List<int>.generate(20, (i) => i * 100));
 
       // Track 1
-      await db.into(db.tracks).insert(
+      await db
+          .into(db.tracks)
+          .insert(
             TracksCompanion.insert(
               id: const Value(1),
               title: 'Cosmic',
@@ -165,7 +168,9 @@ void main() {
           );
 
       // Track 2: Same song/fingerprint, but duration is 306,000 (+6 seconds, outside window)
-      await db.into(db.tracks).insert(
+      await db
+          .into(db.tracks)
+          .insert(
             TracksCompanion.insert(
               id: const Value(2),
               title: 'Cosmic',
@@ -184,15 +189,13 @@ void main() {
     });
 
     test('ignorePath cascade deletes track relationships', () async {
-      await db.into(db.artists).insert(
-            ArtistsCompanion.insert(id: const Value(1), name: 'Artist'),
-          );
-      await db.into(db.albums).insert(
-            AlbumsCompanion.insert(id: const Value(1), title: 'Album'),
-          );
+      await db.into(db.artists).insert(ArtistsCompanion.insert(id: const Value(1), name: 'Artist'));
+      await db.into(db.albums).insert(AlbumsCompanion.insert(id: const Value(1), title: 'Album'));
 
       // Insert Track
-      await db.into(db.tracks).insert(
+      await db
+          .into(db.tracks)
+          .insert(
             TracksCompanion.insert(
               id: const Value(10),
               title: 'Track to Delete',
@@ -205,9 +208,7 @@ void main() {
           );
 
       // Insert TrackArtist relationship
-      await db.into(db.trackArtist).insert(
-            TrackArtistCompanion.insert(trackId: 10, artistId: 1),
-          );
+      await db.into(db.trackArtist).insert(TrackArtistCompanion.insert(trackId: 10, artistId: 1));
 
       // Double check it exists
       var trackArtists = await db.select(db.trackArtist).get();

@@ -1,14 +1,14 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/database/app_database.dart';
-import 'package:nordplayer/services/audio_fingerprinter.dart';
+import 'package:nordplayer/services/chromaprint_service.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/utils/string_extension.dart';
 import 'package:path/path.dart' as p;
 
 final duplicateDetectorProvider = Provider<DuplicateDetector>((ref) {
   final db = ref.watch(appDatabaseProvider);
-  final fingerprinter = ref.watch(audioFingerprinterProvider);
+  final fingerprinter = ref.watch(chromaprintServiceProvider);
   return DuplicateDetector(db, fingerprinter);
 });
 
@@ -38,7 +38,7 @@ class DuplicateGroup {
 
 class DuplicateDetector with LoggerMixin {
   final AppDatabase _db;
-  final AudioFingerprinter _fingerprinter;
+  final ChromaprintService _fingerprinter;
 
   DuplicateDetector(this._db, this._fingerprinter);
 
@@ -89,11 +89,11 @@ class DuplicateDetector with LoggerMixin {
         if (processedIds.contains(next.track.id)) continue;
 
         // Perform raw fingerprint comparison
-        final fp1 = _fingerprinter.parseRawFingerprint(target.track.audioFingerprint);
-        final fp2 = _fingerprinter.parseRawFingerprint(next.track.audioFingerprint);
+        final fp1 = _fingerprinter.parseRawAudioFingerprint(target.track.audioFingerprint);
+        final fp2 = _fingerprinter.parseRawAudioFingerprint(next.track.audioFingerprint);
 
         if (fp1 != null && fp2 != null) {
-          final similarity = _fingerprinter.compareRawFingerprints(fp1, fp2);
+          final similarity = _fingerprinter.compareRawAudioFingerprints(fp1, fp2);
           if (similarity >= 0.85) {
             currentGroupCandidates.add(next);
           }

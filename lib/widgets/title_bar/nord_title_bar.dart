@@ -5,11 +5,11 @@ import 'package:nordplayer/services/background_task_service.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/performance_tracker.dart';
 import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
-import 'package:nordplayer/widgets/background_task_panel.dart';
-import 'package:nordplayer/widgets/performance_panel.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
-import 'package:nordplayer/widgets/keyboard_shortcuts_panel.dart';
-import 'package:nordplayer/widgets/title_bar_button.dart';
+import 'package:nordplayer/widgets/title_bar/background_task_panel.dart';
+import 'package:nordplayer/widgets/title_bar/keyboard_shortcuts_panel.dart';
+import 'package:nordplayer/widgets/title_bar/performance_panel.dart';
+import 'package:nordplayer/widgets/title_bar/title_bar_button.dart';
 import 'package:window_manager/window_manager.dart';
 
 class NordTitleBar extends ConsumerStatefulWidget {

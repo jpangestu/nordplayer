@@ -2,9 +2,9 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:audiotags/audiotags.dart';
-import 'package:flutter/services.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/models/app_config.dart';
@@ -99,8 +99,8 @@ class TrackIndexer with LoggerMixin {
     _onCancelFingerprintTask();
     log.i('Starting forced in-place metadata re-indexing of all tracks...');
 
-    final taskService = _ref.read(backgroundTaskServiceProvider.notifier);
-    taskService.startTask(
+    final bgTaskService = _ref.read(backgroundTaskServiceProvider.notifier);
+    bgTaskService.startTask(
       id: 'metadata-reindex',
       name: 'Reindexing Metadata',
       message: 'Fetching track list...',
@@ -114,7 +114,7 @@ class TrackIndexer with LoggerMixin {
       final existingTracks = await _db.select(_db.tracks).get();
       if (existingTracks.isEmpty) {
         log.i('No tracks in database to re-index.');
-        taskService.completeTask('metadata-reindex');
+        bgTaskService.completeTask('metadata-reindex');
         return;
       }
 
@@ -122,11 +122,11 @@ class TrackIndexer with LoggerMixin {
       int processed = 0;
 
       onProgress?.call(processed, total);
-      taskService.updateProgress(
+      bgTaskService.updateProgress(
         'metadata-reindex',
         processed: processed,
         total: total,
-        message: 'Re-indexing track $processed of $total...',
+        message: 'Re-indexing track: $processed of $total',
         isIndeterminate: false,
       );
 
@@ -142,23 +142,23 @@ class TrackIndexer with LoggerMixin {
 
         processed += chunk.length;
         onProgress?.call(processed, total);
-        taskService.updateProgress(
+        bgTaskService.updateProgress(
           'metadata-reindex',
           processed: processed,
           total: total,
-          message: 'Re-indexing track $processed of $total...',
+          message: 'Re-indexing track: $processed of $total',
         );
       }
 
       // Clean up orphaned artists and albums
       await _db.deleteOrphanedMetadata();
       log.i('Forced metadata re-indexing complete.');
-      taskService.completeTask('metadata-reindex');
+      bgTaskService.completeTask('metadata-reindex');
 
       onComplete?.call();
     } catch (e, s) {
       log.e("Error during metadata re-indexing: $e", error: e, stackTrace: s);
-      taskService.failTask('metadata-reindex', e.toString());
+      bgTaskService.failTask('metadata-reindex', e.toString());
       rethrow;
     }
   }
