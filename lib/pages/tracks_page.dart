@@ -65,7 +65,7 @@ class _TracksState extends ConsumerState<Tracks> {
                       const SizedBox(height: 24),
                       FilledButton.icon(
                         onPressed: () {
-                          context.go('/settings/library-management');
+                          context.go('/settings/libraryIndexer');
                         },
                         icon: const AppIcon(Icons.create_new_folder),
                         label: const Text("Add Music Folders"),

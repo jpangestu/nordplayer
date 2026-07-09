@@ -1,6 +1,34 @@
-part of 'library_indexer.dart';
+import 'dart:io';
+import 'dart:isolate';
 
-extension TrackIndexerExtension on LibraryIndexer {
+import 'package:audiotags/audiotags.dart';
+import 'package:flutter/services.dart';
+import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nordplayer/database/app_database.dart';
+import 'package:nordplayer/models/app_config.dart';
+import 'package:nordplayer/services/background_task_service.dart';
+import 'package:nordplayer/services/config_service.dart';
+import 'package:nordplayer/services/logger.dart';
+import 'package:nordplayer/utils/audio_metadata_hasher.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+
+class TrackIndexer with LoggerMixin {
+  TrackIndexer(this._ref, this._db, this._onCancelFingerprintTask);
+
+  final Ref _ref;
+  final AppDatabase _db;
+  final VoidCallback _onCancelFingerprintTask;
+
+  AppConfig get _appConfig => _ref.read(configServiceProvider).requireValue;
+
+  // Map<ArtistName, ArtistId>
+  final Map<String, int> _artistCache = {};
+  // Map<"AlbumName-AlbumArtist", AlbumId>
+  final Map<String, int> _albumCache = {};
+
   Future<void> indexTracks(List<(File, String)> files, {void Function(int processed, int total)? onProgress}) async {
     const int chunkSize = 50;
     final total = files.length;
@@ -49,10 +77,11 @@ extension TrackIndexerExtension on LibraryIndexer {
       artistCache: Map<String, int>.from(_artistCache),
       albumCache: Map<String, int>.from(_albumCache),
       cacheDirPath: cacheDir.path,
+      token: RootIsolateToken.instance,
     );
 
     try {
-      final response = await Isolate.run(() => _indexTracksChunkIsolate(request));
+      final response = await Isolate.run(_buildIndexTracksIsolateClosure(request));
 
       _artistCache.addAll(response.artistCache);
       _albumCache.addAll(response.albumCache);
@@ -66,8 +95,8 @@ extension TrackIndexerExtension on LibraryIndexer {
     }
   }
 
-  Future<void> reindexTracks({void Function(int processed, int total)? onProgress}) async {
-    _isFingerprintTaskCancelled = true;
+  Future<void> reindexTracks({void Function(int processed, int total)? onProgress, VoidCallback? onComplete}) async {
+    _onCancelFingerprintTask();
     log.i('Starting forced in-place metadata re-indexing of all tracks...');
 
     final taskService = _ref.read(backgroundTaskServiceProvider.notifier);
@@ -102,7 +131,6 @@ extension TrackIndexerExtension on LibraryIndexer {
       );
 
       const int chunkSize = 50;
-      final cacheDir = await getApplicationCacheDirectory();
 
       for (var i = 0; i < existingTracks.length; i += chunkSize) {
         final end = (i + chunkSize < existingTracks.length) ? i + chunkSize : existingTracks.length;
@@ -110,19 +138,7 @@ extension TrackIndexerExtension on LibraryIndexer {
 
         final chunkTracksPayload = chunk.map((t) => (t.id, t.filePath, t.audioFingerprint)).toList();
 
-        final request = ReindexTracksChunkIsolateRequest(
-          tracks: chunkTracksPayload,
-          artistExclusions: _appConfig.artistExclusions.map((e) => e.toLowerCase().trim()).toSet(),
-          artistDelimiters: _appConfig.artistDelimiters.toList(),
-          artistCache: Map<String, int>.from(_artistCache),
-          albumCache: Map<String, int>.from(_albumCache),
-          cacheDirPath: cacheDir.path,
-        );
-
-        final response = await Isolate.run(() => _reindexTracksChunkIsolate(request));
-
-        _artistCache.addAll(response.artistCache);
-        _albumCache.addAll(response.albumCache);
+        await reindexTracksChunk(chunkTracksPayload);
 
         processed += chunk.length;
         onProgress?.call(processed, total);
@@ -138,11 +154,34 @@ extension TrackIndexerExtension on LibraryIndexer {
       await _db.deleteOrphanedMetadata();
       log.i('Forced metadata re-indexing complete.');
       taskService.completeTask('metadata-reindex');
-      _startBackgroundFingerprintGenerationIfIdle();
+
+      onComplete?.call();
     } catch (e, s) {
       log.e("Error during metadata re-indexing: $e", error: e, stackTrace: s);
       taskService.failTask('metadata-reindex', e.toString());
       rethrow;
+    }
+  }
+
+  Future<void> reindexTracksChunk(List<(int, String, Uint8List?)> tracks) async {
+    final cacheDir = await getApplicationCacheDirectory();
+
+    final request = ReindexTracksChunkIsolateRequest(
+      tracks: tracks,
+      artistExclusions: _appConfig.artistExclusions.map((e) => e.toLowerCase().trim()).toSet(),
+      artistDelimiters: _appConfig.artistDelimiters.toList(),
+      artistCache: Map<String, int>.from(_artistCache),
+      albumCache: Map<String, int>.from(_albumCache),
+      cacheDirPath: cacheDir.path,
+      token: RootIsolateToken.instance,
+    );
+
+    try {
+      final response = await Isolate.run(_buildReindexTracksIsolateClosure(request));
+      _artistCache.addAll(response.artistCache);
+      _albumCache.addAll(response.albumCache);
+    } catch (e) {
+      log.e("Failed to run reindex chunk in background isolate: $e");
     }
   }
 }
@@ -155,14 +194,15 @@ class IndexTracksChunkIsolateRequest {
     required this.artistCache,
     required this.albumCache,
     required this.cacheDirPath,
+    required this.token,
   });
-
   final List<(String, String, Tag?)> metadataList;
   final Set<String> artistExclusions;
   final List<String> artistDelimiters;
   final Map<String, int> artistCache;
   final Map<String, int> albumCache;
   final String cacheDirPath;
+  final RootIsolateToken? token;
 }
 
 class TrackIndexerIsolateResponse {
@@ -180,6 +220,7 @@ class ReindexTracksChunkIsolateRequest {
     required this.artistCache,
     required this.albumCache,
     required this.cacheDirPath,
+    required this.token,
   });
 
   final List<(int, String, Uint8List?)> tracks; // (id, filePath, audioFingerprint)
@@ -188,9 +229,23 @@ class ReindexTracksChunkIsolateRequest {
   final Map<String, int> artistCache;
   final Map<String, int> albumCache;
   final String cacheDirPath;
+  final RootIsolateToken? token;
+}
+
+Future<TrackIndexerIsolateResponse> Function() _buildIndexTracksIsolateClosure(IndexTracksChunkIsolateRequest request) {
+  return () => _indexTracksChunkIsolate(request);
+}
+
+Future<TrackIndexerIsolateResponse> Function() _buildReindexTracksIsolateClosure(
+  ReindexTracksChunkIsolateRequest request,
+) {
+  return () => _reindexTracksChunkIsolate(request);
 }
 
 Future<TrackIndexerIsolateResponse> _indexTracksChunkIsolate(IndexTracksChunkIsolateRequest request) async {
+  if (request.token != null) {
+    BackgroundIsolateBinaryMessenger.ensureInitialized(request.token!);
+  }
   final db = AppDatabase();
   final artistCache = Map<String, int>.from(request.artistCache);
   final albumCache = Map<String, int>.from(request.albumCache);
@@ -270,6 +325,9 @@ Future<TrackIndexerIsolateResponse> _indexTracksChunkIsolate(IndexTracksChunkIso
 }
 
 Future<TrackIndexerIsolateResponse> _reindexTracksChunkIsolate(ReindexTracksChunkIsolateRequest request) async {
+  if (request.token != null) {
+    BackgroundIsolateBinaryMessenger.ensureInitialized(request.token!);
+  }
   final db = AppDatabase();
   final artistCache = Map<String, int>.from(request.artistCache);
   final albumCache = Map<String, int>.from(request.albumCache);

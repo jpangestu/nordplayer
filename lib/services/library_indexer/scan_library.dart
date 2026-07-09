@@ -1,9 +1,47 @@
-part of 'library_indexer.dart';
+import 'dart:io';
+import 'dart:isolate';
 
-extension ScanLibraryExtension on LibraryIndexer {
-  Future<void> scanLibrary({void Function(int processed, int total)? onProgress}) async {
+import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nordplayer/database/app_database.dart';
+import 'package:nordplayer/models/app_config.dart';
+import 'package:nordplayer/services/background_task_service.dart';
+import 'package:nordplayer/services/config_service.dart';
+import 'package:nordplayer/services/library_indexer/track_indexer.dart';
+import 'package:nordplayer/services/logger.dart';
+import 'package:nordplayer/utils/audio_metadata_hasher.dart';
+import 'package:nordplayer/utils/string_extension.dart';
+import 'package:path/path.dart' as p;
+
+class LibraryScanner with LoggerMixin {
+  LibraryScanner(this._ref, this._db, this._trackIndexer, this._onCancelFingerprintTask);
+
+  final Ref _ref;
+  final AppDatabase _db;
+  final TrackIndexer _trackIndexer;
+  final VoidCallback _onCancelFingerprintTask;
+
+  AppConfig get _appConfig => _ref.read(configServiceProvider).requireValue;
+
+  Set<String> supportedExtensions = {
+    '.mp3',
+    '.m4a',
+    '.flac',
+    '.wav',
+    '.ogg',
+    '.oga',
+    '.opus',
+    '.aac',
+    '.wma',
+    '.mka',
+    '.ape',
+    '.wv',
+  };
+
+  Future<void> scanLibrary({void Function(int processed, int total)? onProgress, VoidCallback? onComplete}) async {
     final benchmarkTotal = Stopwatch()..start();
-    _isFingerprintTaskCancelled = true;
+    _onCancelFingerprintTask();
     log.i('Starting full library scan...');
     onProgress?.call(0, 0);
 
@@ -66,7 +104,6 @@ extension ScanLibraryExtension on LibraryIndexer {
       if (isolateResponse.modifiedTracks.isNotEmpty) {
         log.i("Detected ${isolateResponse.modifiedTracks.length} modified tracks. Re-indexing metadata...");
 
-        final cacheDir = await getApplicationCacheDirectory();
         final List<(int, String, Uint8List?)> modifiedPayload = [];
 
         for (final modifiedPath in isolateResponse.modifiedTracks.keys) {
@@ -80,19 +117,7 @@ extension ScanLibraryExtension on LibraryIndexer {
           final end = (i + chunkSize < modifiedPayload.length) ? i + chunkSize : modifiedPayload.length;
           final chunk = modifiedPayload.sublist(i, end);
 
-          final request = ReindexTracksChunkIsolateRequest(
-            tracks: chunk,
-            artistExclusions: _appConfig.artistExclusions.map((e) => e.toLowerCase().trim()).toSet(),
-            artistDelimiters: _appConfig.artistDelimiters.toList(),
-            artistCache: Map<String, int>.from(_artistCache),
-            albumCache: Map<String, int>.from(_albumCache),
-            cacheDirPath: cacheDir.path,
-          );
-
-          final response = await Isolate.run(() => _reindexTracksChunkIsolate(request));
-
-          _artistCache.addAll(response.artistCache);
-          _albumCache.addAll(response.albumCache);
+          await _trackIndexer.reindexTracksChunk(chunk);
         }
       }
 
@@ -145,7 +170,7 @@ extension ScanLibraryExtension on LibraryIndexer {
       if (newTracksToProcess.isNotEmpty) {
         log.i('Found ${newTracksToProcess.length} new track(s). Processing...');
 
-        await indexTracks(
+        await _trackIndexer.indexTracks(
           newTracksToProcess,
           onProgress: (processed, total) {
             onProgress?.call(processed, total);
@@ -181,6 +206,8 @@ extension ScanLibraryExtension on LibraryIndexer {
 
       taskService.completeTask('library-scan');
       log.i('[Benchmark] ====== SCAN LIBRARY COMPLETED IN ${benchmarkTotal.elapsedMilliseconds}ms ======');
+
+      onComplete?.call();
     } catch (e, s) {
       log.e("Error scanning library: $e", error: e, stackTrace: s);
       taskService.failTask('library-scan', e.toString());

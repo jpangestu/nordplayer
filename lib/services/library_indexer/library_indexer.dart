@@ -1,26 +1,19 @@
-library;
-
 import 'dart:io';
-import 'dart:isolate';
 
 import 'package:audiotags/audiotags.dart';
 import 'package:drift/drift.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/database/app_database.dart';
-import 'package:nordplayer/models/app_config.dart';
 import 'package:nordplayer/services/audio_fingerprinter.dart';
 import 'package:nordplayer/services/background_task_service.dart';
-import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/utils/audio_metadata_hasher.dart';
 import 'package:nordplayer/utils/string_extension.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
-part 'scan_library.dart';
-part 'track_indexer.dart';
+import 'scan_library.dart';
+import 'track_indexer.dart';
 
 final libraryIndexerProvider = Provider<LibraryIndexer>((ref) {
   final db = ref.watch(appDatabaseProvider);
@@ -28,34 +21,27 @@ final libraryIndexerProvider = Provider<LibraryIndexer>((ref) {
 });
 
 class LibraryIndexer with LoggerMixin {
-  LibraryIndexer(this._ref, this._db);
+  LibraryIndexer(this._ref, this._db) {
+    _trackIndexer = TrackIndexer(_ref, _db, () => _isFingerprintTaskCancelled = true);
+    _libraryScanner = LibraryScanner(_ref, _db, _trackIndexer, () => _isFingerprintTaskCancelled = true);
+  }
 
   final Ref _ref;
   final AppDatabase _db;
-
-  AppConfig get _appConfig => _ref.read(configServiceProvider).requireValue;
-
-  Set<String> supportedExtensions = {
-    '.mp3',
-    '.m4a',
-    '.flac',
-    '.wav',
-    '.ogg',
-    '.oga',
-    '.opus',
-    '.aac',
-    '.wma',
-    '.mka',
-    '.ape',
-    '.wv',
-  };
-
-  // Map<ArtistName, ArtistId>
-  final Map<String, int> _artistCache = {};
-  // Map<"AlbumName-AlbumArtist", AlbumId>
-  final Map<String, int> _albumCache = {};
+  late final TrackIndexer _trackIndexer;
+  late final LibraryScanner _libraryScanner;
 
   bool _isFingerprintTaskCancelled = false;
+
+  Future<void> scanLibrary({void Function(int processed, int total)? onProgress}) async {
+    return _libraryScanner.scanLibrary(onProgress: onProgress, onComplete: _startBackgroundFingerprintGenerationIfIdle);
+  }
+
+  Future<void> reindexTracks({void Function(int processed, int total)? onProgress}) async {
+    return _trackIndexer.reindexTracks(onProgress: onProgress, onComplete: _startBackgroundFingerprintGenerationIfIdle);
+  }
+
+  Set<String> get supportedExtensions => _libraryScanner.supportedExtensions;
 
   Future<void> generateMissingFingerprints({void Function(int processed, int total)? onProgress}) async {
     _isFingerprintTaskCancelled = false;
@@ -219,22 +205,9 @@ class LibraryIndexer with LoggerMixin {
           if (isSameTrack) {
             log.i("Detected file modified in-place: '${file.path}'. Updating metadata...");
 
-            final cacheDir = await getApplicationCacheDirectory();
             final fingerprintBytes = fingerprintRes?.fingerprintBytes ?? existingTrackByPath.audioFingerprint;
 
-            final request = ReindexTracksChunkIsolateRequest(
-              tracks: [(existingTrackByPath.id, file.path, fingerprintBytes)],
-              artistExclusions: _appConfig.artistExclusions.map((e) => e.toLowerCase().trim()).toSet(),
-              artistDelimiters: _appConfig.artistDelimiters.toList(),
-              artistCache: Map<String, int>.from(_artistCache),
-              albumCache: Map<String, int>.from(_albumCache),
-              cacheDirPath: cacheDir.path,
-            );
-
-            final response = await Isolate.run(() => _reindexTracksChunkIsolate(request));
-
-            _artistCache.addAll(response.artistCache);
-            _albumCache.addAll(response.albumCache);
+            await _trackIndexer.reindexTracksChunk([(existingTrackByPath.id, file.path, fingerprintBytes)]);
           } else {
             log.i(
               "File at '${file.path}' was replaced with different audio content (fingerprint mismatch). Re-indexing as new...",
@@ -242,7 +215,7 @@ class LibraryIndexer with LoggerMixin {
             // Soft-delete the old track record
             await markTrackAsMissing(file.path);
             // Index the new file as a brand new track
-            await indexTracks([(file, trackHash)]);
+            await _trackIndexer.indexTracks([(file, trackHash)]);
           }
         } else {
           log.w("Failed to read tags for modified file: ${file.path}");
@@ -254,7 +227,7 @@ class LibraryIndexer with LoggerMixin {
     }
 
     // Index the file (this will parse tags and insert it if it's completely new)
-    await indexTracks([(file, trackHash)]);
+    await _trackIndexer.indexTracks([(file, trackHash)]);
   }
 
   Future<void> markTrackAsMissing(String path) async {
