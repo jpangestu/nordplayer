@@ -101,6 +101,8 @@ class LucideIconSet implements AppIconSet {
 
   // Others
   @override
+  IconData get copy => LucideIcons.copy;
+  @override
   IconData get favorite => LucideIcons.heart;
   @override
   IconData get navigationLeft => LucideIcons.chevronLeft;

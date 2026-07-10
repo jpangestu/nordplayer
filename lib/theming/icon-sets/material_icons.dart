@@ -100,6 +100,8 @@ class MaterialIconSet implements AppIconSet {
 
   // Others
   @override
+  IconData get copy => Icons.copy_all_outlined;
+  @override
   IconData get favorite => Icons.favorite_outline;
   @override
   IconData get navigationLeft => Icons.chevron_left;

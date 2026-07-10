@@ -114,6 +114,7 @@ class ActiveSnackBar {
     this.customIcon,
     this.actionLabel,
     this.onAction,
+    this.duration,
   });
 
   final String id;
@@ -124,6 +125,7 @@ class ActiveSnackBar {
   final IconData? customIcon;
   final String? actionLabel;
   final void Function(BuildContext)? onAction;
+  final Duration? duration;
 }
 
 // The Stateful Manager that lives in the Overlay
@@ -146,8 +148,9 @@ class NordSnackBarManagerState extends State<NordSnackBarManager> {
       }
     });
 
-    // Auto-remove this specific snackBar after 3 seconds
-    Future.delayed(const Duration(seconds: 3), () {
+    // Auto-remove this specific snackBar after configured duration
+    final dismissDuration = snackBar.duration ?? const Duration(seconds: 3);
+    Future.delayed(dismissDuration, () {
       if (mounted) {
         setState(() {
           _snackBars.removeWhere((t) => t.id == snackBar.id);
@@ -213,6 +216,7 @@ void showNordSnackBar({
   IconData? icon,
   String? actionLabel,
   void Function(BuildContext)? onAction,
+  Duration? duration,
 }) {
   // If the manager isn't on the screen yet, put it there.
   if (_globalSnackbarOverlay == null) {
@@ -241,6 +245,7 @@ void showNordSnackBar({
     customIcon: icon,
     actionLabel: actionLabel,
     onAction: onAction,
+    duration: duration,
   );
 
   // Send it to the Manager

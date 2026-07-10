@@ -63,6 +63,7 @@ abstract class AppIconSet {
   IconData get delete;
 
   // Others
+  IconData get copy;
   IconData get favorite; // Heart
   IconData get navigationLeft;
   IconData get navigationRight;
