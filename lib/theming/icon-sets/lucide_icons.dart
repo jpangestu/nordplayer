@@ -126,4 +126,8 @@ class LucideIconSet implements AppIconSet {
   IconData get visible => LucideIcons.eye;
   @override
   IconData get invisible => LucideIcons.eyeClosed;
+  @override
+  IconData get settings2 => LucideIcons.settings2;
+  @override
+  IconData get dragVertical => LucideIcons.gripVertical;
 }

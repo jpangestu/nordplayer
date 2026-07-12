@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/models/app_config.dart';
+import 'package:nordplayer/models/library_section_config.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/utils/directory_helper.dart';
 import 'package:path/path.dart' as p;
@@ -74,6 +75,7 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
     String? fontFamily,
     double? textScale,
     String? iconSet,
+    List<LibrarySectionConfig>? librarySections,
     bool save = true,
   }) {
     if (!state.hasValue) return;
@@ -101,6 +103,7 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
       fontFamily: fontFamily,
       textScale: textScale,
       iconSet: iconSet,
+      librarySections: librarySections,
     );
 
     state = AsyncData(newConfig);
@@ -120,6 +123,7 @@ class ConfigService extends AsyncNotifier<AppConfig> with LoggerMixin {
         if (fontFamily != null) 'fontFamily',
         if (textScale != null) 'textScale',
         if (iconSet != null) 'iconSet',
+        if (librarySections != null) 'librarySections',
       ].join(', ');
 
       log.d("Updating Config -> $changes");

@@ -3,13 +3,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 
-class SectionExpansible extends ConsumerStatefulWidget {
-  final String title;
-  final String? subtitle;
-  final Widget body;
-  final VoidCallback? onTitleClick;
+enum InitialState { collapsed, expanded }
 
-  const SectionExpansible({super.key, required this.title, this.subtitle, required this.body, this.onTitleClick});
+class SectionExpansible extends ConsumerStatefulWidget {
+  final InitialState? initialState;
+  final String title;
+  final TextStyle? titleStyle;
+  final VoidCallback? onTitleClick;
+  final String? subtitle;
+  final Widget? trailing;
+  final Widget body;
+
+  const SectionExpansible({
+    super.key,
+    this.initialState,
+    required this.title,
+    this.titleStyle,
+    this.onTitleClick,
+    this.subtitle,
+    this.trailing,
+    required this.body,
+  });
 
   @override
   ConsumerState<SectionExpansible> createState() => _SectionExpansibleState();
@@ -18,6 +32,14 @@ class SectionExpansible extends ConsumerStatefulWidget {
 class _SectionExpansibleState extends ConsumerState<SectionExpansible> {
   final _controller = ExpansibleController();
   bool _isTitleHovered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialState != null) {
+      widget.initialState == InitialState.expanded ? _controller.expand() : _controller.collapse();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +64,7 @@ class _SectionExpansibleState extends ConsumerState<SectionExpansible> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(widget.title, style: theme.textTheme.titleMedium),
+                        Text(widget.title, style: widget.titleStyle ?? theme.textTheme.titleMedium),
                         widget.subtitle != null
                             ? Text(
                                 widget.subtitle!,
@@ -60,13 +82,13 @@ class _SectionExpansibleState extends ConsumerState<SectionExpansible> {
                         behavior: HitTestBehavior.opaque,
                         onTap: widget.onTitleClick,
                         child: Padding(
-                          padding: const EdgeInsets.only(left: 8.0, right: 4.0, top: 4.0, bottom: 4.0),
+                          padding: const EdgeInsets.only(left: 0.0, right: 0.0, top: 4.0, bottom: 4.0),
                           child: Text.rich(
                             TextSpan(
                               children: [
                                 TextSpan(
                                   text: widget.title,
-                                  style: theme.textTheme.titleMedium?.copyWith(
+                                  style: (widget.titleStyle ?? theme.textTheme.titleMedium!).copyWith(
                                     decoration: _isTitleHovered ? TextDecoration.underline : TextDecoration.none,
                                   ),
                                 ),
@@ -77,7 +99,11 @@ class _SectionExpansibleState extends ConsumerState<SectionExpansible> {
                                     offset: _isTitleHovered ? const Offset(0.1, 0) : Offset.zero,
                                     duration: const Duration(milliseconds: 200),
                                     curve: Curves.easeOutCubic,
-                                    child: AppIcon(appIconSet.navigationRight, size: 20),
+                                    child: AppIcon(
+                                      appIconSet.navigationRight,
+                                      size: 24,
+                                      color: widget.titleStyle?.color ?? theme.textTheme.titleMedium!.color,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -90,9 +116,14 @@ class _SectionExpansibleState extends ConsumerState<SectionExpansible> {
 
                   const Spacer(),
 
+                  if (widget.trailing != null) ...[widget.trailing!, const SizedBox(width: 8)],
+
                   RotationTransition(
                     turns: Tween<double>(begin: 0.0, end: 0.5).animate(animation),
-                    child: AppIcon(appIconSet.navigationDown),
+                    child: AppIcon(
+                      appIconSet.navigationDown,
+                      color: widget.titleStyle?.color ?? theme.textTheme.titleMedium!.color,
+                    ),
                   ),
                 ],
               ),
@@ -100,7 +131,8 @@ class _SectionExpansibleState extends ConsumerState<SectionExpansible> {
           ),
         );
       },
-      bodyBuilder: (context, animation) => widget.body,
+      bodyBuilder: (context, animation) =>
+          Padding(padding: const EdgeInsets.symmetric(horizontal: 12.0), child: widget.body),
     );
   }
 }

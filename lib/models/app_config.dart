@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:nordplayer/models/app_theme.dart';
+import 'package:nordplayer/models/library_section_config.dart';
 
 class AppConfig {
   final List<String> trackDirectories;
@@ -17,6 +18,7 @@ class AppConfig {
   final double adaptiveBgThemeOverlay;
   final String fontFamily;
   final double textScale;
+  final List<LibrarySectionConfig> librarySections;
 
   static const List<String> _defaultTrackDirectories = [];
   // Not private because settings page need access
@@ -73,6 +75,11 @@ class AppConfig {
   static const String _defaultFontFamily = 'outfit';
   static const double _defaultTextScale = 1.0;
   static const bool _defaultWatchTrackDirectories = true;
+  static const List<LibrarySectionConfig> _defaultLibrarySections = [
+    LibrarySectionConfig(id: 'recently_added', isVisible: true),
+    LibrarySectionConfig(id: 'albums', isVisible: true),
+    LibrarySectionConfig(id: 'tracks', isVisible: true),
+  ];
 
   AppConfig({
     this.trackDirectories = _defaultTrackDirectories,
@@ -89,6 +96,7 @@ class AppConfig {
     this.adaptiveBgThemeOverlay = _defaultAdaptiveBgThemeOverlay,
     this.fontFamily = _defaultFontFamily,
     this.textScale = _defaultTextScale,
+    this.librarySections = _defaultLibrarySections,
   });
 
   AppConfig copyWith({
@@ -106,6 +114,7 @@ class AppConfig {
     double? adaptiveBgThemeOverlay,
     String? fontFamily,
     double? textScale,
+    List<LibrarySectionConfig>? librarySections,
   }) {
     return AppConfig(
       trackDirectories: trackDirectories ?? this.trackDirectories,
@@ -122,6 +131,7 @@ class AppConfig {
       adaptiveBgThemeOverlay: adaptiveBgThemeOverlay ?? this.adaptiveBgThemeOverlay,
       fontFamily: fontFamily ?? this.fontFamily,
       textScale: textScale ?? this.textScale,
+      librarySections: librarySections ?? this.librarySections,
     );
   }
 
@@ -141,6 +151,7 @@ class AppConfig {
       adaptiveBgThemeOverlay: _parseThemeOverlay(json['themeOverlay'], logger: logger),
       fontFamily: _parseFontFamily(json['fontFamily'], logger: logger),
       textScale: _parseTextScale(json['textScale'], logger: logger),
+      librarySections: _parseLibrarySections(json['librarySections'], logger: logger),
     );
   }
 
@@ -289,6 +300,34 @@ class AppConfig {
     return value.toDouble();
   }
 
+  static List<LibrarySectionConfig> _parseLibrarySections(dynamic value, {required Logger logger}) {
+    if (value is! List) {
+      logger.w("Invalid librarySections: $value. Fallback to default.");
+      return _defaultLibrarySections;
+    }
+    try {
+      final list = <LibrarySectionConfig>[];
+      for (final item in value) {
+        if (item is Map<String, dynamic>) {
+          list.add(LibrarySectionConfig.fromJson(item));
+        } else {
+          logger.w("Invalid library section item in config: $item. Skipping.");
+        }
+      }
+      final loadedIds = list.map((e) => e.id).toSet();
+      for (final def in _defaultLibrarySections) {
+        if (!loadedIds.contains(def.id)) {
+          logger.w("Missing section '${def.id}' in loaded configuration. Appending default.");
+          list.add(def);
+        }
+      }
+      return list;
+    } catch (e) {
+      logger.w("Failed to parse librarySections: $e. Fallback to default.");
+      return _defaultLibrarySections;
+    }
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'trackDirectories': trackDirectories,
@@ -305,6 +344,7 @@ class AppConfig {
       'themeOverlay': adaptiveBgThemeOverlay,
       'fontFamily': fontFamily,
       'textScale': textScale,
+      'librarySections': librarySections.map((e) => e.toJson()).toList(),
     };
   }
 }

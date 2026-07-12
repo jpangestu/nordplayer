@@ -13,6 +13,8 @@ import 'package:nordplayer/utils/unimplemented.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
+import 'package:nordplayer/widgets/settings/library_sections_panel.dart';
+import 'package:nordplayer/widgets/settings/section_expansible.dart';
 
 class LibraryPage extends ConsumerStatefulWidget {
   const LibraryPage({super.key});
@@ -28,47 +30,51 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final appConfig = ref.watch(configServiceProvider).requireValue;
+    final adaptiveBg = ref.watch(configServiceProvider.select((config) => config.requireValue.adaptiveBg));
     final statsAsync = ref.watch(libraryStatsProvider);
 
     return Scaffold(
-      backgroundColor: appConfig.adaptiveBg ? Colors.transparent : Theme.of(context).colorScheme.surface,
+      backgroundColor: adaptiveBg ? Colors.transparent : Theme.of(context).colorScheme.surface,
       body: statsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Text('Error loading stats: $err'),
         data: (stats) {
           if (stats.trackCount == 0) {
-            return Column(
-              children: [
-                const LibraryHeader(),
+            return Padding(
+              padding: const EdgeInsetsGeometry.all(12),
+              child: Column(
+                children: [
+                  const LibraryHeader(),
 
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: .center,
-                    children: [
-                      Text(
-                        "Your library is empty",
-                        style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "Scan your local folders to set up your music library.",
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: .center,
+                      children: [
+                        Text(
+                          "Your library is empty",
+                          style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                      FilledButton.icon(
-                        onPressed: () {
-                          context.go('/settings/libraryIndexer');
-                        },
-                        icon: const AppIcon(Icons.create_new_folder),
-                        label: const Text("Add Music Folders"),
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        Text(
+                          "Scan your local folders to set up your music library.",
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        FilledButton.icon(
+                          onPressed: () {
+                            context.go('/settings/libraryIndexer');
+                          },
+                          icon: const AppIcon(Icons.create_new_folder),
+                          label: const Text("Add Music Folders"),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             );
           }
 
@@ -76,48 +82,14 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
             children: [
               Expanded(
                 child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   children: [
                     const LibraryHeader(),
 
-                    // const CollapsibleSection(
-                    //   padding: .only(left: 24.0, right: 24.0, top: 0, bottom: 16),
-                    //   label: 'Pinned',
-                    //   content: Placeholder(fallbackHeight: 120),
-                    // ),
-                    const CollapsibleSection(label: 'Recently Added', content: RecentlyAddedPanel()),
+                    const SizedBox(height: 8),
 
-                    CollapsibleSection(
-                      label: 'Albums',
-                      onLabelClick: () {
-                        context.go(Routes.albumsPage);
-                      },
-                      content: const AlbumsPanel(),
-                    ),
-
-                    CollapsibleSection(
-                      padding: const .only(left: 24, right: 24, top: 0, bottom: 24),
-                      label: 'Tracks',
-                      onLabelClick: () {
-                        context.go(Routes.tracksPage);
-                      },
-                      content: const TracksPanel(),
-                    ),
-
-                    // CollapsibleSection(
-                    //   label: 'Playlists',
-                    //   onLabelClick: () {
-                    //     context.go(Routes.playlistsPage);
-                    //   },
-                    //   content: const Placeholder(fallbackHeight: 120),
-                    // ),
-
-                    // CollapsibleSection(
-                    //   label: 'Genres',
-                    //   onLabelClick: () {
-                    //     // context.go(Routes.playlistsPage);
-                    //   },
-                    //   content: const Placeholder(fallbackHeight: 120),
-                    // ),
+                    for (final section in appConfig.librarySections)
+                      if (section.isVisible) ...[_buildSection(section.id, theme), const SizedBox(height: 8)],
                   ],
                 ),
               ),
@@ -126,6 +98,36 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
         },
       ),
     );
+  }
+
+  Widget _buildSection(String id, ThemeData theme) {
+    switch (id) {
+      case 'recently_added':
+        return SectionExpansible(
+          initialState: InitialState.expanded,
+          title: 'Recently Added',
+          titleStyle: theme.textTheme.titleLarge,
+          body: const RecentlyAddedPanel(),
+        );
+      case 'albums':
+        return SectionExpansible(
+          initialState: InitialState.expanded,
+          title: 'Albums',
+          titleStyle: theme.textTheme.titleLarge,
+          onTitleClick: () => context.go(Routes.albumsPage),
+          body: const AlbumsPanel(),
+        );
+      case 'tracks':
+        return SectionExpansible(
+          initialState: InitialState.expanded,
+          title: 'Tracks',
+          titleStyle: theme.textTheme.titleLarge,
+          onTitleClick: () => context.go(Routes.tracksPage),
+          body: const TracksPanel(),
+        );
+      default:
+        return const SizedBox.shrink();
+    }
   }
 }
 
@@ -138,94 +140,98 @@ class LibraryHeader extends ConsumerStatefulWidget {
 
 class _LibraryHeaderState extends ConsumerState<LibraryHeader> {
   bool isExpanded = true;
+  final GlobalKey _customizeSectionButtonKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final adaptiveBg = ref.watch(configServiceProvider.select((config) => config.requireValue.adaptiveBg));
+    final adaptiveBgThemeOverlay = ref.watch(
+      configServiceProvider.select((config) => config.requireValue.adaptiveBgThemeOverlay),
+    );
+    final adaptiveBgPanelBlur = ref.watch(
+      configServiceProvider.select((config) => config.requireValue.adaptiveBgPanelBlur),
+    );
     final appIconSet = ref.watch(appIconProvider);
     final statsAsync = ref.watch(libraryStatsProvider);
 
-    return Padding(
-      padding: const .symmetric(horizontal: 12, vertical: 12),
-      child: FrostedGlass(
-        backgroundColor: appConfig.adaptiveBg
-            ? theme.colorScheme.surfaceContainer.withValues(alpha: appConfig.adaptiveBgThemeOverlay * 0.5)
-            : theme.colorScheme.surfaceContainer,
-        blurSigma: appConfig.adaptiveBgPanelBlur,
-        borderRadius: 6,
-        child: AnimatedSize(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-          alignment: .topCenter,
-          child: Container(
-            padding: const .symmetric(horizontal: 12, vertical: 12),
-            constraints: const BoxConstraints(minHeight: 60),
-            child: Column(
-              crossAxisAlignment: .start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  height: 36,
-                  child: Row(
+    return FrostedGlass(
+      backgroundColor: adaptiveBg
+          ? theme.colorScheme.surfaceContainer.withValues(alpha: adaptiveBgThemeOverlay * 0.5)
+          : theme.colorScheme.surfaceContainer,
+      blurSigma: adaptiveBgPanelBlur,
+      borderRadius: 6,
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        alignment: .topCenter,
+        child: SectionExpansible(
+          initialState: .expanded,
+          title: 'Library',
+          titleStyle: theme.textTheme.headlineSmall,
+          trailing: IconButton(
+            key: _customizeSectionButtonKey,
+            onPressed: () => showLibrarySectionsPanel(context, _customizeSectionButtonKey),
+            icon: AppIcon(appIconSet.settings2, color: theme.textTheme.headlineSmall!.color, size: 22),
+            tooltip: 'Customize Sections',
+          ),
+          body: Column(
+            children: [
+              SizedBox(
+                width: double.infinity,
+                child: statsAsync.when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (err, stack) => Text('Error loading stats: $err'),
+                  data: (stats) => Wrap(
+                    spacing: 24,
+                    runSpacing: 16,
+                    alignment: .spaceEvenly,
                     children: [
-                      Text('Library', style: Theme.of(context).textTheme.headlineMedium),
-                      const Spacer(),
-                      // IconButton(icon: AppIcon(appIconSet.preference), tooltip: 'Customize Sections', onPressed: () {}),
-                      IconButton(
-                        icon: AppIcon(isExpanded ? appIconSet.navigationDown : appIconSet.statistic),
-                        color: theme.colorScheme.onSurface,
-                        tooltip: isExpanded ? 'Hide Statistics' : 'Show Statistics',
-                        onPressed: () {
-                          setState(() {
-                            isExpanded = !isExpanded;
-                          });
-                        },
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0, bottom: 24.0),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: statsAsync.when(
+                            loading: () => const Center(child: CircularProgressIndicator()),
+                            error: (err, stack) => Text('Error loading stats: $err'),
+                            data: (stats) => Wrap(
+                              spacing: 24,
+                              runSpacing: 16,
+                              alignment: .spaceEvenly,
+                              children: [
+                                LibraryStatItem(icon: appIconSet.tracks, value: '${stats.trackCount}', label: 'Tracks'),
+                                LibraryStatItem(
+                                  icon: appIconSet.artists,
+                                  value: '${stats.artistCount}',
+                                  label: 'Artists',
+                                ),
+                                LibraryStatItem(icon: appIconSet.albums, value: '${stats.albumCount}', label: 'Albums'),
+                                LibraryStatItem(icon: appIconSet.genres, value: '${stats.genreCount}', label: 'Genres'),
+                                LibraryStatItem(
+                                  icon: appIconSet.playlist,
+                                  value: '${stats.playlistCount}',
+                                  label: 'Playlists',
+                                ),
+                                LibraryStatItem(
+                                  icon: appIconSet.playtime,
+                                  value: stats.totalPlaytimeMs.toTotalDurationString(),
+                                  label: 'Total Playtime',
+                                ),
+                                LibraryStatItem(
+                                  icon: appIconSet.storage,
+                                  value: stats.totalSizeBytes.toFileSizeString(),
+                                  label: 'Total Size',
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ),
-
-                if (isExpanded) ...[
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16.0, bottom: 12.0),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: statsAsync.when(
-                        loading: () => const Center(child: CircularProgressIndicator()),
-                        error: (err, stack) => Text('Error loading stats: $err'),
-                        data: (stats) => Wrap(
-                          spacing: 24,
-                          runSpacing: 16,
-                          alignment: .spaceEvenly,
-                          children: [
-                            LibraryStatItem(icon: appIconSet.tracks, value: '${stats.trackCount}', label: 'Tracks'),
-                            LibraryStatItem(icon: appIconSet.artists, value: '${stats.artistCount}', label: 'Artists'),
-                            LibraryStatItem(icon: appIconSet.albums, value: '${stats.albumCount}', label: 'Albums'),
-                            LibraryStatItem(icon: appIconSet.genres, value: '${stats.genreCount}', label: 'Genres'),
-                            LibraryStatItem(
-                              icon: appIconSet.playlist,
-                              value: '${stats.playlistCount}',
-                              label: 'Playlists',
-                            ),
-                            LibraryStatItem(
-                              icon: appIconSet.playtime,
-                              value: stats.totalPlaytimeMs.toTotalDurationString(),
-                              label: 'Total Playtime',
-                            ),
-                            LibraryStatItem(
-                              icon: appIconSet.storage,
-                              value: stats.totalSizeBytes.toFileSizeString(),
-                              label: 'Total Size',
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -261,77 +267,6 @@ class LibraryStatItem extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-}
-
-class CollapsibleSection extends ConsumerStatefulWidget {
-  const CollapsibleSection({
-    super.key,
-    required this.label,
-    this.onLabelClick,
-    this.padding = const .only(left: 24, right: 24, top: 0, bottom: 8),
-    required this.content,
-  });
-
-  final String label;
-  final void Function()? onLabelClick;
-  final EdgeInsetsGeometry padding;
-  final Widget content;
-
-  @override
-  ConsumerState<CollapsibleSection> createState() => _CollapsibleSectionState();
-}
-
-class _CollapsibleSectionState extends ConsumerState<CollapsibleSection> {
-  bool isExpanded = true;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final appIconSet = ref.watch(appIconProvider);
-
-    return Padding(
-      padding: widget.padding,
-      child: Column(
-        children: [
-          Row(
-            children: [
-              MouseRegion(
-                cursor: widget.onLabelClick != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
-                child: GestureDetector(
-                  onTap: widget.onLabelClick,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(widget.label, style: theme.textTheme.titleLarge),
-                      if (widget.onLabelClick != null)
-                        AppIcon(appIconSet.navigationRight, color: theme.textTheme.titleLarge!.color, size: 28),
-                    ],
-                  ),
-                ),
-              ),
-
-              const Spacer(),
-
-              IconButton(
-                onPressed: () {
-                  setState(() {
-                    isExpanded = !isExpanded;
-                  });
-                },
-                icon: AppIcon(
-                  isExpanded ? appIconSet.navigationDown : appIconSet.navigationRight,
-                  color: theme.colorScheme.onSurface,
-                  size: 28,
-                ),
-                tooltip: isExpanded ? 'Shrink' : 'Expand',
-              ),
-            ],
-          ),
-          if (isExpanded) widget.content,
-        ],
-      ),
     );
   }
 }
@@ -568,7 +503,7 @@ class _RecentlyAddedPanelState extends ConsumerState<RecentlyAddedPanel> {
       data: (recentTracks) {
         if (recentTracks.isEmpty) {
           return const Center(
-            child: Padding(padding: EdgeInsets.all(24.0), child: Text('No recently added tracks.')),
+            child: Padding(padding: EdgeInsets.all(16.0), child: Text('No recently added tracks.')),
           );
         }
 

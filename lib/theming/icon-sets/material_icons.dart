@@ -125,4 +125,8 @@ class MaterialIconSet implements AppIconSet {
   IconData get visible => Icons.visibility;
   @override
   IconData get invisible => Icons.visibility_off;
+  @override
+  IconData get settings2 => Icons.tune;
+  @override
+  IconData get dragVertical => Icons.drag_handle;
 }
