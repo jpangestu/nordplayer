@@ -129,4 +129,8 @@ class MaterialIconSet implements AppIconSet {
   IconData get settings2 => Icons.tune;
   @override
   IconData get dragVertical => Icons.drag_handle;
+  @override
+  IconData get sort => Icons.swap_vert;
+  @override
+  IconData get filter => Icons.filter_list;
 }

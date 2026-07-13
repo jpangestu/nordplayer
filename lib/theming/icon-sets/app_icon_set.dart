@@ -78,6 +78,8 @@ abstract class AppIconSet {
   IconData get invisible;
   IconData get settings2;
   IconData get dragVertical;
+  IconData get sort;
+  IconData get filter;
 }
 
 final appIconProvider = Provider<AppIconSet>((ref) {

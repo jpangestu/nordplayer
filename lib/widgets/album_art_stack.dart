@@ -22,11 +22,7 @@ class StackItem {
     this.lastActiveLeftOffset,
   });
 
-  StackItem copyWith({
-    bool? isExiting,
-    bool? isIntroducing,
-    double? lastActiveLeftOffset,
-  }) {
+  StackItem copyWith({bool? isExiting, bool? isIntroducing, double? lastActiveLeftOffset}) {
     return StackItem(
       key: key,
       imageUrl: imageUrl,
@@ -42,6 +38,7 @@ class AlbumArtStack extends ConsumerStatefulWidget {
   final double? size;
   final int maxLayers;
   final double sliceWidth;
+  final Alignment? alignment;
 
   const AlbumArtStack({
     super.key,
@@ -49,6 +46,7 @@ class AlbumArtStack extends ConsumerStatefulWidget {
     this.size, // Defaults to null for dynamic scaling
     this.maxLayers = 5,
     this.sliceWidth = 16.0,
+    this.alignment,
   });
 
   @override
@@ -88,7 +86,7 @@ class _AlbumArtStackState extends ConsumerState<AlbumArtStack> {
   void _updateItems(List<String> newUrls) {
     final int count = newUrls.isEmpty ? 1 : math.min(newUrls.length, widget.maxLayers);
     final activeUrls = newUrls.take(count).toList();
-    
+
     final List<StackItem> updatedItems = [];
     final List<StackItem> exitingItems = [];
 
@@ -104,12 +102,14 @@ class _AlbumArtStackState extends ConsumerState<AlbumArtStack> {
         updatedItems.add(matchedItem);
       } else {
         // No match found, this is a new image URL
-        updatedItems.add(StackItem(
-          key: '${url}_${DateTime.now().microsecondsSinceEpoch}_${math.Random().nextInt(10000)}',
-          imageUrl: url,
-          isExiting: false,
-          isIntroducing: true, // Introduce smoothly!
-        ));
+        updatedItems.add(
+          StackItem(
+            key: '${url}_${DateTime.now().microsecondsSinceEpoch}_${math.Random().nextInt(10000)}',
+            imageUrl: url,
+            isExiting: false,
+            isIntroducing: true, // Introduce smoothly!
+          ),
+        );
       }
     }
 
@@ -118,10 +118,7 @@ class _AlbumArtStackState extends ConsumerState<AlbumArtStack> {
       final oldActiveIndex = _items.where((item) => !item.isExiting).toList().indexOf(remaining);
       final double lastOffset = oldActiveIndex != -1 ? oldActiveIndex * widget.sliceWidth : 0.0;
 
-      exitingItems.add(remaining.copyWith(
-        isExiting: true,
-        lastActiveLeftOffset: lastOffset,
-      ));
+      exitingItems.add(remaining.copyWith(isExiting: true, lastActiveLeftOffset: lastOffset));
     }
 
     setState(() {
@@ -178,7 +175,8 @@ class _AlbumArtStackState extends ConsumerState<AlbumArtStack> {
 
         // -- EMPTY STATE --
         if (widget.imageUrls.isEmpty) {
-          child = Center(
+          child = Align(
+            alignment: widget.alignment ?? Alignment.center,
             key: const ValueKey('empty_state'),
             child: Container(
               width: squareSize,
@@ -186,11 +184,7 @@ class _AlbumArtStackState extends ConsumerState<AlbumArtStack> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(4),
                 boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 6,
-                    offset: const Offset(-1, 1),
-                  ),
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 6, offset: const Offset(-1, 1)),
                 ],
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
@@ -241,7 +235,7 @@ class _AlbumArtStackState extends ConsumerState<AlbumArtStack> {
                 clipBehavior: Clip.none,
                 children: itemsToRender.map((item) {
                   final activeIndex = activeItems.indexOf(item);
-                  
+
                   // Calculate layout parameters based on status
                   final double leftOffset;
                   final double opacity;
@@ -254,9 +248,7 @@ class _AlbumArtStackState extends ConsumerState<AlbumArtStack> {
                     opacity = 0.0;
                     scale = 0.8;
                   } else if (item.isIntroducing) {
-                    leftOffset = activeIndex == 0
-                        ? -squareSize * 0.4
-                        : activeIndex * widget.sliceWidth;
+                    leftOffset = activeIndex == 0 ? -squareSize * 0.4 : activeIndex * widget.sliceWidth;
                     opacity = 0.0;
                     scale = activeIndex == 0 ? 0.9 : 1.0;
                   } else {
@@ -323,10 +315,7 @@ class _AlbumArtStackState extends ConsumerState<AlbumArtStack> {
           );
         }
 
-        return AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          child: child,
-        );
+        return AnimatedSwitcher(duration: const Duration(milliseconds: 300), child: child);
       },
     );
   }

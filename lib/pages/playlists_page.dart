@@ -1,3 +1,5 @@
+import 'dart:math' show Random;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,13 +8,17 @@ import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
+import 'package:nordplayer/services/preference_service.dart';
 import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/widgets/album_art_stack.dart';
 import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
+import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/nord_alert_dialog.dart';
 import 'package:nordplayer/widgets/nord_snack_bar.dart';
+import 'package:nordplayer/widgets/settings/section_container.dart';
+import 'package:nordplayer/widgets/settings/section_page_titile.dart';
 
 class PlaylistsPage extends ConsumerWidget {
   const PlaylistsPage({super.key});
@@ -29,56 +35,74 @@ class PlaylistsPage extends ConsumerWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // --- HEADER SECTION ---
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 24, 32, 0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Playlists', style: Theme.of(context).textTheme.headlineMedium),
-                OutlinedButton.icon(
-                  onPressed: () => showCreatePlaylistDialog(context, db),
-                  icon: AppIcon(appIconSet.add),
-                  label: const Text('New Playlist'),
+            padding: const .all(12),
+            child: SectionContainer(
+              child: SectionPageTitle(
+                title: 'Playlists',
+                titleStyle: theme.textTheme.headlineSmall,
+                trailing: Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => showCreatePlaylistDialog(context, db),
+                      icon: AppIcon(appIconSet.add, color: theme.textTheme.headlineSmall!.color, size: 22),
+                      tooltip: 'Add New Playlist',
+                    ),
+                    // IconButton(
+                    //   onPressed: () {},
+                    //   icon: AppIcon(appIconSet.sort, color: theme.textTheme.headlineSmall!.color, size: 22),
+                    //   tooltip: 'Sort',
+                    // ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
 
-          // --- GRID SECTION ---
           Expanded(
-            child: StreamBuilder<List<PlaylistWithDetails>>(
-              stream: db.watchAllPlaylists(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+            child: ref
+                .watch(playlistsStreamProvider)
+                .when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (error, _) => Center(child: Text('Error: $error')),
+                  data: (playlistsWithCount) {
+                    if (playlistsWithCount.isEmpty) {
+                      return const Center(child: Text('No playlists yet. Create one to get started!'));
+                    }
 
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        const double minItemWidth = 252.0;
+                        // Calculate exactly how many albums can fit.
+                        final int crossAxisCount = (constraints.maxWidth / minItemWidth).floor().clamp(1, 100);
 
-                final playlistsWithCount = snapshot.data ?? [];
-
-                if (playlistsWithCount.isEmpty) {
-                  return const Center(child: Text('No playlists yet. Create one to get started!'));
-                }
-
-                return GridView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 220, // Max width of each card
-                    childAspectRatio: 0.91, // To match album art stack with 10 slice width
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                  ),
-                  itemCount: playlistsWithCount.length,
-                  itemBuilder: (context, index) {
-                    return PlaylistCard(playlistWithDetails: playlistsWithCount[index], database: db);
+                        return GridView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: crossAxisCount,
+                            mainAxisExtent: 240,
+                            crossAxisSpacing: 24,
+                            mainAxisSpacing: 8,
+                          ),
+                          itemCount: playlistsWithCount.length,
+                          itemBuilder: (context, index) {
+                            return Align(
+                              alignment: .topStart,
+                              child: SizedBox(
+                                width: 220,
+                                child: PlaylistCard(
+                                  playlistWithDetails: playlistsWithCount[index],
+                                  database: db,
+                                  playlistId: playlistsWithCount[index].playlist.id,
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    );
                   },
-                );
-              },
-            ),
+                ),
           ),
         ],
       ),
@@ -243,8 +267,9 @@ class _RenamePlaylistDialogState extends ConsumerState<RenamePlaylistDialog> {
 class PlaylistCard extends ConsumerStatefulWidget {
   final PlaylistWithDetails playlistWithDetails;
   final AppDatabase database;
+  final int playlistId;
 
-  const PlaylistCard({super.key, required this.playlistWithDetails, required this.database});
+  const PlaylistCard({super.key, required this.playlistWithDetails, required this.database, required this.playlistId});
 
   @override
   ConsumerState<PlaylistCard> createState() => _PlaylistCardState();
@@ -259,14 +284,14 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
     final theme = Theme.of(context);
     final totalTracks = widget.playlistWithDetails.trackCount;
     final playlistId = widget.playlistWithDetails.playlist.id;
+    final appConfig = ref.watch(configServiceProvider).requireValue;
     final appIconSet = ref.watch(appIconProvider);
 
     // Check if THIS playlist is the active context
     final playbackContext = ref.watch(playbackContextProvider);
     final isPlayingThisPlaylist = playbackContext?.isPlaying('playlist', playlistId) ?? false;
     final isAudioPlaying = ref.watch(isPlayingProvider);
-
-    final nowPlayingAlbumArt = ref.watch(current5TracksAlbumArtInQueueProvider);
+    final nowPlayingAlbumArt = isPlayingThisPlaylist ? ref.watch(current5TracksAlbumArtInQueueProvider) : null;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -292,10 +317,9 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
                 children: [
                   // -- CARD BACKGROUND --
                   AlbumArtStack(
-                    imageUrls: ref.read(playbackContextProvider)?.id == widget.playlistWithDetails.playlist.id
-                        ? nowPlayingAlbumArt
-                        : widget.playlistWithDetails.imageUrls,
+                    imageUrls: isPlayingThisPlaylist ? nowPlayingAlbumArt! : widget.playlistWithDetails.imageUrls,
                     sliceWidth: 10,
+                    alignment: .centerLeft,
                   ),
 
                   // -- OPTIONS MENU (RIGHT CLICK ALTERNATIVE) --
@@ -303,44 +327,93 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
                     Positioned(
                       top: 8,
                       right: 8,
-                      child: Material(
-                        shape: const CircleBorder(),
-                        color: theme.colorScheme.onPrimary.withValues(alpha: 0.5),
-                        elevation: 4,
-                        child: IconButton(
-                          key: _moreButtonKey,
-                          visualDensity: .compact,
-                          icon: AppIcon(appIconSet.contextMenu, color: theme.colorScheme.primary, size: 20),
-                          tooltip: 'Options',
-                          hoverColor: theme.colorScheme.primary.withValues(alpha: 0.1),
-                          focusColor: theme.colorScheme.primary.withValues(alpha: 0.15),
-                          highlightColor: theme.colorScheme.primary.withValues(alpha: 0.2),
-                          onPressed: () {
-                            final RenderBox renderBox = _moreButtonKey.currentContext!.findRenderObject() as RenderBox;
+                      child: Container(
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(50),
+                          border: Border.all(color: theme.colorScheme.outlineVariant),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(50),
+                          child: FrostedGlass(
+                            backgroundColor: appConfig.adaptiveBg
+                                ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
+                                : theme.colorScheme.surfaceContainerHigh,
+                            blurSigma: 20,
+                            child: Material(
+                              color: Colors.transparent,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  InkWell(
+                                    key: _moreButtonKey,
+                                    onTap: () {
+                                      final RenderBox renderBox =
+                                          _moreButtonKey.currentContext!.findRenderObject() as RenderBox;
+                                      final buttonPosition = renderBox.localToGlobal(Offset.zero);
 
-                            final buttonPosition = renderBox.localToGlobal(Offset.zero);
-
-                            _showContextMenu(buttonPosition, ref);
-                          },
+                                      _showContextMenu(buttonPosition, ref);
+                                    },
+                                    child: Container(
+                                      alignment: Alignment.center,
+                                      padding: const .only(left: 4.0, right: 4.0),
+                                      child: AppIcon(
+                                        appIconSet.contextMenu,
+                                        color: theme.colorScheme.primary,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
 
+                  // TODO: Make default app button widget with consistent style
                   // -- THE PLAY BUTTON --
                   if (_isHovered)
                     Positioned(
                       bottom: 8,
                       right: 8,
-                      child: Material(
-                        color: Theme.of(context).colorScheme.primary,
-                        shape: const CircleBorder(),
-                        elevation: 4,
-                        child: IconButton(
-                          // Purposefully not using appIconSet here cause it'll look weird
-                          icon: AppIcon(Icons.play_arrow, color: Theme.of(context).colorScheme.onPrimary),
-                          onPressed: () {
-                            _playPlaylist();
-                          },
+                      child: Container(
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(50),
+                          border: Border.all(color: theme.colorScheme.outlineVariant),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(50),
+                          child: FrostedGlass(
+                            backgroundColor: appConfig.adaptiveBg
+                                ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
+                                : theme.colorScheme.surfaceContainerHigh,
+                            blurSigma: 20,
+                            child: Material(
+                              color: Colors.transparent,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  InkWell(
+                                    onTap: () {
+                                      _playPlaylist();
+                                    },
+                                    child: Container(
+                                      alignment: Alignment.center,
+                                      padding: const .only(left: 4.0, right: 4.0),
+                                      child: Icon(Icons.play_arrow_rounded, color: theme.colorScheme.primary, size: 28),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -428,13 +501,17 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
       return;
     }
 
+    final int startIndex = ref.read(preferenceServiceProvider).shuffleMode == true
+        ? Random().nextInt(tracks.length)
+        : 0;
+
     ref
         .read(playerServiceProvider)
         .setPlaylist(
           playbackContextType: 'playlist',
           playbackContextId: widget.playlistWithDetails.playlist.id,
           tracksToPlay: tracks,
-          initialIndex: 0,
+          initialIndex: startIndex,
         );
   }
 

@@ -130,4 +130,8 @@ class LucideIconSet implements AppIconSet {
   IconData get settings2 => LucideIcons.settings2;
   @override
   IconData get dragVertical => LucideIcons.gripVertical;
+  @override
+  IconData get sort => LucideIcons.arrowUpDown;
+  @override
+  IconData get filter => LucideIcons.listFilter;
 }

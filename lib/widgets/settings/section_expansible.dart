@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 
@@ -11,7 +12,6 @@ class SectionExpansible extends ConsumerStatefulWidget {
   final TextStyle? titleStyle;
   final VoidCallback? onTitleClick;
   final String? subtitle;
-  final Widget? trailing;
   final Widget body;
 
   const SectionExpansible({
@@ -21,7 +21,6 @@ class SectionExpansible extends ConsumerStatefulWidget {
     this.titleStyle,
     this.onTitleClick,
     this.subtitle,
-    this.trailing,
     required this.body,
   });
 
@@ -57,14 +56,17 @@ class _SectionExpansibleState extends ConsumerState<SectionExpansible> {
                 : BorderRadius.circular(8),
             onTap: () => _controller.isExpanded ? _controller.collapse() : _controller.expand(),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
+              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
               child: Row(
                 children: [
                   if (widget.onTitleClick == null) ...[
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(widget.title, style: widget.titleStyle ?? theme.textTheme.titleMedium),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4.0),
+                          child: Text(widget.title, style: widget.titleStyle ?? theme.textTheme.titleMedium),
+                        ),
                         widget.subtitle != null
                             ? Text(
                                 widget.subtitle!,
@@ -100,8 +102,8 @@ class _SectionExpansibleState extends ConsumerState<SectionExpansible> {
                                     duration: const Duration(milliseconds: 200),
                                     curve: Curves.easeOutCubic,
                                     child: AppIcon(
-                                      appIconSet.navigationRight,
-                                      size: 24,
+                                      LucideIcons.chevronRight600,
+                                      size: 20,
                                       color: widget.titleStyle?.color ?? theme.textTheme.titleMedium!.color,
                                     ),
                                   ),
@@ -115,8 +117,6 @@ class _SectionExpansibleState extends ConsumerState<SectionExpansible> {
                   ],
 
                   const Spacer(),
-
-                  if (widget.trailing != null) ...[widget.trailing!, const SizedBox(width: 8)],
 
                   RotationTransition(
                     turns: Tween<double>(begin: 0.0, end: 0.5).animate(animation),

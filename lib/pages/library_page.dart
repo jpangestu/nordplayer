@@ -11,10 +11,11 @@ import 'package:nordplayer/utils/datetime_extension.dart';
 import 'package:nordplayer/utils/int_extension.dart';
 import 'package:nordplayer/utils/unimplemented.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
-import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
 import 'package:nordplayer/widgets/settings/library_sections_panel.dart';
+import 'package:nordplayer/widgets/settings/section_container.dart';
 import 'package:nordplayer/widgets/settings/section_expansible.dart';
+import 'package:nordplayer/widgets/settings/section_page_titile.dart';
 
 class LibraryPage extends ConsumerStatefulWidget {
   const LibraryPage({super.key});
@@ -86,10 +87,10 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
                   children: [
                     const LibraryHeader(),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
 
                     for (final section in appConfig.librarySections)
-                      if (section.isVisible) ...[_buildSection(section.id, theme), const SizedBox(height: 8)],
+                      if (section.isVisible) ...[_buildSection(section.id, theme), const SizedBox(height: 12)],
                   ],
                 ),
               ),
@@ -145,94 +146,82 @@ class _LibraryHeaderState extends ConsumerState<LibraryHeader> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final adaptiveBg = ref.watch(configServiceProvider.select((config) => config.requireValue.adaptiveBg));
-    final adaptiveBgThemeOverlay = ref.watch(
-      configServiceProvider.select((config) => config.requireValue.adaptiveBgThemeOverlay),
-    );
-    final adaptiveBgPanelBlur = ref.watch(
-      configServiceProvider.select((config) => config.requireValue.adaptiveBgPanelBlur),
-    );
     final appIconSet = ref.watch(appIconProvider);
     final statsAsync = ref.watch(libraryStatsProvider);
 
-    return FrostedGlass(
-      backgroundColor: adaptiveBg
-          ? theme.colorScheme.surfaceContainer.withValues(alpha: adaptiveBgThemeOverlay * 0.5)
-          : theme.colorScheme.surfaceContainer,
-      blurSigma: adaptiveBgPanelBlur,
-      borderRadius: 6,
-      child: AnimatedSize(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-        alignment: .topCenter,
-        child: SectionExpansible(
-          initialState: .expanded,
-          title: 'Library',
-          titleStyle: theme.textTheme.headlineSmall,
-          trailing: IconButton(
-            key: _customizeSectionButtonKey,
-            onPressed: () => showLibrarySectionsPanel(context, _customizeSectionButtonKey),
-            icon: AppIcon(appIconSet.settings2, color: theme.textTheme.headlineSmall!.color, size: 22),
-            tooltip: 'Customize Sections',
-          ),
-          body: Column(
-            children: [
-              SizedBox(
-                width: double.infinity,
-                child: statsAsync.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (err, stack) => Text('Error loading stats: $err'),
-                  data: (stats) => Wrap(
-                    spacing: 24,
-                    runSpacing: 16,
-                    alignment: .spaceEvenly,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0, bottom: 24.0),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: statsAsync.when(
-                            loading: () => const Center(child: CircularProgressIndicator()),
-                            error: (err, stack) => Text('Error loading stats: $err'),
-                            data: (stats) => Wrap(
-                              spacing: 24,
-                              runSpacing: 16,
-                              alignment: .spaceEvenly,
-                              children: [
-                                LibraryStatItem(icon: appIconSet.tracks, value: '${stats.trackCount}', label: 'Tracks'),
-                                LibraryStatItem(
-                                  icon: appIconSet.artists,
-                                  value: '${stats.artistCount}',
-                                  label: 'Artists',
-                                ),
-                                LibraryStatItem(icon: appIconSet.albums, value: '${stats.albumCount}', label: 'Albums'),
-                                LibraryStatItem(icon: appIconSet.genres, value: '${stats.genreCount}', label: 'Genres'),
-                                LibraryStatItem(
-                                  icon: appIconSet.playlist,
-                                  value: '${stats.playlistCount}',
-                                  label: 'Playlists',
-                                ),
-                                LibraryStatItem(
-                                  icon: appIconSet.playtime,
-                                  value: stats.totalPlaytimeMs.toTotalDurationString(),
-                                  label: 'Total Playtime',
-                                ),
-                                LibraryStatItem(
-                                  icon: appIconSet.storage,
-                                  value: stats.totalSizeBytes.toFileSizeString(),
-                                  label: 'Total Size',
-                                ),
-                              ],
-                            ),
+    return SectionContainer(
+      child: SectionPageTitle(
+        initialState: .expanded,
+        title: 'Library',
+        titleStyle: theme.textTheme.headlineSmall,
+        trailing: Row(
+          children: [
+            IconButton(
+              key: _customizeSectionButtonKey,
+              onPressed: () => showLibrarySectionsPanel(context, _customizeSectionButtonKey),
+              icon: AppIcon(appIconSet.settings2, color: theme.textTheme.headlineSmall!.color, size: 22),
+              tooltip: 'Customize Sections',
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
+        body: Column(
+          children: [
+            SizedBox(
+              width: double.infinity,
+              child: statsAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (err, stack) => Text('Error loading stats: $err'),
+                data: (stats) => Wrap(
+                  spacing: 24,
+                  runSpacing: 16,
+                  alignment: .spaceEvenly,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0, bottom: 24.0),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: statsAsync.when(
+                          loading: () => const Center(child: CircularProgressIndicator()),
+                          error: (err, stack) => Text('Error loading stats: $err'),
+                          data: (stats) => Wrap(
+                            spacing: 24,
+                            runSpacing: 16,
+                            alignment: .spaceEvenly,
+                            children: [
+                              LibraryStatItem(icon: appIconSet.tracks, value: '${stats.trackCount}', label: 'Tracks'),
+                              LibraryStatItem(
+                                icon: appIconSet.artists,
+                                value: '${stats.artistCount}',
+                                label: 'Artists',
+                              ),
+                              LibraryStatItem(icon: appIconSet.albums, value: '${stats.albumCount}', label: 'Albums'),
+                              LibraryStatItem(icon: appIconSet.genres, value: '${stats.genreCount}', label: 'Genres'),
+                              LibraryStatItem(
+                                icon: appIconSet.playlist,
+                                value: '${stats.playlistCount}',
+                                label: 'Playlists',
+                              ),
+                              LibraryStatItem(
+                                icon: appIconSet.playtime,
+                                value: stats.totalPlaytimeMs.toTotalDurationString(),
+                                label: 'Total Playtime',
+                              ),
+                              LibraryStatItem(
+                                icon: appIconSet.storage,
+                                value: stats.totalSizeBytes.toFileSizeString(),
+                                label: 'Total Size',
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
