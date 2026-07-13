@@ -113,9 +113,14 @@ class PlayerService with LoggerMixin {
           await _mkPlayer.move(lastTrackPlayedNewIndex, 0);
         }
 
-        // Give the engine time to settle before jumping to the exact millisecond
         // Wait for the player to reach an initialized duration state (ready to seek)
-        await _mkPlayer.stream.duration.firstWhere((duration) => duration.inMilliseconds > 0);
+        if (_mkPlayer.state.duration.inMilliseconds == 0) {
+          try {
+            await _mkPlayer.stream.duration
+                .firstWhere((duration) => duration.inMilliseconds > 0)
+                .timeout(const Duration(milliseconds: 500));
+          } catch (_) {}
+        }
         await _mkPlayer.seek(lastPosition);
       }
     } finally {
