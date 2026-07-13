@@ -73,8 +73,11 @@ And since I'm something of a programmer myself, why can't I just build one? Or t
 This app is still very early in the development stage. Expect some bugs and unimplemented features.
 
 ## Screenshot
-<img width="1920" height="1030" alt="Nordplayer_preview1" src="https://github.com/user-attachments/assets/4014cdad-00ee-43e7-9e55-b439c7c59f6c" />
-<img width="1920" height="1030" alt="Nordplayer_preview2" src="https://github.com/user-attachments/assets/c432e039-e570-42b2-835e-6a5248b96e76" />
-<img width="1920" height="1030" alt="Nordplayer_preview3" src="https://github.com/user-attachments/assets/0e77a6c5-a05c-49ef-8ffd-cd009e12dc1c" />
+<img width="1920" height="1030" alt="preview1" src="https://github.com/user-attachments/assets/a35114f6-3ac3-4904-bc3b-5ae3611c9b06" />
+<img width="1920" height="1030" alt="preview2" src="https://github.com/user-attachments/assets/5331f78a-8abb-47b5-9662-b1f19543f8cb" />
+<img width="1920" height="1030" alt="preview3" src="https://github.com/user-attachments/assets/e9b5030b-179b-4ef0-acbc-cbf9d39bffbd" />
+<img width="1920" height="1030" alt="preview4" src="https://github.com/user-attachments/assets/17e363f6-22ca-4b9a-8b97-edd4035ffc29" />
+<img width="1920" height="1030" alt="preview5" src="https://github.com/user-attachments/assets/6b581c18-b5ca-4e47-85d9-c99c8f82f75a" />
+<img width="1920" height="1030" alt="preview6" src="https://github.com/user-attachments/assets/a4b70f07-e562-4066-8b9c-7df037746745" />
 <video src="https://github.com/user-attachments/assets/5f1836f0-81bc-4463-abe5-96bbc47126eb" controls="controls" style="max-width: 100%;">
 </video>
