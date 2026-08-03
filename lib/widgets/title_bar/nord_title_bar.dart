@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
@@ -7,9 +9,11 @@ import 'package:nordplayer/services/performance_tracker.dart';
 import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/title_bar/background_task_panel.dart';
+import 'package:nordplayer/widgets/title_bar/base_button.dart';
 import 'package:nordplayer/widgets/title_bar/keyboard_shortcuts_panel.dart';
 import 'package:nordplayer/widgets/title_bar/performance_panel.dart';
-import 'package:nordplayer/widgets/title_bar/title_bar_button.dart';
+import 'package:nordplayer/widgets/title_bar/window_control/breeze.dart';
+import 'package:nordplayer/widgets/title_bar/window_control/windows11.dart';
 import 'package:window_manager/window_manager.dart';
 
 class NordTitleBar extends ConsumerStatefulWidget {
@@ -35,51 +39,67 @@ class _NordplayerTitleBarState extends ConsumerState<NordTitleBar> {
           : colorScheme.surfaceContainer,
       child: SizedBox(
         height: 34,
-        child: Padding(
-          padding: const EdgeInsets.all(4.0),
-          child: Row(
-            children: [
-              GestureDetector(
-                onTap: () async {
-                  await windowManager.popUpWindowMenu();
-                },
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 8.0, right: 4),
-                  child: SvgPicture.asset(
-                    'assets/icons/nordplayer_logo_white_transparent.svg',
-                    width: 22,
-                    height: 22,
-                    colorFilter: ColorFilter.mode(colorScheme.onSurface, BlendMode.srcIn),
-                  ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () async {
+                        await windowManager.popUpWindowMenu();
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8.0, right: 4),
+                        child: SvgPicture.asset(
+                          'assets/icons/nordplayer_logo_white_transparent.svg',
+                          width: 22,
+                          height: 22,
+                          colorFilter: ColorFilter.mode(colorScheme.onSurface, BlendMode.srcIn),
+                        ),
+                      ),
+                    ),
+
+                    const Expanded(
+                      child: DragToMoveArea(child: Row(children: [Text('Nordplayer'), Spacer()])),
+                    ),
+
+                    const _BackgroundTaskButton(),
+                    // SizedBox can't be used inside DragToMoveArea because it can be clicked
+                    DragToMoveArea(child: Container(width: 8, color: Colors.transparent)),
+
+                    _Performance(appIconSet: appIconSet),
+
+                    DragToMoveArea(child: Container(width: 8, color: Colors.transparent)),
+
+                    BaseButton(
+                      key: _shortcutsButtonKey,
+                      icon: appIconSet.keyboardShortcut,
+                      buttonHeight: 24,
+                      buttonWidth: 24,
+                      iconSize: 17,
+                      iconColor: colorScheme.onSurface,
+                      overlayColor: colorScheme.onSurface.withValues(alpha: 0.1),
+                      tooltip: 'Keyboard Shortcuts',
+                      onClick: () {
+                        showShortcutsPanel(context, _shortcutsButtonKey);
+                      },
+                    ),
+                  ],
                 ),
               ),
+            ),
 
-              const Expanded(
-                child: DragToMoveArea(child: Row(children: [Text('Nordplayer'), Spacer()])),
-              ),
-
-              const _BackgroundTaskButton(),
-
-              _Performance(appIconSet: appIconSet),
-
-              TitleBarButton(
-                key: _shortcutsButtonKey,
-                icon: appIconSet.keyboardShortcut,
-                iconSize: 18,
-                fixedIconColor: colorScheme.onSurface,
-                hoverOverlaySize: 28,
-                hoverOverlayOpacity: 0.1,
-                tooltip: 'Keyboard Shortcuts',
-                onTap: () {
-                  showShortcutsPanel(context, _shortcutsButtonKey);
-                },
-              ),
-
-              const SizedBox(width: 8),
-
+            if (Platform.isWindows) ...[
+              DragToMoveArea(child: Container(width: 8, color: Colors.transparent)),
+              const Windows11WindowControl(),
+            ] else if (Platform.isLinux) ...[
               const BreezeWindowControl(),
+            ] else ...[
+              const Windows11WindowControl(),
             ],
-          ),
+          ],
         ),
       ),
     );
@@ -168,15 +188,16 @@ class _PerformanceState extends State<_Performance> {
         }
 
         if (widgets.isEmpty) {
-          return TitleBarButton(
+          return BaseButton(
             key: _fpsButtonKey,
             icon: widget.appIconSet.performance,
-            iconSize: 18,
-            fixedIconColor: colorScheme.onSurface,
-            hoverOverlaySize: 28,
-            hoverOverlayOpacity: 0.1,
+            buttonHeight: 24,
+            buttonWidth: 24,
+            iconSize: 17,
+            iconColor: colorScheme.onSurface,
+            overlayColor: colorScheme.onSurface.withValues(alpha: 0.1),
             tooltip: 'Performance Metrics',
-            onTap: () {
+            onClick: () {
               showPerformancePanel(context, _fpsButtonKey);
             },
           );
@@ -222,90 +243,6 @@ class _PerformanceState extends State<_Performance> {
           ),
         );
       },
-    );
-  }
-}
-
-class BreezeWindowControl extends StatefulWidget {
-  const BreezeWindowControl({super.key});
-
-  @override
-  State<BreezeWindowControl> createState() => _BreezeWindowControlState();
-}
-
-class _BreezeWindowControlState extends State<BreezeWindowControl> with WindowListener {
-  bool _isMaximized = false;
-
-  Future<void> _initWindowState() async {
-    bool isMax = await windowManager.isMaximized();
-    if (mounted) {
-      setState(() {
-        _isMaximized = isMax;
-      });
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    windowManager.addListener(this);
-    _initWindowState();
-  }
-
-  @override
-  void dispose() {
-    windowManager.removeListener(this);
-    super.dispose();
-  }
-
-  // Update local state automatically when the OS maximizes/unmaximizes the app
-  @override
-  void onWindowMaximize() {
-    if (mounted) setState(() => _isMaximized = true);
-  }
-
-  @override
-  void onWindowUnmaximize() {
-    if (mounted) setState(() => _isMaximized = false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const SizedBox(width: 4),
-        TitleBarButton(
-          svgPath: 'assets/icons/window_control/breeze/window-minimize.svg',
-          buttonSize: 24,
-          onTap: () {
-            windowManager.minimize();
-          },
-        ),
-        const SizedBox(width: 4),
-        TitleBarButton(
-          svgPath: _isMaximized
-              ? 'assets/icons/window_control/breeze/window-restore.svg'
-              : 'assets/icons/window_control/breeze/window-maximize.svg',
-          buttonSize: 24,
-          onTap: () {
-            if (_isMaximized) {
-              windowManager.unmaximize();
-            } else {
-              windowManager.maximize();
-            }
-          },
-        ),
-        const SizedBox(width: 4),
-        TitleBarButton(
-          svgPath: 'assets/icons/window_control/breeze/window-close.svg',
-          isClose: true,
-          buttonSize: 24,
-          onTap: () {
-            windowManager.close();
-          },
-        ),
-        const SizedBox(width: 4),
-      ],
     );
   }
 }
@@ -376,12 +313,15 @@ class _BackgroundTaskButtonState extends ConsumerState<_BackgroundTaskButton> wi
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        TitleBarButton(
+        BaseButton(
           key: _buttonKey,
-          hoverOverlaySize: 28,
-          hoverOverlayOpacity: 0.1,
-          tooltip: isRunning ? 'Active Background Tasks' : 'Background Task History',
-          onTap: () {
+          buttonHeight: 28,
+          buttonWidth: 28,
+          iconSize: 17,
+          iconColor: colorScheme.onSurface,
+          overlayColor: colorScheme.onSurface.withValues(alpha: 0.1),
+          tooltip: 'Performance Metrics',
+          onClick: () {
             showBackgroundTaskPanel(context, _buttonKey);
           },
           child: SizedBox(

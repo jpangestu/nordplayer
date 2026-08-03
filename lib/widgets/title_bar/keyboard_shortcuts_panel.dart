@@ -64,7 +64,7 @@ class KeyboardShortcutsPanel extends ConsumerWidget {
         backgroundColor: appConfig.adaptiveBg
             ? theme.colorScheme.surfaceContainerHigh.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
             : theme.colorScheme.surfaceContainerHigh,
-        blurSigma: appConfig.adaptiveBgPanelBlur,
+        blurSigma: appConfig.adaptiveBgPanelBlur + 10,
         borderRadius: 12.0,
         child: Container(
           width: 280, // Fixed width for the popover

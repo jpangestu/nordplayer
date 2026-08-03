@@ -51,6 +51,7 @@ flutter:
   assets:
     - assets/icons/
     - assets/icons/window_control/breeze/
+    - assets/icons/window_control/windows11/
     - assets/images/
 
   fonts:
@@ -110,4 +111,3 @@ dependency_overrides:
       url: https://github.com/jpangestu/media-kit.git
       path: media_kit
       ref: main
-
