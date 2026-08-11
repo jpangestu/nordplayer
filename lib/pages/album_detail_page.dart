@@ -17,6 +17,8 @@ import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/sliver_resizable_table.dart';
+import 'package:nordplayer/widgets/title_bar/base_button.dart';
+import 'package:nordplayer/widgets/title_bar/button_container.dart';
 
 class AlbumDetailPage extends ConsumerWidget {
   final int albumId;
@@ -115,10 +117,17 @@ class AlbumDetailPage extends ConsumerWidget {
   }
 }
 
-class AlbumDetailPageHeader extends ConsumerWidget {
+class AlbumDetailPageHeader extends ConsumerStatefulWidget {
+  final AlbumWithTracks albumWithTracks;
   const AlbumDetailPageHeader({super.key, required this.albumWithTracks});
 
-  final AlbumWithTracks albumWithTracks;
+  @override
+  ConsumerState<AlbumDetailPageHeader> createState() => _AlbumDetailPageHeader();
+}
+
+class _AlbumDetailPageHeader extends ConsumerState<AlbumDetailPageHeader> {
+  late bool shouldShuffle;
+  bool _isTitleHovered = false;
 
   Widget _buildFallbackArt(ThemeData theme) {
     return Container(
@@ -130,10 +139,16 @@ class AlbumDetailPageHeader extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final album = albumWithTracks.album;
-    final artPath = albumWithTracks.album.albumArtPath;
-    final tracks = albumWithTracks.tracks;
+  void initState() {
+    super.initState();
+    shouldShuffle = ref.read(preferenceServiceProvider).shuffleMode;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final album = widget.albumWithTracks.album;
+    final artPath = widget.albumWithTracks.album.albumArtPath;
+    final tracks = widget.albumWithTracks.tracks;
     final theme = Theme.of(context);
 
     final appConfig = ref.watch(configServiceProvider).requireValue;
@@ -145,7 +160,7 @@ class AlbumDetailPageHeader extends ConsumerWidget {
       moreInfoParts.add(album.year.toString());
     }
     final trackWord = tracks.length == 1 ? 'Track' : 'Tracks';
-    moreInfoParts.add('${tracks.length} $trackWord, ${albumWithTracks.tracksLengthMs.toTotalDurationString()}');
+    moreInfoParts.add('${tracks.length} $trackWord, ${widget.albumWithTracks.tracksLengthMs.toTotalDurationString()}');
     final moreInfoString = moreInfoParts.join('  •  ');
 
     return FrostedGlass(
@@ -204,227 +219,160 @@ class AlbumDetailPageHeader extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                          // Album title
-                          Text(
-                            albumWithTracks.album.title,
-                            style: theme.textTheme.headlineMedium,
-                            maxLines: 2,
-                            overflow: .ellipsis,
-                          ),
+                        // Album title
+                        Text(
+                          widget.albumWithTracks.album.title,
+                          style: theme.textTheme.headlineMedium,
+                          maxLines: 2,
+                          overflow: .ellipsis,
+                        ),
 
-                          const SizedBox(height: 8),
+                        const SizedBox(height: 8),
 
-                          // Album artist
-                          MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: GestureDetector(
-                              onTap: () {},
+                        // Album artist
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          onEnter: (_) => setState(() => _isTitleHovered = true),
+                          onExit: (_) => setState(() => _isTitleHovered = false),
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {},
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: 0.0, right: 0.0, top: 4.0, bottom: 4.0),
                               child: Row(
-                                mainAxisSize: MainAxisSize.min,
+                                mainAxisSize: .min,
                                 children: [
                                   Text(
-                                    albumWithTracks.album.albumArtist ?? 'Unknown Artist',
-                                    style: theme.textTheme.titleLarge,
+                                    widget.albumWithTracks.album.albumArtist ?? 'Unknown Artist',
+                                    style: theme.textTheme.titleLarge!.copyWith(
+                                      decoration: _isTitleHovered ? TextDecoration.underline : TextDecoration.none,
+                                    ),
                                   ),
-                                  AppIcon(
-                                    appIconSet.navigationRight,
-                                    color: theme.textTheme.titleLarge!.color,
-                                    size: 28,
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 2.0, top: 1.5),
+                                    child: AnimatedSlide(
+                                      offset: _isTitleHovered ? const Offset(0.1, 0) : Offset.zero,
+                                      duration: const Duration(milliseconds: 200),
+                                      curve: Curves.easeOutCubic,
+                                      child: AppIcon(
+                                        LucideIcons.chevronRight500,
+                                        size: 24,
+                                        color: theme.textTheme.titleLarge!.color,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
                           ),
+                        ),
 
-                          const SizedBox(height: 4),
+                        const SizedBox(height: 4),
 
-                          // More info
-                          Text(moreInfoString),
-                        ],
-                      ),
+                        // More info
+                        Text(moreInfoString),
+                      ],
                     ),
-                  ],
+                  ),
+                ],
               ),
             ),
 
             const SizedBox(height: 24),
 
             // Buttons
-            HeaderButtons(albumTracks: albumWithTracks.tracks, albumId: albumWithTracks.album.id),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class HeaderButtons extends ConsumerStatefulWidget {
-  const HeaderButtons({super.key, required this.albumTracks, required this.albumId});
-
-  final int albumId;
-  final List<TrackWithArtists> albumTracks;
-
-  @override
-  ConsumerState<HeaderButtons> createState() => _HeaderButtonsState();
-}
-
-class _HeaderButtonsState extends ConsumerState<HeaderButtons> {
-  late bool shouldShuffle;
-
-  @override
-  void initState() {
-    super.initState();
-    shouldShuffle = ref.read(preferenceServiceProvider).shuffleMode;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    final appConfig = ref.watch(configServiceProvider).requireValue;
-    final appIconSet = ref.watch(appIconProvider);
-
-    return Row(
-      children: [
-        // PLAY & SHUFFLE GROUP
-        Container(
-          height: 36,
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(50),
-            border: Border.all(color: theme.colorScheme.outlineVariant),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(50),
-            child: FrostedGlass(
-              backgroundColor: appConfig.adaptiveBg
-                  ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
-                  : theme.colorScheme.surfaceContainerHigh,
-              blurSigma: 20,
-              child: Material(
-                color: Colors.transparent,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Play Button
-                    InkWell(
-                      onTap: () {
+            Row(
+              children: [
+                ButtonContainer(
+                  buttons: [
+                    BaseButton(
+                      icon: Icons.play_arrow_rounded,
+                      buttonHeight: 36,
+                      buttonWidth: 74,
+                      padding: const .only(right: 0),
+                      iconSize: 26,
+                      iconColor: theme.colorScheme.onSurface,
+                      title: 'Play',
+                      overlayShape: .rectangle,
+                      overlayColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                      onClick: () {
                         final playerService = ref.read(playerServiceProvider);
 
-                        final int startIndex = shouldShuffle ? Random().nextInt(widget.albumTracks.length) : 0;
+                        final int startIndex = shouldShuffle ? Random().nextInt(tracks.length) : 0;
 
                         // Sync the local state to the global preferences
                         ref.read(preferenceServiceProvider.notifier).setShuffleMode(shouldShuffle);
 
                         playerService.setPlaylist(
-                          tracksToPlay: widget.albumTracks,
+                          tracksToPlay: tracks,
                           initialIndex: startIndex,
                           playbackContextType: 'album',
-                          playbackContextId: widget.albumId,
+                          playbackContextId: widget.albumWithTracks.album.id,
                           forceReload: true,
                         );
                       },
-                      child: Container(
-                        alignment: Alignment.center,
-                        padding: const .only(left: 8.0, right: 8.0),
-                        child: Row(
-                          children: [
-                            Icon(Icons.play_arrow_rounded, color: theme.colorScheme.onSurface, size: 26),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Play',
-                              style: theme.textTheme.labelLarge?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: theme.colorScheme.onSurface,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ),
 
-                    // The subtle vertical divider
                     Center(child: Container(width: 1, height: 20, color: theme.colorScheme.outlineVariant)),
 
-                    // Shuffle Button
-                    InkWell(
-                      onTap: () {
+                    BaseButton(
+                      icon: appIconSet.shuffle,
+                      buttonHeight: 36,
+                      buttonWidth: 44,
+                      padding: const .only(right: 8),
+                      iconSize: 20,
+                      iconColor: theme.colorScheme.onSurface,
+                      overlayShape: .rectangle,
+                      overlayColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                      tooltip: 'Shuffle',
+                      onClick: () {
                         setState(() {
                           shouldShuffle = !shouldShuffle;
                         });
                       },
-                      child: Container(
-                        alignment: Alignment.center,
-                        padding: const .only(left: 8.0, right: 16.0),
-                        child: AppIcon(
-                          appIconSet.shuffle,
-                          size: 20,
-                          color: shouldShuffle ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
                     ),
                   ],
                 ),
-              ),
-            ),
-          ),
-        ),
 
-        // const Spacer(),
-        const SizedBox(width: 16),
+                const SizedBox(width: 16),
 
-        // Favorite and context menu buttons
-        Container(
-          height: 36,
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(50),
-            border: Border.all(color: theme.colorScheme.outlineVariant),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(50),
-            child: FrostedGlass(
-              backgroundColor: appConfig.adaptiveBg
-                  ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
-                  : theme.colorScheme.surfaceContainerHigh,
-              blurSigma: 20,
-              child: Material(
-                color: Colors.transparent,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Favorite
-                    InkWell(
-                      onTap: () {
+                ButtonContainer(
+                  buttons: [
+                    BaseButton(
+                      icon: appIconSet.favorite,
+                      buttonHeight: 36,
+                      buttonWidth: 42,
+                      padding: const .only(left: 6),
+                      iconSize: 20,
+                      iconColor: theme.colorScheme.onSurface,
+                      overlayShape: .rectangle,
+                      overlayColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                      tooltip: 'Favorite',
+                      onClick: () {
                         unimplemented(context);
                       },
-                      child: Container(
-                        alignment: Alignment.center,
-                        padding: const .only(left: 14.0, right: 8.0),
-                        child: AppIcon(appIconSet.favorite, color: theme.colorScheme.onSurface, size: 20),
-                      ),
                     ),
-
-                    // Context menu button
-                    InkWell(
-                      onTap: () {
+                    BaseButton(
+                      icon: appIconSet.contextMenu,
+                      buttonHeight: 36,
+                      buttonWidth: 42,
+                      padding: const .only(right: 6),
+                      iconSize: 20,
+                      iconColor: theme.colorScheme.onSurface,
+                      overlayShape: .rectangle,
+                      overlayColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                      tooltip: 'Context Menu',
+                      onClick: () {
                         unimplemented(context);
                       },
-                      child: Container(
-                        alignment: Alignment.center,
-                        padding: const .only(left: 8.0, right: 14.0),
-                        child: AppIcon(appIconSet.contextMenu, size: 20),
-                      ),
                     ),
                   ],
                 ),
-              ),
+              ],
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

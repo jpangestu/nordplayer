@@ -85,31 +85,29 @@ class _SectionExpansibleState extends ConsumerState<SectionExpansible> {
                         onTap: widget.onTitleClick,
                         child: Padding(
                           padding: const EdgeInsets.only(left: 0.0, right: 0.0, top: 4.0, bottom: 4.0),
-                          child: Text.rich(
-                            TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: widget.title,
-                                  style: (widget.titleStyle ?? theme.textTheme.titleMedium!).copyWith(
-                                    decoration: _isTitleHovered ? TextDecoration.underline : TextDecoration.none,
+                          child: Row(
+                            mainAxisSize: .min,
+                            children: [
+                              Text(
+                                widget.title,
+                                style: (widget.titleStyle ?? theme.textTheme.titleMedium!).copyWith(
+                                  decoration: _isTitleHovered ? TextDecoration.underline : TextDecoration.none,
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(left: 2.0, top: 2.5),
+                                child: AnimatedSlide(
+                                  offset: _isTitleHovered ? const Offset(0.1, 0) : Offset.zero,
+                                  duration: const Duration(milliseconds: 200),
+                                  curve: Curves.easeOutCubic,
+                                  child: AppIcon(
+                                    LucideIcons.chevronRight500,
+                                    size: 22,
+                                    color: widget.titleStyle?.color ?? theme.textTheme.titleMedium!.color,
                                   ),
                                 ),
-                                const TextSpan(text: ' '),
-                                WidgetSpan(
-                                  alignment: PlaceholderAlignment.middle,
-                                  child: AnimatedSlide(
-                                    offset: _isTitleHovered ? const Offset(0.1, 0) : Offset.zero,
-                                    duration: const Duration(milliseconds: 200),
-                                    curve: Curves.easeOutCubic,
-                                    child: AppIcon(
-                                      LucideIcons.chevronRight600,
-                                      size: 20,
-                                      color: widget.titleStyle?.color ?? theme.textTheme.titleMedium!.color,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
