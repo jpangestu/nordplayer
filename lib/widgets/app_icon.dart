@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
 
 /// Wrapper for the Icon() widget to calculate consistent icon sizing across different icon set

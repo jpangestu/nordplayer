@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class ScrollingText extends StatefulWidget {
   final InlineSpan textSpan;
@@ -97,22 +97,13 @@ class _ScrollingTextState extends State<ScrollingText> {
                 controller: _scrollController,
                 scrollDirection: Axis.horizontal,
                 physics: const NeverScrollableScrollPhysics(),
-                child: RichText(
-                  text: widget.textSpan,
-                  maxLines: 1,
-                  textScaler: textScaler,
-                ),
+                child: RichText(text: widget.textSpan, maxLines: 1, textScaler: textScaler),
               ),
             ),
           );
         } else {
           _timer?.cancel();
-          return RichText(
-            text: widget.textSpan,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textScaler: textScaler,
-          );
+          return RichText(text: widget.textSpan, maxLines: 1, overflow: TextOverflow.ellipsis, textScaler: textScaler);
         }
       },
     );

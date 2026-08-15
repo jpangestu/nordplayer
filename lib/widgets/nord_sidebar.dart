@@ -1,6 +1,6 @@
 import 'dart:ui' show ImageFilter;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/theming/theme-extension/nord_sidebar_theme.dart';
 
 class Sidebar extends StatelessWidget {

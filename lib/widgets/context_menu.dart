@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 
 class ContextMenu {
@@ -31,8 +31,7 @@ class ContextMenu {
     }
 
     final OverlayState overlayState = Overlay.of(context, rootOverlay: true);
-    final RenderBox overlayBox =
-        overlayState.context.findRenderObject() as RenderBox;
+    final RenderBox overlayBox = overlayState.context.findRenderObject() as RenderBox;
 
     const double menuWidth = 240;
     final double menuHeight = (actionMenus.length * 36.0) + 8.0;
@@ -75,19 +74,12 @@ class ContextMenu {
               blurSigma: isAdaptive ? 10 : 0,
               child: Material(
                 color: isAdaptive
-                    ? Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainer.withValues(alpha: 0.6)
+                    ? Theme.of(context).colorScheme.surfaceContainer.withValues(alpha: 0.6)
                     : Theme.of(context).colorScheme.surfaceContainer,
                 elevation: 8.0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: menuWidth,
-                    maxHeight: maxHeight < 200 ? 200 : maxHeight,
-                  ),
+                  constraints: BoxConstraints(maxWidth: menuWidth, maxHeight: maxHeight < 200 ? 200 : maxHeight),
                   child: SingleChildScrollView(
                     child: _ContextMenuUI(
                       isAdaptive: isAdaptive,
@@ -134,11 +126,7 @@ class ContextSubMenuAction extends ContextMenuEntry {
   final String label;
   final List<ContextMenuEntry> children;
 
-  ContextSubMenuAction({
-    required this.icon,
-    required this.label,
-    required this.children,
-  });
+  ContextSubMenuAction({required this.icon, required this.label, required this.children});
 }
 
 // Add this right below ContextSubMenuAction
@@ -153,12 +141,7 @@ class _ContextMenuUI extends StatelessWidget {
   final int depth;
   final bool isAdaptive;
 
-  const _ContextMenuUI({
-    required this.entries,
-    required this.onClose,
-    required this.depth,
-    required this.isAdaptive,
-  });
+  const _ContextMenuUI({required this.entries, required this.onClose, required this.depth, required this.isAdaptive});
 
   @override
   Widget build(BuildContext context) {
@@ -204,9 +187,7 @@ class _ContextMenuUI extends StatelessWidget {
                 Text(
                   shortcut,
                   style: TextStyle(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.5),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                     fontSize: 12,
                     letterSpacing: 1,
                   ),
@@ -230,9 +211,7 @@ class _ContextMenuUI extends StatelessWidget {
           icon: entry.icon,
           label: entry.label,
           shortcut: entry.shortcut,
-          color: entry.isDestructive
-              ? theme.colorScheme.error
-              : theme.colorScheme.onSurface,
+          color: entry.isDestructive ? theme.colorScheme.error : theme.colorScheme.onSurface,
           onTap: () {
             entry.onTap();
             onClose();
@@ -242,11 +221,7 @@ class _ContextMenuUI extends StatelessWidget {
 
       ContextMenuDivider() => MouseRegion(
         onEnter: (_) => ContextMenu.closeMenusBeyond(depth),
-        child: Divider(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
-          height: 9,
-          thickness: 1,
-        ),
+        child: Divider(color: theme.colorScheme.onSurface.withValues(alpha: 0.1), height: 9, thickness: 1),
       ),
 
       ContextSubMenuAction() => Builder(
@@ -269,21 +244,13 @@ class _ContextMenuUI extends StatelessWidget {
     };
   }
 
-  void _handleSubMenu(
-    BuildContext itemContext,
-    ContextSubMenuAction subMenu,
-    int currentDepth,
-  ) {
+  void _handleSubMenu(BuildContext itemContext, ContextSubMenuAction subMenu, int currentDepth) {
     final RenderBox box = itemContext.findRenderObject() as RenderBox;
     final Offset position = box.localToGlobal(Offset.zero);
     final Size size = box.size;
 
-    final OverlayState overlayState = Overlay.of(
-      itemContext,
-      rootOverlay: true,
-    );
-    final RenderBox overlayBox =
-        overlayState.context.findRenderObject() as RenderBox;
+    final OverlayState overlayState = Overlay.of(itemContext, rootOverlay: true);
+    final RenderBox overlayBox = overlayState.context.findRenderObject() as RenderBox;
 
     const double subMenuWidth = 240; // Must match the constant above
 

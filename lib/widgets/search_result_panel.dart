@@ -1,12 +1,12 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/pages/pages_context_menu.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/player_service.dart';
+import 'package:nordplayer/utils/shortcuts.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
-import 'package:nordplayer/utils/shortcuts.dart';
 
 class SearchResultsDropdown extends ConsumerWidget {
   const SearchResultsDropdown({super.key});

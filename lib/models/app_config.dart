@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/models/app_theme.dart';
 import 'package:nordplayer/models/library_section_config.dart';
 

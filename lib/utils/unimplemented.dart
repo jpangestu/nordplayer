@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/widgets/nord_snack_bar.dart';
 
 void unimplemented(BuildContext context) {

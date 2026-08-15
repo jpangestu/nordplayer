@@ -1,6 +1,5 @@
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/pages/pages_helper.dart';
 import 'package:nordplayer/services/player_service.dart';
@@ -13,12 +12,9 @@ bool _isAnyTextFieldFocused() {
 
   // Helper function to check if a widget is any known text input type
   bool isTextInputWrapper(Widget w) {
-    return w is EditableText ||
-        w is TextField ||
-        w is TextFormField ||
-        w is SearchBar || // Material 3 SearchBar
-        w is CupertinoTextField || // iOS style text field
-        w is CupertinoSearchTextField;
+    return w is EditableText || w is TextField || w is TextFormField || w is SearchBar; // Material 3 SearchBar
+    // w is CupertinoTextField || // iOS style text field
+    // w is CupertinoSearchTextField;
   }
 
   if (isTextInputWrapper(focusContext.widget)) {

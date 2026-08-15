@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 enum LabelType { h1, h2, h3 }
 
@@ -19,15 +19,9 @@ class SectionHeader extends StatelessWidget {
     final theme = Theme.of(context);
 
     final textStyle = switch (labelType) {
-      LabelType.h1 => theme.textTheme.titleLarge!.copyWith(
-        color: theme.colorScheme.onSurface,
-      ),
-      LabelType.h2 => theme.textTheme.titleMedium!.copyWith(
-        color: theme.colorScheme.onSurface,
-      ),
-      LabelType.h3 => theme.textTheme.titleSmall!.copyWith(
-        color: theme.colorScheme.onSurface,
-      ),
+      LabelType.h1 => theme.textTheme.titleLarge!.copyWith(color: theme.colorScheme.onSurface),
+      LabelType.h2 => theme.textTheme.titleMedium!.copyWith(color: theme.colorScheme.onSurface),
+      LabelType.h3 => theme.textTheme.titleSmall!.copyWith(color: theme.colorScheme.onSurface),
     };
 
     return Padding(

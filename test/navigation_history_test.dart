@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/services/navigation_history.dart';
 
 void main() {
@@ -20,12 +20,8 @@ void main() {
     // 2. Pump the MaterialApp.router overriding the goRouterProvider
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          goRouterProvider.overrideWithValue(dummyRouter),
-        ],
-        child: MaterialApp.router(
-          routerConfig: dummyRouter,
-        ),
+        overrides: [goRouterProvider.overrideWithValue(dummyRouter)],
+        child: MaterialApp.router(routerConfig: dummyRouter),
       ),
     );
     await tester.pumpAndSettle();

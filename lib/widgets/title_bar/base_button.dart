@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 
 /// For the icon itself, choose whether to use icon (IconData) or svgAssetPath or child widget

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
 
 class MaterialIconSet implements AppIconSet {

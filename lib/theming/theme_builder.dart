@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/theming/theme-extension/nord_semantic_theme.dart';
 import 'package:nordplayer/theming/theme-extension/nord_sidebar_theme.dart';
 import 'package:nordplayer/theming/theme-extension/nord_snackbar_theme.dart';

@@ -4,7 +4,7 @@ publish_to: "none"
 version: 0.1.21-alpha+3
 
 environment:
-  sdk: ^3.10.4
+  sdk: ^3.13.0
 
 dependencies:
   path: ^1.9.1
@@ -16,6 +16,7 @@ dependencies:
   file_selector: ^1.1.0
   flutter_svg: ^2.2.4
   go_router: ^17.1.0
+  material_ui: ^1.0.0
   path_provider: ^2.1.5
   shared_preferences: ^2.5.4
   url_launcher: ^6.3.2

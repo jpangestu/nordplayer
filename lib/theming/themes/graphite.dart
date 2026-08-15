@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/theming/theme_builder.dart';
 
 class GraphiteColorScheme extends AppColorScheme {

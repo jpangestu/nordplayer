@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/pages/album_detail_page.dart';
 import 'package:nordplayer/pages/albums_page.dart';
 import 'package:nordplayer/pages/app_layout.dart';
