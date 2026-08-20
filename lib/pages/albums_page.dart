@@ -7,15 +7,28 @@ import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/config_service.dart';
+import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
+import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
+import 'package:nordplayer/widgets/settings/section_container.dart';
+import 'package:nordplayer/widgets/settings/section_page_titile.dart';
 
-class AlbumsPage extends ConsumerWidget {
+class AlbumsPage extends ConsumerStatefulWidget {
   const AlbumsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AlbumsPage> createState() => _AlbumsPageState();
+}
+
+class _AlbumsPageState extends ConsumerState<AlbumsPage> {
+  // final GlobalKey _customizeSectionButtonKey = GlobalKey();
+  final GlobalKey _filterButtonKey = GlobalKey();
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appIconSet = ref.watch(appIconProvider);
     final albums = ref.watch(albumsProvider);
 
     return Scaffold(
@@ -24,42 +37,62 @@ class AlbumsPage extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Text('Error loading albums: $err'),
         data: (data) {
-          return Column(
-            children: [
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    const double minItemWidth = 200.0;
-                    // Calculate exactly how many albums can fit.
-                    final int crossAxisCount = (constraints.maxWidth / minItemWidth).floor().clamp(1, 100);
-
-                    return GridView.builder(
-                      padding: const .only(left: 24, right: 24, top: 24, bottom: 16),
-                      itemCount: data.length,
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
-                        mainAxisExtent: 240,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 8,
-                      ),
-                      itemBuilder: (context, index) {
-                        final album = data[index];
-
-                        return Center(
-                          child: SizedBox(
-                            width: 180,
-                            child: AlbumCard(
-                              album: album,
-                              onAlbumTap: () {
-                                final basePath = Routes.albumsPage;
-                                final targetId = album.id;
-
-                                context.go('$basePath/$targetId');
-                              },
-                            ),
+          return CustomScrollView(
+            slivers: [
+              SliverPadding(
+                padding: const .only(left: 12.0, right: 12.0, top: 12.0, bottom: 12.0),
+                sliver: SliverToBoxAdapter(
+                  child: SectionContainer(
+                    child: SectionPageTitle(
+                      titleStyle: theme.textTheme.headlineSmall,
+                      title: 'Albums',
+                      trailing: Row(
+                        children: [
+                          IconButton(
+                            key: _filterButtonKey,
+                            onPressed: () {},
+                            icon: AppIcon(appIconSet.filter, color: theme.textTheme.headlineSmall!.color, size: 22),
+                            tooltip: 'Filter',
                           ),
-                        );
-                      },
+
+                          // const SizedBox(width: 8),
+
+                          // IconButton(
+                          //   key: _customizeSectionButtonKey,
+                          //   onPressed: () {},
+                          //   icon: AppIcon(appIconSet.settings2, color: theme.textTheme.headlineSmall!.color, size: 22),
+                          //   tooltip: 'Customize Sections',
+                          // ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.only(left: 24, right: 24, top: 0, bottom: 16),
+                sliver: SliverGrid.builder(
+                  itemCount: data.length,
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 200.0,
+                    mainAxisExtent: 240,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 8,
+                  ),
+                  itemBuilder: (context, index) {
+                    final album = data[index];
+                    return Center(
+                      child: SizedBox(
+                        width: 180,
+                        child: AlbumCard(
+                          album: album,
+                          onAlbumTap: () {
+                            final basePath = Routes.albumsPage;
+                            final targetId = album.id;
+                            context.go('$basePath/$targetId');
+                          },
+                        ),
+                      ),
                     );
                   },
                 ),

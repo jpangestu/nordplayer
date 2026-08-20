@@ -368,6 +368,41 @@ class _AlbumDetailPageHeader extends ConsumerState<AlbumDetailPageHeader> {
                     ),
                   ],
                 ),
+
+                const Spacer(),
+
+                ButtonContainer(
+                  buttons: [
+                    BaseButton(
+                      icon: appIconSet.sort,
+                      buttonHeight: 36,
+                      buttonWidth: 42,
+                      padding: const .only(left: 6),
+                      iconSize: 20,
+                      iconColor: theme.colorScheme.onSurface,
+                      overlayShape: .rectangle,
+                      overlayColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                      tooltip: 'Sort',
+                      onClick: () {
+                        unimplemented(context);
+                      },
+                    ),
+                    BaseButton(
+                      icon: appIconSet.filter,
+                      buttonHeight: 36,
+                      buttonWidth: 42,
+                      padding: const .only(right: 6),
+                      iconSize: 20,
+                      iconColor: theme.colorScheme.onSurface,
+                      overlayShape: .rectangle,
+                      overlayColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                      tooltip: 'Filter',
+                      onClick: () {
+                        unimplemented(context);
+                      },
+                    ),
+                  ],
+                ),
               ],
             ),
           ],

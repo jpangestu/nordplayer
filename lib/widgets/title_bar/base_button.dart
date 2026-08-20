@@ -3,53 +3,41 @@ import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 
 /// For the icon itself, choose whether to use icon (IconData) or svgAssetPath or child widget
-class BaseButton extends StatefulWidget {
-  final IconData? icon;
-  final String? svgAssetPath;
-  final double buttonHeight;
-  final double buttonWidth;
-  final EdgeInsets padding;
-  final VoidCallback onClick;
+class const BaseButton({
+  super.key,
+  final IconData? icon,
+  final String? svgAssetPath,
+  required final double buttonHeight,
+  required final double buttonWidth,
+  final EdgeInsets padding = const EdgeInsets.all(0),
 
-  final double iconSize;
-  final Color iconColor;
-  final Color? iconColorOnHover;
-  final Color? iconColorOnClick;
+  /// Whether to enable inkwell splash effect or not
+  final bool enableSplash = true,
+  required final VoidCallback onClick,
 
-  final String? title;
+  final double iconSize = 16,
+  required final Color iconColor,
+  final Color? iconColorOnHover,
+  final Color? iconColorOnClick,
+
+  /// Use alongside icon or svg (ignored when you use child) to show to the right of the icon
+  final String? title,
 
   /// Shape of the hover overlay
-  final BoxShape overlayShape;
-  final Color overlayColor;
-  final Color? overlayColorOnClick;
+  final BoxShape overlayShape = BoxShape.circle,
+  required final Color overlayColor,
+  final Color? overlayColorOnClick,
 
-  final String? tooltip;
-  final Widget? child;
-
-  const BaseButton({
-    super.key,
-    this.icon,
-    this.svgAssetPath,
-    required this.buttonHeight,
-    required this.buttonWidth,
-    this.padding = const EdgeInsets.all(0),
-    required this.onClick,
-    this.iconSize = 16,
-    required this.iconColor,
-    this.iconColorOnHover,
-    this.iconColorOnClick,
-    this.title,
-    this.overlayShape = BoxShape.circle,
-    required this.overlayColor,
-    this.overlayColorOnClick,
-    this.tooltip,
-    this.child,
-  }) : assert(
-         icon != null && svgAssetPath == null && child == null ||
-             icon == null && svgAssetPath != null && child == null ||
-             icon == null && svgAssetPath == null && child != null,
-         'Provide either icon or svgPath',
-       );
+  final String? tooltip,
+  final Widget? child,
+}) extends StatefulWidget {
+  this
+    : assert(
+        icon != null && svgAssetPath == null && child == null ||
+            icon == null && svgAssetPath != null && child == null ||
+            icon == null && svgAssetPath == null && child != null,
+        'Provide exactly one of: icon, svgAssetPath, or child',
+      );
 
   @override
   State<BaseButton> createState() => _BaseButtonState();
@@ -76,69 +64,78 @@ class _BaseButtonState extends State<BaseButton> {
     return _isHovered ? widget.overlayColor : Colors.transparent;
   }
 
-  Widget _buildChild() {
+  Widget _buildIconOrChild() {
     if (widget.child != null) {
       return widget.child!;
     }
 
-    if (widget.icon != null) {
-      final iconWidget = AppIcon(widget.icon!, size: widget.iconSize, color: _iconColor);
+    final Widget iconWidget = widget.icon != null
+        ? AppIcon(widget.icon!, size: widget.iconSize, color: _iconColor)
+        : SvgPicture.asset(
+            widget.svgAssetPath!,
+            width: widget.iconSize,
+            height: widget.iconSize,
+            colorFilter: ColorFilter.mode(_iconColor, BlendMode.srcIn),
+          );
 
-      if (widget.title != null) {
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            iconWidget,
-            const SizedBox(width: 4),
-            Flexible(
-              child: Text(
-                widget.title!,
-                maxLines: 1,
-                overflow: .ellipsis,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-              ),
+    if (widget.title != null) {
+      return Row(
+        mainAxisAlignment: .center,
+        children: [
+          iconWidget,
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              widget.title!,
+              maxLines: 1,
+              overflow: .ellipsis,
+              style: Theme.of(context).textTheme.labelLarge
+                  ?.copyWith(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface),
             ),
-          ],
-        );
-      }
-
-      return iconWidget;
+          ),
+        ],
+      );
     }
 
-    return Center(
-      child: SvgPicture.asset(
-        widget.svgAssetPath!,
-        width: widget.iconSize,
-        height: widget.iconSize,
-        colorFilter: ColorFilter.mode(_iconColor, BlendMode.srcIn),
-      ),
-    );
+    return Center(child: iconWidget);
   }
 
   @override
   Widget build(BuildContext context) {
-    final button = Center(
-      child: Container(
-        clipBehavior: .antiAlias,
-        height: widget.buttonHeight,
-        width: widget.buttonWidth,
-        decoration: BoxDecoration(shape: widget.overlayShape, color: _isHovered ? _overlayColor : Colors.transparent),
-        child: MouseRegion(
-          onEnter: (_) => setState(() => _isHovered = true),
-          onExit: (_) => setState(() => _isHovered = false),
-          child: InkWell(
-            customBorder: widget.overlayShape == BoxShape.circle ? const CircleBorder() : null,
-            onTapDown: (_) => setState(() => _isClicked = true),
-            onTapUp: (_) => setState(() => _isClicked = false),
-            onTapCancel: () => setState(() => _isClicked = false),
-            onTap: widget.onClick,
-            child: Padding(padding: widget.padding, child: _buildChild()),
-          ),
-        ),
-      ),
+    final button = MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: widget.enableSplash
+          ? Material(
+              color: Colors.transparent,
+              child: InkWell(
+                customBorder: widget.overlayShape == BoxShape.circle ? const CircleBorder() : null,
+                onTapDown: (_) => setState(() => _isClicked = true),
+                onTapUp: (_) => setState(() => _isClicked = false),
+                onTapCancel: () => setState(() => _isClicked = false),
+                onTap: widget.onClick,
+                child: Container(
+                  padding: widget.padding,
+                  height: widget.buttonHeight,
+                  width: widget.buttonWidth,
+                  decoration: BoxDecoration(shape: widget.overlayShape, color: _overlayColor),
+                  child: _buildIconOrChild(),
+                ),
+              ),
+            )
+          : GestureDetector(
+              onTapDown: (_) => setState(() => _isClicked = true),
+              onTapUp: (_) => setState(() => _isClicked = false),
+              onTapCancel: () => setState(() => _isClicked = false),
+              onTap: widget.onClick,
+              child: Container(
+                padding: widget.padding,
+                height: widget.buttonHeight,
+                width: widget.buttonWidth,
+                decoration: BoxDecoration(shape: widget.overlayShape, color: _overlayColor),
+                child: _buildIconOrChild(),
+              ),
+            ),
     );
 
     if (widget.tooltip != null) {
