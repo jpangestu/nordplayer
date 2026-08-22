@@ -8,6 +8,7 @@ import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/performance_tracker.dart';
 import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
+import 'package:nordplayer/widgets/popover_panel.dart';
 import 'package:nordplayer/widgets/title_bar/background_task_panel.dart';
 import 'package:nordplayer/widgets/title_bar/base_button.dart';
 import 'package:nordplayer/widgets/title_bar/keyboard_shortcuts_panel.dart';
@@ -83,7 +84,12 @@ class _NordplayerTitleBarState extends ConsumerState<NordTitleBar> {
                       overlayColor: colorScheme.onSurface.withValues(alpha: 0.1),
                       tooltip: 'Keyboard Shortcuts',
                       onClick: () {
-                        showShortcutsPanel(context, _shortcutsButtonKey);
+                        showPopover(
+                          context: context,
+                          anchorKey: _shortcutsButtonKey,
+                          width: 280,
+                          child: const KeyboardShortcutsPanel(),
+                        );
                       },
                     ),
                   ],
@@ -198,7 +204,7 @@ class _PerformanceState extends State<_Performance> {
             overlayColor: colorScheme.onSurface.withValues(alpha: 0.1),
             tooltip: 'Performance Metrics',
             onClick: () {
-              showPerformancePanel(context, _fpsButtonKey);
+              showPopover(context: context, anchorKey: _fpsButtonKey, width: 300, child: const PerformancePanel());
             },
           );
         }
@@ -222,7 +228,7 @@ class _PerformanceState extends State<_Performance> {
           child: GestureDetector(
             key: _fpsButtonKey,
             onTap: () {
-              showPerformancePanel(context, _fpsButtonKey);
+              showPopover(context: context, anchorKey: _fpsButtonKey, width: 300, child: const PerformancePanel());
             },
             behavior: HitTestBehavior.opaque,
             child: Tooltip(
@@ -322,7 +328,7 @@ class _BackgroundTaskButtonState extends ConsumerState<_BackgroundTaskButton> wi
           overlayColor: colorScheme.onSurface.withValues(alpha: 0.1),
           tooltip: 'Performance Metrics',
           onClick: () {
-            showBackgroundTaskPanel(context, _buttonKey);
+            showPopover(context: context, anchorKey: _buttonKey, width: 320, child: const BackgroundTaskPanel());
           },
           child: SizedBox(
             width: 28,
