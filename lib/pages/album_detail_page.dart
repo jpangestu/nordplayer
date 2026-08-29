@@ -15,7 +15,9 @@ import 'package:nordplayer/utils/int_extension.dart';
 import 'package:nordplayer/utils/unimplemented.dart';
 import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
+import 'package:nordplayer/widgets/context_menu.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
+import 'package:nordplayer/widgets/select_popover.dart';
 import 'package:nordplayer/widgets/sliver_resizable_table.dart';
 import 'package:nordplayer/widgets/title_bar/base_button.dart';
 import 'package:nordplayer/widgets/title_bar/button_container.dart';
@@ -29,8 +31,8 @@ class AlbumDetailPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final appConfig = ref.watch(configServiceProvider).requireValue;
-    final albumsWithTracks = ref.watch(albumWithTracksProvider(albumId));
-    final albumDetailColumns = ref.watch(albumDetailPageColumnsProvider);
+    final albumsWithTracks = ref.watch(sortedAlbumWithTracksProvider(albumId));
+    final albumDetailColumns = ref.watch(albumDetailPageTableColumnsProvider);
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface.withValues(
@@ -68,6 +70,14 @@ class AlbumDetailPage extends ConsumerWidget {
                 isAdaptive: appConfig.adaptiveBg,
                 headerBlur: appConfig.adaptiveBgPanelBlur,
                 headerThemeOverlay: appConfig.adaptiveBgThemeOverlay,
+                onHeaderRightClick: (globalPosition) {
+                  ContextMenu.show(
+                    context: context,
+                    isAdaptive: appConfig.adaptiveBg,
+                    globalPosition: globalPosition,
+                    actionMenus: [ContextMenuCustomWidget(child: const AlbumDetailPageTableColumnSelectorMenu())],
+                  );
+                },
                 onRowClick: (index, {required isCtrl, required isShift}) {
                   ref
                       .read(selectedTracksIndexProvider('album').notifier)
@@ -128,6 +138,8 @@ class AlbumDetailPageHeader extends ConsumerStatefulWidget {
 class _AlbumDetailPageHeader extends ConsumerState<AlbumDetailPageHeader> {
   late bool shouldShuffle;
   bool _isTitleHovered = false;
+  final GlobalKey _sortButtonKey = GlobalKey();
+  final GlobalKey _filterButtonKey = GlobalKey();
 
   Widget _buildFallbackArt(ThemeData theme) {
     return Container(
@@ -374,6 +386,7 @@ class _AlbumDetailPageHeader extends ConsumerState<AlbumDetailPageHeader> {
                 ButtonContainer(
                   buttons: [
                     BaseButton(
+                      key: _sortButtonKey,
                       icon: appIconSet.sort,
                       buttonHeight: 36,
                       buttonWidth: 42,
@@ -384,10 +397,45 @@ class _AlbumDetailPageHeader extends ConsumerState<AlbumDetailPageHeader> {
                       overlayColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
                       tooltip: 'Sort',
                       onClick: () {
-                        unimplemented(context);
+                        SelectPopover.show(
+                          context: context,
+                          anchorKey: _sortButtonKey,
+                          closeOnSelect: false,
+                          sectionsBuilder: (context, ref) {
+                            final currentSort = ref.watch(albumTrackSortProvider);
+                            final currentOrder = ref.watch(albumTrackSortOrderProvider);
+
+                            return [
+                              SelectPopoverSection<AlbumTrackSort>(
+                                title: 'Sort by',
+                                selectedValue: currentSort,
+                                options: const [
+                                  SelectPopoverOption(title: 'Track Number', value: AlbumTrackSort.trackNumber),
+                                  SelectPopoverOption(title: 'Title', value: AlbumTrackSort.title),
+                                  SelectPopoverOption(title: 'Duration', value: AlbumTrackSort.duration),
+                                ],
+                                onSelected: (sort) {
+                                  ref.read(albumTrackSortProvider.notifier).setSort(sort);
+                                },
+                              ),
+                              SelectPopoverSection<SortOrder>(
+                                title: 'Order',
+                                selectedValue: currentOrder,
+                                options: const [
+                                  SelectPopoverOption(title: 'Ascending', value: SortOrder.ascending),
+                                  SelectPopoverOption(title: 'Descending', value: SortOrder.descending),
+                                ],
+                                onSelected: (order) {
+                                  ref.read(albumTrackSortOrderProvider.notifier).setOrder(order);
+                                },
+                              ),
+                            ];
+                          },
+                        );
                       },
                     ),
                     BaseButton(
+                      key: _filterButtonKey,
                       icon: appIconSet.filter,
                       buttonHeight: 36,
                       buttonWidth: 42,
@@ -398,7 +446,29 @@ class _AlbumDetailPageHeader extends ConsumerState<AlbumDetailPageHeader> {
                       overlayColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
                       tooltip: 'Filter',
                       onClick: () {
-                        unimplemented(context);
+                        SelectPopover.show(
+                          context: context,
+                          anchorKey: _filterButtonKey,
+                          closeOnSelect: false,
+                          sectionsBuilder: (context, ref) {
+                            final showFavoritesOnly = ref.watch(albumShowFavoritesOnlyProvider);
+                            return [
+                              SelectPopoverSection<bool>(
+                                title: 'Filter',
+                                options: [
+                                  SelectPopoverOption<bool>(
+                                    title: 'Favorites',
+                                    value: true,
+                                    isSelected: showFavoritesOnly,
+                                    onTap: () {
+                                      ref.read(albumShowFavoritesOnlyProvider.notifier).toggle();
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ];
+                          },
+                        );
                       },
                     ),
                   ],
@@ -412,12 +482,137 @@ class _AlbumDetailPageHeader extends ConsumerState<AlbumDetailPageHeader> {
   }
 }
 
-final albumDetailPageColumnsProvider =
-    NotifierProvider<AlbumDetailPageColumnsNotifier, List<TableColumn<TrackWithArtists>>>(
-      AlbumDetailPageColumnsNotifier.new,
+enum AlbumTrackSort {
+  trackNumber('Track Number'),
+  title('Title'),
+  duration('Duration');
+
+  final String label;
+  const AlbumTrackSort(this.label);
+}
+
+final albumTrackSortProvider = NotifierProvider<AlbumTrackSortNotifier, AlbumTrackSort>(AlbumTrackSortNotifier.new);
+
+class AlbumTrackSortNotifier extends Notifier<AlbumTrackSort> {
+  @override
+  AlbumTrackSort build() => AlbumTrackSort.trackNumber;
+
+  void setSort(AlbumTrackSort sort) {
+    state = sort;
+  }
+}
+
+enum SortOrder {
+  ascending('Ascending'),
+  descending('Descending');
+
+  final String label;
+  const SortOrder(this.label);
+}
+
+final albumTrackSortOrderProvider = NotifierProvider<AlbumTrackSortOrderNotifier, SortOrder>(
+  AlbumTrackSortOrderNotifier.new,
+);
+
+class AlbumTrackSortOrderNotifier extends Notifier<SortOrder> {
+  @override
+  SortOrder build() => SortOrder.ascending;
+
+  void setOrder(SortOrder order) {
+    state = order;
+  }
+}
+
+final albumShowFavoritesOnlyProvider = NotifierProvider<AlbumShowFavoritesOnlyNotifier, bool>(
+  AlbumShowFavoritesOnlyNotifier.new,
+);
+
+class AlbumShowFavoritesOnlyNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void toggle() {
+    state = !state;
+  }
+}
+
+final sortedAlbumWithTracksProvider = Provider.family<AsyncValue<AlbumWithTracks?>, int>((ref, albumId) {
+  final albumAsync = ref.watch(albumWithTracksProvider(albumId));
+  final currentSort = ref.watch(albumTrackSortProvider);
+  final currentOrder = ref.watch(albumTrackSortOrderProvider);
+  final showFavoritesOnly = ref.watch(albumShowFavoritesOnlyProvider);
+
+  return albumAsync.whenData((data) {
+    if (data == null) return null;
+    final orderMultiplier = currentOrder == SortOrder.ascending ? 1 : -1;
+    var sortedTracks = List<TrackWithArtists>.from(data.tracks);
+
+    if (showFavoritesOnly) {
+      // TODO: filter favorite on albums detail page
+    }
+
+    switch (currentSort) {
+      case AlbumTrackSort.trackNumber:
+        sortedTracks.sort((a, b) => a.track.trackNumber.compareTo(b.track.trackNumber) * orderMultiplier);
+        break;
+      case AlbumTrackSort.title:
+        sortedTracks.sort(
+          (a, b) => a.track.title.toLowerCase().compareTo(b.track.title.toLowerCase()) * orderMultiplier,
+        );
+        break;
+      case AlbumTrackSort.duration:
+        sortedTracks.sort((a, b) => a.track.durationMs.compareTo(b.track.durationMs) * orderMultiplier);
+        break;
+    }
+    return AlbumWithTracks(album: data.album, tracks: sortedTracks, tracksLengthMs: data.tracksLengthMs);
+  });
+});
+
+class AlbumDetailPageTableColumnSelectorMenu extends ConsumerWidget {
+  const AlbumDetailPageTableColumnSelectorMenu({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final columns = ref.watch(albumDetailPageTableColumnsProvider);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: columns.map((col) {
+        return InkWell(
+          onTap: () {
+            ref.read(albumDetailPageTableColumnsProvider.notifier).toggleVisibility(col.id);
+          },
+          child: Container(
+            height: 36,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                Icon(
+                  col.isVisible ? Icons.check_box : Icons.check_box_outline_blank,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  col.label.isEmpty ? (col.id == 'context_menu' ? 'More Options' : col.id) : col.label,
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+final albumDetailPageTableColumnsProvider =
+    NotifierProvider<AlbumDetailPageTableColumnsNotifier, List<TableColumn<TrackWithArtists>>>(
+      AlbumDetailPageTableColumnsNotifier.new,
     );
 
-class AlbumDetailPageColumnsNotifier extends Notifier<List<TableColumn<TrackWithArtists>>> {
+class AlbumDetailPageTableColumnsNotifier extends Notifier<List<TableColumn<TrackWithArtists>>> {
   @override
   List<TableColumn<TrackWithArtists>> build() {
     return _initialColumns;

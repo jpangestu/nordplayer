@@ -250,7 +250,7 @@ class HeaderColumnSelectorMenu extends ConsumerWidget {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  col.label.isEmpty ? 'Context Menu' : col.label,
+                  col.label.isEmpty ? 'More Options' : col.label,
                   style: const TextStyle(fontWeight: FontWeight.w500),
                 ),
               ],
