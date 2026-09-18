@@ -1,7 +1,8 @@
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:logger/logger.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/models/app_theme.dart';
-import 'package:nordplayer/models/library_section_config.dart';
+import 'package:nordplayer/core/models/library_section_config.dart';
+import 'package:nordplayer/core/theme/app_theme.dart';
 
 class AppConfig {
   final List<String> trackDirectories;
@@ -346,5 +347,55 @@ class AppConfig {
       'textScale': textScale,
       'librarySections': librarySections.map((e) => e.toJson()).toList(),
     };
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AppConfig &&
+          runtimeType == other.runtimeType &&
+          watchTrackDirectories == other.watchTrackDirectories &&
+          theme == other.theme &&
+          themeBrightness == other.themeBrightness &&
+          iconSet == other.iconSet &&
+          adaptiveBg == other.adaptiveBg &&
+          adaptiveBgAlbumFit == other.adaptiveBgAlbumFit &&
+          adaptiveBgAlbumBlur == other.adaptiveBgAlbumBlur &&
+          adaptiveBgPanelBlur == other.adaptiveBgPanelBlur &&
+          adaptiveBgThemeOverlay == other.adaptiveBgThemeOverlay &&
+          fontFamily == other.fontFamily &&
+          textScale == other.textScale &&
+          listEquals(trackDirectories, other.trackDirectories) &&
+          listEquals(artistDelimiters, other.artistDelimiters) &&
+          listEquals(artistExclusions, other.artistExclusions) &&
+          listEquals(librarySections, other.librarySections);
+
+  @override
+  int get hashCode => Object.hash(
+        Object.hashAll(trackDirectories),
+        watchTrackDirectories,
+        Object.hashAll(artistDelimiters),
+        Object.hashAll(artistExclusions),
+        theme,
+        themeBrightness,
+        iconSet,
+        adaptiveBg,
+        adaptiveBgAlbumFit,
+        adaptiveBgAlbumBlur,
+        adaptiveBgPanelBlur,
+        adaptiveBgThemeOverlay,
+        fontFamily,
+        textScale,
+        Object.hashAll(librarySections),
+      );
+
+  @override
+  String toString() {
+    return 'AppConfig('
+        'theme: $theme, '
+        'brightness: $themeBrightness, '
+        'iconSet: $iconSet, '
+        'fontFamily: $fontFamily, '
+        'adaptiveBg: $adaptiveBg)';
   }
 }

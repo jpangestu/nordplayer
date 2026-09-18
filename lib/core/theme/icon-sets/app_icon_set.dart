@@ -1,8 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/services/config_service.dart';
-import 'package:nordplayer/theming/icon-sets/lucide_icons.dart';
-import 'package:nordplayer/theming/icon-sets/material_icons.dart';
+import 'package:nordplayer/core/theme/icon-sets/lucide_icons.dart';
+import 'package:nordplayer/core/theme/icon-sets/material_icons.dart';
 
 abstract class AppIconSet {
   // To make sure all icon set (that'll definitely has different margin/spacing) will ended up with the same size
@@ -83,13 +83,13 @@ abstract class AppIconSet {
 }
 
 final appIconProvider = Provider<AppIconSet>((ref) {
-  final iconSetName = ref.watch(configServiceProvider).requireValue.iconSet;
+  final iconSetName = ref.watch(configServiceProvider.select((v) => v.value?.iconSet ?? 'lucide'));
 
   switch (iconSetName) {
     case 'material':
-      return MaterialIconSet();
+      return const MaterialIconSet();
     case 'lucide':
     default:
-      return LucideIconSet();
+      return const LucideIconSet();
   }
 });

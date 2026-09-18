@@ -3,9 +3,13 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:nordplayer/services/logger.dart';
+import 'package:nordplayer/core/services/logger.dart';
 import 'package:nordplayer/widgets/player_bar/progress_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:nordplayer/core/services/performance_tracker.dart';
+import 'package:nordplayer/core/services/shared_preferences_provider.dart';
+export 'package:nordplayer/core/services/shared_preferences_provider.dart';
 
 class PrefConstants {
   static const String cachedCurrentAlbumArtPath = 'cachedAlbumArtPath';
@@ -34,6 +38,7 @@ class PrefConstants {
     sidebarExtended,
     timeLabelType,
     volume,
+    ...PerformanceTracker.prefKeys,
   };
 }
 
@@ -82,10 +87,6 @@ class PreferencesState {
   }
 }
 
-/// Shared Preference api
-final sharedPrefsProvider = Provider<SharedPreferencesWithCache>((ref) {
-  throw UnimplementedError('Initialize this in main.dart');
-});
 
 final preferenceServiceProvider = NotifierProvider<PreferenceService, PreferencesState>(() {
   return PreferenceService();

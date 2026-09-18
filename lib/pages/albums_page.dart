@@ -7,7 +7,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/config_service.dart';
-import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
+import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
 import 'package:nordplayer/widgets/settings/section_container.dart';

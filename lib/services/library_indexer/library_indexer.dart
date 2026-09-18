@@ -4,12 +4,12 @@ import 'package:audiotags/audiotags.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/database/app_database.dart';
-import 'package:nordplayer/services/background_task_service.dart';
+import 'package:nordplayer/core/services/background_task_service.dart';
 import 'package:nordplayer/services/chromaprint_service.dart';
-import 'package:nordplayer/services/logger.dart';
+import 'package:nordplayer/core/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/utils/audio_metadata_hasher.dart';
-import 'package:nordplayer/utils/string_extension.dart';
+import 'package:nordplayer/core/utils/string_extension.dart';
 import 'package:path/path.dart' as p;
 
 import 'audio_fingerprint_indexer.dart';

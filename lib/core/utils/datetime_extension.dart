@@ -1,9 +1,12 @@
+const List<String> _months = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
 /// Formats a [DateTime] into a standard string representation (e.g., '01 Jan 2026').
 String formatToStandard(DateTime date) {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
   final day = date.day.toString().padLeft(2, '0');
-  final month = months[date.month - 1];
+  final month = _months[date.month - 1];
   final year = date.year;
 
   return '$day $month $year';
@@ -20,6 +23,11 @@ extension DateTimeExtension on DateTime {
     final now = DateTime.now();
     final difference = now.difference(this);
 
+    // Guard against clock skew / future timestamps
+    if (difference.isNegative) {
+      return 'Just now';
+    }
+
     if (difference.inSeconds < 60) {
       return 'Just now';
     } else if (difference.inMinutes < 60) {
@@ -30,13 +38,13 @@ extension DateTimeExtension on DateTime {
       return 'Yesterday';
     } else if (difference.inDays <= 6) {
       return '${difference.inDays} days ago';
-    } else if (difference.inDays >= 7 && difference.inDays < 14) {
+    } else if (difference.inDays < 14) {
       return '1 week ago';
-    } else if (difference.inDays >= 14 && difference.inDays < 21) {
+    } else if (difference.inDays < 21) {
       return '2 weeks ago';
-    } else if (difference.inDays >= 21 && difference.inDays < 28) {
+    } else if (difference.inDays < 28) {
       return '3 weeks ago';
-    } else if (difference.inDays == 28) {
+    } else if (difference.inDays < 31) {
       return '4 weeks ago';
     } else {
       return toStandardFormat();

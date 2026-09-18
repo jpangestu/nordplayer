@@ -1,85 +1,58 @@
 import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nordplayer/core/services/shared_preferences_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class PerformanceTracker extends ChangeNotifier {
-  static final PerformanceTracker instance = PerformanceTracker._();
-  PerformanceTracker._() {
-    _loadVisibilitySettings();
-    _start();
-  }
+final performanceTrackerProvider = NotifierProvider<PerformanceTracker, PerformanceState>(() {
+  return PerformanceTracker();
+});
 
-  static const int _cpuRamUpdateMs = kDebugMode ? 500 : 1000;
-  static const int _uiNotifyLimitMs = kDebugMode ? 200 : 500;
+@immutable
+class PerformanceState {
+  final int actualFrameRate;
+  final bool isIdle;
+  final double currentFrameTime;
+  final double minFrameTime;
+  final double maxFrameTime;
+  final double averageFrameTime;
+  final double currentUiTime;
+  final double currentGpuTime;
+  final double cpuUsage;
+  final int ramBytes;
+  final Map<String, bool> visibility;
 
-  final List<DateTime> _frameTimes = [];
-  final List<double> _recentFrameTimes = [];
-  int _actualFrameRate = 0;
-  bool _isIdle = true;
-  Timer? _timer;
-  DateTime _lastFrameTime = DateTime.now();
-  DateTime _lastNotificationTime = DateTime.fromMillisecondsSinceEpoch(0);
+  const PerformanceState({
+    this.actualFrameRate = 0,
+    this.isIdle = true,
+    this.currentFrameTime = 0.0,
+    this.minFrameTime = 0.0,
+    this.maxFrameTime = 0.0,
+    this.averageFrameTime = 0.0,
+    this.currentUiTime = 0.0,
+    this.currentGpuTime = 0.0,
+    this.cpuUsage = 0.0,
+    this.ramBytes = 0,
+    this.visibility = const {
+      'potentialFps': false,
+      'avgPotentialFps': false,
+      'minPotentialFps': false,
+      'maxPotentialFps': false,
+      'frameLatency': false,
+      'averageFrameTime': false,
+      'minFrameTime': false,
+      'maxFrameTime': false,
+      'actualFrameRate': false,
+      'cpuUsage': false,
+      'ramUsage': false,
+    },
+  });
 
-  final Map<String, bool> _visibility = {
-    'potentialFps': false,
-    'avgPotentialFps': false,
-    'minPotentialFps': false,
-    'maxPotentialFps': false,
-    'frameLatency': false,
-    'averageFrameTime': false,
-    'minFrameTime': false,
-    'maxFrameTime': false,
-    'actualFrameRate': false,
-    'cpuUsage': false,
-    'ramUsage': false,
-  };
-
-  bool isVisible(String key) => _visibility[key] ?? false;
-
-  void _loadVisibilitySettings() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      for (final key in _visibility.keys) {
-        final val = prefs.getBool('perf_vis_$key');
-        if (val != null) {
-          _visibility[key] = val;
-        }
-      }
-      notifyListeners();
-    } catch (_) {}
-  }
-
-  void toggleVisibility(String key) async {
-    final current = _visibility[key] ?? false;
-    _visibility[key] = !current;
-    notifyListeners();
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('perf_vis_$key', !current);
-    } catch (_) {}
-  }
-
-  // Performance metrics
-  double _currentFrameTime = 0.0;
-  double _minFrameTime = 0.0;
-  double _maxFrameTime = 0.0;
-  double _currentUiTime = 0.0;
-  double _currentGpuTime = 0.0;
-  double _cpuUsage = 0.0;
-  int _ramBytes = 0;
-
-  int get actualFrameRate => _actualFrameRate;
-  bool get isIdle => _isIdle;
-  double get currentFrameTime => _currentFrameTime;
-  double get minFrameTime => _minFrameTime;
-  double get maxFrameTime => _maxFrameTime;
-  double get currentUiTime => _currentUiTime;
-  double get currentGpuTime => _currentGpuTime;
-  double get cpuUsage => _cpuUsage;
-  int get ramBytes => _ramBytes;
+  bool isVisible(String key) => visibility[key] ?? false;
 
   String formatRam(int bytes) {
     final mb = bytes / (1024.0 * 1024.0);
@@ -99,41 +72,160 @@ class PerformanceTracker extends ChangeNotifier {
   }
 
   int get potentialFps {
-    if (_isIdle || _currentFrameTime == 0.0) return 0;
-    return (1000.0 / _currentFrameTime).round();
+    if (isIdle || currentFrameTime == 0.0) return 0;
+    return (1000.0 / currentFrameTime).round();
   }
 
   int get minPotentialFps {
-    if (_maxFrameTime == 0.0) return 0;
-    return (1000.0 / _maxFrameTime).round();
+    if (maxFrameTime == 0.0) return 0;
+    return (1000.0 / maxFrameTime).round();
   }
 
   int get maxPotentialFps {
-    if (_minFrameTime == 0.0) return 0;
-    return (1000.0 / _minFrameTime).round();
-  }
-
-  double get averageFrameTime {
-    if (_recentFrameTimes.isEmpty) return 0.0;
-    final sum = _recentFrameTimes.reduce((a, b) => a + b);
-    return sum / _recentFrameTimes.length;
+    if (minFrameTime == 0.0) return 0;
+    return (1000.0 / minFrameTime).round();
   }
 
   int get averagePotentialFps {
-    final avg = averageFrameTime;
-    if (_isIdle || avg == 0.0) return 0;
-    return (1000.0 / avg).round();
+    if (isIdle || averageFrameTime == 0.0) return 0;
+    return (1000.0 / averageFrameTime).round();
+  }
+
+  PerformanceState copyWith({
+    int? actualFrameRate,
+    bool? isIdle,
+    double? currentFrameTime,
+    double? minFrameTime,
+    double? maxFrameTime,
+    double? averageFrameTime,
+    double? currentUiTime,
+    double? currentGpuTime,
+    double? cpuUsage,
+    int? ramBytes,
+    Map<String, bool>? visibility,
+  }) {
+    return PerformanceState(
+      actualFrameRate: actualFrameRate ?? this.actualFrameRate,
+      isIdle: isIdle ?? this.isIdle,
+      currentFrameTime: currentFrameTime ?? this.currentFrameTime,
+      minFrameTime: minFrameTime ?? this.minFrameTime,
+      maxFrameTime: maxFrameTime ?? this.maxFrameTime,
+      averageFrameTime: averageFrameTime ?? this.averageFrameTime,
+      currentUiTime: currentUiTime ?? this.currentUiTime,
+      currentGpuTime: currentGpuTime ?? this.currentGpuTime,
+      cpuUsage: cpuUsage ?? this.cpuUsage,
+      ramBytes: ramBytes ?? this.ramBytes,
+      visibility: visibility ?? this.visibility,
+    );
+  }
+}
+
+class PerformanceTracker extends Notifier<PerformanceState> {
+  static const Set<String> prefKeys = {
+    'perf_vis_potentialFps',
+    'perf_vis_avgPotentialFps',
+    'perf_vis_minPotentialFps',
+    'perf_vis_maxPotentialFps',
+    'perf_vis_frameLatency',
+    'perf_vis_averageFrameTime',
+    'perf_vis_minFrameTime',
+    'perf_vis_maxFrameTime',
+    'perf_vis_actualFrameRate',
+    'perf_vis_cpuUsage',
+    'perf_vis_ramUsage',
+  };
+
+  static const int _cpuRamUpdateMs = kDebugMode ? 500 : 1000;
+  static const int _uiNotifyLimitMs = kDebugMode ? 200 : 500;
+
+  late SharedPreferencesWithCache _prefs;
+  WinCpu? _winCpu;
+  LinuxCpu? _linuxCpu;
+
+  final List<DateTime> _frameTimes = [];
+  final List<double> _recentFrameTimes = [];
+  int _actualFrameRate = 0;
+  bool _isIdle = true;
+  Timer? _timer;
+  DateTime _lastFrameTime = DateTime.now();
+  DateTime _lastNotificationTime = DateTime.fromMillisecondsSinceEpoch(0);
+
+  double _currentFrameTime = 0.0;
+  double _minFrameTime = 0.0;
+  double _maxFrameTime = 0.0;
+  double _currentUiTime = 0.0;
+  double _currentGpuTime = 0.0;
+  double _cpuUsage = 0.0;
+  int _ramBytes = 0;
+
+  @override
+  PerformanceState build() {
+    _prefs = ref.watch(sharedPrefsProvider);
+
+    if (Platform.isWindows) {
+      _winCpu = WinCpu();
+    } else if (Platform.isLinux) {
+      _linuxCpu = LinuxCpu();
+    }
+
+    final initialVisibility = _loadVisibilitySettings();
+
+    _start();
+
+    ref.onDispose(() {
+      _timer?.cancel();
+      SchedulerBinding.instance.removeTimingsCallback(_onReportTimings);
+      _winCpu?.dispose();
+    });
+
+    return PerformanceState(visibility: initialVisibility);
+  }
+
+  Map<String, bool> _loadVisibilitySettings() {
+    final visibility = <String, bool>{
+      'potentialFps': false,
+      'avgPotentialFps': false,
+      'minPotentialFps': false,
+      'maxPotentialFps': false,
+      'frameLatency': false,
+      'averageFrameTime': false,
+      'minFrameTime': false,
+      'maxFrameTime': false,
+      'actualFrameRate': false,
+      'cpuUsage': false,
+      'ramUsage': false,
+    };
+
+    for (final key in visibility.keys) {
+      final val = _prefs.getBool('perf_vis_$key');
+      if (val != null) {
+        visibility[key] = val;
+      }
+    }
+    return visibility;
+  }
+
+  void toggleVisibility(String key) {
+    final current = state.visibility[key] ?? false;
+    final next = !current;
+    final updatedVisibility = Map<String, bool>.from(state.visibility);
+    updatedVisibility[key] = next;
+    state = state.copyWith(visibility: updatedVisibility);
+    _prefs.setBool('perf_vis_$key', next);
   }
 
   void resetStats() {
     _minFrameTime = 0.0;
     _maxFrameTime = 0.0;
     _recentFrameTimes.clear();
-    notifyListeners();
+    state = state.copyWith(
+      minFrameTime: 0.0,
+      maxFrameTime: 0.0,
+      averageFrameTime: 0.0,
+    );
   }
 
   void _start() {
-    // Listen to exact frame timings from Flutter Engine
     SchedulerBinding.instance.addTimingsCallback(_onReportTimings);
 
     _timer = Timer.periodic(const Duration(milliseconds: _cpuRamUpdateMs), (timer) {
@@ -143,28 +235,26 @@ class PerformanceTracker extends ChangeNotifier {
       // Memory & CPU update
       _ramBytes = ProcessInfo.currentRss;
       if (Platform.isWindows) {
-        _cpuUsage = WinCpu.instance.getCpuUsage();
+        _cpuUsage = _winCpu?.getCpuUsage() ?? 0.0;
       } else if (Platform.isLinux) {
-        _cpuUsage = LinuxCpu.instance.getCpuUsage();
+        _cpuUsage = _linuxCpu?.getCpuUsage() ?? 0.0;
       } else {
         _cpuUsage = 0.0;
       }
 
       // If the last frame was more than 1.5 seconds ago, mark as idle
       if (now.difference(_lastFrameTime).inMilliseconds > 1500) {
-        if (!_isIdle) {
-          _isIdle = true;
-          _actualFrameRate = 0;
-          _currentFrameTime = 0.0;
-          _currentUiTime = 0.0;
-          _currentGpuTime = 0.0;
-          notifyListeners();
-        }
+        _isIdle = true;
+        _actualFrameRate = 0;
+        _currentFrameTime = 0.0;
+        _currentUiTime = 0.0;
+        _currentGpuTime = 0.0;
       } else {
         _isIdle = false;
         _actualFrameRate = _frameTimes.length;
-        notifyListeners();
       }
+
+      _notifyState(now);
     });
   }
 
@@ -199,17 +289,29 @@ class PerformanceTracker extends ChangeNotifier {
       }
     }
 
-    // Rate-limit UI rebuild notifications based on build mode
     if (now.difference(_lastNotificationTime).inMilliseconds > _uiNotifyLimitMs) {
-      notifyListeners();
-      _lastNotificationTime = now;
+      _notifyState(now);
     }
   }
 
-  void disposeTracker() {
-    _timer?.cancel();
-    SchedulerBinding.instance.removeTimingsCallback(_onReportTimings);
-    WinCpu.instance.dispose();
+  void _notifyState(DateTime now) {
+    _lastNotificationTime = now;
+    final avgFrameTime = _recentFrameTimes.isEmpty
+        ? 0.0
+        : _recentFrameTimes.reduce((a, b) => a + b) / _recentFrameTimes.length;
+
+    state = state.copyWith(
+      actualFrameRate: _actualFrameRate,
+      isIdle: _isIdle,
+      currentFrameTime: _currentFrameTime,
+      minFrameTime: _minFrameTime,
+      maxFrameTime: _maxFrameTime,
+      averageFrameTime: avgFrameTime,
+      currentUiTime: _currentUiTime,
+      currentGpuTime: _currentGpuTime,
+      cpuUsage: _cpuUsage,
+      ramBytes: _ramBytes,
+    );
   }
 }
 
@@ -242,8 +344,7 @@ typedef LocalFreeNative = Pointer Function(Pointer hMem);
 typedef LocalFreeDart = Pointer Function(Pointer hMem);
 
 class WinCpu {
-  static final WinCpu instance = WinCpu._();
-  WinCpu._() {
+  WinCpu() {
     _init();
   }
 
@@ -336,18 +437,30 @@ class WinCpu {
   }
 
   void dispose() {
-    if (_creationTimePtr != null) _localFree!(_creationTimePtr!);
-    if (_exitTimePtr != null) _localFree!(_exitTimePtr!);
-    if (_kernelTimePtr != null) _localFree!(_kernelTimePtr!);
-    if (_userTimePtr != null) _localFree!(_userTimePtr!);
+    if (_creationTimePtr != null) {
+      _localFree!(_creationTimePtr!);
+      _creationTimePtr = null;
+    }
+    if (_exitTimePtr != null) {
+      _localFree!(_exitTimePtr!);
+      _exitTimePtr = null;
+    }
+    if (_kernelTimePtr != null) {
+      _localFree!(_kernelTimePtr!);
+      _kernelTimePtr = null;
+    }
+    if (_userTimePtr != null) {
+      _localFree!(_userTimePtr!);
+      _userTimePtr = null;
+    }
+    _initialized = false;
   }
 }
 
 // ======================================= Linux CPU Helper =======================================
 
 class LinuxCpu {
-  static final LinuxCpu instance = LinuxCpu._();
-  LinuxCpu._() {
+  LinuxCpu() {
     _init();
   }
 

@@ -1,8 +1,10 @@
 import 'package:flutter/widgets.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
+import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 
 class LucideIconSet implements AppIconSet {
+  const LucideIconSet();
+
   @override
   double get opticalScale => 0.9;
 

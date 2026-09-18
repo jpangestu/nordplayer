@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/theming/theme-extension/nord_semantic_theme.dart';
-import 'package:nordplayer/theming/theme-extension/nord_sidebar_theme.dart';
-import 'package:nordplayer/theming/theme-extension/nord_snackbar_theme.dart';
+import 'package:nordplayer/core/theme/theme-extension/nord_semantic_theme.dart';
+import 'package:nordplayer/core/theme/theme-extension/nord_sidebar_theme.dart';
+import 'package:nordplayer/core/theme/theme-extension/nord_snackbar_theme.dart';
 
 abstract class AppColorScheme {
   // Base theme: dark or light

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
-import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
+import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/nord_sidebar.dart';
 

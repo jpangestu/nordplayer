@@ -3,10 +3,10 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/services/background_task_service.dart';
+import 'package:nordplayer/core/services/background_task_service.dart';
 import 'package:nordplayer/services/config_service.dart';
-import 'package:nordplayer/services/performance_tracker.dart';
-import 'package:nordplayer/theming/icon-sets/app_icon_set.dart';
+import 'package:nordplayer/core/services/performance_tracker.dart';
+import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/popover_panel.dart';
 import 'package:nordplayer/widgets/title_bar/background_task_panel.dart';
@@ -112,143 +112,137 @@ class _NordplayerTitleBarState extends ConsumerState<NordTitleBar> {
   }
 }
 
-class _Performance extends StatefulWidget {
+class _Performance extends ConsumerStatefulWidget {
   final AppIconSet appIconSet;
   const _Performance({required this.appIconSet});
 
   @override
-  State<_Performance> createState() => _PerformanceState();
+  ConsumerState<_Performance> createState() => _PerformanceState();
 }
 
-class _PerformanceState extends State<_Performance> {
+class _PerformanceState extends ConsumerState<_Performance> {
   final GlobalKey _fpsButtonKey = GlobalKey();
   bool _isHovering = false;
 
   @override
   Widget build(BuildContext context) {
+    final tracker = ref.watch(performanceTrackerProvider);
     final colorScheme = Theme.of(context).colorScheme;
+    final baseColor = colorScheme.onSurface;
+    final textColor = _isHovering
+        ? baseColor
+        : (tracker.isIdle ? baseColor.withValues(alpha: 0.3) : baseColor.withValues(alpha: 0.7));
 
-    return AnimatedBuilder(
-      animation: PerformanceTracker.instance,
-      builder: (context, _) {
-        final tracker = PerformanceTracker.instance;
-        final baseColor = colorScheme.onSurface;
-        final textColor = _isHovering
-            ? baseColor
-            : (tracker.isIdle ? baseColor.withValues(alpha: 0.3) : baseColor.withValues(alpha: 0.7));
+    final baseStyle = TextStyle(
+      fontSize: 11,
+      fontWeight: FontWeight.w700,
+      color: textColor,
+      fontFamily: 'jetbrains_mono',
+    );
 
-        final baseStyle = TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: textColor,
-          fontFamily: 'jetbrains_mono',
+    final List<Widget> widgets = [];
+
+    if (tracker.isVisible('frameLatency')) {
+      final val = tracker.formatLatency(tracker.currentFrameTime);
+      widgets.add(Text(val, style: baseStyle));
+    }
+    if (tracker.isVisible('potentialFps')) {
+      final val = tracker.isIdle ? 'Idle' : '${tracker.potentialFps} FPS';
+      widgets.add(Text(val, style: baseStyle));
+    }
+    if (tracker.isVisible('averageFrameTime')) {
+      final val = tracker.isIdle || tracker.averageFrameTime == 0.0
+          ? 'Avg: Idle'
+          : 'Avg: ${tracker.formatLatency(tracker.averageFrameTime)}';
+      widgets.add(Text(val, style: baseStyle));
+    }
+    if (tracker.isVisible('avgPotentialFps')) {
+      final val = tracker.isIdle ? 'Avg: Idle' : 'Avg: ${tracker.averagePotentialFps} FPS';
+      widgets.add(Text(val, style: baseStyle));
+    }
+    if (tracker.isVisible('minFrameTime')) {
+      final val = 'Min: ${tracker.formatLatency(tracker.minFrameTime)}';
+      widgets.add(Text(val, style: baseStyle));
+    }
+    if (tracker.isVisible('maxPotentialFps')) {
+      final val = 'Max: ${tracker.maxPotentialFps} FPS';
+      widgets.add(Text(val, style: baseStyle));
+    }
+    if (tracker.isVisible('maxFrameTime')) {
+      final val = 'Max: ${tracker.formatLatency(tracker.maxFrameTime)}';
+      widgets.add(Text(val, style: baseStyle));
+    }
+    if (tracker.isVisible('minPotentialFps')) {
+      final val = 'Min: ${tracker.minPotentialFps} FPS';
+      widgets.add(Text(val, style: baseStyle));
+    }
+    if (tracker.isVisible('actualFrameRate')) {
+      final val = tracker.isIdle ? 'Idle' : '${tracker.actualFrameRate} Hz';
+      widgets.add(Text(val, style: baseStyle));
+    }
+    if (tracker.isVisible('cpuUsage')) {
+      final val = '${tracker.cpuUsage.toStringAsFixed(1)}% CPU';
+      widgets.add(Text(val, style: baseStyle));
+    }
+    if (tracker.isVisible('ramUsage')) {
+      final val = tracker.formatRam(tracker.ramBytes);
+      widgets.add(Text(val, style: baseStyle));
+    }
+
+    if (widgets.isEmpty) {
+      return BaseButton(
+        key: _fpsButtonKey,
+        icon: widget.appIconSet.performance,
+        buttonHeight: 24,
+        buttonWidth: 24,
+        iconSize: 17,
+        iconColor: colorScheme.onSurface,
+        overlayColor: colorScheme.onSurface.withValues(alpha: 0.1),
+        tooltip: 'Performance Metrics',
+        onClick: () {
+          showPopover(context: context, anchorKey: _fpsButtonKey, width: 300, child: const PerformancePanel());
+        },
+      );
+    }
+
+    final List<Widget> children = [];
+    for (int i = 0; i < widgets.length; i++) {
+      children.add(widgets[i]);
+      if (i < widgets.length - 1) {
+        children.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text('|', style: baseStyle.copyWith(color: textColor.withValues(alpha: 0.3))),
+          ),
         );
+      }
+    }
 
-        final List<Widget> widgets = [];
-
-        if (tracker.isVisible('frameLatency')) {
-          final val = tracker.formatLatency(tracker.currentFrameTime);
-          widgets.add(Text(val, style: baseStyle));
-        }
-        if (tracker.isVisible('potentialFps')) {
-          final val = tracker.isIdle ? 'Idle' : '${tracker.potentialFps} FPS';
-          widgets.add(Text(val, style: baseStyle));
-        }
-        if (tracker.isVisible('averageFrameTime')) {
-          final val = tracker.isIdle || tracker.averageFrameTime == 0.0
-              ? 'Avg: Idle'
-              : 'Avg: ${tracker.formatLatency(tracker.averageFrameTime)}';
-          widgets.add(Text(val, style: baseStyle));
-        }
-        if (tracker.isVisible('avgPotentialFps')) {
-          final val = tracker.isIdle ? 'Avg: Idle' : 'Avg: ${tracker.averagePotentialFps} FPS';
-          widgets.add(Text(val, style: baseStyle));
-        }
-        if (tracker.isVisible('minFrameTime')) {
-          final val = 'Min: ${tracker.formatLatency(tracker.minFrameTime)}';
-          widgets.add(Text(val, style: baseStyle));
-        }
-        if (tracker.isVisible('maxPotentialFps')) {
-          final val = 'Max: ${tracker.maxPotentialFps} FPS';
-          widgets.add(Text(val, style: baseStyle));
-        }
-        if (tracker.isVisible('maxFrameTime')) {
-          final val = 'Max: ${tracker.formatLatency(tracker.maxFrameTime)}';
-          widgets.add(Text(val, style: baseStyle));
-        }
-        if (tracker.isVisible('minPotentialFps')) {
-          final val = 'Min: ${tracker.minPotentialFps} FPS';
-          widgets.add(Text(val, style: baseStyle));
-        }
-        if (tracker.isVisible('actualFrameRate')) {
-          final val = tracker.isIdle ? 'Idle' : '${tracker.actualFrameRate} Hz';
-          widgets.add(Text(val, style: baseStyle));
-        }
-        if (tracker.isVisible('cpuUsage')) {
-          final val = '${tracker.cpuUsage.toStringAsFixed(1)}% CPU';
-          widgets.add(Text(val, style: baseStyle));
-        }
-        if (tracker.isVisible('ramUsage')) {
-          final val = tracker.formatRam(tracker.ramBytes);
-          widgets.add(Text(val, style: baseStyle));
-        }
-
-        if (widgets.isEmpty) {
-          return BaseButton(
-            key: _fpsButtonKey,
-            icon: widget.appIconSet.performance,
-            buttonHeight: 24,
-            buttonWidth: 24,
-            iconSize: 17,
-            iconColor: colorScheme.onSurface,
-            overlayColor: colorScheme.onSurface.withValues(alpha: 0.1),
-            tooltip: 'Performance Metrics',
-            onClick: () {
-              showPopover(context: context, anchorKey: _fpsButtonKey, width: 300, child: const PerformancePanel());
-            },
-          );
-        }
-
-        final List<Widget> children = [];
-        for (int i = 0; i < widgets.length; i++) {
-          children.add(widgets[i]);
-          if (i < widgets.length - 1) {
-            children.add(
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Text('|', style: baseStyle.copyWith(color: textColor.withValues(alpha: 0.3))),
-              ),
-            );
-          }
-        }
-
-        return MouseRegion(
-          onEnter: (_) => setState(() => _isHovering = true),
-          onExit: (_) => setState(() => _isHovering = false),
-          child: GestureDetector(
-            key: _fpsButtonKey,
-            onTap: () {
-              showPopover(context: context, anchorKey: _fpsButtonKey, width: 300, child: const PerformancePanel());
-            },
-            behavior: HitTestBehavior.opaque,
-            child: Tooltip(
-              message: 'Performance Metrics',
-              waitDuration: const Duration(milliseconds: 500),
-              child: Container(
-                height: 34,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Row(mainAxisSize: MainAxisSize.min, children: children),
-                  ),
-                ),
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovering = true),
+      onExit: (_) => setState(() => _isHovering = false),
+      child: GestureDetector(
+        key: _fpsButtonKey,
+        onTap: () {
+          showPopover(context: context, anchorKey: _fpsButtonKey, width: 300, child: const PerformancePanel());
+        },
+        behavior: HitTestBehavior.opaque,
+        child: Tooltip(
+          message: 'Performance Metrics',
+          waitDuration: const Duration(milliseconds: 500),
+          child: Container(
+            height: 34,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(mainAxisSize: MainAxisSize.min, children: children),
               ),
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

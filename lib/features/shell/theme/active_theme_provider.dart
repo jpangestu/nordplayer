@@ -2,76 +2,21 @@ import 'dart:io' show File;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:nordplayer/core/theme/app_theme.dart';
+import 'package:nordplayer/core/theme/themes/adaptive.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
-import 'package:nordplayer/theming/theme_builder.dart';
-import 'package:nordplayer/theming/themes/adaptive.dart';
-import 'package:nordplayer/theming/themes/graphite.dart';
-import 'package:nordplayer/theming/themes/nord.dart';
-import 'package:nordplayer/theming/themes/nord_light.dart';
-
-class AppTheme {
-  AppTheme._();
-
-  static final ThemeData defaultDark = ThemeData.dark(useMaterial3: true);
-  static final ThemeData defaultLight = ThemeData.light(useMaterial3: true);
-
-  static const Map<String, String> labels = {
-    'nord': 'Nord (default)',
-    'nord_light': 'Nord Light',
-    'adaptive': 'Adaptive',
-    'graphite': 'Graphite',
-  };
-
-  static const Map<String, String> availableFonts = {
-    'outfit': 'Outfit (default)',
-    'inter': 'Inter',
-    'jetbrains_mono': 'JetBrains Mono',
-    'lora': 'Lora',
-    'rubik': 'Rubik',
-    'system': 'System Default',
-  };
-
-  // Nullable fontFamily for system font (null == system font)
-  static ThemeData getTheme(String key, String? fontFamily, {AppColorScheme? adaptiveScheme}) {
-    // Convert the string 'system' into a true null for Flutter
-    final String? actualFontFamily = fontFamily == 'system' ? null : fontFamily;
-
-    // Only use fallbacks if we are NOT using the system font.
-    // Also, make sure 'system' isn't accidentally passed into the fallback list.
-    final List<String>? fallbacks = actualFontFamily == null
-        ? null
-        : availableFonts.keys.where((k) => k != 'system').toList();
-
-    AppColorScheme schemeToUse;
-
-    if (key == 'adaptive' && adaptiveScheme != null) {
-      schemeToUse = adaptiveScheme;
-    } else if (key == 'nord_light') {
-      schemeToUse = NordLightColorScheme();
-    } else if (key == 'graphite') {
-      schemeToUse = GraphiteColorScheme();
-    } else {
-      // Default to standard Nord (also acts as a safe fallback if 'adaptive' is selected but the scheme is null)
-      schemeToUse = NordColorScheme();
-    }
-
-    return buildTheme(fontFamily: fontFamily, fontFamilyFallback: fallbacks, appColorScheme: schemeToUse);
-  }
-}
-
-// =============================================== Provider ===========================================================
 
 final adaptiveThemeProvider = FutureProvider<AdaptiveColorScheme>((ref) async {
-  final track = ref.watch(currentTrackProvider);
+  final trackAlbumArtPath = ref.watch(currentTrackProvider.select((t) => t?.album.albumArtPath));
   final cachedAlbumArtPath = ref.watch(preferenceServiceProvider.select((p) => p.cachedAlbumArtPath));
 
   final themeBrightness = ref.watch(
     configServiceProvider.select((asyncValue) => asyncValue.value?.themeBrightness ?? Brightness.dark),
   );
 
-  final albumArtPath = track?.album.albumArtPath ?? cachedAlbumArtPath;
+  final albumArtPath = trackAlbumArtPath ?? cachedAlbumArtPath;
 
   // Determine the correct ImageProvider based on the path
   final ImageProvider imageProvider;

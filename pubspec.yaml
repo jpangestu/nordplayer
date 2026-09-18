@@ -45,6 +45,7 @@ dev_dependencies:
 
   # Third parties
   drift_dev: ^2.33.0
+  shared_preferences_platform_interface: ^2.4.1
 
 flutter:
   uses-material-design: true

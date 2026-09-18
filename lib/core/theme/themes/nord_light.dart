@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/theming/theme_builder.dart';
+import 'package:nordplayer/core/theme/theme_builder.dart';
 
 class NordLightColorScheme extends AppColorScheme {
   @override

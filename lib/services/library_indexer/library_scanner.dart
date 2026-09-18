@@ -5,13 +5,13 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/database/app_database.dart';
-import 'package:nordplayer/models/app_config.dart';
-import 'package:nordplayer/services/background_task_service.dart';
+import 'package:nordplayer/core/models/app_config.dart';
+import 'package:nordplayer/core/services/background_task_service.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/library_indexer/track_indexer.dart';
-import 'package:nordplayer/services/logger.dart';
+import 'package:nordplayer/core/services/logger.dart';
 import 'package:nordplayer/utils/audio_metadata_hasher.dart';
-import 'package:nordplayer/utils/string_extension.dart';
+import 'package:nordplayer/core/utils/string_extension.dart';
 import 'package:path/path.dart' as p;
 
 class LibraryScanner with LoggerMixin {

@@ -2,7 +2,8 @@ extension IntExtension on int {
   /// Converts milliseconds into a formatted string (e.g., "1:04:30", "4:30", or "0:45").
   /// Standard format for individual track duration section
   String toDurationString() {
-    final duration = Duration(milliseconds: this);
+    final ms = this < 0 ? 0 : this;
+    final duration = Duration(milliseconds: ms);
 
     final hours = duration.inHours;
     final minutes = duration.inMinutes.remainder(60);
@@ -23,27 +24,31 @@ extension IntExtension on int {
     return '0:${seconds.toString().padLeft(2, '0')}';
   }
 
-  /// Converts milliseconds into a formatted string (e.g., "2 hr 15 min", "45 min").
+  /// Converts milliseconds into a formatted string (e.g., "2 Hours 15 Minutes", "45 Minutes").
   /// Standard format for total aggregated lengths like Playlists or Albums
   String toTotalDurationString() {
     if (this <= 0) return '0 min';
 
     final duration = Duration(milliseconds: this);
 
-    // For massive collections (like the entire library), you might want to scale up to days
     final days = duration.inDays;
     final hours = duration.inHours.remainder(24);
     final minutes = duration.inMinutes.remainder(60);
+    final totalHours = duration.inHours;
 
     if (days > 0) {
-      return '$days Day${days > 1 ? 's' : ''} $hours Hour';
+      final dayStr = '$days ${days == 1 ? 'Day' : 'Days'}';
+      final hourStr = '$hours ${hours == 1 ? 'Hour' : 'Hours'}';
+      return hours > 0 ? '$dayStr $hourStr' : dayStr;
     }
 
-    if (duration.inHours > 0) {
-      return '${duration.inHours} Hour $minutes Minutes';
+    if (totalHours > 0) {
+      final hourStr = '$totalHours ${totalHours == 1 ? 'Hour' : 'Hours'}';
+      final minStr = '$minutes ${minutes == 1 ? 'Minute' : 'Minutes'}';
+      return minutes > 0 ? '$hourStr $minStr' : hourStr;
     }
 
-    return '$minutes Minutes';
+    return '$minutes ${minutes == 1 ? 'Minute' : 'Minutes'}';
   }
 
   /// Converts bytes into a human-readable file size string (e.g., "24.1 GB", "850.5 MB", "12 KB")

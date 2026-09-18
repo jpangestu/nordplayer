@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/models/app_theme.dart';
+import 'package:nordplayer/core/theme/app_theme.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/widgets/settings/choice_tile.dart';
 import 'package:nordplayer/widgets/settings/section_container.dart';

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/services/background_task_service.dart';
+import 'package:nordplayer/core/services/background_task_service.dart';
 import 'package:nordplayer/widgets/popover_panel.dart';
 
 class BackgroundTaskPanel extends ConsumerWidget {

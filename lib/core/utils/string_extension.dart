@@ -1,11 +1,14 @@
 import 'package:path/path.dart' as p;
 
+// Split the string by spaces, hyphens, or underscores
+final RegExp _wordSplitRegex = RegExp(r'[\s_-]+');
+
 extension StringExtension on String {
   String toTitleCase() {
-    if (trim().isEmpty) return this;
+    final trimmed = trim();
+    if (trimmed.isEmpty) return this;
 
-    // Split the string by spaces, hyphens, or underscores
-    final words = trim().split(RegExp(r'[\s_-]+'));
+    final words = trimmed.split(_wordSplitRegex);
 
     if (words.isEmpty) return this;
 
@@ -13,14 +16,14 @@ extension StringExtension on String {
     return words
         .where((word) => word.isNotEmpty)
         .map((word) => word[0].toUpperCase() + word.substring(1).toLowerCase())
-        .join(' '); // We join with a space to keep it human-readable
+        .join(' ');
   }
 
   String toPascalCase() {
-    if (trim().isEmpty) return this;
+    final trimmed = trim();
+    if (trimmed.isEmpty) return this;
 
-    // Split the string by spaces, hyphens, or underscores
-    final words = trim().split(RegExp(r'[\s_-]+'));
+    final words = trimmed.split(_wordSplitRegex);
 
     if (words.isEmpty) return this;
 
@@ -34,7 +37,7 @@ extension StringExtension on String {
   /// Normalizes a file path or file URI into a standard platform-native path.
   String normalizePath() {
     String path = this;
-    if (startsWith('file:/')) {
+    if (toLowerCase().startsWith('file:/')) {
       try {
         path = Uri.parse(this).toFilePath();
       } catch (_) {}

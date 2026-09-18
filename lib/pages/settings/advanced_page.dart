@@ -6,7 +6,7 @@ import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/services/config_service.dart';
 import 'package:nordplayer/services/library_indexer/library_indexer.dart';
 import 'package:nordplayer/services/library_watcher.dart';
-import 'package:nordplayer/services/logger.dart';
+import 'package:nordplayer/core/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/services/preference_service.dart';
 import 'package:nordplayer/widgets/nord_alert_dialog.dart';

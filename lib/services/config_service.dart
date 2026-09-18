@@ -3,10 +3,10 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/models/app_config.dart';
-import 'package:nordplayer/models/library_section_config.dart';
-import 'package:nordplayer/services/logger.dart';
-import 'package:nordplayer/utils/directory_helper.dart';
+import 'package:nordplayer/core/models/app_config.dart';
+import 'package:nordplayer/core/models/library_section_config.dart';
+import 'package:nordplayer/core/services/logger.dart';
+import 'package:nordplayer/core/utils/directory_helper.dart';
 import 'package:path/path.dart' as p;
 
 final configServiceProvider = AsyncNotifierProvider<ConfigService, AppConfig>(() {

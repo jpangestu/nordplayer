@@ -7,9 +7,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/database/app_database.dart';
-import 'package:nordplayer/services/background_task_service.dart';
+import 'package:nordplayer/core/services/background_task_service.dart';
 import 'package:nordplayer/services/chromaprint_service.dart';
-import 'package:nordplayer/services/logger.dart';
+import 'package:nordplayer/core/services/logger.dart';
 
 class AudioFingerprintIndexer with LoggerMixin {
   AudioFingerprintIndexer(this._ref, this._db);

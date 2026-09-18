@@ -5,11 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:nordplayer/database/app_database.dart';
 import 'package:nordplayer/pages/queue_page.dart';
-import 'package:nordplayer/services/logger.dart';
+import 'package:nordplayer/core/services/logger.dart';
 import 'package:nordplayer/services/preference_service.dart';
-import 'package:nordplayer/utils/debouncer.dart';
-import 'package:nordplayer/utils/stream_extension.dart';
-import 'package:nordplayer/utils/string_extension.dart';
+import 'package:nordplayer/core/utils/debouncer.dart';
+import 'package:nordplayer/core/utils/stream_extension.dart';
+import 'package:nordplayer/core/utils/string_extension.dart';
 
 class PlayerService with LoggerMixin {
   final Ref ref;

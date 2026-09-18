@@ -30,7 +30,9 @@ class BackgroundTask {
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
 
-  double? get progress => (total > 0 && status == BackgroundTaskStatus.running) ? processed / total : null;
+  double? get progress => (total > 0 && status == BackgroundTaskStatus.running)
+      ? (processed / total).clamp(0.0, 1.0)
+      : null;
 
   BackgroundTask copyWith({
     String? name,
@@ -52,6 +54,39 @@ class BackgroundTask {
       error: error ?? this.error,
       timestamp: timestamp,
     );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BackgroundTask &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          name == other.name &&
+          processed == other.processed &&
+          total == other.total &&
+          message == other.message &&
+          isIndeterminate == other.isIndeterminate &&
+          status == other.status &&
+          error == other.error &&
+          timestamp == other.timestamp;
+
+  @override
+  int get hashCode => Object.hash(
+        id,
+        name,
+        processed,
+        total,
+        message,
+        isIndeterminate,
+        status,
+        error,
+        timestamp,
+      );
+
+  @override
+  String toString() {
+    return 'BackgroundTask{id: $id, name: $name, processed: $processed/$total, status: $status}';
   }
 }
 

@@ -15,13 +15,29 @@ class Debouncer {
 
   final Duration duration;
   Timer? _timer;
+  bool _isDisposed = false;
+
+  bool get isDisposed => _isDisposed;
+  bool get isActive => _timer?.isActive ?? false;
 
   void call(void Function() action) {
+    if (_isDisposed) return;
     _timer?.cancel();
-    _timer = Timer(duration, action);
+    _timer = Timer(duration, () {
+      if (_isDisposed) return;
+      action();
+    });
   }
 
-  void dispose() {
+  /// Cancels any currently pending debounced callback without disposing.
+  void cancel() {
     _timer?.cancel();
+    _timer = null;
+  }
+
+  /// Permanently disposes this debouncer and cancels any pending timers.
+  void dispose() {
+    _isDisposed = true;
+    cancel();
   }
 }
