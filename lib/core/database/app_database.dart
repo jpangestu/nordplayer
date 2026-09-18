@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/database/schema.dart';
+import 'package:nordplayer/core/database/schema.dart';
 import 'package:nordplayer/core/utils/directory_helper.dart';
 import 'package:nordplayer/core/utils/string_extension.dart';
 

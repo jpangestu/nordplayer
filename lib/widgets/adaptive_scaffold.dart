@@ -3,9 +3,9 @@ import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/services/config_service.dart';
+import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/services/player_service.dart';
-import 'package:nordplayer/services/preference_service.dart';
+import 'package:nordplayer/core/services/preference_service.dart';
 
 class AdaptiveScaffold extends ConsumerWidget {
   const AdaptiveScaffold({super.key, required this.body});
@@ -14,14 +14,24 @@ class AdaptiveScaffold extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final adaptiveBg = ref.watch(configServiceProvider.select((v) => v.value?.adaptiveBg ?? false));
-    final blur = ref.watch(configServiceProvider.select((v) => v.value?.adaptiveBgAlbumBlur ?? 0.0));
-    final fit = ref.watch(configServiceProvider.select((v) => v.value?.adaptiveBgAlbumFit ?? BoxFit.cover));
-    final themeOverlay = ref.watch(configServiceProvider.select((v) => v.value?.adaptiveBgThemeOverlay ?? 0.0));
+    // Clear global image cache when adaptive background is turned off to release memory
+    ref.listen<bool>(
+      configServiceProvider.select((v) => v.adaptiveBg),
+      (previous, next) {
+        if (previous == true && next == false) {
+          PaintingBinding.instance.imageCache.clear();
+        }
+      },
+    );
 
-    final currentTrack = ref.watch(currentTrackProvider);
+    final adaptiveBg = ref.watch(configServiceProvider.select((v) => v.adaptiveBg));
+    final blur = ref.watch(configServiceProvider.select((v) => v.adaptiveBgAlbumBlur));
+    final fit = ref.watch(configServiceProvider.select((v) => v.adaptiveBgAlbumFit));
+    final themeOverlay = ref.watch(configServiceProvider.select((v) => v.adaptiveBgThemeOverlay));
+
+    final trackAlbumArtPath = ref.watch(currentTrackProvider.select((t) => t?.album.albumArtPath));
     final cachedAlbumArtPath = ref.watch(preferenceServiceProvider.select((p) => p.cachedAlbumArtPath));
-    final currentAlbumArtPath = currentTrack?.album.albumArtPath ?? cachedAlbumArtPath;
+    final currentAlbumArtPath = trackAlbumArtPath ?? cachedAlbumArtPath;
 
     final cacheW = _getCacheWidth(blur);
 

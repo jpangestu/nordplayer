@@ -4,14 +4,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:nordplayer/core/models/app_config.dart';
+import 'package:nordplayer/core/utils/directory_helper.dart';
 import 'package:nordplayer/features/shell/theme/active_theme_provider.dart';
 import 'package:nordplayer/routes/router.dart';
-import 'package:nordplayer/services/config_service.dart';
+import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/services/library_indexer/library_indexer.dart';
 import 'package:nordplayer/services/library_watcher.dart';
 import 'package:nordplayer/services/player_service.dart';
-import 'package:nordplayer/services/preference_service.dart';
+import 'package:nordplayer/core/services/preference_service.dart';
 import 'package:nordplayer/utils/shortcuts.dart';
 import 'package:nordplayer/widgets/adaptive_scaffold.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -40,10 +40,15 @@ void main() async {
 
   MediaKit.ensureInitialized();
 
-  // SharedPreferencesWithCache must be loaded once at startup
-  final prefs = await SharedPreferencesWithCache.create(
-    cacheOptions: const SharedPreferencesWithCacheOptions(allowList: PrefConstants.allowList),
-  );
+  // Pre-load SharedPreferences and Config directory concurrently at startup
+  final (prefs, configDir) = await (
+    SharedPreferencesWithCache.create(
+      cacheOptions: const SharedPreferencesWithCacheOptions(allowList: PrefConstants.allowList),
+    ),
+    getConfigDirectory(),
+  ).wait;
+
+  final appConfig = await ConfigService.loadInitialConfig(configDir);
 
   // Set here because PlayerService and MediaKitAudioHandler need the same player instance
   final player = Player();
@@ -59,6 +64,8 @@ void main() async {
     ProviderScope(
       overrides: [
         sharedPrefsProvider.overrideWithValue(prefs),
+        configDirectoryProvider.overrideWithValue(configDir),
+        initialAppConfigProvider.overrideWithValue(appConfig),
         playerServiceProvider.overrideWith((ref) {
           final service = PlayerService.withPlayer(ref, player);
           ref.onDispose(() => service.dispose());
@@ -82,6 +89,18 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp> with WindowListen
   void initState() {
     super.initState();
     windowManager.addListener(this);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      ref.read(playerServiceProvider).init();
+      ref.read(libraryWatcherProvider);
+
+      await ref.read(playerServiceProvider).initializeQueueFromDatabase();
+
+      // Run scan library only when the main thread is idle (all UI render finished)
+      SchedulerBinding.instance.scheduleTask(() {
+        ref.read(libraryIndexerProvider).scanLibrary();
+      }, Priority.idle);
+    });
   }
 
   @override
@@ -104,46 +123,6 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp> with WindowListen
 
   @override
   Widget build(BuildContext context) {
-    // Scan and watch for changes in library after config loaded
-    ref.listen<AsyncValue<AppConfig>>(configServiceProvider, (previous, next) async {
-      if (previous is AsyncLoading && next is AsyncData) {
-        ref.read(playerServiceProvider).init();
-        ref.read(libraryWatcherProvider);
-
-        await ref.read(playerServiceProvider).initializeQueueFromDatabase();
-
-        // Run scan library only when the main thread is idle (all UI render finished)
-        SchedulerBinding.instance.scheduleTask(() {
-          ref.read(libraryIndexerProvider).scanLibrary();
-        }, Priority.idle);
-      }
-    });
-
-    // Select only the loading/error/value status fields so that changing config fields
-    // does not trigger a rebuild of the entire NordplayerApp (and therefore MaterialApp).
-    final configStatus = ref.watch(
-      configServiceProvider.select(
-        (v) => (isLoading: v.isLoading, hasError: v.hasError, error: v.error, hasValue: v.hasValue),
-      ),
-    );
-
-    if (configStatus.isLoading) {
-      return const SizedBox.shrink();
-    }
-
-    if (configStatus.hasError) {
-      return MaterialApp(
-        theme: ThemeData.light(),
-        darkTheme: ThemeData.dark(),
-        themeMode: ThemeMode.system,
-        home: Scaffold(body: Center(child: Text('Disk Error: ${configStatus.error}'))),
-      );
-    }
-
-    if (!configStatus.hasValue) {
-      return const SizedBox.shrink();
-    }
-
     // Depends on activeThemeProvider, which only rebuilds when theme or fontFamily changes
     final themeData = ref.watch(activeThemeProvider);
 
@@ -180,7 +159,7 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp> with WindowListen
               child: Consumer(
                 builder: (context, ref, _) {
                   // Localize text scale rebuilds to this sub-tree instead of rebuilding the entire MaterialApp.
-                  final textScale = ref.watch(configServiceProvider.select((v) => v.value?.textScale ?? 1.0));
+                  final textScale = ref.watch(configServiceProvider.select((v) => v.textScale));
                   return MediaQuery(
                     data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(textScale)),
                     child: AdaptiveScaffold(body: child!),

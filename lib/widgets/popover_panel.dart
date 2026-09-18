@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/services/config_service.dart';
+import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 
 /// Shows a popover panel anchored to the widget referenced by [anchorKey].

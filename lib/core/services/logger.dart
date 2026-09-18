@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
+export 'package:logger/logger.dart' show Logger;
 
 final Logger _globalLogger = Logger(
   printer: PrettyPrinter(

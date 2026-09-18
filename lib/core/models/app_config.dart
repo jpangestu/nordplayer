@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart' show listEquals;
-import 'package:logger/logger.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/models/library_section_config.dart';
 import 'package:nordplayer/core/theme/app_theme.dart';
@@ -136,29 +135,32 @@ class AppConfig {
     );
   }
 
-  factory AppConfig.fromJson(Map<String, dynamic> json, {required Logger logger}) {
+  factory AppConfig.fromJson(
+    Map<String, dynamic> json, {
+    void Function(String message)? onWarning,
+  }) {
     return AppConfig(
-      trackDirectories: _parsetrackDirectories(json['trackDirectories'], logger: logger),
-      watchTrackDirectories: _parseWatchTrackDirectories(json['watchTrackDirectories'], logger: logger),
-      artistDelimiters: _parseArtistDelimiters(json['artistDelimiters'], logger: logger),
-      artistExclusions: _parseArtistExclusions(json['artistExclusions'], logger: logger),
-      theme: _parseTheme(json['theme'], logger: logger),
-      themeBrightness: _parseThemeBrightness(json['themeBrightness'], logger: logger),
-      iconSet: _parseIconSet(json['iconSet'], logger: logger),
-      adaptiveBg: _parseAdaptiveBg(json['adaptiveBg'], logger: logger),
-      adaptiveBgAlbumFit: _parseAlbumFit(json['albumFit'], logger: logger),
-      adaptiveBgAlbumBlur: _parseAlbumBlur(json['albumBlur'], logger: logger),
-      adaptiveBgPanelBlur: _parsePanelBlur(json['panelBlur'], logger: logger),
-      adaptiveBgThemeOverlay: _parseThemeOverlay(json['themeOverlay'], logger: logger),
-      fontFamily: _parseFontFamily(json['fontFamily'], logger: logger),
-      textScale: _parseTextScale(json['textScale'], logger: logger),
-      librarySections: _parseLibrarySections(json['librarySections'], logger: logger),
+      trackDirectories: _parsetrackDirectories(json['trackDirectories'], onWarning: onWarning),
+      watchTrackDirectories: _parseWatchTrackDirectories(json['watchTrackDirectories'], onWarning: onWarning),
+      artistDelimiters: _parseArtistDelimiters(json['artistDelimiters'], onWarning: onWarning),
+      artistExclusions: _parseArtistExclusions(json['artistExclusions'], onWarning: onWarning),
+      theme: _parseTheme(json['theme'], onWarning: onWarning),
+      themeBrightness: _parseThemeBrightness(json['themeBrightness'], onWarning: onWarning),
+      iconSet: _parseIconSet(json['iconSet'], onWarning: onWarning),
+      adaptiveBg: _parseAdaptiveBg(json['adaptiveBg'], onWarning: onWarning),
+      adaptiveBgAlbumFit: _parseAlbumFit(json['albumFit'], onWarning: onWarning),
+      adaptiveBgAlbumBlur: _parseAlbumBlur(json['albumBlur'], onWarning: onWarning),
+      adaptiveBgPanelBlur: _parsePanelBlur(json['panelBlur'], onWarning: onWarning),
+      adaptiveBgThemeOverlay: _parseThemeOverlay(json['themeOverlay'], onWarning: onWarning),
+      fontFamily: _parseFontFamily(json['fontFamily'], onWarning: onWarning),
+      textScale: _parseTextScale(json['textScale'], onWarning: onWarning),
+      librarySections: _parseLibrarySections(json['librarySections'], onWarning: onWarning),
     );
   }
 
-  static List<String> _parsetrackDirectories(dynamic value, {required Logger logger}) {
+  static List<String> _parsetrackDirectories(dynamic value, {void Function(String)? onWarning}) {
     if (value is! List) {
-      logger.w("Invalid track directory: $value. Replaced with '$_defaultTrackDirectories'.");
+      onWarning?.call("Invalid track directory: $value. Replaced with '$_defaultTrackDirectories'.");
       return _defaultTrackDirectories;
     }
 
@@ -166,18 +168,18 @@ class AppConfig {
     return safeList;
   }
 
-  static bool _parseWatchTrackDirectories(dynamic value, {required Logger logger}) {
+  static bool _parseWatchTrackDirectories(dynamic value, {void Function(String)? onWarning}) {
     if (value is! bool) {
-      logger.w("Invalid watchTrackDirectories: $value. Fallback to '$_defaultWatchTrackDirectories'.");
+      onWarning?.call("Invalid watchTrackDirectories: $value. Fallback to '$_defaultWatchTrackDirectories'.");
       return _defaultWatchTrackDirectories;
     }
 
     return value;
   }
 
-  static List<String> _parseArtistDelimiters(dynamic value, {required Logger logger}) {
+  static List<String> _parseArtistDelimiters(dynamic value, {void Function(String)? onWarning}) {
     if (value is! List) {
-      logger.w("Invalid artist delimiters: $value. Fallback to default.");
+      onWarning?.call("Invalid artist delimiters: $value. Fallback to default.");
       return defaultArtistDelimiters;
     }
 
@@ -186,9 +188,9 @@ class AppConfig {
     return safeList;
   }
 
-  static List<String> _parseArtistExclusions(dynamic value, {required Logger logger}) {
+  static List<String> _parseArtistExclusions(dynamic value, {void Function(String)? onWarning}) {
     if (value is! List) {
-      logger.w("Invalid artist exclusions: $value. Fallback to default.");
+      onWarning?.call("Invalid artist exclusions: $value. Fallback to default.");
       return defaultArtistExclusions;
     }
 
@@ -197,113 +199,112 @@ class AppConfig {
     return safeList;
   }
 
-  static String _parseTheme(dynamic value, {required Logger logger}) {
+  static String _parseTheme(dynamic value, {void Function(String)? onWarning}) {
     if (value is! String) {
-      logger.w("Invalid theme type: $value. Fallback to '$_defaultTheme'.");
+      onWarning?.call("Invalid theme type: $value. Fallback to '$_defaultTheme'.");
       return _defaultTheme;
     }
 
     if (!AppTheme.labels.containsKey(value)) {
-      logger.w("Invalid theme config '$value'. Fallback to '$_defaultTheme'.");
+      onWarning?.call("Invalid theme config '$value'. Fallback to '$_defaultTheme'.");
       return _defaultTheme;
     }
 
     return value;
   }
 
-  static Brightness _parseThemeBrightness(dynamic value, {required Logger logger}) {
+  static Brightness _parseThemeBrightness(dynamic value, {void Function(String)? onWarning}) {
     if (value is! String) {
-      logger.w("Invalid brightness type: $value. Fallback to '$_defaultThemeBrightness'.");
+      onWarning?.call("Invalid brightness type: $value. Fallback to '$_defaultThemeBrightness'.");
       return _defaultThemeBrightness;
     }
 
     try {
       return Brightness.values.byName(value);
     } catch (e) {
-      logger.w("Unknown brightness value: $value. Fallback to '$_defaultThemeBrightness'.");
+      onWarning?.call("Unknown brightness value: $value. Fallback to '$_defaultThemeBrightness'.");
       return _defaultThemeBrightness;
     }
   }
 
-  static String _parseIconSet(dynamic value, {required Logger logger}) {
+  static String _parseIconSet(dynamic value, {void Function(String)? onWarning}) {
     if (value is! String || (value != 'lucide' && value != 'material')) {
-      logger.w("Invalid icon set: $value. Fallback to '$_defaultIconSet'.");
+      onWarning?.call("Invalid icon set: $value. Fallback to '$_defaultIconSet'.");
       return _defaultIconSet;
     }
     return value;
   }
 
-  static bool _parseAdaptiveBg(dynamic value, {required Logger logger}) {
+  static bool _parseAdaptiveBg(dynamic value, {void Function(String)? onWarning}) {
     if (value is! bool) {
-      logger.w("Invalid adaptive background: $value. Fallback to '$_defaultAdaptiveBg'.");
+      onWarning?.call("Invalid adaptive background: $value. Fallback to '$_defaultAdaptiveBg'.");
       return _defaultAdaptiveBg;
     }
 
     return value;
   }
 
-  static BoxFit _parseAlbumFit(dynamic value, {required Logger logger}) {
+  static BoxFit _parseAlbumFit(dynamic value, {void Function(String)? onWarning}) {
     if (value is! String) {
-      logger.w("Invalid BoxFit type: $value. Fallback to '$_defaultAdaptiveBgAlbumFit'.");
+      onWarning?.call("Invalid BoxFit type: $value. Fallback to '$_defaultAdaptiveBgAlbumFit'.");
       return _defaultAdaptiveBgAlbumFit;
     }
 
     try {
       return BoxFit.values.byName(value);
     } catch (e) {
-      // Catches the error if the string doesn't match any BoxFit enum name
-      logger.w("Unknown BoxFit value: $value. Fallback to '$_defaultAdaptiveBgAlbumFit'.");
+      onWarning?.call("Unknown BoxFit value: $value. Fallback to '$_defaultAdaptiveBgAlbumFit'.");
       return _defaultAdaptiveBgAlbumFit;
     }
   }
 
-  static double _parseAlbumBlur(dynamic value, {required Logger logger}) {
+  static double _parseAlbumBlur(dynamic value, {void Function(String)? onWarning}) {
     if (value is! num) {
-      logger.w("Invalid album blur: $value. Fallback to '$_defaultAdaptiveBgAlbumBlur'.");
+      onWarning?.call("Invalid album blur: $value. Fallback to '$_defaultAdaptiveBgAlbumBlur'.");
       return _defaultAdaptiveBgAlbumBlur;
     }
 
     return value.toDouble();
   }
 
-  static double _parsePanelBlur(dynamic value, {required Logger logger}) {
+  static double _parsePanelBlur(dynamic value, {void Function(String)? onWarning}) {
     if (value is! num) {
-      logger.w("Invalid panel blur: $value. Fallback to '$_defaultAdaptiveBgPanelBlur'.");
+      onWarning?.call("Invalid panel blur: $value. Fallback to '$_defaultAdaptiveBgPanelBlur'.");
       return _defaultAdaptiveBgPanelBlur;
     }
 
     return value.toDouble();
   }
 
-  static double _parseThemeOverlay(dynamic value, {required Logger logger}) {
+  static double _parseThemeOverlay(dynamic value, {void Function(String)? onWarning}) {
     if (value is! num) {
-      logger.w("Invalid background themeOverlay: $value. Fallback to '$_defaultAdaptiveBgThemeOverlay'.");
+      onWarning?.call("Invalid background themeOverlay: $value. Fallback to '$_defaultAdaptiveBgThemeOverlay'.");
       return _defaultAdaptiveBgThemeOverlay;
     }
 
     return value.toDouble();
   }
 
-  static String _parseFontFamily(dynamic value, {required Logger logger}) {
+  static String _parseFontFamily(dynamic value, {void Function(String)? onWarning}) {
     if (value is! String) {
-      logger.w("Invalid font family: $value. Fallback to '$_defaultFontFamily'.");
+      onWarning?.call("Invalid font family: $value. Fallback to '$_defaultFontFamily'.");
       return _defaultFontFamily;
     }
     return value;
   }
 
-  static double _parseTextScale(dynamic value, {required Logger logger}) {
+  static double _parseTextScale(dynamic value, {void Function(String)? onWarning}) {
     if (value is! num) {
-      logger.w("Invalid text scale: $value. Fallback to '$_defaultTextScale'.");
+      onWarning?.call("Invalid text scale: $value. Fallback to '$_defaultTextScale'.");
       return _defaultTextScale;
     }
 
     return value.toDouble();
   }
 
-  static List<LibrarySectionConfig> _parseLibrarySections(dynamic value, {required Logger logger}) {
+  static List<LibrarySectionConfig> _parseLibrarySections(dynamic value, {void Function(String)? onWarning}) {
     if (value is! List) {
-      logger.w("Invalid librarySections: $value. Fallback to default.");
+      onWarning?.call("Invalid librarySections: $value. Fallback to default.");
       return _defaultLibrarySections;
     }
     try {
@@ -312,19 +313,19 @@ class AppConfig {
         if (item is Map<String, dynamic>) {
           list.add(LibrarySectionConfig.fromJson(item));
         } else {
-          logger.w("Invalid library section item in config: $item. Skipping.");
+          onWarning?.call("Invalid library section item in config: $item. Skipping.");
         }
       }
       final loadedIds = list.map((e) => e.id).toSet();
       for (final def in _defaultLibrarySections) {
         if (!loadedIds.contains(def.id)) {
-          logger.w("Missing section '${def.id}' in loaded configuration. Appending default.");
+          onWarning?.call("Missing section '${def.id}' in loaded configuration. Appending default.");
           list.add(def);
         }
       }
       return list;
     } catch (e) {
-      logger.w("Failed to parse librarySections: $e. Fallback to default.");
+      onWarning?.call("Failed to parse librarySections: $e. Fallback to default.");
       return _defaultLibrarySections;
     }
   }
@@ -399,3 +400,11 @@ class AppConfig {
         'adaptiveBg: $adaptiveBg)';
   }
 }
+
+/// Compatibility extension for accessing properties on [AppConfig] during
+/// migration from [AsyncNotifier] to synchronous [Notifier].
+extension AppConfigCompat on AppConfig {
+  AppConfig get requireValue => this;
+  AppConfig get value => this;
+}
+

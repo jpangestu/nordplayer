@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/services/config_service.dart';
+import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/core/utils/string_extension.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:package_info_plus/package_info_plus.dart';

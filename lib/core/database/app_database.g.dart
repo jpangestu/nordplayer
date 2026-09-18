@@ -6134,18 +6134,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   ]);
 }
 
-typedef $$ArtistsTableCreateCompanionBuilder =
-    ArtistsCompanion Function({
-      Value<int> id,
-      required String name,
-      Value<String?> artistImgPath,
-    });
-typedef $$ArtistsTableUpdateCompanionBuilder =
-    ArtistsCompanion Function({
-      Value<int> id,
-      Value<String> name,
-      Value<String?> artistImgPath,
-    });
+typedef $$ArtistsTableCreateCompanionBuilder = ArtistsCompanion Function({
+  Value<int> id,
+  required String name,
+  Value<String?> artistImgPath,
+});
+typedef $$ArtistsTableUpdateCompanionBuilder = ArtistsCompanion Function({
+  Value<int> id,
+  Value<String> name,
+  Value<String?> artistImgPath,
+});
 
 final class $$ArtistsTableReferences
     extends BaseReferences<_$AppDatabase, $ArtistsTable, Artist> {
@@ -6957,24 +6955,22 @@ typedef $$ArtistsTableProcessedTableManager =
         bool userPinsRefs,
       })
     >;
-typedef $$AlbumsTableCreateCompanionBuilder =
-    AlbumsCompanion Function({
-      Value<int> id,
-      required String title,
-      Value<int> year,
-      Value<String?> albumArtist,
-      Value<String?> albumArtPath,
-      Value<int?> albumArtistId,
-    });
-typedef $$AlbumsTableUpdateCompanionBuilder =
-    AlbumsCompanion Function({
-      Value<int> id,
-      Value<String> title,
-      Value<int> year,
-      Value<String?> albumArtist,
-      Value<String?> albumArtPath,
-      Value<int?> albumArtistId,
-    });
+typedef $$AlbumsTableCreateCompanionBuilder = AlbumsCompanion Function({
+  Value<int> id,
+  required String title,
+  Value<int> year,
+  Value<String?> albumArtist,
+  Value<String?> albumArtPath,
+  Value<int?> albumArtistId,
+});
+typedef $$AlbumsTableUpdateCompanionBuilder = AlbumsCompanion Function({
+  Value<int> id,
+  Value<String> title,
+  Value<int> year,
+  Value<String?> albumArtist,
+  Value<String?> albumArtPath,
+  Value<int?> albumArtistId,
+});
 
 final class $$AlbumsTableReferences
     extends BaseReferences<_$AppDatabase, $AlbumsTable, Album> {
@@ -7614,17 +7610,15 @@ class $$AlbumsTableTableManager
                         >
                       >(state) {
                         if (albumArtistId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.albumArtistId,
-                                    referencedTable: $$AlbumsTableReferences
-                                        ._albumArtistIdTable(db),
-                                    referencedColumn: $$AlbumsTableReferences
-                                        ._albumArtistIdTable(db)
-                                        .id,
-                                  )
-                                  as T;
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.albumArtistId,
+                            referencedTable: $$AlbumsTableReferences
+                                ._albumArtistIdTable(db),
+                            referencedColumn: $$AlbumsTableReferences
+                                ._albumArtistIdTable(db)
+                                .id,
+                          ) as T;
                         }
 
                         return state;
@@ -7753,44 +7747,42 @@ typedef $$AlbumsTableProcessedTableManager =
         bool userPinsRefs,
       })
     >;
-typedef $$TracksTableCreateCompanionBuilder =
-    TracksCompanion Function({
-      Value<int> id,
-      required String title,
-      Value<int> trackNumber,
-      Value<int> trackTotal,
-      Value<int> discNumber,
-      Value<int> discTotal,
-      Value<int> durationMs,
-      Value<String?> genre,
-      required String fileHash,
-      Value<Uint8List?> audioFingerprint,
-      Value<bool> isMissing,
-      required String filePath,
-      Value<int> fileSize,
-      required int artistId,
-      required int albumId,
-      Value<DateTime> dateAdded,
-    });
-typedef $$TracksTableUpdateCompanionBuilder =
-    TracksCompanion Function({
-      Value<int> id,
-      Value<String> title,
-      Value<int> trackNumber,
-      Value<int> trackTotal,
-      Value<int> discNumber,
-      Value<int> discTotal,
-      Value<int> durationMs,
-      Value<String?> genre,
-      Value<String> fileHash,
-      Value<Uint8List?> audioFingerprint,
-      Value<bool> isMissing,
-      Value<String> filePath,
-      Value<int> fileSize,
-      Value<int> artistId,
-      Value<int> albumId,
-      Value<DateTime> dateAdded,
-    });
+typedef $$TracksTableCreateCompanionBuilder = TracksCompanion Function({
+  Value<int> id,
+  required String title,
+  Value<int> trackNumber,
+  Value<int> trackTotal,
+  Value<int> discNumber,
+  Value<int> discTotal,
+  Value<int> durationMs,
+  Value<String?> genre,
+  required String fileHash,
+  Value<Uint8List?> audioFingerprint,
+  Value<bool> isMissing,
+  required String filePath,
+  Value<int> fileSize,
+  required int artistId,
+  required int albumId,
+  Value<DateTime> dateAdded,
+});
+typedef $$TracksTableUpdateCompanionBuilder = TracksCompanion Function({
+  Value<int> id,
+  Value<String> title,
+  Value<int> trackNumber,
+  Value<int> trackTotal,
+  Value<int> discNumber,
+  Value<int> discTotal,
+  Value<int> durationMs,
+  Value<String?> genre,
+  Value<String> fileHash,
+  Value<Uint8List?> audioFingerprint,
+  Value<bool> isMissing,
+  Value<String> filePath,
+  Value<int> fileSize,
+  Value<int> artistId,
+  Value<int> albumId,
+  Value<DateTime> dateAdded,
+});
 
 final class $$TracksTableReferences
     extends BaseReferences<_$AppDatabase, $TracksTable, Track> {
@@ -8822,30 +8814,26 @@ class $$TracksTableTableManager
                         >
                       >(state) {
                         if (artistId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.artistId,
-                                    referencedTable: $$TracksTableReferences
-                                        ._artistIdTable(db),
-                                    referencedColumn: $$TracksTableReferences
-                                        ._artistIdTable(db)
-                                        .id,
-                                  )
-                                  as T;
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.artistId,
+                            referencedTable: $$TracksTableReferences
+                                ._artistIdTable(db),
+                            referencedColumn: $$TracksTableReferences
+                                ._artistIdTable(db)
+                                .id,
+                          ) as T;
                         }
                         if (albumId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.albumId,
-                                    referencedTable: $$TracksTableReferences
-                                        ._albumIdTable(db),
-                                    referencedColumn: $$TracksTableReferences
-                                        ._albumIdTable(db)
-                                        .id,
-                                  )
-                                  as T;
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.albumId,
+                            referencedTable: $$TracksTableReferences
+                                ._albumIdTable(db),
+                            referencedColumn: $$TracksTableReferences
+                                ._albumIdTable(db)
+                                .id,
+                          ) as T;
                         }
 
                         return state;
@@ -9027,18 +9015,16 @@ typedef $$TracksTableProcessedTableManager =
         bool userPinsRefs,
       })
     >;
-typedef $$PlaylistsTableCreateCompanionBuilder =
-    PlaylistsCompanion Function({
-      Value<int> id,
-      required String name,
-      Value<String?> coverPath,
-    });
-typedef $$PlaylistsTableUpdateCompanionBuilder =
-    PlaylistsCompanion Function({
-      Value<int> id,
-      Value<String> name,
-      Value<String?> coverPath,
-    });
+typedef $$PlaylistsTableCreateCompanionBuilder = PlaylistsCompanion Function({
+  Value<int> id,
+  required String name,
+  Value<String?> coverPath,
+});
+typedef $$PlaylistsTableUpdateCompanionBuilder = PlaylistsCompanion Function({
+  Value<int> id,
+  Value<String> name,
+  Value<String?> coverPath,
+});
 
 final class $$PlaylistsTableReferences
     extends BaseReferences<_$AppDatabase, $PlaylistsTable, PlaylistData> {
@@ -9277,13 +9263,11 @@ class $$PlaylistsTableTableManager
               $$PlaylistsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$PlaylistsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<String> name = const Value.absent(),
-                Value<String?> coverPath = const Value.absent(),
-              }) =>
-                  PlaylistsCompanion(id: id, name: name, coverPath: coverPath),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<String> name = const Value.absent(),
+            Value<String?> coverPath = const Value.absent(),
+          }) => PlaylistsCompanion(id: id, name: name, coverPath: coverPath),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
@@ -9672,30 +9656,26 @@ class $$TrackArtistTableTableManager
                     >
                   >(state) {
                     if (trackId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.trackId,
-                                referencedTable: $$TrackArtistTableReferences
-                                    ._trackIdTable(db),
-                                referencedColumn: $$TrackArtistTableReferences
-                                    ._trackIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.trackId,
+                        referencedTable: $$TrackArtistTableReferences
+                            ._trackIdTable(db),
+                        referencedColumn: $$TrackArtistTableReferences
+                            ._trackIdTable(db)
+                            .id,
+                      ) as T;
                     }
                     if (artistId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.artistId,
-                                referencedTable: $$TrackArtistTableReferences
-                                    ._artistIdTable(db),
-                                referencedColumn: $$TrackArtistTableReferences
-                                    ._artistIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.artistId,
+                        referencedTable: $$TrackArtistTableReferences
+                            ._artistIdTable(db),
+                        referencedColumn: $$TrackArtistTableReferences
+                            ._artistIdTable(db)
+                            .id,
+                      ) as T;
                     }
 
                     return state;
@@ -10042,30 +10022,26 @@ class $$PlaylistTrackTableTableManager
                     >
                   >(state) {
                     if (playlistId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.playlistId,
-                                referencedTable: $$PlaylistTrackTableReferences
-                                    ._playlistIdTable(db),
-                                referencedColumn: $$PlaylistTrackTableReferences
-                                    ._playlistIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.playlistId,
+                        referencedTable: $$PlaylistTrackTableReferences
+                            ._playlistIdTable(db),
+                        referencedColumn: $$PlaylistTrackTableReferences
+                            ._playlistIdTable(db)
+                            .id,
+                      ) as T;
                     }
                     if (trackId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.trackId,
-                                referencedTable: $$PlaylistTrackTableReferences
-                                    ._trackIdTable(db),
-                                referencedColumn: $$PlaylistTrackTableReferences
-                                    ._trackIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.trackId,
+                        referencedTable: $$PlaylistTrackTableReferences
+                            ._trackIdTable(db),
+                        referencedColumn: $$PlaylistTrackTableReferences
+                            ._trackIdTable(db)
+                            .id,
+                      ) as T;
                     }
 
                     return state;
@@ -10395,17 +10371,15 @@ class $$QueueEntriesTableTableManager
                     >
                   >(state) {
                     if (trackId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.trackId,
-                                referencedTable: $$QueueEntriesTableReferences
-                                    ._trackIdTable(db),
-                                referencedColumn: $$QueueEntriesTableReferences
-                                    ._trackIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.trackId,
+                        referencedTable: $$QueueEntriesTableReferences
+                            ._trackIdTable(db),
+                        referencedColumn: $$QueueEntriesTableReferences
+                            ._trackIdTable(db)
+                            .id,
+                      ) as T;
                     }
 
                     return state;
@@ -10750,17 +10724,15 @@ class $$PlayHistoryTableTableManager
                     >
                   >(state) {
                     if (trackId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.trackId,
-                                referencedTable: $$PlayHistoryTableReferences
-                                    ._trackIdTable(db),
-                                referencedColumn: $$PlayHistoryTableReferences
-                                    ._trackIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.trackId,
+                        referencedTable: $$PlayHistoryTableReferences
+                            ._trackIdTable(db),
+                        referencedColumn: $$PlayHistoryTableReferences
+                            ._trackIdTable(db)
+                            .id,
+                      ) as T;
                     }
 
                     return state;
@@ -11305,18 +11277,15 @@ class $$ArtistMetadataTableTableManager
                     >
                   >(state) {
                     if (artistId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.artistId,
-                                referencedTable: $$ArtistMetadataTableReferences
-                                    ._artistIdTable(db),
-                                referencedColumn:
-                                    $$ArtistMetadataTableReferences
-                                        ._artistIdTable(db)
-                                        .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.artistId,
+                        referencedTable: $$ArtistMetadataTableReferences
+                            ._artistIdTable(db),
+                        referencedColumn: $$ArtistMetadataTableReferences
+                            ._artistIdTable(db)
+                            .id,
+                      ) as T;
                     }
 
                     return state;
@@ -11687,17 +11656,15 @@ class $$AlbumMetadataTableTableManager
                     >
                   >(state) {
                     if (albumId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.albumId,
-                                referencedTable: $$AlbumMetadataTableReferences
-                                    ._albumIdTable(db),
-                                referencedColumn: $$AlbumMetadataTableReferences
-                                    ._albumIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.albumId,
+                        referencedTable: $$AlbumMetadataTableReferences
+                            ._albumIdTable(db),
+                        referencedColumn: $$AlbumMetadataTableReferences
+                            ._albumIdTable(db)
+                            .id,
+                      ) as T;
                     }
 
                     return state;
@@ -12149,49 +12116,37 @@ class $$UserFavoritesTableTableManager
                         >
                       >(state) {
                         if (trackId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.trackId,
-                                    referencedTable:
-                                        $$UserFavoritesTableReferences
-                                            ._trackIdTable(db),
-                                    referencedColumn:
-                                        $$UserFavoritesTableReferences
-                                            ._trackIdTable(db)
-                                            .id,
-                                  )
-                                  as T;
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.trackId,
+                            referencedTable: $$UserFavoritesTableReferences
+                                ._trackIdTable(db),
+                            referencedColumn: $$UserFavoritesTableReferences
+                                ._trackIdTable(db)
+                                .id,
+                          ) as T;
                         }
                         if (albumId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.albumId,
-                                    referencedTable:
-                                        $$UserFavoritesTableReferences
-                                            ._albumIdTable(db),
-                                    referencedColumn:
-                                        $$UserFavoritesTableReferences
-                                            ._albumIdTable(db)
-                                            .id,
-                                  )
-                                  as T;
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.albumId,
+                            referencedTable: $$UserFavoritesTableReferences
+                                ._albumIdTable(db),
+                            referencedColumn: $$UserFavoritesTableReferences
+                                ._albumIdTable(db)
+                                .id,
+                          ) as T;
                         }
                         if (artistId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.artistId,
-                                    referencedTable:
-                                        $$UserFavoritesTableReferences
-                                            ._artistIdTable(db),
-                                    referencedColumn:
-                                        $$UserFavoritesTableReferences
-                                            ._artistIdTable(db)
-                                            .id,
-                                  )
-                                  as T;
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.artistId,
+                            referencedTable: $$UserFavoritesTableReferences
+                                ._artistIdTable(db),
+                            referencedColumn: $$UserFavoritesTableReferences
+                                ._artistIdTable(db)
+                                .id,
+                          ) as T;
                         }
 
                         return state;
@@ -12644,49 +12599,37 @@ class $$UserBlacklistTableTableManager
                         >
                       >(state) {
                         if (trackId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.trackId,
-                                    referencedTable:
-                                        $$UserBlacklistTableReferences
-                                            ._trackIdTable(db),
-                                    referencedColumn:
-                                        $$UserBlacklistTableReferences
-                                            ._trackIdTable(db)
-                                            .id,
-                                  )
-                                  as T;
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.trackId,
+                            referencedTable: $$UserBlacklistTableReferences
+                                ._trackIdTable(db),
+                            referencedColumn: $$UserBlacklistTableReferences
+                                ._trackIdTable(db)
+                                .id,
+                          ) as T;
                         }
                         if (albumId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.albumId,
-                                    referencedTable:
-                                        $$UserBlacklistTableReferences
-                                            ._albumIdTable(db),
-                                    referencedColumn:
-                                        $$UserBlacklistTableReferences
-                                            ._albumIdTable(db)
-                                            .id,
-                                  )
-                                  as T;
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.albumId,
+                            referencedTable: $$UserBlacklistTableReferences
+                                ._albumIdTable(db),
+                            referencedColumn: $$UserBlacklistTableReferences
+                                ._albumIdTable(db)
+                                .id,
+                          ) as T;
                         }
                         if (artistId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.artistId,
-                                    referencedTable:
-                                        $$UserBlacklistTableReferences
-                                            ._artistIdTable(db),
-                                    referencedColumn:
-                                        $$UserBlacklistTableReferences
-                                            ._artistIdTable(db)
-                                            .id,
-                                  )
-                                  as T;
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.artistId,
+                            referencedTable: $$UserBlacklistTableReferences
+                                ._artistIdTable(db),
+                            referencedColumn: $$UserBlacklistTableReferences
+                                ._artistIdTable(db)
+                                .id,
+                          ) as T;
                         }
 
                         return state;
@@ -12714,24 +12657,22 @@ typedef $$UserBlacklistTableProcessedTableManager =
       UserBlacklistData,
       PrefetchHooks Function({bool trackId, bool albumId, bool artistId})
     >;
-typedef $$UserPinsTableCreateCompanionBuilder =
-    UserPinsCompanion Function({
-      Value<int> id,
-      Value<int?> trackId,
-      Value<int?> albumId,
-      Value<int?> artistId,
-      Value<int?> playlistId,
-      Value<int> sortOrder,
-    });
-typedef $$UserPinsTableUpdateCompanionBuilder =
-    UserPinsCompanion Function({
-      Value<int> id,
-      Value<int?> trackId,
-      Value<int?> albumId,
-      Value<int?> artistId,
-      Value<int?> playlistId,
-      Value<int> sortOrder,
-    });
+typedef $$UserPinsTableCreateCompanionBuilder = UserPinsCompanion Function({
+  Value<int> id,
+  Value<int?> trackId,
+  Value<int?> albumId,
+  Value<int?> artistId,
+  Value<int?> playlistId,
+  Value<int> sortOrder,
+});
+typedef $$UserPinsTableUpdateCompanionBuilder = UserPinsCompanion Function({
+  Value<int> id,
+  Value<int?> trackId,
+  Value<int?> albumId,
+  Value<int?> artistId,
+  Value<int?> playlistId,
+  Value<int> sortOrder,
+});
 
 final class $$UserPinsTableReferences
     extends BaseReferences<_$AppDatabase, $UserPinsTable, UserPin> {
@@ -13236,56 +13177,48 @@ class $$UserPinsTableTableManager
                         >
                       >(state) {
                         if (trackId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.trackId,
-                                    referencedTable: $$UserPinsTableReferences
-                                        ._trackIdTable(db),
-                                    referencedColumn: $$UserPinsTableReferences
-                                        ._trackIdTable(db)
-                                        .id,
-                                  )
-                                  as T;
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.trackId,
+                            referencedTable: $$UserPinsTableReferences
+                                ._trackIdTable(db),
+                            referencedColumn: $$UserPinsTableReferences
+                                ._trackIdTable(db)
+                                .id,
+                          ) as T;
                         }
                         if (albumId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.albumId,
-                                    referencedTable: $$UserPinsTableReferences
-                                        ._albumIdTable(db),
-                                    referencedColumn: $$UserPinsTableReferences
-                                        ._albumIdTable(db)
-                                        .id,
-                                  )
-                                  as T;
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.albumId,
+                            referencedTable: $$UserPinsTableReferences
+                                ._albumIdTable(db),
+                            referencedColumn: $$UserPinsTableReferences
+                                ._albumIdTable(db)
+                                .id,
+                          ) as T;
                         }
                         if (artistId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.artistId,
-                                    referencedTable: $$UserPinsTableReferences
-                                        ._artistIdTable(db),
-                                    referencedColumn: $$UserPinsTableReferences
-                                        ._artistIdTable(db)
-                                        .id,
-                                  )
-                                  as T;
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.artistId,
+                            referencedTable: $$UserPinsTableReferences
+                                ._artistIdTable(db),
+                            referencedColumn: $$UserPinsTableReferences
+                                ._artistIdTable(db)
+                                .id,
+                          ) as T;
                         }
                         if (playlistId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.playlistId,
-                                    referencedTable: $$UserPinsTableReferences
-                                        ._playlistIdTable(db),
-                                    referencedColumn: $$UserPinsTableReferences
-                                        ._playlistIdTable(db)
-                                        .id,
-                                  )
-                                  as T;
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.playlistId,
+                            referencedTable: $$UserPinsTableReferences
+                                ._playlistIdTable(db),
+                            referencedColumn: $$UserPinsTableReferences
+                                ._playlistIdTable(db)
+                                .id,
+                          ) as T;
                         }
 
                         return state;

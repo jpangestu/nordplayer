@@ -1,11 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/foundation.dart' show immutable;
 import 'package:media_kit/media_kit.dart';
+import 'package:nordplayer/core/models/time_label_type.dart';
 import 'package:nordplayer/core/services/logger.dart';
-import 'package:nordplayer/widgets/player_bar/progress_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+export 'package:nordplayer/core/models/time_label_type.dart';
 
 import 'package:nordplayer/core/services/performance_tracker.dart';
 import 'package:nordplayer/core/services/shared_preferences_provider.dart';
@@ -42,6 +43,8 @@ class PrefConstants {
   };
 }
 
+const _prefSentinel = Object();
+
 @immutable
 class PreferencesState {
   final String? cachedAlbumArtPath;
@@ -65,7 +68,7 @@ class PreferencesState {
   });
 
   PreferencesState copyWith({
-    String? cachedAlbumArtPath,
+    Object? cachedAlbumArtPath = _prefSentinel,
     bool? isMuted,
     PlaylistMode? loopMode,
     bool? showQueue,
@@ -75,7 +78,9 @@ class PreferencesState {
     double? volume,
   }) {
     return PreferencesState(
-      cachedAlbumArtPath: cachedAlbumArtPath ?? this.cachedAlbumArtPath,
+      cachedAlbumArtPath: identical(cachedAlbumArtPath, _prefSentinel)
+          ? this.cachedAlbumArtPath
+          : cachedAlbumArtPath as String?,
       isMuted: isMuted ?? this.isMuted,
       loopMode: loopMode ?? this.loopMode,
       showQueue: showQueue ?? this.showQueue,
@@ -85,6 +90,43 @@ class PreferencesState {
       volume: volume ?? this.volume,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PreferencesState &&
+          runtimeType == other.runtimeType &&
+          cachedAlbumArtPath == other.cachedAlbumArtPath &&
+          isMuted == other.isMuted &&
+          loopMode == other.loopMode &&
+          showQueue == other.showQueue &&
+          shuffleMode == other.shuffleMode &&
+          sidebarExtended == other.sidebarExtended &&
+          timeLabelType == other.timeLabelType &&
+          volume == other.volume;
+
+  @override
+  int get hashCode => Object.hash(
+        cachedAlbumArtPath,
+        isMuted,
+        loopMode,
+        showQueue,
+        shuffleMode,
+        sidebarExtended,
+        timeLabelType,
+        volume,
+      );
+
+  @override
+  String toString() => 'PreferencesState('
+      'isMuted: $isMuted, '
+      'volume: $volume, '
+      'loopMode: $loopMode, '
+      'shuffleMode: $shuffleMode, '
+      'showQueue: $showQueue, '
+      'sidebarExtended: $sidebarExtended, '
+      'timeLabelType: $timeLabelType, '
+      'cachedAlbumArtPath: $cachedAlbumArtPath)';
 }
 
 
@@ -194,7 +236,16 @@ class PreferenceService extends Notifier<PreferencesState> with LoggerMixin {
     log.w("User requested factory reset of preferences.");
     try {
       if (_debounce?.isActive ?? false) _debounce!.cancel();
-      await _prefs.clear();
+      await Future.wait([
+        _prefs.remove(PrefConstants.cachedCurrentAlbumArtPath),
+        _prefs.remove(PrefConstants.isMuted),
+        _prefs.remove(PrefConstants.loopMode),
+        _prefs.remove(PrefConstants.showQueue),
+        _prefs.remove(PrefConstants.shuffleMode),
+        _prefs.remove(PrefConstants.sidebarExtended),
+        _prefs.remove(PrefConstants.timeLabelType),
+        _prefs.remove(PrefConstants.volume),
+      ]);
 
       // Reset the Riverpod state to trigger UI updates
       state = const PreferencesState(

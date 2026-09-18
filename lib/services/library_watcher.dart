@@ -2,8 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/models/app_config.dart';
-import 'package:nordplayer/services/config_service.dart';
+import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/services/library_indexer/library_indexer.dart';
 import 'package:nordplayer/core/services/logger.dart';
 import 'package:path/path.dart' as p;
@@ -14,10 +13,8 @@ final libraryWatcherProvider = Provider<LibraryWatcher>((ref) {
 
   final watcher = LibraryWatcher(libraryIndexer);
 
-  ref.listen<AsyncValue<AppConfig>>(configServiceProvider, (previous, next) {
-    if (next is AsyncData<AppConfig>) {
-      watcher.updateConfig(next.value);
-    }
+  ref.listen<AppConfig>(configServiceProvider, (previous, next) {
+    watcher.updateConfig(next);
   }, fireImmediately: true);
 
   ref.onDispose(() => watcher.dispose());

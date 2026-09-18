@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nordplayer/routes/router.dart';
-import 'package:nordplayer/services/config_service.dart';
+import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/core/utils/string_extension.dart';
 import 'package:nordplayer/widgets/settings/section_container.dart';
 import 'package:nordplayer/widgets/settings/section_divider.dart';

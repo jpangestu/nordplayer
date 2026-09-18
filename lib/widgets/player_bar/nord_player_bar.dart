@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/services/config_service.dart';
+import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/core/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
-import 'package:nordplayer/services/preference_service.dart';
+import 'package:nordplayer/core/services/preference_service.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/widgets/unimplemented.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
@@ -24,10 +24,10 @@ class _PlayerBarState extends ConsumerState<NordPlayerBar> with LoggerMixin {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
     final appIconSet = ref.watch(appIconProvider);
     final currentTrack = ref.watch(currentTrackProvider);
-    final isAdaptiveBgOn = ref.watch(configServiceProvider).value?.adaptiveBg ?? false;
+    final isAdaptiveBgOn = ref.watch(configServiceProvider.select((c) => c.adaptiveBg));
     final player = ref.watch(playerServiceProvider);
     final showQueue = ref.watch(preferenceServiceProvider).showQueue;
 
