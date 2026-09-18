@@ -7,28 +7,18 @@ final backgroundTaskServiceProvider = NotifierProvider<BackgroundTaskService, Li
 
 enum BackgroundTaskStatus { running, completed, failed }
 
-class BackgroundTask {
-  final String id;
-  final String name;
-  final int processed;
-  final int total;
-  final String message;
-  final bool isIndeterminate;
-  final BackgroundTaskStatus status;
-  final String? error;
-  final DateTime timestamp;
-
-  BackgroundTask({
-    required this.id,
-    required this.name,
-    this.processed = 0,
-    this.total = 0,
-    this.message = '',
-    this.isIndeterminate = false,
-    this.status = BackgroundTaskStatus.running,
-    this.error,
-    DateTime? timestamp,
-  }) : timestamp = timestamp ?? DateTime.now();
+class BackgroundTask({
+  required final String id,
+  required final String name,
+  final int processed = 0,
+  final int total = 0,
+  final String message = '',
+  final bool isIndeterminate = false,
+  final BackgroundTaskStatus status = BackgroundTaskStatus.running,
+  final String? error,
+  DateTime? timestamp,
+}) {
+  final DateTime timestamp = timestamp ?? DateTime.now();
 
   double? get progress => (total > 0 && status == BackgroundTaskStatus.running)
       ? (processed / total).clamp(0.0, 1.0)

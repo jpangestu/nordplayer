@@ -1,15 +1,13 @@
 import 'package:material_ui/material_ui.dart';
 
 @immutable
-class NordSnackBarTheme extends ThemeExtension<NordSnackBarTheme> {
-  const NordSnackBarTheme({this.generalColor, this.infoColor, this.successColor, this.warningColor, this.errorColor});
-
-  final Color? generalColor;
-  final Color? infoColor;
-  final Color? warningColor;
-  final Color? successColor;
-  final Color? errorColor;
-
+class const NordSnackBarTheme({
+  final Color? generalColor,
+  final Color? infoColor,
+  final Color? warningColor,
+  final Color? successColor,
+  final Color? errorColor,
+}) extends ThemeExtension<NordSnackBarTheme> {
   @override
   NordSnackBarTheme copyWith({
     Color? generalColor,

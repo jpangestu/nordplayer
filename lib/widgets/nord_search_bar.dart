@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/data/repositories/repositories.dart';
 import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/core/utils/debouncer.dart';

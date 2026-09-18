@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/data/repositories/repositories.dart';
 import 'package:nordplayer/pages/pages_helper.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/core/services/logger.dart';

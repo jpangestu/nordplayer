@@ -1,14 +1,9 @@
-class LibrarySectionConfig {
-  final String id;
-  final bool isVisible;
-
-  const LibrarySectionConfig({required this.id, required this.isVisible});
-
+class const LibrarySectionConfig({required final String id, required final bool isVisible}) {
   LibrarySectionConfig copyWith({String? id, bool? isVisible}) {
     return LibrarySectionConfig(id: id ?? this.id, isVisible: isVisible ?? this.isVisible);
   }
 
-  factory LibrarySectionConfig.fromJson(Map<String, dynamic> json) {
+  factory fromJson(Map<String, dynamic> json) {
     return LibrarySectionConfig(id: json['id'] as String? ?? '', isVisible: json['visible'] as bool? ?? true);
   }
 

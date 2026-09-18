@@ -1,17 +1,16 @@
 import 'package:material_ui/material_ui.dart';
 
 @immutable
-class NordSidebarTheme extends ThemeExtension<NordSidebarTheme> {
-  const NordSidebarTheme({this.backgroundColor, this.itemBackgroundColor, this.itemForegroundColor});
-
+class const NordSidebarTheme({
   /// The background of the sidebar itself
-  final Color? backgroundColor;
+  final Color? backgroundColor,
 
   /// The dynamic background of the individual items
-  final WidgetStateProperty<Color?>? itemBackgroundColor;
+  final WidgetStateProperty<Color?>? itemBackgroundColor,
 
   /// The dynamic text/icon color of the individual items
-  final WidgetStateProperty<Color?>? itemForegroundColor;
+  final WidgetStateProperty<Color?>? itemForegroundColor,
+}) extends ThemeExtension<NordSidebarTheme> {
 
   @override
   NordSidebarTheme copyWith({

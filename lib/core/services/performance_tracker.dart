@@ -13,44 +13,31 @@ final performanceTrackerProvider = NotifierProvider<PerformanceTracker, Performa
 });
 
 @immutable
-class PerformanceState {
-  final int actualFrameRate;
-  final bool isIdle;
-  final double currentFrameTime;
-  final double minFrameTime;
-  final double maxFrameTime;
-  final double averageFrameTime;
-  final double currentUiTime;
-  final double currentGpuTime;
-  final double cpuUsage;
-  final int ramBytes;
-  final Map<String, bool> visibility;
-
-  const PerformanceState({
-    this.actualFrameRate = 0,
-    this.isIdle = true,
-    this.currentFrameTime = 0.0,
-    this.minFrameTime = 0.0,
-    this.maxFrameTime = 0.0,
-    this.averageFrameTime = 0.0,
-    this.currentUiTime = 0.0,
-    this.currentGpuTime = 0.0,
-    this.cpuUsage = 0.0,
-    this.ramBytes = 0,
-    this.visibility = const {
-      'potentialFps': false,
-      'avgPotentialFps': false,
-      'minPotentialFps': false,
-      'maxPotentialFps': false,
-      'frameLatency': false,
-      'averageFrameTime': false,
-      'minFrameTime': false,
-      'maxFrameTime': false,
-      'actualFrameRate': false,
-      'cpuUsage': false,
-      'ramUsage': false,
-    },
-  });
+class const PerformanceState({
+  final int actualFrameRate = 0,
+  final bool isIdle = true,
+  final double currentFrameTime = 0.0,
+  final double minFrameTime = 0.0,
+  final double maxFrameTime = 0.0,
+  final double averageFrameTime = 0.0,
+  final double currentUiTime = 0.0,
+  final double currentGpuTime = 0.0,
+  final double cpuUsage = 0.0,
+  final int ramBytes = 0,
+  final Map<String, bool> visibility = const {
+    'potentialFps': false,
+    'avgPotentialFps': false,
+    'minPotentialFps': false,
+    'maxPotentialFps': false,
+    'frameLatency': false,
+    'averageFrameTime': false,
+    'minFrameTime': false,
+    'maxFrameTime': false,
+    'actualFrameRate': false,
+    'cpuUsage': false,
+    'ramUsage': false,
+  },
+}) {
 
   bool isVisible(String key) => visibility[key] ?? false;
 

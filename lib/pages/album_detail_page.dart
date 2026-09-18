@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/data/repositories/repositories.dart';
 import 'package:nordplayer/pages/pages_context_menu.dart';
 import 'package:nordplayer/pages/pages_helper.dart';
 import 'package:nordplayer/core/services/config_service.dart';

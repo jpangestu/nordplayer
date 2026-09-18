@@ -1,29 +1,17 @@
 import 'package:material_ui/material_ui.dart';
 
-class NordSemanticTheme extends ThemeExtension<NordSemanticTheme> {
-  final Color? error;
-  final Color? onError;
-  final Color? success;
-  final Color? onSuccess;
-  final Color? warning;
-  final Color? onWarning;
-  final Color? info;
-  final Color? onInfo;
-  final Color? general;
-  final Color? onGeneral;
-
-  const NordSemanticTheme({
-    this.error,
-    this.onError,
-    this.success,
-    this.onSuccess,
-    this.warning,
-    this.onWarning,
-    this.info,
-    this.onInfo,
-    this.general,
-    this.onGeneral,
-  });
+class const NordSemanticTheme({
+  final Color? error,
+  final Color? onError,
+  final Color? success,
+  final Color? onSuccess,
+  final Color? warning,
+  final Color? onWarning,
+  final Color? info,
+  final Color? onInfo,
+  final Color? general,
+  final Color? onGeneral,
+}) extends ThemeExtension<NordSemanticTheme> {
 
   @override
   NordSemanticTheme copyWith({

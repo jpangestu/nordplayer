@@ -4,6 +4,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/data/repositories/repositories.dart';
 import 'package:nordplayer/pages/queue_page.dart';
 import 'package:nordplayer/core/services/logger.dart';
 import 'package:nordplayer/core/services/preference_service.dart';
@@ -49,7 +50,7 @@ class PlayerService with LoggerMixin {
         lastSaveTime = now;
 
         log.d("Saving playback position to database: ${position.inSeconds}s (${position.inMilliseconds}ms)");
-        ref.read(appDatabaseProvider).updateCurrentPosition(position.inMilliseconds);
+        ref.read(queueRepositoryProvider).updateCurrentPosition(position.inMilliseconds);
       }
     });
   }
@@ -85,7 +86,7 @@ class PlayerService with LoggerMixin {
     _isRestoringQueue = true; // Lock listeners
 
     try {
-      final (originalQueue, lastIndex, lastPosition, type, id) = await ref.read(appDatabaseProvider).loadQueue();
+      final (originalQueue, lastIndex, lastPosition, type, id) = await ref.read(queueRepositoryProvider).loadQueue();
 
       if (originalQueue.isNotEmpty) {
         _originalQueue = List.from(originalQueue);
@@ -149,7 +150,7 @@ class PlayerService with LoggerMixin {
     log.d("Currently played track path: $currentlyPlayedTrackPath (index: $engineIdx)");
 
     ref
-        .read(appDatabaseProvider)
+        .read(queueRepositoryProvider)
         .saveQueue(
           _originalQueue,
           currentlyPlayedTrackPath,
@@ -232,7 +233,7 @@ class PlayerService with LoggerMixin {
     _originalQueue.clear();
 
     // Wipe the queue out of the SQLite database
-    await ref.read(appDatabaseProvider).saveQueue([], null, Duration.zero, '', null);
+    await ref.read(queueRepositoryProvider).saveQueue([], null, Duration.zero, '', null);
     // Reset the UI context
     ref.read(playbackContextProvider.notifier).setContext('', null);
 

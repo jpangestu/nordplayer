@@ -10,10 +10,7 @@ import 'dart:async';
 ///   // do stuff here (will only execute after 500ms of silence)
 /// });
 /// ```
-class Debouncer {
-  Debouncer(this.duration);
-
-  final Duration duration;
+class Debouncer(final Duration duration) {
   Timer? _timer;
   bool _isDisposed = false;
 

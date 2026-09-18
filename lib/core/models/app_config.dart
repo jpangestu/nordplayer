@@ -3,23 +3,23 @@ import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/models/library_section_config.dart';
 import 'package:nordplayer/core/theme/app_theme.dart';
 
-class AppConfig {
-  final List<String> trackDirectories;
-  final bool watchTrackDirectories;
-  final List<String> artistDelimiters;
-  final List<String> artistExclusions;
-  final String theme;
-  final Brightness themeBrightness;
-  final String iconSet;
-  final bool adaptiveBg;
-  final BoxFit adaptiveBgAlbumFit;
-  final double adaptiveBgAlbumBlur;
-  final double adaptiveBgPanelBlur;
-  final double adaptiveBgThemeOverlay;
-  final String fontFamily;
-  final double textScale;
-  final List<LibrarySectionConfig> librarySections;
-
+class AppConfig({
+  final List<String> trackDirectories = _defaultTrackDirectories,
+  final bool watchTrackDirectories = _defaultWatchTrackDirectories,
+  final List<String> artistDelimiters = defaultArtistDelimiters,
+  final List<String> artistExclusions = defaultArtistExclusions,
+  final String theme = _defaultTheme,
+  final Brightness themeBrightness = _defaultThemeBrightness,
+  final String iconSet = _defaultIconSet,
+  final bool adaptiveBg = _defaultAdaptiveBg,
+  final BoxFit adaptiveBgAlbumFit = _defaultAdaptiveBgAlbumFit,
+  final double adaptiveBgAlbumBlur = _defaultAdaptiveBgAlbumBlur,
+  final double adaptiveBgPanelBlur = _defaultAdaptiveBgPanelBlur,
+  final double adaptiveBgThemeOverlay = _defaultAdaptiveBgThemeOverlay,
+  final String fontFamily = _defaultFontFamily,
+  final double textScale = _defaultTextScale,
+  final List<LibrarySectionConfig> librarySections = _defaultLibrarySections,
+}) {
   static const List<String> _defaultTrackDirectories = [];
   // Not private because settings page need access
   static const List<String> defaultArtistDelimiters = [
@@ -80,24 +80,6 @@ class AppConfig {
     LibrarySectionConfig(id: 'albums', isVisible: true),
     LibrarySectionConfig(id: 'tracks', isVisible: true),
   ];
-
-  AppConfig({
-    this.trackDirectories = _defaultTrackDirectories,
-    this.watchTrackDirectories = _defaultWatchTrackDirectories,
-    this.artistDelimiters = defaultArtistDelimiters,
-    this.artistExclusions = defaultArtistExclusions,
-    this.theme = _defaultTheme,
-    this.themeBrightness = _defaultThemeBrightness,
-    this.iconSet = _defaultIconSet,
-    this.adaptiveBg = _defaultAdaptiveBg,
-    this.adaptiveBgAlbumFit = _defaultAdaptiveBgAlbumFit,
-    this.adaptiveBgAlbumBlur = _defaultAdaptiveBgAlbumBlur,
-    this.adaptiveBgPanelBlur = _defaultAdaptiveBgPanelBlur,
-    this.adaptiveBgThemeOverlay = _defaultAdaptiveBgThemeOverlay,
-    this.fontFamily = _defaultFontFamily,
-    this.textScale = _defaultTextScale,
-    this.librarySections = _defaultLibrarySections,
-  });
 
   AppConfig copyWith({
     List<String>? trackDirectories,
