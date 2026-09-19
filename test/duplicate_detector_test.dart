@@ -230,6 +230,12 @@ void main() {
       final ignoredPaths = await db.select(db.ignoredPaths).get();
       expect(ignoredPaths.length, 1);
       expect(ignoredPaths.first.filePath, 'C:/Music/delete_me.mp3'.normalizePath().toLowerCase());
+
+      // Verify orphaned artist and album were automatically cleaned up
+      final artistsLeft = await db.select(db.artists).get();
+      expect(artistsLeft.isEmpty, true);
+      final albumsLeft = await db.select(db.albums).get();
+      expect(albumsLeft.isEmpty, true);
     });
   });
 }

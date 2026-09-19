@@ -21,18 +21,10 @@ final libraryIndexerProvider = Provider<LibraryIndexer>((ref) {
   return LibraryIndexer(ref, db);
 });
 
-class LibraryIndexer with LoggerMixin {
-  LibraryIndexer(this._ref, this._db) {
-    _audioFingerprintIndexer = AudioFingerprintIndexer(_ref, _db);
-    _trackIndexer = TrackIndexer(_ref, _db, _audioFingerprintIndexer.cancel);
-    _libraryScanner = LibraryScanner(_ref, _db, _trackIndexer, _audioFingerprintIndexer.cancel);
-  }
-
-  final Ref _ref;
-  final AppDatabase _db;
-  late final TrackIndexer _trackIndexer;
-  late final LibraryScanner _libraryScanner;
-  late final AudioFingerprintIndexer _audioFingerprintIndexer;
+class LibraryIndexer(final Ref _ref, final AppDatabase _db) with LoggerMixin {
+  late final AudioFingerprintIndexer _audioFingerprintIndexer = AudioFingerprintIndexer(_ref, _db);
+  late final TrackIndexer _trackIndexer = TrackIndexer(_ref, _db, _audioFingerprintIndexer.cancel);
+  late final LibraryScanner _libraryScanner = LibraryScanner(_ref, _db, _trackIndexer, _audioFingerprintIndexer.cancel);
 
   Future<void> scanLibrary({void Function(int processed, int total)? onProgress}) async {
     return _libraryScanner.scanLibrary(onProgress: onProgress, onComplete: _startBackgroundFingerprintGenerationIfIdle);
@@ -93,10 +85,9 @@ class LibraryIndexer with LoggerMixin {
           if (fingerprintRes != null) {
             final storedFingerprint = existingTrackByPath.audioFingerprint;
             if (storedFingerprint != null) {
-              final fingerprinter = _ref.read(chromaprintServiceProvider);
-              final storedRaw = fingerprinter.parseRawAudioFingerprint(storedFingerprint);
+              final storedRaw = ChromaprintService.parseRawAudioFingerprint(storedFingerprint);
               if (storedRaw != null) {
-                final similarity = fingerprinter.compareRawAudioFingerprints(
+                final similarity = ChromaprintService.compareRawAudioFingerprints(
                   fingerprintRes.rawAudioFingerprint,
                   storedRaw,
                 );

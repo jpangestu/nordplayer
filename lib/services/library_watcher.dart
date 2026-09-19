@@ -21,10 +21,7 @@ final libraryWatcherProvider = Provider<LibraryWatcher>((ref) {
   return watcher;
 });
 
-class LibraryWatcher with LoggerMixin {
-  LibraryWatcher(this._libraryIndexer);
-
-  final LibraryIndexer _libraryIndexer;
+class LibraryWatcher(final LibraryIndexer _libraryIndexer) with LoggerMixin {
 
   final Map<String, StreamSubscription<WatchEvent>> _subscriptions = {};
 
@@ -110,11 +107,15 @@ class LibraryWatcher with LoggerMixin {
     }
   }
 
+  bool _isDisposed = false;
+
   /// Verifies file stabilization before processing.
   ///
   /// Since OS file events (MODIFY/ADD) can trigger while a file is still being written, this function polls the file
   /// size until it stops changing to ensure the file is complete and unlocked.
   void _debounceFileProcessing(String path) {
+    if (_isDisposed) return;
+
     if (_debouncers.containsKey(path)) {
       _debouncers[path]?.cancel();
       _debouncers.remove(path);
@@ -129,6 +130,8 @@ class LibraryWatcher with LoggerMixin {
       const maxRetries = 60; // Max wait: 30 seconds (60 * 500ms)
 
       while (retries < maxRetries) {
+        if (_isDisposed) return;
+
         try {
           if (!await file.exists()) {
             log.w("File disappeared before we could process it: $path");
@@ -148,6 +151,7 @@ class LibraryWatcher with LoggerMixin {
             final randomAccess = await file.open(mode: FileMode.read);
             await randomAccess.close();
 
+            if (_isDisposed) return;
             await _libraryIndexer.processSingleFile(file);
             return;
           }
@@ -166,6 +170,7 @@ class LibraryWatcher with LoggerMixin {
   }
 
   void dispose() {
+    _isDisposed = true;
     for (final sub in _subscriptions.values) {
       sub.cancel();
     }

@@ -12,24 +12,22 @@ final chromaprintServiceProvider = Provider<ChromaprintService>((ref) {
   return ChromaprintService();
 });
 
-class AudioFingerprintResult {
-  AudioFingerprintResult({required this.rawAudioFingerprint, required this.durationMs});
-  final List<int> rawAudioFingerprint;
-  final int durationMs;
-
+class const AudioFingerprintResult({
+  required final List<int> rawAudioFingerprint,
+  required final int durationMs,
+}) {
   Uint8List get fingerprintBytes {
     final uint32list = Uint32List.fromList(rawAudioFingerprint);
     return uint32list.buffer.asUint8List();
   }
 }
 
-class ChromaprintService with LoggerMixin {
-  ChromaprintService([this._fpcalcPath]);
-
-  String? _fpcalcPath;
+class ChromaprintService([String? fpcalcPath]) with LoggerMixin {
+  String? _fpcalcPath = fpcalcPath;
   Future<void>? _initFuture;
 
   Future<String?> get fpcalcPath async {
+    if (_fpcalcPath != null) return _fpcalcPath;
     _initFuture ??= _ensureInitialized();
     await _initFuture;
     return _fpcalcPath;
@@ -66,7 +64,7 @@ class ChromaprintService with LoggerMixin {
     return null;
   }
 
-  int _popcount(int x) {
+  static int _popcount(int x) {
     x = x & 0xFFFFFFFF; // Ensure 32-bit
     x -= ((x >> 1) & 0x55555555);
     x = (((x >> 2) & 0x33333333) + (x & 0x33333333));
@@ -76,7 +74,7 @@ class ChromaprintService with LoggerMixin {
     return (x & 0x0000003F);
   }
 
-  List<int>? parseRawAudioFingerprint(Uint8List? bytes) {
+  static List<int>? parseRawAudioFingerprint(Uint8List? bytes) {
     if (bytes == null || bytes.isEmpty) return null;
     if (bytes.offsetInBytes % 4 != 0) {
       final alignedBytes = Uint8List.fromList(bytes);
@@ -85,8 +83,10 @@ class ChromaprintService with LoggerMixin {
     return Uint32List.view(bytes.buffer, bytes.offsetInBytes, bytes.lengthInBytes ~/ 4);
   }
 
-  double compareRawAudioFingerprints(List<int> fp1, List<int> fp2) {
+  static double compareRawAudioFingerprints(List<int> fp1, List<int> fp2) {
     if (fp1.isEmpty || fp2.isEmpty) return 0.0;
+    if (identical(fp1, fp2)) return 1.0;
+    if (fp1.length < 15 || fp2.length < 15) return 0.0;
 
     const int maxOffset = 40;
     double maxSimilarity = 0.0;
@@ -110,6 +110,7 @@ class ChromaprintService with LoggerMixin {
       }
 
       final double similarity = matchingBits / (overlapLen * 32);
+      if (similarity >= 1.0) return 1.0;
       if (similarity > maxSimilarity) {
         maxSimilarity = similarity;
       }
@@ -158,15 +159,19 @@ class ChromaprintService with LoggerMixin {
 
       log.i('Downloading fpcalc from $url...');
       final client = HttpClient();
-      final request = await client.getUrl(Uri.parse(url));
-      final response = await request.close();
-      if (response.statusCode != 200) {
-        throw Exception('Failed to download fpcalc: HTTP ${response.statusCode}');
+      try {
+        final request = await client.getUrl(Uri.parse(url));
+        final response = await request.close();
+        if (response.statusCode != 200) {
+          throw Exception('Failed to download fpcalc: HTTP ${response.statusCode}');
+        }
+        final file = File(archivePath);
+        final sink = file.openWrite();
+        await response.pipe(sink);
+        await sink.close();
+      } finally {
+        client.close();
       }
-      final file = File(archivePath);
-      final sink = file.openWrite();
-      await response.pipe(sink);
-      await sink.close();
       log.i('Download complete. Extracting archive...');
 
       final extractDir = p.join(tempDir.path, 'extracted');

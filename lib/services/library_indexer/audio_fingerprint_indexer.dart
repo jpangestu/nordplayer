@@ -11,11 +11,7 @@ import 'package:nordplayer/core/services/background_task_service.dart';
 import 'package:nordplayer/services/chromaprint_service.dart';
 import 'package:nordplayer/core/services/logger.dart';
 
-class AudioFingerprintIndexer with LoggerMixin {
-  AudioFingerprintIndexer(this._ref, this._db);
-
-  final Ref _ref;
-  final AppDatabase _db;
+class AudioFingerprintIndexer(final Ref _ref, final AppDatabase _db) with LoggerMixin {
   bool _isCancelled = false;
 
   void cancel() {
@@ -59,6 +55,12 @@ class AudioFingerprintIndexer with LoggerMixin {
       );
 
       final execPath = await _ref.read(chromaprintServiceProvider).fpcalcPath;
+      if (execPath == null) {
+        log.w('fpcalc executable not available. Cannot generate audio fingerprints.');
+        bgTaskService.completeTask('fingerprint-generation');
+        return;
+      }
+
       const int chunkSize = 25;
       // Use half of the CPU cores, but at least 1, and cap it at 4 to prevent disk I/O bottlenecks.
       final concurrencyLimit = math.max(1, math.min(4, Platform.numberOfProcessors ~/ 2));
@@ -102,19 +104,12 @@ class AudioFingerprintIndexer with LoggerMixin {
   }
 }
 
-class FingerprintChunkIsolateRequest {
-  const FingerprintChunkIsolateRequest({
-    required this.tracks,
-    required this.execPath,
-    required this.concurrencyLimit,
-    required this.token,
-  });
-
-  final List<(int, String)> tracks;
-  final String? execPath;
-  final int concurrencyLimit;
-  final RootIsolateToken? token;
-}
+class const FingerprintChunkIsolateRequest({
+  required final List<(int, String)> tracks,
+  required final String? execPath,
+  required final int concurrencyLimit,
+  required final RootIsolateToken? token,
+});
 
 Future<void> Function() _buildFingerprintIsolateClosure(FingerprintChunkIsolateRequest request) {
   return () => _fingerprintChunkIsolate(request);

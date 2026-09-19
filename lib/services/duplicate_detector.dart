@@ -1,12 +1,11 @@
 import 'dart:isolate';
-import 'dart:math' as math;
-import 'dart:typed_data';
 
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/core/database/app_database.dart';
 import 'package:nordplayer/core/services/logger.dart';
 import 'package:nordplayer/core/utils/string_extension.dart';
+import 'package:nordplayer/services/chromaprint_service.dart';
 import 'package:path/path.dart' as p;
 
 final duplicateDetectorProvider = Provider<DuplicateDetector>((ref) {
@@ -14,34 +13,21 @@ final duplicateDetectorProvider = Provider<DuplicateDetector>((ref) {
   return DuplicateDetector(db);
 });
 
-class DuplicateCandidate {
-  final Track track;
-  final String artistName;
-  final String albumTitle;
+class DuplicateCandidate({
+  required final Track track,
+  required final String artistName,
+  required final String albumTitle,
+});
 
-  DuplicateCandidate({required this.track, required this.artistName, required this.albumTitle});
-}
+class DuplicateGroup({
+  required final String title,
+  required final String artist,
+  required final String album,
+  required final List<Track> tracks,
+  required final Track preferredTrack,
+});
 
-class DuplicateGroup {
-  final String title;
-  final String artist;
-  final String album;
-  final List<Track> tracks;
-  final Track preferredTrack;
-
-  DuplicateGroup({
-    required this.title,
-    required this.artist,
-    required this.album,
-    required this.tracks,
-    required this.preferredTrack,
-  });
-}
-
-class DuplicateDetector with LoggerMixin {
-  final AppDatabase _db;
-
-  DuplicateDetector(this._db);
+class DuplicateDetector(final AppDatabase _db) with LoggerMixin {
 
   /// Scans the library database to find groups of duplicate tracks.
   Future<List<DuplicateGroup>> findDuplicates() async {
@@ -113,12 +99,7 @@ class DuplicateDetector with LoggerMixin {
   /// Ignores a track by removing it from the database and adding it to the ignored paths table.
   Future<void> ignorePath(Track track) async {
     log.i("Ignoring track '${track.title}' (ID: ${track.id}) by removing from database and adding to ignored paths.");
-
-    await (_db.delete(_db.tracks)..where((t) => t.id.equals(track.id))).go();
-
-    await _db
-        .into(_db.ignoredPaths)
-        .insertOnConflictUpdate(IgnoredPathsCompanion(filePath: Value(track.filePath.normalizePath().toLowerCase())));
+    await ignorePaths([track]);
   }
 
   /// Ignores multiple tracks in a single database transaction.
@@ -136,7 +117,11 @@ class DuplicateDetector with LoggerMixin {
             );
       }
     });
+
+    await _db.deleteOrphanedMetadata();
   }
+
+  static const _losslessExtensions = {'.flac', '.wav', '.alac', '.ape'};
 
   /// Determines the preferred/highest quality track copy in a list.
   /// Prefers lossless formats (.flac, .wav, .alac, .ape) and falls back to larger file sizes.
@@ -145,8 +130,8 @@ class DuplicateDetector with LoggerMixin {
       final extBest = p.extension(best.filePath).toLowerCase();
       final extCurr = p.extension(current.filePath).toLowerCase();
 
-      final isLosslessBest = const ['.flac', '.wav', '.alac', '.ape'].contains(extBest);
-      final isLosslessCurr = const ['.flac', '.wav', '.alac', '.ape'].contains(extCurr);
+      final isLosslessBest = _losslessExtensions.contains(extBest);
+      final isLosslessCurr = _losslessExtensions.contains(extCurr);
 
       if (isLosslessBest && !isLosslessCurr) return best;
       if (!isLosslessBest && isLosslessCurr) return current;
@@ -157,69 +142,15 @@ class DuplicateDetector with LoggerMixin {
   }
 }
 
-class _IsolateCandidate {
-  final int id;
-  final int durationMs;
-  final Uint8List? audioFingerprint;
-
-  _IsolateCandidate({required this.id, required this.durationMs, required this.audioFingerprint});
-}
+class _IsolateCandidate({
+  required final int id,
+  required final int durationMs,
+  required final Uint8List? audioFingerprint,
+});
 
 List<List<int>> _findDuplicatesIsolate(List<_IsolateCandidate> candidates) {
   // Sort candidates by duration to enable window-based scanning
   candidates.sort((a, b) => a.durationMs.compareTo(b.durationMs));
-
-  List<int>? parseRawAudioFingerprint(Uint8List? bytes) {
-    if (bytes == null || bytes.isEmpty) return null;
-    if (bytes.offsetInBytes % 4 != 0) {
-      final alignedBytes = Uint8List.fromList(bytes);
-      return Uint32List.view(alignedBytes.buffer);
-    }
-    return Uint32List.view(bytes.buffer, bytes.offsetInBytes, bytes.lengthInBytes ~/ 4);
-  }
-
-  int popcount(int x) {
-    x = x & 0xFFFFFFFF; // Ensure 32-bit
-    x -= ((x >> 1) & 0x55555555);
-    x = (((x >> 2) & 0x33333333) + (x & 0x33333333));
-    x = (((x >> 4) + x) & 0x0F0F0F0F);
-    x += (x >> 8);
-    x += (x >> 16);
-    return (x & 0x0000003F);
-  }
-
-  double compareRawAudioFingerprints(List<int> fp1, List<int> fp2) {
-    if (fp1.isEmpty || fp2.isEmpty) return 0.0;
-
-    const int maxOffset = 40;
-    double maxSimilarity = 0.0;
-
-    final int len1 = fp1.length;
-    final int len2 = fp2.length;
-
-    for (int offset = -maxOffset; offset <= maxOffset; offset++) {
-      final int start1 = math.max(0, offset);
-      final int start2 = math.max(0, -offset);
-      final int overlapLen = math.min(len1 - start1, len2 - start2);
-
-      if (overlapLen < 15) continue;
-
-      int matchingBits = 0;
-      for (int i = 0; i < overlapLen; i++) {
-        final int val1 = fp1[start1 + i];
-        final int val2 = fp2[start2 + i];
-        final int diffBits = val1 ^ val2;
-        matchingBits += (32 - popcount(diffBits));
-      }
-
-      final double similarity = matchingBits / (overlapLen * 32);
-      if (similarity > maxSimilarity) {
-        maxSimilarity = similarity;
-      }
-    }
-
-    return maxSimilarity;
-  }
 
   final List<List<int>> duplicateGroups = [];
   final Set<int> processedIds = {};
@@ -227,7 +158,7 @@ List<List<int>> _findDuplicatesIsolate(List<_IsolateCandidate> candidates) {
   // Pre-parse fingerprints to avoid parsing them repeatedly in the inner loops
   final Map<int, List<int>?> parsedFingerprints = {};
   for (final candidate in candidates) {
-    parsedFingerprints[candidate.id] = parseRawAudioFingerprint(candidate.audioFingerprint);
+    parsedFingerprints[candidate.id] = ChromaprintService.parseRawAudioFingerprint(candidate.audioFingerprint);
   }
 
   // Slide a window forward
@@ -248,7 +179,7 @@ List<List<int>> _findDuplicatesIsolate(List<_IsolateCandidate> candidates) {
       final fp2 = parsedFingerprints[next.id];
 
       if (fp1 != null && fp2 != null) {
-        final similarity = compareRawAudioFingerprints(fp1, fp2);
+        final similarity = ChromaprintService.compareRawAudioFingerprints(fp1, fp2);
         if (similarity >= 0.85) {
           currentGroup.add(next.id);
         }

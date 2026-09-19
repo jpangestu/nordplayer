@@ -9,18 +9,17 @@ import 'package:nordplayer/core/services/background_task_service.dart';
 import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/services/library_indexer/track_indexer.dart';
 import 'package:nordplayer/core/services/logger.dart';
+import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/utils/audio_metadata_hasher.dart';
 import 'package:nordplayer/core/utils/string_extension.dart';
 import 'package:path/path.dart' as p;
 
-class LibraryScanner with LoggerMixin {
-  LibraryScanner(this._ref, this._db, this._trackIndexer, this._onCancelFingerprintTask);
-
-  final Ref _ref;
-  final AppDatabase _db;
-  final TrackIndexer _trackIndexer;
-  final VoidCallback _onCancelFingerprintTask;
-
+class LibraryScanner(
+  final Ref _ref,
+  final AppDatabase _db,
+  final TrackIndexer _trackIndexer,
+  final VoidCallback _onCancelFingerprintTask,
+) with LoggerMixin {
   AppConfig get _appConfig => _ref.read(configServiceProvider).requireValue;
 
   Set<String> supportedExtensions = {
@@ -61,12 +60,16 @@ class LibraryScanner with LoggerMixin {
       );
       stepStopwatch.reset();
 
-      final Map<String, Track> existingTracksMap = {
-        for (final track in existingTracks) track.filePath.normalizePath().toLowerCase(): track,
-      };
+      final Map<String, Track> existingTracksMap = {};
+      final Map<String, String> existingTrackHashes = {};
+      for (final track in existingTracks) {
+        final normalized = track.filePath.normalizePath().toLowerCase();
+        existingTracksMap[normalized] = track;
+        existingTrackHashes[normalized] = track.fileHash;
+      }
 
       log.i(
-        '[Benchmark] Loaded ${existingTracks.length} existing tracks into map in ${stepStopwatch.elapsedMilliseconds}ms',
+        '[Benchmark] Loaded ${existingTracks.length} existing tracks into maps in ${stepStopwatch.elapsedMilliseconds}ms',
       );
       stepStopwatch.reset();
 
@@ -79,10 +82,6 @@ class LibraryScanner with LoggerMixin {
         '[Benchmark] Loaded ${ignoredPathsList.length} ignored paths from DB in ${stepStopwatch.elapsedMilliseconds}ms',
       );
       stepStopwatch.reset();
-
-      final Map<String, String> existingTrackHashes = {
-        for (final track in existingTracks) track.filePath.normalizePath().toLowerCase(): track.fileHash,
-      };
 
       final receivePort = ReceivePort();
       final subscription = receivePort.listen((message) {
@@ -147,7 +146,14 @@ class LibraryScanner with LoggerMixin {
           .map((path) => existingTracksMap[path]!.filePath)
           .toList();
 
-      final missingTracks = await (_db.select(_db.tracks)..where((t) => t.filePath.isIn(tracksToMarkAsMissing))).get();
+      const int batchSize = 500;
+      final List<Track> missingTracks = [];
+      for (var i = 0; i < tracksToMarkAsMissing.length; i += batchSize) {
+        final end = (i + batchSize < tracksToMarkAsMissing.length) ? i + batchSize : tracksToMarkAsMissing.length;
+        final batch = tracksToMarkAsMissing.sublist(i, end);
+        final tracks = await (_db.select(_db.tracks)..where((t) => t.filePath.isIn(batch))).get();
+        missingTracks.addAll(tracks);
+      }
       List<(File, String)> newTracksToProcess = [];
 
       if (isolateResponse.newTracks.isNotEmpty && tracksToMarkAsMissingNormalized.isNotEmpty) {
@@ -181,11 +187,25 @@ class LibraryScanner with LoggerMixin {
       if (tracksToMarkAsMissing.isNotEmpty) {
         log.i('Marking ${tracksToMarkAsMissing.length} removed tracks as missing in database...');
 
-        await (_db.update(_db.tracks)..where((track) => track.filePath.isIn(tracksToMarkAsMissing))).write(
-          const TracksCompanion(isMissing: Value(true)),
-        );
+        for (var i = 0; i < tracksToMarkAsMissing.length; i += batchSize) {
+          final end = (i + batchSize < tracksToMarkAsMissing.length) ? i + batchSize : tracksToMarkAsMissing.length;
+          final batch = tracksToMarkAsMissing.sublist(i, end);
+          await (_db.update(_db.tracks)..where((track) => track.filePath.isIn(batch))).write(
+            const TracksCompanion(isMissing: Value(true)),
+          );
+        }
         log.i('[Benchmark] Updated missing tracks in DB in ${stepStopwatch.elapsedMilliseconds}ms');
         stepStopwatch.reset();
+
+        // Also remove missing tracks from the player service queue
+        try {
+          final playerService = _ref.read(playerServiceProvider);
+          for (final path in tracksToMarkAsMissing) {
+            await playerService.removeTrackByPath(path);
+          }
+        } catch (e) {
+          log.e("Failed to remove missing tracks from player service queue: $e");
+        }
       }
 
       if (newTracksToProcess.isNotEmpty) {
@@ -217,9 +237,15 @@ class LibraryScanner with LoggerMixin {
             .toList();
 
         if (previouslyMissingPathsInDb.isNotEmpty) {
-          await (_db.update(_db.tracks)..where((track) => track.filePath.isIn(previouslyMissingPathsInDb))).write(
-            const TracksCompanion(isMissing: Value(false)),
-          );
+          for (var i = 0; i < previouslyMissingPathsInDb.length; i += batchSize) {
+            final end = (i + batchSize < previouslyMissingPathsInDb.length)
+                ? i + batchSize
+                : previouslyMissingPathsInDb.length;
+            final batch = previouslyMissingPathsInDb.sublist(i, end);
+            await (_db.update(_db.tracks)..where((track) => track.filePath.isIn(batch))).write(
+              const TracksCompanion(isMissing: Value(false)),
+            );
+          }
         }
         log.i('[Benchmark] Unmarked found tracks as missing in DB in ${stepStopwatch.elapsedMilliseconds}ms');
         stepStopwatch.reset();
@@ -239,33 +265,19 @@ class LibraryScanner with LoggerMixin {
 
 // =========================================== Background Isolate Workers & Classes ===========================================
 
-class ScanLibraryIsolateRequest {
-  const ScanLibraryIsolateRequest({
-    required this.trackDirectories,
-    required this.supportedExtensions,
-    required this.existingTrackHashes,
-    required this.ignoredPathsSet,
-    required this.sendPort,
-  });
+class const ScanLibraryIsolateRequest({
+  required final List<String> trackDirectories,
+  required final Set<String> supportedExtensions,
+  required final Map<String, String> existingTrackHashes,
+  required final Set<String> ignoredPathsSet,
+  required final SendPort sendPort,
+});
 
-  final List<String> trackDirectories;
-  final Set<String> supportedExtensions;
-  final Map<String, String> existingTrackHashes;
-  final Set<String> ignoredPathsSet;
-  final SendPort sendPort;
-}
-
-class ScanLibraryIsolateResponse {
-  const ScanLibraryIsolateResponse({
-    required this.supportedFilesFoundOnDisk,
-    required this.newTracks,
-    required this.modifiedTracks,
-  });
-
-  final Set<String> supportedFilesFoundOnDisk;
-  final Map<String, String> newTracks;
-  final Map<String, String> modifiedTracks;
-}
+class const ScanLibraryIsolateResponse({
+  required final Set<String> supportedFilesFoundOnDisk,
+  required final Map<String, String> newTracks,
+  required final Map<String, String> modifiedTracks,
+});
 
 Future<ScanLibraryIsolateResponse> Function() _buildScanLibraryIsolateClosure(ScanLibraryIsolateRequest request) {
   return () => _scanDirectoriesAndHashIsolate(request);
@@ -276,7 +288,7 @@ Future<ScanLibraryIsolateResponse> _scanDirectoriesAndHashIsolate(ScanLibraryIso
   final newTracks = <String, String>{};
   final modifiedTracks = <String, String>{};
 
-  final List<File> filesToScan = [];
+  final List<(File, String)> filesToScan = [];
 
   for (String path in request.trackDirectories) {
     final trackDirectory = Directory(path);
@@ -294,7 +306,7 @@ Future<ScanLibraryIsolateResponse> _scanDirectoriesAndHashIsolate(ScanLibraryIso
           continue;
         }
 
-        filesToScan.add(entity);
+        filesToScan.add((entity, normalizedEntityPath));
       }
     }
   }
@@ -302,8 +314,7 @@ Future<ScanLibraryIsolateResponse> _scanDirectoriesAndHashIsolate(ScanLibraryIso
   final total = filesToScan.length;
   int processed = 0;
 
-  for (final file in filesToScan) {
-    final normalizedEntityPath = file.path.normalizePath().toLowerCase();
+  for (final (file, normalizedEntityPath) in filesToScan) {
     supportedFilesFoundOnDisk.add(normalizedEntityPath);
 
     if (!request.existingTrackHashes.containsKey(normalizedEntityPath)) {
