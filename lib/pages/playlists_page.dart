@@ -1,25 +1,27 @@
-import 'dart:math' show Random;
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/database/app_database.dart';
-import 'package:nordplayer/data/repositories/repositories.dart';
-import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/core/services/logger.dart';
-import 'package:nordplayer/services/player_service.dart';
-import 'package:nordplayer/core/services/preference_service.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
+import 'package:nordplayer/data/repositories/repositories.dart';
+import 'package:nordplayer/features/playlists/viewmodels/playlists_viewmodel.dart';
+import 'package:nordplayer/routes/router.dart';
+import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/widgets/album_art_stack.dart';
 import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
+import 'package:nordplayer/widgets/dialogs/playlist_dialogs.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/nord_alert_dialog.dart';
 import 'package:nordplayer/widgets/nord_snack_bar.dart';
 import 'package:nordplayer/widgets/settings/section_container.dart';
 import 'package:nordplayer/widgets/settings/section_page_titile.dart';
+
+// Re-export dialog helpers for backward compatibility
+export 'package:nordplayer/widgets/dialogs/playlist_dialogs.dart';
 
 class PlaylistsPage extends ConsumerWidget {
   const PlaylistsPage({super.key});
@@ -27,7 +29,6 @@ class PlaylistsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final db = ref.watch(appDatabaseProvider);
     final appConfig = ref.watch(configServiceProvider).requireValue;
     final appIconSet = ref.watch(appIconProvider);
 
@@ -37,7 +38,7 @@ class PlaylistsPage extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const .all(12),
+            padding: const EdgeInsets.all(12),
             child: SectionContainer(
               child: SectionPageTitle(
                 title: 'Playlists',
@@ -45,25 +46,17 @@ class PlaylistsPage extends ConsumerWidget {
                 trailing: Row(
                   children: [
                     IconButton(
-                      onPressed: () => showCreatePlaylistDialog(context, db),
+                      onPressed: () => showCreatePlaylistDialog(context),
                       icon: AppIcon(appIconSet.add, color: theme.textTheme.headlineSmall!.color, size: 22),
                       tooltip: 'Add New Playlist',
                     ),
-                    // IconButton(
-                    //   onPressed: () {},
-                    //   icon: AppIcon(appIconSet.sort, color: theme.textTheme.headlineSmall!.color, size: 22),
-                    //   tooltip: 'Sort',
-                    // ),
                   ],
                 ),
               ),
             ),
           ),
-
           Expanded(
-            child: ref
-                .watch(playlistsStreamProvider)
-                .when(
+            child: ref.watch(playlistsStreamProvider).when(
                   loading: () => const Center(child: CircularProgressIndicator()),
                   error: (error, _) => Center(child: Text('Error: $error')),
                   data: (playlistsWithCount) {
@@ -74,7 +67,6 @@ class PlaylistsPage extends ConsumerWidget {
                     return LayoutBuilder(
                       builder: (context, constraints) {
                         const double minItemWidth = 252.0;
-                        // Calculate exactly how many albums can fit.
                         final int crossAxisCount = (constraints.maxWidth / minItemWidth).floor().clamp(1, 100);
 
                         return GridView.builder(
@@ -88,12 +80,11 @@ class PlaylistsPage extends ConsumerWidget {
                           itemCount: playlistsWithCount.length,
                           itemBuilder: (context, index) {
                             return Align(
-                              alignment: .topStart,
+                              alignment: AlignmentDirectional.topStart,
                               child: SizedBox(
                                 width: 220,
                                 child: PlaylistCard(
                                   playlistWithDetails: playlistsWithCount[index],
-                                  database: db,
                                   playlistId: playlistsWithCount[index].playlist.id,
                                 ),
                               ),
@@ -111,166 +102,21 @@ class PlaylistsPage extends ConsumerWidget {
   }
 }
 
-Future<void> showCreatePlaylistDialog(BuildContext context, AppDatabase db) async {
-  await showDialog(
-    context: context,
-    builder: (context) => CreatePlaylistDialog(database: db),
-  );
-}
-
-Future<void> showCreatePlaylistDialogAndAddTracks(
-  BuildContext context,
-  AppDatabase db,
-  List<TrackWithArtists> tracksToAdd,
-) async {
-  await showDialog(
-    context: context,
-    builder: (context) => CreatePlaylistDialog(database: db, tracksToAdd: tracksToAdd),
-  );
-}
-
-class CreatePlaylistDialog extends ConsumerStatefulWidget {
-  final AppDatabase database;
-  final List<TrackWithArtists> tracksToAdd;
-
-  const CreatePlaylistDialog({super.key, required this.database, this.tracksToAdd = const []});
-
-  @override
-  ConsumerState<CreatePlaylistDialog> createState() => _CreatePlaylistDialogState();
-}
-
-class _CreatePlaylistDialogState extends ConsumerState<CreatePlaylistDialog> with LoggerMixin {
-  late final TextEditingController _textController;
-
-  @override
-  void initState() {
-    super.initState();
-    _textController = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _textController.dispose();
-    super.dispose();
-  }
-
-  void _submit() async {
-    final name = _textController.text.trim();
-
-    if (name.isEmpty) {
-      Navigator.pop(context);
-      return;
-    }
-
-    final newPlaylistId = await widget.database.addPlaylist(PlaylistsCompanion.insert(name: name));
-
-    showNordSnackBar(message: '$name created successfully', type: .success);
-
-    log.i('$name created successfully');
-
-    if (widget.tracksToAdd.isNotEmpty) {
-      final db = ref.read(appDatabaseProvider);
-      final trackIds = widget.tracksToAdd.map((t) => t.track.id).toList();
-
-      await db.addTracksToPlaylist(newPlaylistId, trackIds);
-
-      showNordSnackBar(message: 'Added to $name', type: .success);
-    }
-
-    if (!mounted) return;
-    Navigator.pop(context);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return NordAlertDialog(
-      title: 'Create New Playlist',
-      content: TextField(
-        controller: _textController,
-        autofocus: true,
-        decoration: const InputDecoration(hintText: 'Playlist Name', border: OutlineInputBorder()),
-        onSubmitted: (_) => _submit(),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        FilledButton(onPressed: _submit, child: const Text('Create')),
-      ],
-    );
-  }
-}
-
-class RenamePlaylistDialog extends ConsumerStatefulWidget {
-  final AppDatabase database;
-  final PlaylistData playlist;
-
-  const RenamePlaylistDialog({super.key, required this.database, required this.playlist});
-
-  @override
-  ConsumerState<RenamePlaylistDialog> createState() => _RenamePlaylistDialogState();
-}
-
-class _RenamePlaylistDialogState extends ConsumerState<RenamePlaylistDialog> {
-  late final TextEditingController _textController;
-
-  @override
-  void initState() {
-    super.initState();
-    // Pre-fill the text field with the current name
-    _textController = TextEditingController(text: widget.playlist.name);
-    // Automatically select/highlight all text so the user can just start typing
-    _textController.selection = TextSelection(baseOffset: 0, extentOffset: widget.playlist.name.length);
-  }
-
-  @override
-  void dispose() {
-    _textController.dispose();
-    super.dispose();
-  }
-
-  void _submit() async {
-    final newName = _textController.text.trim();
-
-    if (newName.isEmpty || newName == widget.playlist.name) {
-      Navigator.pop(context);
-      return;
-    }
-
-    await widget.database.renamePlaylist(widget.playlist.id, newName);
-
-    showNordSnackBar(message: 'Renamed to "$newName"', type: .success);
-
-    if (!mounted) return;
-    Navigator.pop(context);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return NordAlertDialog(
-      title: 'Rename Playlist',
-      content: TextField(
-        controller: _textController,
-        autofocus: true,
-        decoration: const InputDecoration(hintText: 'Playlist Name', border: OutlineInputBorder()),
-        onSubmitted: (_) => _submit(),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        FilledButton(onPressed: _submit, child: const Text('Save')),
-      ],
-    );
-  }
-}
-
 // ==========================================
 // INDIVIDUAL PLAYLIST CARD (WITH HOVER STATE)
 // ==========================================
 
 class PlaylistCard extends ConsumerStatefulWidget {
   final PlaylistWithDetails playlistWithDetails;
-  final AppDatabase database;
   final int playlistId;
+  final AppDatabase? database;
 
-  const PlaylistCard({super.key, required this.playlistWithDetails, required this.database, required this.playlistId});
+  const PlaylistCard({
+    super.key,
+    required this.playlistWithDetails,
+    required this.playlistId,
+    this.database,
+  });
 
   @override
   ConsumerState<PlaylistCard> createState() => _PlaylistCardState();
@@ -288,7 +134,6 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
     final appConfig = ref.watch(configServiceProvider).requireValue;
     final appIconSet = ref.watch(appIconProvider);
 
-    // Check if THIS playlist is the active context
     final playbackContext = ref.watch(playbackContextProvider);
     final isPlayingThisPlaylist = playbackContext?.isPlaying('playlist', playlistId) ?? false;
     final isAudioPlaying = ref.watch(isPlayingProvider);
@@ -301,9 +146,8 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
         onTap: () {
           final basePath = Routes.playlistsPage;
           final targetId = widget.playlistWithDetails.playlist.id;
-
           context.go('$basePath/$targetId');
-          log.i('Navigate to playlist ${widget.playlistWithDetails.playlist.id}');
+          log.i('Navigate to playlist $targetId');
         },
         onSecondaryTapDown: (details) {
           _showContextMenu(details.globalPosition, ref);
@@ -311,19 +155,15 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // -- PLAYLIST CARD --
             Expanded(
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // -- CARD BACKGROUND --
                   AlbumArtStack(
                     imageUrls: isPlayingThisPlaylist ? nowPlayingAlbumArt! : widget.playlistWithDetails.imageUrls,
                     sliceWidth: 10,
-                    alignment: .centerLeft,
+                    alignment: Alignment.centerLeft,
                   ),
-
-                  // -- OPTIONS MENU (RIGHT CLICK ALTERNATIVE) --
                   if (_isHovered)
                     Positioned(
                       top: 8,
@@ -354,12 +194,11 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
                                       final RenderBox renderBox =
                                           _moreButtonKey.currentContext!.findRenderObject() as RenderBox;
                                       final buttonPosition = renderBox.localToGlobal(Offset.zero);
-
                                       _showContextMenu(buttonPosition, ref);
                                     },
                                     child: Container(
                                       alignment: Alignment.center,
-                                      padding: const .only(left: 4.0, right: 4.0),
+                                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
                                       child: AppIcon(
                                         appIconSet.contextMenu,
                                         color: theme.colorScheme.primary,
@@ -374,9 +213,6 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
                         ),
                       ),
                     ),
-
-                  // TODO: Make default app button widget with consistent style
-                  // -- THE PLAY BUTTON --
                   if (_isHovered)
                     Positioned(
                       bottom: 8,
@@ -402,12 +238,10 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   InkWell(
-                                    onTap: () {
-                                      _playPlaylist();
-                                    },
+                                    onTap: _playPlaylist,
                                     child: Container(
                                       alignment: Alignment.center,
-                                      padding: const .only(left: 4.0, right: 4.0),
+                                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
                                       child: Icon(Icons.play_arrow_rounded, color: theme.colorScheme.primary, size: 28),
                                     ),
                                   ),
@@ -421,10 +255,7 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
                 ],
               ),
             ),
-
             const SizedBox(height: 12),
-
-            // -- NAME AND TOTAL TRACKS --
             Row(
               children: [
                 if (isPlayingThisPlaylist && isAudioPlaying) ...[
@@ -443,7 +274,6 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
                 ),
               ],
             ),
-
             const SizedBox(height: 4),
             _isHovered
                 ? Text(
@@ -475,11 +305,7 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
           icon: appIconSet.rename,
           label: 'Rename',
           onTap: () {
-            showDialog(
-              context: context,
-              builder: (context) =>
-                  RenamePlaylistDialog(database: widget.database, playlist: widget.playlistWithDetails.playlist),
-            );
+            showRenamePlaylistDialog(context, widget.playlistWithDetails.playlist);
           },
         ),
         ContextMenuActions(
@@ -495,39 +321,24 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
   }
 
   Future<void> _playPlaylist() async {
-    final tracks = await widget.database.getPlaylistTracks(widget.playlistWithDetails.playlist.id);
+    final vm = ref.read(playlistsViewModelProvider);
+    final played = await vm.playPlaylistById(widget.playlistWithDetails.playlist.id);
 
-    if (tracks.isEmpty) {
+    if (!played && mounted) {
       showNordSnackBar(message: 'This playlist is empty! Add some tracks first.', type: .info);
-      return;
     }
-
-    final int startIndex = ref.read(preferenceServiceProvider).shuffleMode == true
-        ? Random().nextInt(tracks.length)
-        : 0;
-
-    ref
-        .read(playerServiceProvider)
-        .setPlaylist(
-          playbackContextType: 'playlist',
-          playbackContextId: widget.playlistWithDetails.playlist.id,
-          tracksToPlay: tracks,
-          initialIndex: startIndex,
-        );
   }
 
   Future<void> _addToQueue() async {
-    final tracks = await widget.database.getPlaylistTracks(widget.playlistWithDetails.playlist.id);
+    final vm = ref.read(playlistsViewModelProvider);
+    final count = await vm.addPlaylistToQueue(widget.playlistWithDetails.playlist.id);
 
-    if (tracks.isEmpty) {
+    if (!mounted) return;
+    if (count == 0) {
       showNordSnackBar(message: 'This playlist is empty! Add some tracks first.', type: .general);
-      return;
+    } else {
+      showNordSnackBar(message: 'Added $count tracks to queue', type: .general);
     }
-
-    final playbackContext = ref.read(playbackContextProvider);
-    ref.read(playerServiceProvider).addToQueue(tracks, playbackContext?.type ?? '', playbackContext?.id);
-
-    showNordSnackBar(message: 'Added ${tracks.length} tracks to queue', type: .general);
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
@@ -550,7 +361,8 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
     );
 
     if (confirmed == true) {
-      await widget.database.deletePlaylist(widget.playlistWithDetails.playlist.id);
+      final vm = ref.read(playlistsViewModelProvider);
+      await vm.deletePlaylist(widget.playlistWithDetails.playlist.id);
       if (context.mounted) {
         showNordSnackBar(message: 'Deleted "${widget.playlistWithDetails.playlist.name}"', type: .success);
       }

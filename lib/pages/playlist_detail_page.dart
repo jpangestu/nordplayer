@@ -3,17 +3,17 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/database/app_database.dart';
 import 'package:nordplayer/data/repositories/repositories.dart';
+import 'package:nordplayer/features/playlists/viewmodels/playlist_detail_viewmodel.dart';
 import 'package:nordplayer/pages/pages_context_menu.dart';
 import 'package:nordplayer/pages/pages_helper.dart';
 import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/services/player_service.dart';
-import 'package:nordplayer/core/utils/datetime_extension.dart';
 import 'package:nordplayer/core/utils/int_extension.dart';
+
+export 'package:nordplayer/features/playlists/viewmodels/playlist_detail_viewmodel.dart';
 import 'package:nordplayer/widgets/album_art_stack.dart';
-import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
-import 'package:nordplayer/widgets/music_tile.dart';
 import 'package:nordplayer/widgets/sliver_resizable_table.dart';
 
 class PlaylistDetailPage extends ConsumerWidget {
@@ -37,7 +37,7 @@ class PlaylistDetailPage extends ConsumerWidget {
         error: (error, _) => Center(child: Text('Error: $error')),
         data: (data) {
           if (data.isEmpty) {
-            Column(
+            return Column(
               children: [
                 PlaylistDetailPageHeader(playlistId: playlistId, playlistWithTracks: data),
                 Expanded(
@@ -202,144 +202,4 @@ class PlaylistDetailPageHeader extends ConsumerWidget {
       ),
     );
   }
-}
-
-// ============================================= Provider =============================================================
-
-/// Provider 5 album art for tracks in tracks page
-// Change to Provider.family<ReturnType, ArgumentType>
-final playlistDetailsAlbumArtProvider = Provider.family<List<String>, int>((ref, playlistId) {
-  // Replace the hardcoded 1 with the dynamic playlistId
-  final playlistTracksAsync = ref.watch(playlistTracksStreamProvider(playlistId));
-  final playlistTracks = playlistTracksAsync.value ?? [];
-
-  if (playlistTracks.isEmpty) return [];
-
-  final List<String> wallCovers = [];
-  final Set<String> seenWallCovers = {};
-
-  final randomLibrary = [...playlistTracks]..shuffle();
-
-  for (final track in randomLibrary) {
-    final artPath = track.album.albumArtPath;
-    if (artPath != null && artPath.isNotEmpty && !seenWallCovers.contains(artPath)) {
-      seenWallCovers.add(artPath);
-      wallCovers.add(artPath);
-    }
-    if (wallCovers.length >= 5) break;
-  }
-
-  return wallCovers;
-});
-
-final playlistDetailPageColumnsProvider =
-    NotifierProvider<PlaylistDetailPageColumnsNotifier, List<TableColumn<TrackWithArtists>>>(
-      PlaylistDetailPageColumnsNotifier.new,
-    );
-
-class PlaylistDetailPageColumnsNotifier extends Notifier<List<TableColumn<TrackWithArtists>>> {
-  @override
-  List<TableColumn<TrackWithArtists>> build() {
-    return _initialColumns;
-  }
-
-  void toggleVisibility(String columnId) {
-    state = state.map((col) {
-      if (col.id == columnId) {
-        return col.copyWith(isVisible: !col.isVisible);
-      }
-      return col;
-    }).toList();
-  }
-
-  static final List<TableColumn<TrackWithArtists>> _initialColumns = [
-    TableColumn<TrackWithArtists>(
-      id: 'index',
-      label: "#",
-      width: 60,
-      minWidth: 60,
-      alignment: Alignment.centerRight,
-      cellBuilder: (context, track, index) {
-        return Consumer(
-          builder: (context, ref, child) {
-            final isActiveTrack = ref.watch(currentTrackProvider)?.track.filePath == track.track.filePath;
-
-            if (isActiveTrack) {
-              final isAudioPlaying = ref.watch(isPlayingProvider);
-
-              return AnimatedEqualizerIcon(
-                color: Theme.of(context).colorScheme.primary,
-                size: 16,
-                isPlaying: isAudioPlaying,
-              );
-            }
-            return Text(
-              "${index + 1}",
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
-            );
-          },
-        );
-      },
-    ),
-    TableColumn<TrackWithArtists>(
-      id: 'title_artist',
-      label: "Title/Artist",
-      flex: 5,
-      minWidth: 150,
-      cellBuilder: (context, track, index) {
-        return Consumer(
-          builder: (context, ref, child) {
-            final isPlaying = ref.watch(currentTrackProvider)?.track.filePath == track.track.filePath;
-            return MusicTile(
-              selected: isPlaying,
-              albumArtPath: track.album.albumArtPath,
-              title: track.track.title,
-              artists: track.artists.map((a) => a.name).toList(),
-              padding: EdgeInsets.zero,
-            );
-          },
-        );
-      },
-    ),
-    TableColumn<TrackWithArtists>(
-      id: 'album',
-      label: "Album",
-      flex: 3,
-      minWidth: 100,
-      cellBuilder: (context, track, index) {
-        return Text(track.album.title, maxLines: 1, overflow: TextOverflow.ellipsis);
-      },
-    ),
-    TableColumn<TrackWithArtists>(
-      id: 'path',
-      label: 'Path',
-      flex: 3,
-      minWidth: 120,
-      isVisible: false,
-      cellBuilder: (context, track, index) {
-        return Text(track.track.filePath, maxLines: 1, overflow: TextOverflow.ellipsis);
-      },
-    ),
-    TableColumn<TrackWithArtists>(
-      id: 'date_added',
-      label: "Date Added",
-      width: 110,
-      minWidth: 110,
-      alignment: .centerRight,
-      isVisible: true,
-      cellBuilder: (context, track, index) {
-        return Text(track.track.dateAdded.toRelativeTime(), maxLines: 1, overflow: TextOverflow.ellipsis);
-      },
-    ),
-    TableColumn<TrackWithArtists>(
-      id: 'duration',
-      label: 'Duration',
-      width: 90,
-      minWidth: 90,
-      alignment: Alignment.centerRight,
-      cellBuilder: (context, track, index) {
-        return Text(track.track.durationMs.toDurationString());
-      },
-    ),
-  ];
 }
