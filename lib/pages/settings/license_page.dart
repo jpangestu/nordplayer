@@ -1,55 +1,19 @@
-import 'package:flutter/foundation.dart';
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/core/utils/string_extension.dart';
+import 'package:nordplayer/features/settings/viewmodels/about_viewmodel.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
-class LicensesPage extends ConsumerStatefulWidget {
+class LicensesPage extends ConsumerWidget {
   const LicensesPage({super.key});
 
   @override
-  ConsumerState<LicensesPage> createState() => _LicensesPageState();
-}
-
-class _LicensesPageState extends ConsumerState<LicensesPage> {
-  final Map<String, List<LicenseEntry>> _packageLicenses = {};
-  bool _isLoading = true;
-  PackageInfo? _packageInfo;
-
-  @override
-  void initState() {
-    super.initState();
-    _initData();
-  }
-
-  Future<void> _initData() async {
-    final info = await PackageInfo.fromPlatform();
-
-    // Fetch all raw licenses from the system and group them by package name
-    final licenses = await LicenseRegistry.licenses.toList();
-    for (final license in licenses) {
-      for (final package in license.packages) {
-        _packageLicenses.putIfAbsent(package, () => []).add(license);
-      }
-    }
-
-    if (mounted) {
-      setState(() {
-        _packageInfo = info;
-        _isLoading = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider).requireValue;
-
-    // Sort the packages alphabetically
-    final packageNames = _packageLicenses.keys.toList()..sort();
+    final appConfig = ref.watch(configServiceProvider);
+    final packageInfo = ref.watch(packageInfoProvider).value;
+    final packageLicensesAsync = ref.watch(packageLicensesProvider);
 
     const String appLicenseText =
         'MIT License\n\n'
@@ -77,55 +41,62 @@ class _LicensesPageState extends ConsumerState<LicensesPage> {
             ? theme.colorScheme.surface.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
             : theme.colorScheme.surface,
         blurSigma: appConfig.adaptiveBgPanelBlur,
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : ListView.builder(
-                padding: const EdgeInsets.all(24),
-                itemCount: packageNames.length,
-                itemBuilder: (context, index) {
-                  final packageName = packageNames[index];
-                  final licenses = _packageLicenses[packageName]!;
+        child: packageLicensesAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('Failed to load licenses: $e')),
+          data: (packageLicenses) {
+            // Sort the packages alphabetically
+            final packageNames = packageLicenses.keys.toList()..sort();
 
-                  if (index == 0) {
-                    return Column(
-                      children: [
-                        Text(
-                          _packageInfo?.appName.toPascalCase() ?? 'Nordplayer',
-                          style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(_packageInfo != null ? _packageInfo!.version : '', style: theme.textTheme.bodyMedium),
-                        const SizedBox(height: 16),
-                        Text(appLicenseText, style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace')),
-                        const SizedBox(height: 48),
-                        Divider(color: theme.colorScheme.outlineVariant),
-                        const SizedBox(height: 16),
-                      ],
-                    );
-                  }
+            return ListView.builder(
+              padding: const EdgeInsets.all(24),
+              itemCount: packageNames.length,
+              itemBuilder: (context, index) {
+                final packageName = packageNames[index];
+                final licenses = packageLicenses[packageName]!;
 
-                  return ExpansionTile(
-                    tilePadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    title: Text(packageName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(
-                      '${licenses.length} license${licenses.length > 1 ? 's' : ''}.',
-                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurface),
-                    ),
-                    children: licenses.map((license) {
-                      return Padding(
-                        padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 24.0),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            license.paragraphs.map((p) => p.text).join('\n\n'),
-                            style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                if (index == 0) {
+                  return Column(
+                    children: [
+                      Text(
+                        packageInfo?.appName.toPascalCase() ?? 'Nordplayer',
+                        style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(packageInfo != null ? packageInfo.version : '', style: theme.textTheme.bodyMedium),
+                      const SizedBox(height: 16),
+                      Text(appLicenseText, style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace')),
+                      const SizedBox(height: 48),
+                      Divider(color: theme.colorScheme.outlineVariant),
+                      const SizedBox(height: 16),
+                    ],
                   );
-                },
-              ),
+                }
+
+                return ExpansionTile(
+                  tilePadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  title: Text(packageName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text(
+                    '${licenses.length} license${licenses.length > 1 ? 's' : ''}.',
+                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurface),
+                  ),
+                  children: licenses.map((license) {
+                    return Padding(
+                      padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 24.0),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          license.paragraphs.map((p) => p.text).join('\n\n'),
+                          style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }

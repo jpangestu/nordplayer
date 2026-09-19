@@ -1,27 +1,20 @@
-import 'package:drift/drift.dart' show Value;
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:nordplayer/core/database/app_database.dart';
-import 'package:nordplayer/pages/settings/ignored_paths_page.dart';
-import 'package:nordplayer/routes/router.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:nordplayer/core/database/app_database.dart' show Track;
 import 'package:nordplayer/core/services/background_task_service.dart';
 import 'package:nordplayer/core/services/config_service.dart';
-import 'package:nordplayer/services/duplicate_detector.dart';
-import 'package:nordplayer/services/library_indexer/library_indexer.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/core/utils/int_extension.dart';
+import 'package:nordplayer/features/settings/viewmodels/duplicates_viewmodel.dart';
+import 'package:nordplayer/routes/router.dart';
+import 'package:nordplayer/services/duplicate_detector.dart' show DuplicateGroup;
+import 'package:nordplayer/services/library_indexer/library_indexer.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/nord_alert_dialog.dart';
 import 'package:nordplayer/widgets/nord_snack_bar.dart';
 import 'package:path/path.dart' as p;
-
-// AutoDispose ensures it fetches fresh data when user leave and re-enter the page
-final duplicateGroupsProvider = FutureProvider.autoDispose<List<DuplicateGroup>>((ref) async {
-  final detector = ref.read(duplicateDetectorProvider);
-  return await detector.findDuplicates();
-});
 
 class DuplicatesPage extends ConsumerStatefulWidget {
   const DuplicatesPage({super.key});
@@ -37,23 +30,8 @@ class _DuplicatesPageState extends ConsumerState<DuplicatesPage> {
 
   Future<void> _restoreTracks(List<Track> tracks) async {
     try {
-      final db = ref.read(appDatabaseProvider);
-      await db.transaction(() async {
-        final filePaths = tracks.map((t) => t.filePath).toList();
-        await (db.delete(db.ignoredPaths)..where((t) => t.filePath.isIn(filePaths))).go();
-
-        for (final track in tracks) {
-          await db.into(db.tracks).insertOnConflictUpdate(track);
-          await db
-              .into(db.trackArtist)
-              .insertOnConflictUpdate(TrackArtistCompanion(trackId: Value(track.id), artistId: Value(track.artistId)));
-        }
-      });
-      ref.invalidate(duplicateGroupsProvider);
-      ref.invalidate(ignoredPathsProvider);
-    } catch (e) {
-      debugPrint('Failed to undo ignore: $e');
-    }
+      await ref.read(duplicatesViewModelProvider).restoreTracks(tracks);
+    } catch (_) {}
   }
 
   Future<void> _keepBestCopy(DuplicateGroup group) async {
@@ -68,10 +46,7 @@ class _DuplicatesPageState extends ConsumerState<DuplicatesPage> {
     });
 
     try {
-      final detector = ref.read(duplicateDetectorProvider);
-      await detector.ignorePaths(tracksToIgnore);
-      ref.invalidate(duplicateGroupsProvider);
-      ref.invalidate(ignoredPathsProvider);
+      await ref.read(duplicatesViewModelProvider).keepBestCopy(group);
 
       if (mounted) {
         showNordSnackBar(
@@ -143,10 +118,7 @@ class _DuplicatesPageState extends ConsumerState<DuplicatesPage> {
     });
 
     try {
-      final detector = ref.read(duplicateDetectorProvider);
-      await detector.ignorePaths(tracksToIgnore);
-      ref.invalidate(duplicateGroupsProvider);
-      ref.invalidate(ignoredPathsProvider);
+      await ref.read(duplicatesViewModelProvider).keepAllBestCopies(groups);
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -170,10 +142,7 @@ class _DuplicatesPageState extends ConsumerState<DuplicatesPage> {
       _manuallyIgnoredTrackIds.add(track.id);
     });
     try {
-      final detector = ref.read(duplicateDetectorProvider);
-      await detector.ignorePath(track);
-      ref.invalidate(duplicateGroupsProvider);
-      ref.invalidate(ignoredPathsProvider);
+      await ref.read(duplicatesViewModelProvider).ignoreTrack(track);
 
       if (mounted) {
         showNordSnackBar(
@@ -207,19 +176,14 @@ class _DuplicatesPageState extends ConsumerState<DuplicatesPage> {
   @override
   void initState() {
     super.initState();
-
-    final tasks = ref.read(backgroundTaskServiceProvider);
-    final isAnyTaskRunning = tasks.any((t) => t.status == BackgroundTaskStatus.running);
-    if (!isAnyTaskRunning) {
-      Future.microtask(() {
-        ref.read(libraryIndexerProvider).generateMissingFingerprints();
-      });
-    }
+    Future.microtask(() {
+      ref.read(duplicatesViewModelProvider).generateMissingFingerprintsIfNeeded();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
     final tasks = ref.watch(backgroundTaskServiceProvider);
     final theme = Theme.of(context);
 
@@ -536,7 +500,7 @@ class _DuplicatesPageState extends ConsumerState<DuplicatesPage> {
 
   Widget _buildStatItem(BuildContext context, {required String label, required String value, required IconData icon}) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
 
     return Expanded(
       child: Container(
@@ -572,7 +536,7 @@ class _DuplicatesPageState extends ConsumerState<DuplicatesPage> {
   Widget _buildDuplicateGroupCard(BuildContext context, DuplicateGroup group) {
     final theme = Theme.of(context);
 
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
 
     return Container(
       decoration: BoxDecoration(

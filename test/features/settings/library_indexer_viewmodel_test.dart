@@ -10,6 +10,7 @@ import 'package:nordplayer/services/library_watcher.dart';
 class FakeLibraryIndexer extends Fake implements LibraryIndexer {
   bool scanCalled = false;
   bool reindexCalled = false;
+  bool fingerprintCalled = false;
   String? lastMarkedMissingPath;
 
   @override
@@ -20,6 +21,11 @@ class FakeLibraryIndexer extends Fake implements LibraryIndexer {
   @override
   Future<void> reindexTracks({void Function(int processed, int total)? onProgress}) async {
     reindexCalled = true;
+  }
+
+  @override
+  Future<void> generateMissingFingerprints({void Function(int processed, int total)? onProgress}) async {
+    fingerprintCalled = true;
   }
 
   @override
@@ -147,7 +153,16 @@ void main() {
       expect(config.artistExclusions, equals(AppConfig.defaultArtistExclusions));
     });
 
-    test('triggerScan and triggerReindex dispatch to indexer', () {
+    test('toggleWatchFolders updates watchTrackDirectories setting', () {
+      final vm = container.read(libraryIndexerViewModelProvider);
+      vm.toggleWatchFolders(false);
+      expect(container.read(configServiceProvider).watchTrackDirectories, isFalse);
+
+      vm.toggleWatchFolders(true);
+      expect(container.read(configServiceProvider).watchTrackDirectories, isTrue);
+    });
+
+    test('triggerScan, triggerReindex, and triggerFingerprint dispatch to indexer', () {
       final vm = container.read(libraryIndexerViewModelProvider);
 
       expect(vm.triggerScan(), isTrue);
@@ -155,6 +170,9 @@ void main() {
 
       expect(vm.triggerReindex(), isTrue);
       expect(fakeIndexer.reindexCalled, isTrue);
+
+      expect(vm.triggerFingerprint(), isTrue);
+      expect(fakeIndexer.fingerprintCalled, isTrue);
     });
   });
 }

@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/gestures.dart';
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:nordplayer/routes/router.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/services/background_task_service.dart';
 import 'package:nordplayer/core/services/config_service.dart';
-import 'package:nordplayer/services/library_indexer/library_indexer.dart';
+import 'package:nordplayer/features/settings/viewmodels/library_indexer_viewmodel.dart';
+import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/nord_snack_bar.dart';
 import 'package:nordplayer/widgets/settings/section_container.dart';
@@ -53,35 +53,25 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
   }
 
   void _handleLinkReindex() {
-    final tasks = ref.read(backgroundTaskServiceProvider);
-    final isAnyRunning = tasks.any((t) => t.status == BackgroundTaskStatus.running);
-    if (!isAnyRunning) {
-      _triggerReindex();
-    }
+    ref.read(libraryIndexerViewModelProvider).triggerReindex();
   }
 
-  Future<void> _triggerScan() async {
-    try {
-      await ref.read(libraryIndexerProvider).scanLibrary();
-    } catch (_) {}
+  void _triggerScan() {
+    ref.read(libraryIndexerViewModelProvider).triggerScan();
   }
 
-  Future<void> _triggerReindex() async {
-    try {
-      await ref.read(libraryIndexerProvider).reindexTracks();
-    } catch (_) {}
+  void _triggerReindex() {
+    ref.read(libraryIndexerViewModelProvider).triggerReindex();
   }
 
-  Future<void> _triggerFingerprint() async {
-    try {
-      await ref.read(libraryIndexerProvider).generateMissingFingerprints();
-    } catch (_) {}
+  void _triggerFingerprint() {
+    ref.read(libraryIndexerViewModelProvider).triggerFingerprint();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
     List<String> trackDirectories = appConfig.trackDirectories;
     List<String> currentDelimiters = appConfig.artistDelimiters;
     List<String> currentExclusions = appConfig.artistExclusions;
@@ -146,7 +136,7 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
                   subtitle: const Text('Automatically detect new, moved, or deleted music files in your locations.'),
                   value: appConfig.watchTrackDirectories,
                   onChanged: (val) {
-                    ref.read(configServiceProvider.notifier).updateConfig(watchTrackDirectories: val);
+                    ref.read(libraryIndexerViewModelProvider).toggleWatchFolders(val);
                   },
                 ),
               ],
@@ -508,42 +498,21 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
 
   Future<void> _addFolder() async {
     final selectedPaths = await getDirectoryPaths();
-
     if (selectedPaths.isNotEmpty) {
-      final currentPaths = ref.read(configServiceProvider).requireValue.trackDirectories;
-      final List<String> updatedPaths = List<String>.from(currentPaths);
-
-      bool hasChanges = false;
-
-      for (String? path in selectedPaths) {
-        if (path != null && path.isNotEmpty && !updatedPaths.contains(path)) {
-          updatedPaths.add(path);
-          hasChanges = true;
-        }
-      }
-
-      if (hasChanges) {
-        ref.read(configServiceProvider.notifier).updateConfig(trackDirectories: updatedPaths);
-        _triggerScan();
-      }
+      final validPaths = selectedPaths.whereType<String>().where((p) => p.isNotEmpty).toList();
+      await ref.read(libraryIndexerViewModelProvider).addFolders(validPaths);
     }
   }
 
   Future<void> _removeFolder(String path) async {
-    List<String> updatedPaths = List<String>.from(ref.read(configServiceProvider).requireValue.trackDirectories);
-    updatedPaths.remove(path);
-    ref.read(configServiceProvider.notifier).updateConfig(trackDirectories: updatedPaths);
-
-    await ref.read(libraryIndexerProvider).markTracksInDirectoryAsMissing(path);
+    await ref.read(libraryIndexerViewModelProvider).removeFolder(path);
   }
 
   void _addNewDelimiter() {
     final newDelimiter = _addDelimiterController.text.trim().toLowerCase();
     if (newDelimiter.isNotEmpty) {
-      final currentDelimiters = ref.read(configServiceProvider).requireValue.artistDelimiters;
-      if (!currentDelimiters.contains(newDelimiter)) {
-        final updatedDelimiters = List<String>.from(currentDelimiters)..add(newDelimiter);
-        ref.read(configServiceProvider.notifier).updateConfig(artistDelimiters: updatedDelimiters);
+      final added = ref.read(libraryIndexerViewModelProvider).addDelimiter(newDelimiter);
+      if (added) {
         _addDelimiterController.clear();
         _addDelimiterFocusNode.requestFocus();
       } else {
@@ -553,23 +522,18 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
   }
 
   void _removeDelimiter(String delimiter) {
-    final updatedDelimiters = List<String>.from(ref.read(configServiceProvider).requireValue.artistDelimiters);
-    updatedDelimiters.remove(delimiter);
-    ref.read(configServiceProvider.notifier).updateConfig(artistDelimiters: updatedDelimiters);
+    ref.read(libraryIndexerViewModelProvider).removeDelimiter(delimiter);
   }
 
   void _resetDelimitersToDefault() {
-    ref.read(configServiceProvider.notifier).updateConfig(artistDelimiters: AppConfig.defaultArtistDelimiters);
+    ref.read(libraryIndexerViewModelProvider).resetDelimitersToDefault();
   }
 
   void _addNewExclusion() {
     final newExclusion = _addExclusionController.text.trim();
     if (newExclusion.isNotEmpty) {
-      final currentExclusions = ref.read(configServiceProvider).requireValue.artistExclusions;
-      final alreadyExists = currentExclusions.any((e) => e.toLowerCase() == newExclusion.toLowerCase());
-      if (!alreadyExists) {
-        final updatedExclusions = List<String>.from(currentExclusions)..add(newExclusion);
-        ref.read(configServiceProvider.notifier).updateConfig(artistExclusions: updatedExclusions);
+      final added = ref.read(libraryIndexerViewModelProvider).addExclusion(newExclusion);
+      if (added) {
         _addExclusionController.clear();
         _addExclusionFocusNode.requestFocus();
       } else {
@@ -579,12 +543,10 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
   }
 
   void _removeExclusion(String exclusion) {
-    final updatedExclusions = List<String>.from(ref.read(configServiceProvider).requireValue.artistExclusions);
-    updatedExclusions.remove(exclusion);
-    ref.read(configServiceProvider.notifier).updateConfig(artistExclusions: updatedExclusions);
+    ref.read(libraryIndexerViewModelProvider).removeExclusion(exclusion);
   }
 
   void _resetExclusionsToDefault() {
-    ref.read(configServiceProvider.notifier).updateConfig(artistExclusions: AppConfig.defaultArtistExclusions);
+    ref.read(libraryIndexerViewModelProvider).resetExclusionsToDefault();
   }
 }

@@ -122,4 +122,19 @@ class LibraryIndexerViewModel(final Ref _ref) with LoggerMixin {
     _ref.read(libraryIndexerProvider).reindexTracks();
     return true;
   }
+
+  /// Toggles directory watching on or off.
+  void toggleWatchFolders(bool value) {
+    _ref.read(configServiceProvider.notifier).updateConfig(watchTrackDirectories: value);
+  }
+
+  /// Triggers missing fingerprint generation if no task is running.
+  bool triggerFingerprint() {
+    if (isTaskRunning) {
+      log.w("Cannot trigger fingerprint generation: background task already running.");
+      return false;
+    }
+    _ref.read(libraryIndexerProvider).generateMissingFingerprints();
+    return true;
+  }
 }

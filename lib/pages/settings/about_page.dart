@@ -1,44 +1,23 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:nordplayer/routes/router.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/core/utils/string_extension.dart';
+import 'package:nordplayer/features/settings/viewmodels/about_viewmodel.dart';
+import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/widgets/settings/section_container.dart';
 import 'package:nordplayer/widgets/settings/section_divider.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class AboutPage extends ConsumerStatefulWidget {
+class AboutPage extends ConsumerWidget {
   const AboutPage({super.key});
 
   @override
-  ConsumerState<AboutPage> createState() => _AboutPageState();
-}
-
-class _AboutPageState extends ConsumerState<AboutPage> {
-  PackageInfo? _packageInfo;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPackageInfo();
-  }
-
-  Future<void> _loadPackageInfo() async {
-    final info = await PackageInfo.fromPlatform();
-    if (mounted) {
-      setState(() {
-        _packageInfo = info;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
+    final packageInfo = ref.watch(packageInfoProvider).value;
 
     return Scaffold(
       backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
@@ -72,17 +51,17 @@ class _AboutPageState extends ConsumerState<AboutPage> {
                               ),
                             ),
 
-                            if (_packageInfo != null)
+                            if (packageInfo != null)
                               Column(
                                 crossAxisAlignment: .start,
                                 children: [
                                   const SizedBox(height: 4),
                                   Text(
-                                    _packageInfo!.appName.toPascalCase(),
+                                    packageInfo.appName.toPascalCase(),
                                     style: theme.textTheme.titleLarge!.copyWith(color: theme.colorScheme.onSurface),
                                   ),
                                   Text(
-                                    "v${_packageInfo!.version}",
+                                    "v${packageInfo.version}",
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: theme.colorScheme.onSurface.withValues(alpha: 0.5),

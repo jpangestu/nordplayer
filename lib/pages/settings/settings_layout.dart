@@ -14,7 +14,7 @@ class SettingsLayout extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
     final appIconSet = ref.watch(appIconProvider);
     bool mainSidebarExtended = ref.watch(preferenceServiceProvider).sidebarExtended;
     bool isExtended = true;

@@ -1,20 +1,14 @@
-import 'package:drift/drift.dart' show Value;
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/database/app_database.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:nordplayer/core/database/app_database.dart' show IgnoredPath;
 import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
+import 'package:nordplayer/features/settings/viewmodels/ignored_paths_viewmodel.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/nord_alert_dialog.dart';
 import 'package:nordplayer/widgets/nord_snack_bar.dart';
 import 'package:path/path.dart' as p;
-
-final ignoredPathsProvider = FutureProvider.autoDispose<List<IgnoredPath>>((ref) async {
-  final db = ref.read(appDatabaseProvider);
-  final paths = await db.select(db.ignoredPaths).get();
-  return paths.toList()..sort((a, b) => a.filePath.compareTo(b.filePath));
-});
 
 class IgnoredPathsPage extends ConsumerStatefulWidget {
   const IgnoredPathsPage({super.key});
@@ -29,24 +23,14 @@ class _IgnoredPathsPageState extends ConsumerState<IgnoredPathsPage> {
 
   Future<void> _ignorePaths(List<String> filePaths) async {
     try {
-      final db = ref.read(appDatabaseProvider);
-      await db.transaction(() async {
-        for (final path in filePaths) {
-          await db.into(db.ignoredPaths).insertOnConflictUpdate(IgnoredPathsCompanion(filePath: Value(path)));
-        }
-      });
-      ref.invalidate(ignoredPathsProvider);
-    } catch (e) {
-      debugPrint('Failed to undo restore: $e');
-    }
+      await ref.read(ignoredPathsViewModelProvider).reignorePaths(filePaths);
+    } catch (_) {}
   }
 
   Future<void> _restorePath(IgnoredPath path) async {
     setState(() => _manuallyRestoredPaths.add(path.filePath));
     try {
-      final db = ref.read(appDatabaseProvider);
-      await (db.delete(db.ignoredPaths)..where((t) => t.filePath.equals(path.filePath))).go();
-      ref.invalidate(ignoredPathsProvider);
+      await ref.read(ignoredPathsViewModelProvider).restorePath(path);
 
       if (mounted) {
         showNordSnackBar(
@@ -99,9 +83,7 @@ class _IgnoredPathsPageState extends ConsumerState<IgnoredPathsPage> {
     });
 
     try {
-      final db = ref.read(appDatabaseProvider);
-      await db.delete(db.ignoredPaths).go();
-      ref.invalidate(ignoredPathsProvider);
+      await ref.read(ignoredPathsViewModelProvider).restoreAll(paths);
 
       if (mounted) {
         showNordSnackBar(
@@ -134,7 +116,7 @@ class _IgnoredPathsPageState extends ConsumerState<IgnoredPathsPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
     final appIconSet = ref.watch(appIconProvider);
 
     final ignoredPathsAsync = ref.watch(ignoredPathsProvider);
