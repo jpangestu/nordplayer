@@ -1,66 +1,99 @@
 import 'dart:async';
 
-import 'package:audio_service/audio_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:nordplayer/core/database/app_database.dart';
-import 'package:nordplayer/data/repositories/repositories.dart';
-import 'package:nordplayer/pages/queue_page.dart';
+import 'package:nordplayer/core/models/queue_scroll_behavior.dart';
 import 'package:nordplayer/core/services/logger.dart';
 import 'package:nordplayer/core/services/preference_service.dart';
 import 'package:nordplayer/core/utils/debouncer.dart';
-import 'package:nordplayer/core/utils/stream_extension.dart';
 import 'package:nordplayer/core/utils/string_extension.dart';
+import 'package:nordplayer/data/repositories/repositories.dart';
+import 'package:nordplayer/services/player_state.dart';
 
+export 'package:nordplayer/core/models/playback_context.dart';
+export 'package:nordplayer/core/models/queue_scroll_behavior.dart';
+export 'package:nordplayer/services/audio_handler.dart';
+export 'package:nordplayer/services/player_state.dart';
+
+/// Central coordinator for playback operations, queue manipulation,
+/// shuffle/loop sequencing, volume management, and persistent queue state.
 class PlayerService with LoggerMixin {
-  final Ref ref;
+  final Ref _ref;
   final Player _mkPlayer;
 
-  PlayerService(this.ref) : _mkPlayer = Player();
   Player get mkPlayer => _mkPlayer;
 
-  /// The original nshuffled queue
+  /// The original unshuffled queue.
   List<TrackWithArtists> _originalQueue = [];
 
   bool _shouldSuppressNextScroll = false;
+  bool _isRestoringQueue = false;
+  final List<StreamSubscription<dynamic>> _subscriptions = [];
+  late final Debouncer _queueSaveDebouncer = Debouncer(
+    const Duration(milliseconds: 300),
+  );
 
-  /// Call this before a track change to prevent the QueuePage from auto-scrolling.
+  /// Primary constructor injecting the Riverpod [Ref] and [Player] engine.
+  PlayerService(this._ref, this._mkPlayer) {
+    _setupEngineListeners();
+  }
+
+  /// Backward-compatible named constructor for test or legacy callers.
+  PlayerService.withPlayer(Ref ref, Player player) : this(ref, player);
+
+  void _setupEngineListeners() {
+    DateTime? lastSaveTime;
+
+    // Save queue state whenever playlist structure/indices change (debounced)
+    _subscriptions.add(
+      _mkPlayer.stream.playlist.listen((playlist) {
+        if (_isRestoringQueue || playlist.medias.isEmpty) return;
+        _queueSaveDebouncer(() => _saveQueueState(newIndex: playlist.index));
+      }),
+    );
+
+    // Save playback position periodically (every 5 seconds)
+    _subscriptions.add(
+      _mkPlayer.stream.position.listen((position) {
+        if (_isRestoringQueue) return;
+
+        final now = DateTime.now();
+        if (lastSaveTime == null ||
+            now.difference(lastSaveTime!) >= const Duration(seconds: 5)) {
+          lastSaveTime = now;
+
+          log.d(
+            "Saving playback position to database: ${position.inSeconds}s (${position.inMilliseconds}ms)",
+          );
+          _ref
+              .read(queueRepositoryProvider)
+              .updateCurrentPosition(position.inMilliseconds);
+        }
+      }),
+    );
+  }
+
+  /// Call this before an intentional programmatic track change to suppress auto-scroll.
   void suppressNextScroll() {
     _shouldSuppressNextScroll = true;
   }
 
-  PlayerService.withPlayer(this.ref, this._mkPlayer) {
-    DateTime? lastSaveTime;
-
-    // Save queue state whenever the playlist changes (track finish, add, remove, move)
-    _mkPlayer.stream.playlist.listen((playlist) {
-      if (_isRestoringQueue || playlist.medias.isEmpty) return;
-
-      _saveQueueState(newIndex: playlist.index);
-    });
-
-    // Save playback position every 5 seconds
-    _mkPlayer.stream.position.listen((position) {
-      if (_isRestoringQueue) return;
-
-      final now = DateTime.now();
-
-      // DateTime-based debounce (can't use timer)
-      if (lastSaveTime == null || now.difference(lastSaveTime!) >= const Duration(seconds: 5)) {
-        lastSaveTime = now;
-
-        log.d("Saving playback position to database: ${position.inSeconds}s (${position.inMilliseconds}ms)");
-        ref.read(queueRepositoryProvider).updateCurrentPosition(position.inMilliseconds);
-      }
-    });
+  /// Checks and resets the suppression flag for the next track change.
+  bool consumeSuppressNextScroll() {
+    if (_shouldSuppressNextScroll) {
+      _shouldSuppressNextScroll = false;
+      return true;
+    }
+    return false;
   }
 
-  /// Initialize with saved user preferences (Volume, Loop Mode, Mute).
+  /// Initialize engine with saved user preferences (Volume, Loop Mode, Mute).
   Future<void> init() async {
-    final prefsState = ref.read(preferenceServiceProvider);
+    final prefsState = _ref.read(preferenceServiceProvider);
 
     try {
-      await _mkPlayer.setVolume(prefsState.volume);
+      await _mkPlayer.setVolume(prefsState.volume.clamp(0.0, 100.0));
       await _mkPlayer.setPlaylistMode(prefsState.loopMode);
 
       if (prefsState.isMuted) {
@@ -78,43 +111,53 @@ class PlayerService with LoggerMixin {
     }
   }
 
-  // Set up this way to prevent last position resetting to zero on startup
-  bool _isRestoringQueue = false;
-
   /// Restores the exact playback sequence and position from the last session.
   Future<void> initializeQueueFromDatabase() async {
-    _isRestoringQueue = true; // Lock listeners
+    _isRestoringQueue = true;
 
     try {
-      final (originalQueue, lastIndex, lastPosition, type, id) = await ref.read(queueRepositoryProvider).loadQueue();
+      final (originalQueue, lastIndex, lastPosition, type, id) =
+          await _ref.read(queueRepositoryProvider).loadQueue();
 
       if (originalQueue.isNotEmpty) {
         _originalQueue = List.from(originalQueue);
-        ref.read(playbackContextProvider.notifier).setContext(type, id);
+        _ref.read(playbackContextProvider.notifier).setContext(type, id);
 
         final playableMedia = _originalQueue.map((track) {
           return Media(
             track.track.filePath,
-            extras: {'title': track.track.title, 'artists': track.artists, 'data': track},
+            extras: {
+              'title': track.track.title,
+              'artists': track.artists,
+              'data': track,
+            },
           );
         }).toList();
 
-        await _mkPlayer.open(Playlist(playableMedia, index: lastIndex), play: false);
+        final initialIndex = lastIndex.clamp(0, playableMedia.length - 1);
+        await _mkPlayer.open(
+          Playlist(playableMedia, index: initialIndex),
+          play: false,
+        );
 
-        final isShuffle = ref.read(preferenceServiceProvider).shuffleMode;
+        final isShuffle = _ref.read(preferenceServiceProvider).shuffleMode;
         if (isShuffle) {
           await _mkPlayer.setShuffle(true);
+
+          final lastTrackPlayedPath = _originalQueue[initialIndex].track.filePath
+              .normalizePath()
+              .toLowerCase();
+          final lastTrackPlayedNewIndex = _mkPlayer.state.playlist.medias
+              .indexWhere(
+                (m) =>
+                    m.uri.normalizePath().toLowerCase() == lastTrackPlayedPath,
+              );
+          if (lastTrackPlayedNewIndex != -1) {
+            await _mkPlayer.move(lastTrackPlayedNewIndex, 0);
+          }
         }
 
-        final lastTrackPlayedPath = _originalQueue[lastIndex].track.filePath;
-        final lastTrackPlayedNewIndex = _mkPlayer.state.playlist.medias.indexWhere(
-          (m) => m.uri.normalizePath().toLowerCase() == lastTrackPlayedPath.normalizePath().toLowerCase(),
-        );
-        if (lastTrackPlayedNewIndex != -1 && isShuffle) {
-          await _mkPlayer.move(lastTrackPlayedNewIndex, 0);
-        }
-
-        // Wait for the player to reach an initialized duration state (ready to seek)
+        // Wait for the player to reach an initialized duration state
         if (_mkPlayer.state.duration.inMilliseconds == 0) {
           try {
             await _mkPlayer.stream.duration
@@ -131,15 +174,12 @@ class PlayerService with LoggerMixin {
 
   /// Save current queue state to the database.
   void _saveQueueState({int? newIndex}) {
-    log.d(
-      "Saving queue state: originalQueue length = ${_originalQueue.length}, medias length = ${_mkPlayer.state.playlist.medias.length}",
-    );
     if (_originalQueue.isEmpty || _mkPlayer.state.playlist.medias.isEmpty) {
       log.w("Aborting queue save: originalQueue or medias is empty.");
       return;
     }
 
-    final context = ref.read(playbackContextProvider);
+    final context = _ref.read(playbackContextProvider);
     final engineIdx = newIndex ?? _mkPlayer.state.playlist.index;
 
     String? currentlyPlayedTrackPath;
@@ -147,9 +187,11 @@ class PlayerService with LoggerMixin {
       currentlyPlayedTrackPath = _mkPlayer.state.playlist.medias[engineIdx].uri;
     }
 
-    log.d("Currently played track path: $currentlyPlayedTrackPath (index: $engineIdx)");
+    log.d(
+      "Currently played track path: $currentlyPlayedTrackPath (index: $engineIdx)",
+    );
 
-    ref
+    _ref
         .read(queueRepositoryProvider)
         .saveQueue(
           _originalQueue,
@@ -160,37 +202,38 @@ class PlayerService with LoggerMixin {
         );
   }
 
-  /// Opens a list of tracks as a Playlist
+  /// Opens a list of tracks as a Playlist.
   Future<void> setPlaylist({
     required List<TrackWithArtists> tracksToPlay,
     required int initialIndex,
     required String playbackContextType,
     int? playbackContextId,
     bool autoplay = true,
-
-    /// Ignore same playlist check
     bool forceReload = false,
   }) async {
-    // Check the old context before overwriting it!
-    final currentContext = ref.read(playbackContextProvider);
-    bool isSamePlaylist = currentContext?.isPlaying(playbackContextType, playbackContextId) ?? false;
+    final currentContext = _ref.read(playbackContextProvider);
+    bool isSamePlaylist =
+        currentContext?.isPlaying(playbackContextType, playbackContextId) ??
+        false;
 
     if (forceReload) {
       isSamePlaylist = false;
     }
 
-    // Set the new context
-    ref.read(playbackContextProvider.notifier).setContext(playbackContextType, playbackContextId);
+    _ref
+        .read(playbackContextProvider.notifier)
+        .setContext(playbackContextType, playbackContextId);
 
     _originalQueue = List.from(tracksToPlay);
-    final shouldShuffle = ref.read(preferenceServiceProvider).shuffleMode;
-    final targetTrackPath = tracksToPlay[initialIndex].track.filePath;
+    final shouldShuffle = _ref.read(preferenceServiceProvider).shuffleMode;
+    final targetTrackPath = tracksToPlay[initialIndex].track.filePath
+        .normalizePath()
+        .toLowerCase();
 
     // Jump logic
     if (isSamePlaylist && _mkPlayer.state.playlist.medias.isNotEmpty) {
-      // Find where the target track ended up in the engine's queue (in case it's shuffled)
       final targetIndex = _mkPlayer.state.playlist.medias.indexWhere(
-        (m) => m.uri.normalizePath().toLowerCase() == targetTrackPath.normalizePath().toLowerCase(),
+        (m) => m.uri.normalizePath().toLowerCase() == targetTrackPath,
       );
 
       if (targetIndex != -1) {
@@ -201,26 +244,41 @@ class PlayerService with LoggerMixin {
       }
     }
 
-    // Reload logic (If different playlist, or forceReload == true, or jump failed)
+    // Reload logic
     log.d("New context or force reload. Opening new media pipeline.");
     final playableMedia = tracksToPlay.map((track) {
-      return Media(track.track.filePath, extras: {'title': track.track.title, 'artists': track.artists, 'data': track});
+      return Media(
+        track.track.filePath,
+        extras: {
+          'title': track.track.title,
+          'artists': track.artists,
+          'data': track,
+        },
+      );
     }).toList();
 
     try {
       _shouldSuppressNextScroll = false;
-      ref.read(queueScrollBehaviorProvider.notifier).setIntent(.jump);
+      _ref
+          .read(queueScrollBehaviorProvider.notifier)
+          .setIntent(QueueScrollBehavior.jump);
 
-      await _mkPlayer.open(Playlist(playableMedia, index: initialIndex), play: autoplay);
+      await _mkPlayer.open(
+        Playlist(playableMedia, index: initialIndex),
+        play: autoplay,
+      );
       _saveQueueState(newIndex: initialIndex);
     } catch (e) {
       log.e("Error loading media_kit playlist: $e");
     }
 
-    // Apply shuffle if needed
     if (shouldShuffle) {
       await Future.delayed(const Duration(milliseconds: 100));
       await _mkPlayer.setShuffle(true);
+      final currentEngineIdx = _mkPlayer.state.playlist.index;
+      if (currentEngineIdx > 0) {
+        await _mkPlayer.move(currentEngineIdx, 0);
+      }
     }
   }
 
@@ -232,19 +290,22 @@ class PlayerService with LoggerMixin {
     await _mkPlayer.open(const Playlist([]), play: false);
     _originalQueue.clear();
 
-    // Wipe the queue out of the SQLite database
-    await ref.read(queueRepositoryProvider).saveQueue([], null, Duration.zero, '', null);
-    // Reset the UI context
-    ref.read(playbackContextProvider.notifier).setContext('', null);
+    await _ref
+        .read(queueRepositoryProvider)
+        .saveQueue([], null, Duration.zero, '', null);
+    _ref.read(playbackContextProvider.notifier).setContext('', null);
 
     log.i("Queue cleared successfully.");
   }
 
-  /// Inserts track(s) immediately after the currently playing track
-  Future<void> playNext(List<TrackWithArtists> tracksToAdd, String contextType, int? contextId) async {
+  /// Inserts track(s) immediately after the currently playing track.
+  Future<void> playNext(
+    List<TrackWithArtists> tracksToAdd,
+    String contextType,
+    int? contextId,
+  ) async {
     if (tracksToAdd.isEmpty) return;
 
-    // If nothing is currently in the playlist, just start playing these tracks
     if (_mkPlayer.state.playlist.medias.isEmpty) {
       await setPlaylist(
         tracksToPlay: tracksToAdd,
@@ -256,11 +317,16 @@ class PlayerService with LoggerMixin {
     }
 
     final engineCurrentIndex = _mkPlayer.state.playlist.index;
-    final engineCurrentUri = _mkPlayer.state.playlist.medias[engineCurrentIndex].uri;
+    final engineCurrentUri = _mkPlayer
+        .state
+        .playlist
+        .medias[engineCurrentIndex]
+        .uri
+        .normalizePath()
+        .toLowerCase();
 
-    // Synce originalQueue
     final baseCurrentIndex = _originalQueue.indexWhere(
-      (t) => t.track.filePath.normalizePath().toLowerCase() == engineCurrentUri.normalizePath().toLowerCase(),
+      (t) => t.track.filePath.normalizePath().toLowerCase() == engineCurrentUri,
     );
     if (baseCurrentIndex != -1) {
       _originalQueue.insertAll(baseCurrentIndex + 1, tracksToAdd);
@@ -268,21 +334,21 @@ class PlayerService with LoggerMixin {
       _originalQueue.addAll(tracksToAdd);
     }
 
-    // Synce engineQueue
     final playableMedia = tracksToAdd.map((track) {
-      return Media(track.track.filePath, extras: {'title': track.track.title, 'artists': track.artists, 'data': track});
+      return Media(
+        track.track.filePath,
+        extras: {
+          'title': track.track.title,
+          'artists': track.artists,
+          'data': track,
+        },
+      );
     }).toList();
 
-    // Add to engine and move into position
     int targetInsertIndex = engineCurrentIndex + 1;
     for (int i = 0; i < playableMedia.length; i++) {
-      // Adds to the very end of the engine's playlist first
       await _mkPlayer.add(playableMedia[i]);
-
-      // Calculate the index it was just added to
       final lastIndex = _mkPlayer.state.playlist.medias.length - 1;
-
-      // Move it from the end to the target position
       await _mkPlayer.move(lastIndex, targetInsertIndex + i);
     }
 
@@ -291,10 +357,13 @@ class PlayerService with LoggerMixin {
   }
 
   /// Appends track(s) to the very end of the current queue.
-  Future<void> addToQueue(List<TrackWithArtists> tracksToAdd, String contextType, int? contextId) async {
+  Future<void> addToQueue(
+    List<TrackWithArtists> tracksToAdd,
+    String contextType,
+    int? contextId,
+  ) async {
     if (tracksToAdd.isEmpty) return;
 
-    // If nothing is currently in the playlist, just start playing these tracks
     if (_mkPlayer.state.playlist.medias.isEmpty) {
       await setPlaylist(
         tracksToPlay: tracksToAdd,
@@ -305,15 +374,19 @@ class PlayerService with LoggerMixin {
       return;
     }
 
-    // Update originalQueue
     _originalQueue.addAll(tracksToAdd);
 
-    // Convert tracks to media_kit Media objects
     final playableMedia = tracksToAdd.map((track) {
-      return Media(track.track.filePath, extras: {'title': track.track.title, 'artists': track.artists, 'data': track});
+      return Media(
+        track.track.filePath,
+        extras: {
+          'title': track.track.title,
+          'artists': track.artists,
+          'data': track,
+        },
+      );
     }).toList();
 
-    // Append each track to the media_kit engine
     for (final media in playableMedia) {
       await _mkPlayer.add(media);
     }
@@ -322,25 +395,25 @@ class PlayerService with LoggerMixin {
     log.i("Added ${tracksToAdd.length} tracks to the queue.");
   }
 
-  /// Moves a track from one index to another in the current queue
+  /// Moves a track from one index to another in the active queue.
   Future<void> moveTrack(int oldIndex, int newIndex) async {
     try {
-      final oldIndexPath = _mkPlayer.state.playlist.medias[oldIndex].uri;
+      final oldIndexPath = _mkPlayer.state.playlist.medias[oldIndex].uri
+          .normalizePath()
+          .toLowerCase();
 
-      // Move in Engine
-      // media_kit's move expects the unadjusted index (i.e. if moving downwards, we need to pass newIndex + 1)
       final engineNewIndex = oldIndex < newIndex ? newIndex + 1 : newIndex;
       await _mkPlayer.move(oldIndex, engineNewIndex);
 
-      // Save changes from manual moving to original queue only when shuffle is off
-      final originalQueueOldIndex = _originalQueue.indexWhere(
-        (t) => t.track.filePath.normalizePath().toLowerCase() == oldIndexPath.normalizePath().toLowerCase(),
-      );
-      if (originalQueueOldIndex != -1) {
-        final track = _originalQueue.removeAt(originalQueueOldIndex);
-
-        if (!_mkPlayer.state.shuffle) {
-          _originalQueue.insert(newIndex, track);
+      // In unshuffled mode, reflect manual reordering in _originalQueue
+      if (!_mkPlayer.state.shuffle) {
+        final originalQueueOldIndex = _originalQueue.indexWhere(
+          (t) => t.track.filePath.normalizePath().toLowerCase() == oldIndexPath,
+        );
+        if (originalQueueOldIndex != -1) {
+          final track = _originalQueue.removeAt(originalQueueOldIndex);
+          final clampedNewIndex = newIndex.clamp(0, _originalQueue.length);
+          _originalQueue.insert(clampedNewIndex, track);
         }
       }
 
@@ -351,13 +424,15 @@ class PlayerService with LoggerMixin {
     }
   }
 
-  /// Removes a track at a specific index from the queue
+  /// Removes a track at a specific index from the queue.
   Future<void> removeTrack(int index) async {
+    if (index < 0 || index >= _mkPlayer.state.playlist.medias.length) return;
     try {
-      // Identify the actual track to remove
-      final trackPath = _mkPlayer.state.playlist.medias[index].uri;
+      final trackPath = _mkPlayer.state.playlist.medias[index].uri
+          .normalizePath()
+          .toLowerCase();
       _originalQueue.removeWhere(
-        (t) => t.track.filePath.normalizePath().toLowerCase() == trackPath.normalizePath().toLowerCase(),
+        (t) => t.track.filePath.normalizePath().toLowerCase() == trackPath,
       );
 
       await _mkPlayer.remove(index);
@@ -368,20 +443,30 @@ class PlayerService with LoggerMixin {
     }
   }
 
-  /// Removes multiple tracks from the queue
+  /// Removes multiple tracks from the queue by their indices.
   Future<void> removeTracks(List<int> indices) async {
     if (indices.isEmpty) return;
 
-    // Sort indices in descending order to avoid shifting issues during removal
     final sortedIndices = List<int>.from(indices)..sort((a, b) => b.compareTo(a));
 
     try {
+      final pathsToRemove = <String>{};
       for (final index in sortedIndices) {
-        final trackPath = _mkPlayer.state.playlist.medias[index].uri;
-        _originalQueue.removeWhere(
-          (t) => t.track.filePath.normalizePath().toLowerCase() == trackPath.normalizePath().toLowerCase(),
-        );
-        await _mkPlayer.remove(index);
+        if (index >= 0 && index < _mkPlayer.state.playlist.medias.length) {
+          pathsToRemove.add(
+            _mkPlayer.state.playlist.medias[index].uri.normalizePath().toLowerCase(),
+          );
+        }
+      }
+
+      _originalQueue.removeWhere(
+        (t) => pathsToRemove.contains(t.track.filePath.normalizePath().toLowerCase()),
+      );
+
+      for (final index in sortedIndices) {
+        if (index >= 0 && index < _mkPlayer.state.playlist.medias.length) {
+          await _mkPlayer.remove(index);
+        }
       }
       _saveQueueState();
       log.i("Removed ${indices.length} tracks from queue");
@@ -417,42 +502,94 @@ class PlayerService with LoggerMixin {
   }
 
   Future<void> next() async {
-    ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.animate);
+    _ref
+        .read(queueScrollBehaviorProvider.notifier)
+        .setIntent(QueueScrollBehavior.animate);
     await _mkPlayer.next();
   }
 
   Future<void> previous() async {
-    ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.animate);
+    _ref
+        .read(queueScrollBehaviorProvider.notifier)
+        .setIntent(QueueScrollBehavior.animate);
     await _mkPlayer.previous();
   }
 
   Future<void> toggleShuffle() async {
     if (_mkPlayer.state.playlist.medias.isEmpty) {
-      final newState = !ref.read(preferenceServiceProvider).shuffleMode;
-      ref.read(preferenceServiceProvider.notifier).setShuffleMode(newState);
+      final newState = !_ref.read(preferenceServiceProvider).shuffleMode;
+      _ref.read(preferenceServiceProvider.notifier).setShuffleMode(newState);
       return;
     }
 
     final newState = !_mkPlayer.state.shuffle;
-    ref.read(preferenceServiceProvider.notifier).setShuffleMode(newState);
+    _ref.read(preferenceServiceProvider.notifier).setShuffleMode(newState);
 
-    await _mkPlayer.setShuffle(newState);
-
-    // Always put the current track at index 0 when shuffling
-    if (newState == true) {
+    if (newState) {
+      await _mkPlayer.setShuffle(true);
       final currentIndex = _mkPlayer.state.playlist.index;
-      await _mkPlayer.move(currentIndex, 0);
+      if (currentIndex > 0) {
+        await _mkPlayer.move(currentIndex, 0);
+      }
+    } else {
+      // Unshuffling: restore original sequence while preserving current track
+      await _mkPlayer.setShuffle(false);
+      if (_originalQueue.isNotEmpty) {
+        final currentEngineIdx = _mkPlayer.state.playlist.index;
+        final currentUri =
+            (currentEngineIdx >= 0 &&
+                currentEngineIdx < _mkPlayer.state.playlist.medias.length)
+            ? _mkPlayer
+                  .state
+                  .playlist
+                  .medias[currentEngineIdx]
+                  .uri
+                  .normalizePath()
+                  .toLowerCase()
+            : null;
+
+        final originalIndex = currentUri != null
+            ? _originalQueue.indexWhere(
+                (t) =>
+                    t.track.filePath.normalizePath().toLowerCase() ==
+                    currentUri,
+              )
+            : -1;
+
+        final playableMedia = _originalQueue.map((track) {
+          return Media(
+            track.track.filePath,
+            extras: {
+              'title': track.track.title,
+              'artists': track.artists,
+              'data': track,
+            },
+          );
+        }).toList();
+
+        final resumePos = _mkPlayer.state.position;
+        final wasPlaying = _mkPlayer.state.playing;
+        final targetIndex = originalIndex != -1 ? originalIndex : 0;
+
+        await _mkPlayer.open(
+          Playlist(playableMedia, index: targetIndex),
+          play: wasPlaying,
+        );
+        if (resumePos > Duration.zero) {
+          await _mkPlayer.seek(resumePos);
+        }
+      }
     }
 
-    // Important to be placed here so the queue jump after shuffling and moving index done
-    ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.jump);
-
+    _ref
+        .read(queueScrollBehaviorProvider.notifier)
+        .setIntent(QueueScrollBehavior.jump);
     _saveQueueState();
   }
 
-  /// Cycle through Loop Modes. logic: Off -> All -> Single -> Off ...
+  /// Cycle through Loop Modes: Off -> All -> Single -> Off ...
   Future<void> cycleLoopMode() async {
-    final current = ref.read(preferenceServiceProvider).loopMode;
+    final current = _ref.read(preferenceServiceProvider).loopMode;
 
     final next = switch (current) {
       PlaylistMode.none => PlaylistMode.loop,
@@ -461,423 +598,73 @@ class PlayerService with LoggerMixin {
     };
 
     await _mkPlayer.setPlaylistMode(next);
-    ref.read(preferenceServiceProvider.notifier).setLoopMode(next);
+    _ref.read(preferenceServiceProvider.notifier).setLoopMode(next);
   }
 
   Future<void> setVolume(double volume) async {
-    final prefsNotifier = ref.read(preferenceServiceProvider.notifier);
+    final clamped = volume.clamp(0.0, 100.0);
+    final prefsNotifier = _ref.read(preferenceServiceProvider.notifier);
 
-    if (volume == 0) {
-      prefsNotifier.setIsMuted(true);
-    } else {
-      prefsNotifier.setIsMuted(false);
-    }
-
-    await _mkPlayer.setVolume(volume);
-    prefsNotifier.setVolume(volume);
+    prefsNotifier.setIsMuted(clamped == 0);
+    await _mkPlayer.setVolume(clamped);
+    prefsNotifier.setVolume(clamped);
   }
 
   Future<void> setVolumeUp(double increment) async {
-    final prefsVolume = ref.read(preferenceServiceProvider).volume;
-    ref.read(preferenceServiceProvider.notifier).setIsMuted(false);
+    final prefsVolume = _ref.read(preferenceServiceProvider).volume;
+    _ref.read(preferenceServiceProvider.notifier).setIsMuted(false);
 
-    final double volume = (prefsVolume + increment).clamp(0, 100);
+    final double volume = (prefsVolume + increment).clamp(0.0, 100.0);
     await _mkPlayer.setVolume(volume);
-    ref.read(preferenceServiceProvider.notifier).setVolume(volume);
+    _ref.read(preferenceServiceProvider.notifier).setVolume(volume);
   }
 
   Future<void> setVolumeDown(double decrement) async {
-    final prefsVolume = ref.read(preferenceServiceProvider).volume;
+    final prefsVolume = _ref.read(preferenceServiceProvider).volume;
+    final double volume = (prefsVolume - decrement).clamp(0.0, 100.0);
 
-    final double volume = (prefsVolume - decrement).clamp(0, 100);
-
-    if (volume == 0) {
-      ref.read(preferenceServiceProvider.notifier).setIsMuted(true);
-    } else {
-      ref.read(preferenceServiceProvider.notifier).setIsMuted(false);
-    }
-
+    _ref.read(preferenceServiceProvider.notifier).setIsMuted(volume == 0);
     await _mkPlayer.setVolume(volume);
-    ref.read(preferenceServiceProvider.notifier).setVolume(volume);
+    _ref.read(preferenceServiceProvider.notifier).setVolume(volume);
   }
 
   Future<void> toggleMute() async {
-    final prefsState = ref.read(preferenceServiceProvider);
-    final prefsNotifier = ref.read(preferenceServiceProvider.notifier);
+    final prefsState = _ref.read(preferenceServiceProvider);
+    final prefsNotifier = _ref.read(preferenceServiceProvider.notifier);
 
     if (prefsState.isMuted) {
-      // UNMUTE: Restore to the saved volume
       prefsNotifier.setIsMuted(false);
-      await _mkPlayer.setVolume(prefsState.volume);
+      await _mkPlayer.setVolume(prefsState.volume.clamp(0.0, 100.0));
     } else {
-      // MUTE: Drop engine to 0, but leave prefs volume alone
       prefsNotifier.setIsMuted(true);
       await _mkPlayer.setVolume(0.0);
     }
   }
 
-  /// Dispose when the app closes
+  /// Releases resources, cancels all stream subscriptions, and disposes the player.
   Future<void> dispose() async {
+    for (final sub in _subscriptions) {
+      await sub.cancel();
+    }
+    _subscriptions.clear();
+    _queueSaveDebouncer.dispose();
     await _mkPlayer.dispose();
   }
 }
 
-// ============================================== Audio Handler =======================================================
+// =========================================== Providers =======================================================
 
-// Handle audio playback communication with the OS
-class MediaKitAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
-  final Player _player;
+/// Global audio player engine provider.
+final audioPlayerProvider = Provider<Player>((ref) {
+  final player = Player();
+  ref.onDispose(() => player.dispose());
+  return player;
+});
 
-  MediaKitAudioHandler(this._player) {
-    _listenToPlayerStreams();
-  }
-
-  void _listenToPlayerStreams() {
-    // Sync playing state
-    _player.stream.playing.listen((playing) => _broadcastState());
-    _player.stream.position.listen((_) => _broadcastState());
-    _player.stream.buffering.listen((_) => _broadcastState());
-
-    // Sync current track
-    _player.stream.playlist.listen((playlist) {
-      if (playlist.medias.isEmpty) {
-        mediaItem.add(null);
-        return;
-      }
-      final media = playlist.medias[playlist.index];
-      final data = media.extras?['data'] as TrackWithArtists?;
-      if (data != null) {
-        mediaItem.add(
-          MediaItem(
-            id: media.uri,
-            title: data.track.title,
-            artist: data.artists.map((a) => a.name).join(', '),
-            artUri: Uri.file(data.album.albumArtPath ?? ''),
-          ),
-        );
-      }
-
-      // Sync full queue
-      queue.add(
-        playlist.medias.map((m) {
-          final d = m.extras?['data'] as TrackWithArtists?;
-          return MediaItem(
-            id: m.uri,
-            title: d?.track.title ?? m.uri,
-            artist: d?.artists.map((a) => a.name).join(', ') ?? '',
-          );
-        }).toList(),
-      );
-    });
-  }
-
-  void _broadcastState() {
-    playbackState.add(
-      PlaybackState(
-        controls: [
-          MediaControl.skipToPrevious,
-          if (_player.state.playing) MediaControl.pause else MediaControl.play,
-          MediaControl.skipToNext,
-          MediaControl.stop,
-        ],
-        systemActions: const {MediaAction.seek, MediaAction.skipToPrevious, MediaAction.skipToNext},
-        androidCompactActionIndices: const [0, 1, 2],
-        processingState: _player.state.buffering ? AudioProcessingState.buffering : AudioProcessingState.ready,
-        playing: _player.state.playing,
-        updatePosition: _player.state.position,
-        bufferedPosition: _player.state.buffer,
-        speed: 1.0,
-      ),
-    );
-  }
-
-  // --- Playback controls (media keys / playerctl) ---
-
-  @override
-  Future<void> play() => _player.play();
-
-  @override
-  Future<void> pause() => _player.pause();
-
-  @override
-  Future<void> stop() async {
-    await _player.stop();
-    await super.stop();
-  }
-
-  @override
-  Future<void> seek(Duration position) => _player.seek(position);
-
-  @override
-  Future<void> skipToNext() => _player.next();
-
-  @override
-  Future<void> skipToPrevious() => _player.previous();
-
-  @override
-  Future<void> skipToQueueItem(int index) => _player.jump(index);
-}
-
-//
-// ============================================== Provider ============================================================
-//
-
+/// Global player service coordinating playback, queue manipulation, and audio state.
 final playerServiceProvider = Provider<PlayerService>((ref) {
-  final service = PlayerService(ref);
-
+  final player = ref.watch(audioPlayerProvider);
+  final service = PlayerService(ref, player);
   ref.onDispose(() => service.dispose());
-
   return service;
 });
-
-final positionStreamProvider = StreamProvider<Duration>((ref) async* {
-  final player = ref.watch(playerServiceProvider).mkPlayer;
-  yield player.state.position;
-  yield* player.stream.position;
-});
-
-final bufferStreamProvider = StreamProvider<Duration>((ref) async* {
-  final player = ref.watch(playerServiceProvider).mkPlayer;
-  yield player.state.buffer;
-  yield* player.stream.buffer;
-});
-
-final durationStreamProvider = StreamProvider<Duration>((ref) async* {
-  final player = ref.watch(playerServiceProvider).mkPlayer;
-  yield player.state.duration;
-  yield* player.stream.duration;
-});
-
-/// Return bool on whether media kit player is currently playing a track
-final isPlayingProvider = NotifierProvider<IsPlayingNotifier, bool>(IsPlayingNotifier.new);
-
-class IsPlayingNotifier extends Notifier<bool> {
-  Timer? _debounceTimer;
-
-  @override
-  bool build() {
-    final player = ref.watch(playerServiceProvider).mkPlayer;
-
-    final playingSub = player.stream.playing.listen((isPlaying) {
-      if (isPlaying) {
-        _debounceTimer?.cancel();
-        state = true;
-      } else {
-        _debounceTimer?.cancel();
-        _debounceTimer = Timer(const Duration(milliseconds: 150), () {
-          state = false;
-        });
-      }
-    });
-
-    ref.onDispose(() {
-      playingSub.cancel();
-      _debounceTimer?.cancel();
-    });
-
-    // Initial synchronous return for instant UI painting
-    return player.state.playing;
-  }
-}
-
-/// Track the currently played playlist
-final playbackContextProvider = NotifierProvider<PlaybackContextNotifier, PlaybackContext?>(
-  PlaybackContextNotifier.new,
-);
-
-class PlaybackContext {
-  final String type; // e.g., 'all_tracks', 'playlist', 'album'
-  final int? id; // e.g., 5 (the playlist ID). Null for 'all_tracks'
-
-  PlaybackContext({required this.type, this.id});
-
-  bool isPlaying(String targetType, int? targetId) {
-    return type == targetType && id == targetId;
-  }
-}
-
-class PlaybackContextNotifier extends Notifier<PlaybackContext?> {
-  @override
-  PlaybackContext? build() => null;
-
-  void setContext(String type, int? id) {
-    state = PlaybackContext(type: type, id: id);
-  }
-}
-
-// ============================================== Current Queue =======================================================
-
-/// Return curently played track
-final currentTrackProvider = NotifierProvider<CurrentTrackNotifier, TrackWithArtists?>(CurrentTrackNotifier.new);
-
-class CurrentTrackNotifier extends Notifier<TrackWithArtists?> {
-  @override
-  TrackWithArtists? build() {
-    final player = ref.watch(playerServiceProvider).mkPlayer;
-
-    final trackStream = player.stream.playlist
-        .map((playlist) {
-          // Synchronously extract the track from the incoming playlist state
-          if (playlist.medias.isEmpty || playlist.index < 0 || playlist.index >= playlist.medias.length) {
-            return null;
-          }
-          return playlist.medias[playlist.index].extras?['data'] as TrackWithArtists?;
-        })
-        .distinct((prev, next) {
-          // Only proceed if the track actually changed (comparing file paths)
-          return prev?.track.filePath == next?.track.filePath;
-        })
-        .debounceTime(const Duration(milliseconds: 50));
-
-    final subscription = trackStream.listen((currentTrack) {
-      state = currentTrack;
-      ref.read(preferenceServiceProvider.notifier).setCachedAlbumArtPath(currentTrack?.album.albumArtPath);
-    });
-
-    ref.onDispose(() {
-      subscription.cancel();
-    });
-
-    final initialPlaylist = player.state.playlist;
-    if (initialPlaylist.medias.isEmpty ||
-        initialPlaylist.index < 0 ||
-        initialPlaylist.index >= initialPlaylist.medias.length) {
-      return null;
-    }
-
-    return initialPlaylist.medias[initialPlaylist.index].extras?['data'] as TrackWithArtists?;
-  }
-}
-
-/// Return currently played track index
-final currentTrackIndexProvider = NotifierProvider<CurrentTrackIndexNotifier, int>(CurrentTrackIndexNotifier.new);
-
-class CurrentTrackIndexNotifier extends Notifier<int> {
-  @override
-  int build() {
-    final playerService = ref.watch(playerServiceProvider);
-    final player = playerService.mkPlayer;
-    final debouncer = Debouncer(const Duration(milliseconds: 50));
-
-    final subscription = player.stream.playlist.listen((playlist) {
-      debouncer(() {
-        if (state != playlist.index) {
-          // Check if the scroll for this specific change should be suppressed
-          if (playerService._shouldSuppressNextScroll) {
-            playerService._shouldSuppressNextScroll = false;
-          } else {
-            // If the index changed and no intent is set, it's likely an auto-advance
-            final currentIntent = ref.read(queueScrollBehaviorProvider);
-            if (currentIntent == QueueScrollBehavior.none) {
-              ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.animate);
-            }
-          }
-          state = playlist.index;
-        }
-      });
-    });
-
-    ref.onDispose(() {
-      debouncer.dispose();
-      subscription.cancel();
-    });
-
-    return player.state.playlist.index;
-  }
-}
-
-/// Return atracks that's currently in queue
-final currentTracksInQueueProvider = NotifierProvider<CurrentTracksInQueueNotifier, List<TrackWithArtists>>(
-  CurrentTracksInQueueNotifier.new,
-);
-
-class CurrentTracksInQueueNotifier extends Notifier<List<TrackWithArtists>> {
-  @override
-  List<TrackWithArtists> build() {
-    final player = ref.watch(playerServiceProvider).mkPlayer;
-    final debouncer = Debouncer(const Duration(milliseconds: 50));
-
-    final subscription = player.stream.playlist.listen((playlist) {
-      debouncer(() {
-        // Drop any nulls just in case
-        state = playlist.medias.map((media) => media.extras?['data']).whereType<TrackWithArtists>().toList();
-      });
-    });
-
-    ref.onDispose(() {
-      debouncer.dispose();
-      subscription.cancel();
-    });
-
-    return player.state.playlist.medias.map((media) => media.extras?['data']).whereType<TrackWithArtists>().toList();
-  }
-
-  void moveTrackOptimistically(int oldIndex, int newIndex) {
-    final list = List<TrackWithArtists>.from(state);
-    final item = list.removeAt(oldIndex);
-    list.insert(newIndex, item);
-    state = list;
-  }
-}
-
-/// Return upcoming album art paths for the current and the next 4 tracks in queue
-final current5TracksAlbumArtInQueueProvider = NotifierProvider<Current5TracksAlbumArtNotifier, List<String>>(
-  Current5TracksAlbumArtNotifier.new,
-);
-
-class Current5TracksAlbumArtNotifier extends Notifier<List<String>> {
-  @override
-  List<String> build() {
-    final player = ref.watch(playerServiceProvider).mkPlayer;
-    final loopMode = ref.watch(preferenceServiceProvider.select((prefs) => prefs.loopMode));
-    // Add debounce to prevent rapid changes when shuffling or playing a new queue/play list
-    final debouncer = Debouncer(const Duration(milliseconds: 150));
-
-    final subscription = player.stream.playlist.listen((playlist) {
-      debouncer(() {
-        state = _calculateCovers(playlist, loopMode);
-      });
-    });
-
-    ref.onDispose(() {
-      debouncer.dispose();
-      subscription.cancel();
-    });
-
-    return _calculateCovers(player.state.playlist, loopMode);
-  }
-
-  List<String> _calculateCovers(Playlist playlist, PlaylistMode loopMode) {
-    if (playlist.medias.isEmpty || playlist.index < 0) {
-      return [];
-    }
-
-    final int currentIndex = playlist.index;
-    final List<Media> allMedia = playlist.medias;
-    final List<String> stackCovers = [];
-
-    // Calculate up to 5 upcoming covers
-    for (int count = 0; count < allMedia.length && stackCovers.length < 5; count++) {
-      int targetIndex = currentIndex + count;
-
-      // Handle wrap-around logic
-      if (targetIndex >= allMedia.length) {
-        if (loopMode == PlaylistMode.loop) {
-          targetIndex = targetIndex % allMedia.length;
-        } else {
-          break; // Stop wrapping around if loop is off
-        }
-      }
-
-      // Extract the track data
-      final track = allMedia[targetIndex].extras?['data'] as TrackWithArtists?;
-
-      if (track != null) {
-        final artPath = track.album.albumArtPath?.isNotEmpty == true ? track.album.albumArtPath! : "";
-        stackCovers.add(artPath);
-      }
-    }
-
-    return stackCovers;
-  }
-}

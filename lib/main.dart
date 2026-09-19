@@ -66,11 +66,7 @@ void main() async {
         sharedPrefsProvider.overrideWithValue(prefs),
         configDirectoryProvider.overrideWithValue(configDir),
         initialAppConfigProvider.overrideWithValue(appConfig),
-        playerServiceProvider.overrideWith((ref) {
-          final service = PlayerService.withPlayer(ref, player);
-          ref.onDispose(() => service.dispose());
-          return service;
-        }),
+        audioPlayerProvider.overrideWithValue(player),
       ],
       child: const NordplayerApp(),
     ),

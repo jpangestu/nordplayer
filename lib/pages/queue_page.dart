@@ -363,21 +363,6 @@ class _QueueItemState extends ConsumerState<_QueueItem> {
   }
 }
 
-enum QueueScrollBehavior { animate, jump, none }
-
-final queueScrollBehaviorProvider = NotifierProvider<ScrollBehaviorNotifier, QueueScrollBehavior>(
-  ScrollBehaviorNotifier.new,
-);
-
-class ScrollBehaviorNotifier extends Notifier<QueueScrollBehavior> {
-  @override
-  QueueScrollBehavior build() => QueueScrollBehavior.none;
-
-  void setIntent(QueueScrollBehavior intent) {
-    state = intent;
-  }
-}
-
 /// Tracks if a reorder drag is in progress to suppress hover effects and prevent flickering.
 final queueIsDraggingProvider = NotifierProvider<QueueIsDraggingNotifier, bool>(QueueIsDraggingNotifier.new);
 
