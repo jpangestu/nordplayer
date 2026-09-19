@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/features/queue/viewmodels/queue_viewmodel.dart';
 import 'package:nordplayer/pages/pages_context_menu.dart';
 import 'package:nordplayer/pages/pages_helper.dart';
 import 'package:nordplayer/core/services/config_service.dart';
@@ -63,7 +64,6 @@ class _QueuePageState extends ConsumerState<QueuePage> {
   Widget build(BuildContext context) {
     final currentTrack = ref.watch(currentTrackProvider);
     final currentTracks = ref.watch(currentTracksInQueueProvider);
-    final currentPlaybackContext = ref.watch(playbackContextProvider);
     final selectedIndices = ref.watch(selectedTracksIndexProvider('queue_page'));
 
     final theme = Theme.of(context);
@@ -152,9 +152,8 @@ class _QueuePageState extends ConsumerState<QueuePage> {
               ref.read(queueIsDraggingProvider.notifier).setDragging(false);
             },
             onReorderItem: (oldIndex, newIndex) {
-              ref.read(selectedTracksIndexProvider('queue_page').notifier).updateIndicesOnReorder(oldIndex, newIndex);
               ref.read(currentTracksInQueueProvider.notifier).moveTrackOptimistically(oldIndex, newIndex);
-              ref.read(playerServiceProvider).moveTrack(oldIndex, newIndex);
+              ref.read(queueViewModelProvider).moveTrack(oldIndex, newIndex);
             },
             itemCount: currentTracks.length,
             itemExtent: _itemHeight,
@@ -173,11 +172,9 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                 onRemove: () {
                   final selection = ref.read(selectedTracksIndexProvider('queue_page'));
                   if (selection.contains(index)) {
-                    ref.read(playerServiceProvider).removeTracks(selection.toList());
-                    ref.read(selectedTracksIndexProvider('queue_page').notifier).clear();
+                    ref.read(queueViewModelProvider).removeSelectedTracks(selection.toList());
                   } else {
-                    ref.read(playerServiceProvider).removeTrack(index);
-                    ref.read(selectedTracksIndexProvider('queue_page').notifier).updateIndicesOnRemove(index);
+                    ref.read(queueViewModelProvider).removeTrack(index);
                   }
                 },
                 onClick: (index, {required isCtrl, required isShift}) {
@@ -187,14 +184,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                 },
                 onDoubleClick: (index) {
                   ref.read(playerServiceProvider).suppressNextScroll();
-                  ref
-                      .read(playerServiceProvider)
-                      .setPlaylist(
-                        tracksToPlay: currentTracks.nonNulls.toList(),
-                        initialIndex: index,
-                        playbackContextType: currentPlaybackContext?.type ?? 'library',
-                        playbackContextId: currentPlaybackContext?.id,
-                      );
+                  ref.read(queueViewModelProvider).jumpToTrack(index);
                 },
                 onRightClick: (index, globalPosition) {
                   final selectionNotifier = ref.read(selectedTracksIndexProvider('queue_page').notifier);

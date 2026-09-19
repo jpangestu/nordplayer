@@ -282,6 +282,13 @@ class PlayerService with LoggerMixin {
     }
   }
 
+  /// Jumps playback directly to the track at [index].
+  Future<void> jumpToIndex(int index) async {
+    if (index >= 0 && index < _mkPlayer.state.playlist.medias.length) {
+      await _mkPlayer.jump(index);
+    }
+  }
+
   // =========================================== Queue Management =====================================================
 
   /// Completely clears the player queue and stops playback.
