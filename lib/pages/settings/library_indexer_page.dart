@@ -5,7 +5,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/core/services/background_task_service.dart';
 import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/features/settings/viewmodels/library_indexer_viewmodel.dart';
 import 'package:nordplayer/routes/router.dart';
@@ -82,13 +81,10 @@ class _LibraryIndexerPageState extends ConsumerState<LibraryIndexerPage> {
     final activeDefaultExclusions = currentExclusions.where((e) => defaultSet.contains(e.toLowerCase().trim())).toList()
       ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
-    final tasks = ref.watch(backgroundTaskServiceProvider);
-    final isScanning = tasks.any((t) => t.id == 'library-scan' && t.status == BackgroundTaskStatus.running);
-    final isReindexing = tasks.any((t) => t.id == 'metadata-reindex' && t.status == BackgroundTaskStatus.running);
-    final isFingerprinting = tasks.any(
-      (t) => t.id == 'fingerprint-generation' && t.status == BackgroundTaskStatus.running,
-    );
-    final isAnyRunning = isScanning || isReindexing || isFingerprinting;
+    final isScanning = ref.watch(isLibraryScanningProvider);
+    final isReindexing = ref.watch(isLibraryReindexingProvider);
+    final isFingerprinting = ref.watch(isLibraryFingerprintingProvider);
+    final isAnyRunning = ref.watch(isAnyLibraryTaskRunningProvider);
 
     return Scaffold(
       backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,

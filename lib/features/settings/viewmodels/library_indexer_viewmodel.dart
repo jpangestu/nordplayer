@@ -8,12 +8,30 @@ import 'package:nordplayer/services/library_watcher.dart';
 final libraryIndexerViewModelProvider =
     Provider<LibraryIndexerViewModel>(LibraryIndexerViewModel.new);
 
+final isLibraryScanningProvider = Provider<bool>((ref) {
+  final tasks = ref.watch(backgroundTaskServiceProvider);
+  return tasks.any((t) => t.id == 'library-scan' && t.status == BackgroundTaskStatus.running);
+});
+
+final isLibraryReindexingProvider = Provider<bool>((ref) {
+  final tasks = ref.watch(backgroundTaskServiceProvider);
+  return tasks.any((t) => t.id == 'metadata-reindex' && t.status == BackgroundTaskStatus.running);
+});
+
+final isLibraryFingerprintingProvider = Provider<bool>((ref) {
+  final tasks = ref.watch(backgroundTaskServiceProvider);
+  return tasks.any((t) => t.id == 'fingerprint-generation' && t.status == BackgroundTaskStatus.running);
+});
+
+final isAnyLibraryTaskRunningProvider = Provider<bool>((ref) {
+  return ref.watch(isLibraryScanningProvider) ||
+      ref.watch(isLibraryReindexingProvider) ||
+      ref.watch(isLibraryFingerprintingProvider);
+});
+
 class LibraryIndexerViewModel(final Ref _ref) with LoggerMixin {
   /// Checks if any background task is currently active.
-  bool get isTaskRunning {
-    final tasks = _ref.read(backgroundTaskServiceProvider);
-    return tasks.any((t) => t.status == BackgroundTaskStatus.running);
-  }
+  bool get isTaskRunning => _ref.read(isAnyLibraryTaskRunningProvider);
 
   /// Adds folders to the track directories list and triggers a library scan if new paths were added.
   Future<bool> addFolders(List<String> selectedPaths) async {

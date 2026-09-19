@@ -2,20 +2,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/core/models/selection_state.dart';
+import 'package:nordplayer/core/services/config_service.dart';
+import 'package:nordplayer/core/utils/datetime_extension.dart';
+import 'package:nordplayer/core/utils/int_extension.dart';
 import 'package:nordplayer/data/repositories/repositories.dart';
 import 'package:nordplayer/features/tracks/viewmodels/tracks_viewmodel.dart';
 import 'package:nordplayer/pages/pages_context_menu.dart';
 import 'package:nordplayer/pages/pages_helper.dart';
-import 'package:nordplayer/core/services/config_service.dart';
+import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/player_service.dart';
-
-export 'package:nordplayer/features/tracks/viewmodels/tracks_viewmodel.dart';
-import 'package:nordplayer/core/utils/int_extension.dart';
 import 'package:nordplayer/widgets/album_art_stack.dart';
+import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
+import 'package:nordplayer/widgets/clickable_text.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
+import 'package:nordplayer/widgets/music_tile.dart';
 import 'package:nordplayer/widgets/sliver_resizable_table.dart';
+
+export 'package:nordplayer/features/tracks/viewmodels/tracks_viewmodel.dart';
 
 class Tracks extends ConsumerStatefulWidget {
   const Tracks({super.key});
@@ -25,6 +31,94 @@ class Tracks extends ConsumerStatefulWidget {
 }
 
 class _TracksState extends ConsumerState<Tracks> {
+  Widget _buildCell(BuildContext context, String columnId, TrackWithArtists track, int index) {
+    switch (columnId) {
+      case 'index':
+        return Consumer(
+          builder: (context, ref, child) {
+            final isActiveTrack = ref.watch(currentTrackProvider)?.track.filePath == track.track.filePath;
+
+            if (isActiveTrack) {
+              final isAudioPlaying = ref.watch(isPlayingProvider);
+
+              return AnimatedEqualizerIcon(
+                color: Theme.of(context).colorScheme.primary,
+                size: 16,
+                isPlaying: isAudioPlaying,
+              );
+            }
+            return Text(
+              "${index + 1}",
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
+            );
+          },
+        );
+      case 'title_artist':
+        return Consumer(
+          builder: (context, ref, child) {
+            final isPlaying = ref.watch(currentTrackProvider)?.track.filePath == track.track.filePath;
+            return MusicTile(
+              selected: isPlaying,
+              albumArtPath: track.album.albumArtPath,
+              title: track.track.title,
+              artists: track.artists.map((a) => a.name).toList(),
+              padding: EdgeInsets.zero,
+            );
+          },
+        );
+      case 'album':
+        return ClickableText(
+          text: track.album.title,
+          onTap: () {
+            final basePath = Routes.albumsPage;
+            final targetId = track.album.id;
+            context.go('$basePath/$targetId');
+          },
+        );
+      case 'path':
+        return Text(track.track.filePath, maxLines: 1, overflow: TextOverflow.ellipsis);
+      case 'date_added':
+        return Text(track.track.dateAdded.toRelativeTime(), maxLines: 1, overflow: TextOverflow.ellipsis);
+      case 'duration':
+        return Text(track.track.durationMs.toDurationString());
+      case 'context_menu':
+        return Consumer(
+          builder: (context, ref, child) {
+            return Listener(
+              onPointerDown: (event) {
+                // Sync Selection
+                final selectionNotifier = ref.read(selectedTracksIndexProvider('all_tracks').notifier);
+                if (!ref.read(selectedTracksIndexProvider('all_tracks')).contains(index)) {
+                  selectionNotifier.selectTrack(index, isCtrlSelect: false, isShiftSelect: false);
+                }
+
+                final tracks = ref.read(libraryStreamProvider).value ?? [];
+                final selectedIndices = ref.read(selectedTracksIndexProvider('all_tracks')).toList()..sort();
+                final selectedTracks = selectedIndices
+                    .where((i) => i >= 0 && i < tracks.length)
+                    .map((i) => tracks[i])
+                    .toList();
+
+                TrackContextMenu.show(
+                  context: context,
+                  ref: ref,
+                  isAdaptive: ref.read(configServiceProvider).adaptiveBg,
+                  globalPosition: event.position,
+                  tracks: tracks,
+                  clickedIndex: index,
+                  selectedTracks: selectedTracks,
+                  playbackContextType: 'all_tracks',
+                );
+              },
+              child: IconButton(icon: const Icon(Icons.more_horiz), onPressed: () {}),
+            );
+          },
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -32,7 +126,13 @@ class _TracksState extends ConsumerState<Tracks> {
 
     final libraryAsync = ref.watch(libraryStreamProvider);
     final selectedIndices = ref.watch(selectedTracksIndexProvider('all_tracks'));
-    final tracksPageTableColumns = ref.watch(tracksPageColumnsProvider);
+    final columnConfigs = ref.watch(tracksPageColumnsProvider);
+    final tracksPageTableColumns = columnConfigs
+        .map((config) => TableColumn<TrackWithArtists>.fromConfig(
+              config: config,
+              cellBuilder: (context, track, index) => _buildCell(context, config.id, track, index),
+            ))
+        .toList();
 
     return Scaffold(
       backgroundColor: appConfig.adaptiveBg ? Colors.transparent : Theme.of(context).colorScheme.surface,
@@ -103,14 +203,7 @@ class _TracksState extends ConsumerState<Tracks> {
                       .selectTrack(index, isCtrlSelect: isCtrl, isShiftSelect: isShift);
                 },
                 onRowDoubleClick: (index) {
-                  ref
-                      .read(playerServiceProvider)
-                      .setPlaylist(
-                        playbackContextType: 'all_tracks',
-                        playbackContextId: null,
-                        tracksToPlay: tracks,
-                        initialIndex: index,
-                      );
+                  ref.read(tracksViewModelProvider).playTrack(tracks, index);
                 },
                 onRowRightClick: (index, globalPosition) {
                   final selectionNotifier = ref.read(selectedTracksIndexProvider('all_tracks').notifier);

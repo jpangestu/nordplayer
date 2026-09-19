@@ -4,22 +4,74 @@ import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/database/app_database.dart';
 import 'package:nordplayer/data/repositories/repositories.dart';
 import 'package:nordplayer/features/playlists/viewmodels/playlist_detail_viewmodel.dart';
+import 'package:nordplayer/features/playlists/viewmodels/playlists_viewmodel.dart';
 import 'package:nordplayer/pages/pages_context_menu.dart';
 import 'package:nordplayer/pages/pages_helper.dart';
 import 'package:nordplayer/core/services/config_service.dart';
-import 'package:nordplayer/services/player_service.dart';
+import 'package:nordplayer/core/utils/datetime_extension.dart';
 import 'package:nordplayer/core/utils/int_extension.dart';
-
-export 'package:nordplayer/features/playlists/viewmodels/playlist_detail_viewmodel.dart';
+import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/widgets/album_art_stack.dart';
+import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
+import 'package:nordplayer/widgets/music_tile.dart';
 import 'package:nordplayer/widgets/sliver_resizable_table.dart';
+
+export 'package:nordplayer/features/playlists/viewmodels/playlist_detail_viewmodel.dart';
 
 class PlaylistDetailPage extends ConsumerWidget {
   final int playlistId;
 
   const PlaylistDetailPage({super.key, required this.playlistId});
+
+  Widget _buildCell(BuildContext context, String columnId, TrackWithArtists track, int index) {
+    switch (columnId) {
+      case 'index':
+        return Consumer(
+          builder: (context, ref, child) {
+            final isActiveTrack = ref.watch(currentTrackProvider)?.track.filePath == track.track.filePath;
+
+            if (isActiveTrack) {
+              final isAudioPlaying = ref.watch(isPlayingProvider);
+
+              return AnimatedEqualizerIcon(
+                color: Theme.of(context).colorScheme.primary,
+                size: 16,
+                isPlaying: isAudioPlaying,
+              );
+            }
+            return Text(
+              "${index + 1}",
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
+            );
+          },
+        );
+      case 'title_artist':
+        return Consumer(
+          builder: (context, ref, child) {
+            final isPlaying = ref.watch(currentTrackProvider)?.track.filePath == track.track.filePath;
+            return MusicTile(
+              selected: isPlaying,
+              albumArtPath: track.album.albumArtPath,
+              title: track.track.title,
+              artists: track.artists.map((a) => a.name).toList(),
+              padding: EdgeInsets.zero,
+            );
+          },
+        );
+      case 'album':
+        return Text(track.album.title, maxLines: 1, overflow: TextOverflow.ellipsis);
+      case 'path':
+        return Text(track.track.filePath, maxLines: 1, overflow: TextOverflow.ellipsis);
+      case 'date_added':
+        return Text(track.track.dateAdded.toRelativeTime(), maxLines: 1, overflow: TextOverflow.ellipsis);
+      case 'duration':
+        return Text(track.track.durationMs.toDurationString());
+      default:
+        return const SizedBox.shrink();
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -27,7 +79,13 @@ class PlaylistDetailPage extends ConsumerWidget {
     final appConfig = ref.watch(configServiceProvider);
     // final appIconSet = ref.watch(appIconProvider);
     final playlistWithTracks = ref.watch(playlistWithTracksProvider(playlistId));
-    final playlistDetailColumn = ref.watch(playlistDetailPageColumnsProvider);
+    final columnConfigs = ref.watch(playlistDetailPageColumnsProvider);
+    final playlistDetailColumn = columnConfigs
+        .map((config) => TableColumn<TrackWithArtists>.fromConfig(
+              config: config,
+              cellBuilder: (context, track, index) => _buildCell(context, config.id, track, index),
+            ))
+        .toList();
     final selectedIndices = ref.watch(selectedTracksIndexProvider('playlist'));
 
     return Scaffold(
@@ -81,14 +139,11 @@ class PlaylistDetailPage extends ConsumerWidget {
                       .selectTrack(index, isCtrlSelect: isCtrl, isShiftSelect: isShift);
                 },
                 onRowDoubleClick: (index) {
-                  ref
-                      .read(playerServiceProvider)
-                      .setPlaylist(
-                        playbackContextType: 'playlist',
-                        playbackContextId: playlistId,
-                        tracksToPlay: data.tracks,
-                        initialIndex: index,
-                      );
+                  ref.read(playlistsViewModelProvider).playPlaylist(
+                    tracks: data.tracks,
+                    playlistId: playlistId,
+                    initialIndex: index,
+                  );
                 },
                 onRowRightClick: (index, globalPosition) {
                   final selectionNotifier = ref.read(selectedTracksIndexProvider('playlist').notifier);

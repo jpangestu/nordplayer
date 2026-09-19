@@ -1,5 +1,4 @@
 import 'dart:io' show File;
-import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -15,8 +14,10 @@ export 'package:nordplayer/features/albums/viewmodels/album_detail_viewmodel.dar
 import 'package:nordplayer/core/services/preference_service.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/core/utils/int_extension.dart';
-import 'package:nordplayer/widgets/unimplemented.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
+import 'package:nordplayer/widgets/unimplemented.dart';
+import 'package:nordplayer/core/models/selection_state.dart';
+import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/select_popover.dart';
@@ -29,12 +30,88 @@ class AlbumDetailPage extends ConsumerWidget {
 
   const AlbumDetailPage({super.key, required this.albumId});
 
+  Widget _buildCell(
+    BuildContext context,
+    WidgetRef ref,
+    String columnId,
+    TrackWithArtists track,
+    int index,
+    int albumId,
+    List<TrackWithArtists> allTracks,
+  ) {
+    switch (columnId) {
+      case 'index':
+        final isActiveTrack = ref.watch(currentTrackProvider)?.track.filePath == track.track.filePath;
+
+        if (isActiveTrack) {
+          final isAudioPlaying = ref.watch(isPlayingProvider);
+
+          return AnimatedEqualizerIcon(
+            color: Theme.of(context).colorScheme.primary,
+            size: 16,
+            isPlaying: isAudioPlaying,
+          );
+        }
+        return Text(
+          track.track.trackNumber.toString(),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
+        );
+      case 'title':
+        return Text(track.track.title);
+      case 'duration':
+        return Text(track.track.durationMs.toDurationString());
+      case 'context_menu':
+        final appIconSet = ref.watch(appIconProvider);
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            IconButton(
+              onPressed: () {
+                unimplemented(context);
+              },
+              icon: AppIcon(appIconSet.favorite),
+            ),
+            Listener(
+              onPointerDown: (event) {
+                final selectionNotifier = ref.read(selectedTracksIndexProvider('album').notifier);
+                if (!ref.read(selectedTracksIndexProvider('album')).contains(index)) {
+                  selectionNotifier.selectTrack(index, isCtrlSelect: false, isShiftSelect: false);
+                }
+
+                final selectedIndices = ref.read(selectedTracksIndexProvider('album')).toList()..sort();
+                final selectedTracks = selectedIndices
+                    .where((i) => i >= 0 && i < allTracks.length)
+                    .map((i) => allTracks[i])
+                    .toList();
+
+                TrackContextMenu.show(
+                  context: context,
+                  ref: ref,
+                  isAdaptive: ref.read(configServiceProvider).adaptiveBg,
+                  globalPosition: event.position,
+                  tracks: allTracks,
+                  clickedIndex: index,
+                  selectedTracks: selectedTracks,
+                  playbackContextType: 'album',
+                  playbackContextId: albumId,
+                );
+              },
+              child: IconButton(icon: AppIcon(appIconSet.contextMenu), onPressed: () {}),
+            ),
+          ],
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final appConfig = ref.watch(configServiceProvider);
     final albumsWithTracks = ref.watch(sortedAlbumWithTracksProvider(albumId));
-    final albumDetailColumns = ref.watch(albumDetailPageTableColumnsProvider);
+    final columnConfigs = ref.watch(albumDetailPageTableColumnsProvider);
     final selectedIndices = ref.watch(selectedTracksIndexProvider('album'));
 
     return Scaffold(
@@ -63,6 +140,14 @@ class AlbumDetailPage extends ConsumerWidget {
             );
           }
 
+          final albumDetailColumns = columnConfigs
+              .map((config) => TableColumn<TrackWithArtists>.fromConfig(
+                    config: config,
+                    cellBuilder: (context, track, index) =>
+                        _buildCell(context, ref, config.id, track, index, albumId, data.tracks),
+                  ))
+              .toList();
+
           return CustomScrollView(
             slivers: [
               SliverToBoxAdapter(child: AlbumDetailPageHeader(albumWithTracks: data)),
@@ -88,14 +173,12 @@ class AlbumDetailPage extends ConsumerWidget {
                       .selectTrack(index, isCtrlSelect: isCtrl, isShiftSelect: isShift);
                 },
                 onRowDoubleClick: (index) {
-                  ref
-                      .read(playerServiceProvider)
-                      .setPlaylist(
-                        playbackContextType: 'album',
-                        playbackContextId: albumId,
-                        tracksToPlay: data.tracks,
-                        initialIndex: index,
-                      );
+                  ref.read(albumDetailViewModelProvider).playAlbum(
+                    tracks: data.tracks,
+                    albumId: albumId,
+                    shouldShuffle: false,
+                    initialIndex: index,
+                  );
                 },
                 onRowRightClick: (index, globalPosition) {
                   final selectionNotifier = ref.read(selectedTracksIndexProvider('album').notifier);
@@ -312,19 +395,10 @@ class _AlbumDetailPageHeader extends ConsumerState<AlbumDetailPageHeader> {
                       overlayShape: .rectangle,
                       overlayColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
                       onClick: () {
-                        final playerService = ref.read(playerServiceProvider);
-
-                        final int startIndex = shouldShuffle ? Random().nextInt(tracks.length) : 0;
-
-                        // Sync the local state to the global preferences
-                        ref.read(preferenceServiceProvider.notifier).setShuffleMode(shouldShuffle);
-
-                        playerService.setPlaylist(
-                          tracksToPlay: tracks,
-                          initialIndex: startIndex,
-                          playbackContextType: 'album',
-                          playbackContextId: widget.albumWithTracks.album.id,
-                          forceReload: true,
+                        ref.read(albumDetailViewModelProvider).playAlbum(
+                          tracks: tracks,
+                          albumId: widget.albumWithTracks.album.id,
+                          shouldShuffle: shouldShuffle,
                         );
                       },
                     ),
@@ -482,6 +556,46 @@ class _AlbumDetailPageHeader extends ConsumerState<AlbumDetailPageHeader> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Context menu popup widget for selecting which columns appear in the album detail table.
+class AlbumDetailPageTableColumnSelectorMenu extends ConsumerWidget {
+  const AlbumDetailPageTableColumnSelectorMenu({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final columns = ref.watch(albumDetailPageTableColumnsProvider);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: columns.map((col) {
+        return InkWell(
+          onTap: () {
+            ref.read(albumDetailPageTableColumnsProvider.notifier).toggleVisibility(col.id);
+          },
+          child: Container(
+            height: 36,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                Icon(
+                  col.isVisible ? Icons.check_box : Icons.check_box_outline_blank,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  col.label.isEmpty ? (col.id == 'context_menu' ? 'More Options' : col.id) : col.label,
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

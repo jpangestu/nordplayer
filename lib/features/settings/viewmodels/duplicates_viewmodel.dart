@@ -1,10 +1,8 @@
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/core/database/app_database.dart';
 import 'package:nordplayer/core/services/background_task_service.dart';
 import 'package:nordplayer/core/services/logger.dart';
-import 'package:nordplayer/core/utils/string_extension.dart';
-import 'package:nordplayer/features/settings/viewmodels/ignored_paths_viewmodel.dart';
+import 'package:nordplayer/data/repositories/ignored_paths_repository.dart';
 import 'package:nordplayer/services/duplicate_detector.dart';
 import 'package:nordplayer/services/library_indexer/library_indexer.dart';
 
@@ -19,7 +17,7 @@ final duplicatesViewModelProvider =
 
 class DuplicatesViewModel(final Ref _ref) with LoggerMixin {
   DuplicateDetector get _detector => _ref.read(duplicateDetectorProvider);
-  AppDatabase get _db => _ref.read(appDatabaseProvider);
+  IgnoredPathsRepository get _ignoredRepo => _ref.read(ignoredPathsRepositoryProvider);
 
   /// Triggers fingerprint generation in the background if no other task is running.
   void generateMissingFingerprintsIfNeeded() {
@@ -86,23 +84,7 @@ class DuplicatesViewModel(final Ref _ref) with LoggerMixin {
   Future<void> restoreTracks(List<Track> tracks) async {
     if (tracks.isEmpty) return;
     try {
-      await _db.transaction(() async {
-        final filePaths = tracks
-            .expand((t) => [t.filePath, t.filePath.normalizePath().toLowerCase()])
-            .toSet()
-            .toList();
-        await (_db.delete(_db.ignoredPaths)..where((t) => t.filePath.isIn(filePaths))).go();
-
-        for (final track in tracks) {
-          await _db.into(_db.tracks).insertOnConflictUpdate(track);
-          await _db.into(_db.trackArtist).insertOnConflictUpdate(
-                TrackArtistCompanion(
-                  trackId: Value(track.id),
-                  artistId: Value(track.artistId),
-                ),
-              );
-        }
-      });
+      await _ignoredRepo.restoreTracks(tracks);
       _ref.invalidate(duplicateGroupsProvider);
       _ref.invalidate(ignoredPathsProvider);
     } catch (e, s) {

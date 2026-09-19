@@ -1,13 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/database/app_database.dart';
-import 'package:nordplayer/core/utils/datetime_extension.dart';
-import 'package:nordplayer/core/utils/int_extension.dart';
+import 'package:nordplayer/core/models/table_column_config.dart';
 import 'package:nordplayer/data/repositories/repositories.dart';
-import 'package:nordplayer/services/player_service.dart';
-import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
-import 'package:nordplayer/widgets/music_tile.dart';
-import 'package:nordplayer/widgets/sliver_resizable_table.dart';
 
 /// Computes up to 5 unique album art paths for the playlist header collage.
 final playlistDetailsAlbumArtProvider = Provider.autoDispose.family<List<String>, int>((ref, playlistId) {
@@ -33,13 +27,13 @@ final playlistDetailsAlbumArtProvider = Provider.autoDispose.family<List<String>
 
 /// Manages table column configurations (widths, ordering, visibility) for the playlist detail view.
 final playlistDetailPageColumnsProvider =
-    NotifierProvider<PlaylistDetailPageColumnsNotifier, List<TableColumn<TrackWithArtists>>>(
+    NotifierProvider<PlaylistDetailPageColumnsNotifier, List<TableColumnConfig>>(
       PlaylistDetailPageColumnsNotifier.new,
     );
 
-class PlaylistDetailPageColumnsNotifier extends Notifier<List<TableColumn<TrackWithArtists>>> {
+class PlaylistDetailPageColumnsNotifier extends Notifier<List<TableColumnConfig>> {
   @override
-  List<TableColumn<TrackWithArtists>> build() => _initialColumns;
+  List<TableColumnConfig> build() => _initialColumns;
 
   void toggleVisibility(String columnId) {
     state = state.map((col) {
@@ -50,94 +44,47 @@ class PlaylistDetailPageColumnsNotifier extends Notifier<List<TableColumn<TrackW
     }).toList();
   }
 
-  static final List<TableColumn<TrackWithArtists>> _initialColumns = [
-    TableColumn<TrackWithArtists>(
+  static const List<TableColumnConfig> _initialColumns = [
+    TableColumnConfig(
       id: 'index',
       label: "#",
       width: 60,
       minWidth: 60,
       alignment: Alignment.centerRight,
-      cellBuilder: (context, track, index) {
-        return Consumer(
-          builder: (context, ref, child) {
-            final isActiveTrack = ref.watch(currentTrackProvider)?.track.filePath == track.track.filePath;
-
-            if (isActiveTrack) {
-              final isAudioPlaying = ref.watch(isPlayingProvider);
-
-              return AnimatedEqualizerIcon(
-                color: Theme.of(context).colorScheme.primary,
-                size: 16,
-                isPlaying: isAudioPlaying,
-              );
-            }
-            return Text(
-              "${index + 1}",
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
-            );
-          },
-        );
-      },
     ),
-    TableColumn<TrackWithArtists>(
+    TableColumnConfig(
       id: 'title_artist',
       label: "Title/Artist",
       flex: 5,
       minWidth: 150,
-      cellBuilder: (context, track, index) {
-        return Consumer(
-          builder: (context, ref, child) {
-            final isPlaying = ref.watch(currentTrackProvider)?.track.filePath == track.track.filePath;
-            return MusicTile(
-              selected: isPlaying,
-              albumArtPath: track.album.albumArtPath,
-              title: track.track.title,
-              artists: track.artists.map((a) => a.name).toList(),
-              padding: EdgeInsets.zero,
-            );
-          },
-        );
-      },
     ),
-    TableColumn<TrackWithArtists>(
+    TableColumnConfig(
       id: 'album',
       label: "Album",
       flex: 3,
       minWidth: 100,
-      cellBuilder: (context, track, index) {
-        return Text(track.album.title, maxLines: 1, overflow: TextOverflow.ellipsis);
-      },
     ),
-    TableColumn<TrackWithArtists>(
+    TableColumnConfig(
       id: 'path',
       label: 'Path',
       flex: 3,
       minWidth: 120,
       isVisible: false,
-      cellBuilder: (context, track, index) {
-        return Text(track.track.filePath, maxLines: 1, overflow: TextOverflow.ellipsis);
-      },
     ),
-    TableColumn<TrackWithArtists>(
+    TableColumnConfig(
       id: 'date_added',
       label: "Date Added",
       width: 110,
       minWidth: 110,
       alignment: Alignment.centerRight,
       isVisible: true,
-      cellBuilder: (context, track, index) {
-        return Text(track.track.dateAdded.toRelativeTime(), maxLines: 1, overflow: TextOverflow.ellipsis);
-      },
     ),
-    TableColumn<TrackWithArtists>(
+    TableColumnConfig(
       id: 'duration',
       label: 'Duration',
       width: 90,
       minWidth: 90,
       alignment: Alignment.centerRight,
-      cellBuilder: (context, track, index) {
-        return Text(track.track.durationMs.toDurationString());
-      },
     ),
   ];
 }

@@ -1,8 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/core/services/preference_service.dart';
 import 'package:nordplayer/data/repositories/repositories.dart';
 import 'package:nordplayer/features/albums/viewmodels/album_detail_viewmodel.dart';
+import 'package:nordplayer/services/player_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 void main() {
   group('AlbumDetailViewModel & State', () {
@@ -56,12 +61,7 @@ void main() {
 
     test('sortedAlbumWithTracksProvider sorts by trackNumber, title, and duration', () async {
       const albumId = 42;
-      final album = const Album(
-        id: albumId,
-        title: 'Test Album',
-        albumArtist: 'Test Artist',
-        year: 2026,
-      );
+      final album = const Album(id: albumId, title: 'Test Album', albumArtist: 'Test Artist', year: 2026);
 
       final trackA = TrackWithArtists(
         track: Track(
@@ -129,9 +129,8 @@ void main() {
       final testContainer = ProviderContainer(
         overrides: [
           albumWithTracksProvider(albumId).overrideWith(
-            (ref) => Stream.value(
-              AlbumWithTracks(album: album, tracks: [trackA, trackB, trackC], tracksLengthMs: 420000),
-            ),
+            (ref) =>
+                Stream.value(AlbumWithTracks(album: album, tracks: [trackA, trackB, trackC], tracksLengthMs: 420000)),
           ),
         ],
       );
@@ -160,5 +159,71 @@ void main() {
       final durationSorted = testContainer.read(sortedAlbumWithTracksProvider(albumId));
       expect(durationSorted.value?.tracks.map((t) => t.track.title).toList(), equals(['Mango', 'Zebra', 'Apple']));
     });
+
+    test('AlbumDetailViewModel playAlbum plays tracks and syncs shuffle mode', () async {
+      SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.withData({});
+      final prefs = await SharedPreferencesWithCache.create(
+        cacheOptions: const SharedPreferencesWithCacheOptions(allowList: PrefConstants.allowList),
+      );
+      final fakePlayer = FakePlayerServiceForAlbum();
+      final testContainer = ProviderContainer(
+        overrides: [sharedPrefsProvider.overrideWithValue(prefs), playerServiceProvider.overrideWithValue(fakePlayer)],
+      );
+      addTearDown(testContainer.dispose);
+
+      final vm = testContainer.read(albumDetailViewModelProvider);
+      final album = const Album(id: 10, title: 'Album 10', year: 2024);
+      final tracks = [
+        TrackWithArtists(
+          track: Track(
+            id: 1,
+            title: 'Track 1',
+            filePath: '/t1.mp3',
+            trackNumber: 1,
+            trackTotal: 2,
+            discNumber: 1,
+            discTotal: 1,
+            durationMs: 120000,
+            fileHash: 'h1',
+            fileSize: 1000,
+            isMissing: false,
+            artistId: 1,
+            albumId: 10,
+            dateAdded: DateTime.now(),
+          ),
+          album: album,
+          artists: const [],
+        ),
+      ];
+
+      vm.playAlbum(tracks: tracks, albumId: 10, shouldShuffle: false, initialIndex: 0);
+
+      expect(fakePlayer.lastTracks, equals(tracks));
+      expect(fakePlayer.lastInitialIndex, equals(0));
+      expect(fakePlayer.lastContextType, equals('album'));
+      expect(fakePlayer.lastContextId, equals(10));
+    });
   });
+}
+
+class FakePlayerServiceForAlbum extends Fake implements PlayerService {
+  List<TrackWithArtists> lastTracks = [];
+  int lastInitialIndex = -1;
+  String lastContextType = '';
+  int? lastContextId;
+
+  @override
+  Future<void> setPlaylist({
+    required List<TrackWithArtists> tracksToPlay,
+    required int initialIndex,
+    required String playbackContextType,
+    int? playbackContextId,
+    bool forceReload = false,
+    bool autoplay = true,
+  }) async {
+    lastTracks = List.from(tracksToPlay);
+    lastInitialIndex = initialIndex;
+    lastContextType = playbackContextType;
+    lastContextId = playbackContextId;
+  }
 }

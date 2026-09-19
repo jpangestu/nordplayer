@@ -1,12 +1,23 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nordplayer/core/database/app_database.dart';
 import 'package:nordplayer/core/models/library_section_config.dart';
 import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/core/services/logger.dart';
+import 'package:nordplayer/data/repositories/track_repository.dart';
 
 /// Provider exposing the current list of configured library sections.
 final librarySectionsProvider = Provider<List<LibrarySectionConfig>>((ref) {
   final config = ref.watch(configServiceProvider);
   return config.librarySections;
+});
+
+/// Computes and caches up to 6 sample tracks for the library overview panel.
+final librarySampleTracksProvider = Provider<List<TrackWithArtists>>((ref) {
+  final libraryAsync = ref.watch(libraryStreamProvider);
+  final tracks = libraryAsync.value ?? [];
+  if (tracks.isEmpty) return const [];
+  final list = List<TrackWithArtists>.from(tracks)..shuffle();
+  return list.take(6).toList();
 });
 
 /// ViewModel coordinating library section ordering, visibility, and preferences.

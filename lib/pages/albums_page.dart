@@ -205,7 +205,7 @@ class _AlbumCardState extends ConsumerState<AlbumCard> {
             child: GestureDetector(
               onTap: widget.onAlbumArtistTap,
               child: Text(
-                widget.album.albumArtist!,
+                widget.album.albumArtist ?? 'Unknown Artist',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.titleSmall?.copyWith(
@@ -245,7 +245,7 @@ class _AlbumCardState extends ConsumerState<AlbumCard> {
                 });
               },
               child: Text(
-                widget.album.albumArtist!,
+                widget.album.albumArtist ?? 'Various Artists',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.titleSmall?.copyWith(

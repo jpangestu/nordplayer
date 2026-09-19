@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nordplayer/core/services/background_task_service.dart';
 import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/features/settings/viewmodels/library_indexer_viewmodel.dart';
 import 'package:nordplayer/services/library_indexer/library_indexer.dart';
@@ -173,6 +174,25 @@ void main() {
 
       expect(vm.triggerFingerprint(), isTrue);
       expect(fakeIndexer.fingerprintCalled, isTrue);
+    });
+
+    test('task status providers and isTaskRunning reflect active background tasks', () {
+      expect(container.read(isLibraryScanningProvider), isFalse);
+      expect(container.read(isLibraryReindexingProvider), isFalse);
+      expect(container.read(isLibraryFingerprintingProvider), isFalse);
+      expect(container.read(isAnyLibraryTaskRunningProvider), isFalse);
+      expect(container.read(libraryIndexerViewModelProvider).isTaskRunning, isFalse);
+
+      final bgService = container.read(backgroundTaskServiceProvider.notifier);
+      bgService.startTask(id: 'library-scan', name: 'Scan');
+
+      expect(container.read(isLibraryScanningProvider), isTrue);
+      expect(container.read(isAnyLibraryTaskRunningProvider), isTrue);
+      expect(container.read(libraryIndexerViewModelProvider).isTaskRunning, isTrue);
+
+      bgService.completeTask('library-scan');
+      expect(container.read(isLibraryScanningProvider), isFalse);
+      expect(container.read(isAnyLibraryTaskRunningProvider), isFalse);
     });
   });
 }

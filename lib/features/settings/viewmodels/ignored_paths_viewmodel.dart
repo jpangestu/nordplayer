@@ -1,24 +1,19 @@
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/core/database/app_database.dart' show IgnoredPath;
 import 'package:nordplayer/core/services/logger.dart';
+import 'package:nordplayer/data/repositories/ignored_paths_repository.dart';
 
-/// Provider for loading the list of ignored file paths.
-final ignoredPathsProvider = FutureProvider.autoDispose<List<IgnoredPath>>((ref) async {
-  final db = ref.watch(appDatabaseProvider);
-  final paths = await db.select(db.ignoredPaths).get();
-  return paths.toList()..sort((a, b) => a.filePath.compareTo(b.filePath));
-});
+export 'package:nordplayer/data/repositories/ignored_paths_repository.dart' show ignoredPathsProvider;
 
 final ignoredPathsViewModelProvider = Provider<IgnoredPathsViewModel>(IgnoredPathsViewModel.new);
 
 class IgnoredPathsViewModel(final Ref _ref) with LoggerMixin {
-  AppDatabase get _db => _ref.read(appDatabaseProvider);
+  IgnoredPathsRepository get _repository => _ref.read(ignoredPathsRepositoryProvider);
 
   /// Restores an individual ignored path by removing it from the ignoredPaths table.
   Future<void> restorePath(IgnoredPath path) async {
     try {
-      await (_db.delete(_db.ignoredPaths)..where((t) => t.filePath.equals(path.filePath))).go();
+      await _repository.restorePath(path.filePath);
       _ref.invalidate(ignoredPathsProvider);
     } catch (e, s) {
       log.e("Failed to restore path '${path.filePath}'", error: e, stackTrace: s);
@@ -29,10 +24,9 @@ class IgnoredPathsViewModel(final Ref _ref) with LoggerMixin {
   /// Restores all given paths by clearing them from the ignoredPaths table.
   Future<void> restoreAll(List<IgnoredPath> paths) async {
     if (paths.isEmpty) return;
-
     final filePathsToRestore = paths.map((p) => p.filePath).toList();
     try {
-      await (_db.delete(_db.ignoredPaths)..where((t) => t.filePath.isIn(filePathsToRestore))).go();
+      await _repository.restoreAll(filePathsToRestore);
       _ref.invalidate(ignoredPathsProvider);
     } catch (e, s) {
       log.e("Failed to restore all paths", error: e, stackTrace: s);
@@ -44,11 +38,7 @@ class IgnoredPathsViewModel(final Ref _ref) with LoggerMixin {
   Future<void> reignorePaths(List<String> filePaths) async {
     if (filePaths.isEmpty) return;
     try {
-      await _db.transaction(() async {
-        for (final path in filePaths) {
-          await _db.into(_db.ignoredPaths).insertOnConflictUpdate(IgnoredPathsCompanion(filePath: Value(path)));
-        }
-      });
+      await _repository.reignorePaths(filePaths);
       _ref.invalidate(ignoredPathsProvider);
     } catch (e, s) {
       log.e("Failed to re-ignore paths", error: e, stackTrace: s);

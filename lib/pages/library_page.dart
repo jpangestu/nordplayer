@@ -413,6 +413,7 @@ class TracksPanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final libraryAsync = ref.watch(libraryStreamProvider);
+    final sixTracks = ref.watch(librarySampleTracksProvider);
 
     return libraryAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -421,11 +422,6 @@ class TracksPanel extends ConsumerWidget {
         if (tracks.isEmpty) {
           return const Text("No tracks found");
         }
-
-        // Create a copy of the list, shuffle it, and take the first 6
-        // TODO: Implement top tracks features and replace this
-        final shuffledTracks = List<TrackWithArtists>.from(tracks)..shuffle();
-        final sixTracks = shuffledTracks.take(6).toList();
 
         return Column(
           children: [

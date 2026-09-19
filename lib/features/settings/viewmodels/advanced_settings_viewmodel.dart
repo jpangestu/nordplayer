@@ -1,11 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/database/app_database.dart';
 import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/core/services/logger.dart';
 import 'package:nordplayer/core/services/preference_service.dart';
 import 'package:nordplayer/data/repositories/album_repository.dart';
+import 'package:nordplayer/data/repositories/track_repository.dart';
 import 'package:nordplayer/services/library_indexer/library_indexer.dart';
 import 'package:nordplayer/services/library_watcher.dart';
 import 'package:nordplayer/services/player_service.dart';
@@ -43,7 +43,7 @@ class AdvancedSettingsViewModel with LoggerMixin {
     }
 
     // Clean up orphaned artists and albums
-    await _ref.read(appDatabaseProvider).deleteOrphanedMetadata();
+    await _ref.read(trackRepositoryProvider).deleteOrphanedMetadata();
 
     log.i("Settings reset and orphaned database tracks cleared.");
   }
@@ -57,7 +57,7 @@ class AdvancedSettingsViewModel with LoggerMixin {
       await _ref.read(playerServiceProvider).clearQueue();
 
       // Clear all database tables
-      await _ref.read(appDatabaseProvider).clearAllData();
+      await _ref.read(trackRepositoryProvider).clearAllData();
 
       // Allow file handles to release
       await Future.delayed(const Duration(milliseconds: 100));

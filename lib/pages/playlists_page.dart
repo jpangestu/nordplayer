@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/core/database/app_database.dart';
 import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/core/services/logger.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
@@ -109,13 +108,11 @@ class PlaylistsPage extends ConsumerWidget {
 class PlaylistCard extends ConsumerStatefulWidget {
   final PlaylistWithDetails playlistWithDetails;
   final int playlistId;
-  final AppDatabase? database;
 
   const PlaylistCard({
     super.key,
     required this.playlistWithDetails,
     required this.playlistId,
-    this.database,
   });
 
   @override

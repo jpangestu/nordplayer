@@ -4,6 +4,9 @@ import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:nordplayer/core/models/table_column_config.dart';
+
+export 'package:nordplayer/core/models/table_column_config.dart';
 
 /* Widget Architecture:
 This widget is a desktop-class data table optimized for Flutter's scrollable Sliver ecosystem. It manages the entire
@@ -348,6 +351,24 @@ class TableColumn<T> {
          (width != null || flex != null) && !(width != null && flex != null),
          'A TableColumn must provide exactly one of either width or flex.',
        );
+
+  factory TableColumn.fromConfig({
+    required TableColumnConfig config,
+    required Widget Function(BuildContext context, T item, int index) cellBuilder,
+    VoidCallback? onHeaderClick,
+  }) {
+    return TableColumn(
+      id: config.id,
+      label: config.label,
+      minWidth: config.minWidth,
+      width: config.width,
+      flex: config.flex,
+      alignment: config.alignment,
+      isVisible: config.isVisible,
+      onHeaderClick: onHeaderClick,
+      cellBuilder: cellBuilder,
+    );
+  }
 
   TableColumn<T> copyWith({bool? isVisible, double? width, double? flex}) {
     return TableColumn<T>(

@@ -1,17 +1,13 @@
-import 'package:flutter/material.dart';
+import 'dart:math';
+
+import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/core/database/app_database.dart';
-import 'package:nordplayer/core/models/selection_state.dart';
-import 'package:nordplayer/core/services/config_service.dart';
-import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
-import 'package:nordplayer/core/utils/int_extension.dart';
+import 'package:nordplayer/core/models/table_column_config.dart';
+import 'package:nordplayer/core/services/logger.dart';
+import 'package:nordplayer/core/services/preference_service.dart';
 import 'package:nordplayer/data/repositories/repositories.dart';
-import 'package:nordplayer/pages/pages_context_menu.dart';
 import 'package:nordplayer/services/player_service.dart';
-import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
-import 'package:nordplayer/widgets/app_icon.dart';
-import 'package:nordplayer/widgets/sliver_resizable_table.dart';
-import 'package:nordplayer/widgets/unimplemented.dart';
 
 /// Available sorting criteria for album tracks.
 enum AlbumTrackSort {
@@ -107,55 +103,15 @@ final sortedAlbumWithTracksProvider = Provider.autoDispose.family<AsyncValue<Alb
   });
 });
 
-/// Context menu popup widget for selecting which columns appear in the album detail table.
-class AlbumDetailPageTableColumnSelectorMenu extends ConsumerWidget {
-  const AlbumDetailPageTableColumnSelectorMenu({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final columns = ref.watch(albumDetailPageTableColumnsProvider);
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: columns.map((col) {
-        return InkWell(
-          onTap: () {
-            ref.read(albumDetailPageTableColumnsProvider.notifier).toggleVisibility(col.id);
-          },
-          child: Container(
-            height: 36,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              children: [
-                Icon(
-                  col.isVisible ? Icons.check_box : Icons.check_box_outline_blank,
-                  size: 20,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  col.label.isEmpty ? (col.id == 'context_menu' ? 'More Options' : col.id) : col.label,
-                  style: const TextStyle(fontWeight: FontWeight.w500),
-                ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
-
 /// Provider managing table column layout and visibility for the album detail table.
 final albumDetailPageTableColumnsProvider =
-    NotifierProvider<AlbumDetailPageTableColumnsNotifier, List<TableColumn<TrackWithArtists>>>(
+    NotifierProvider<AlbumDetailPageTableColumnsNotifier, List<TableColumnConfig>>(
       AlbumDetailPageTableColumnsNotifier.new,
     );
 
-class AlbumDetailPageTableColumnsNotifier extends Notifier<List<TableColumn<TrackWithArtists>>> {
+class AlbumDetailPageTableColumnsNotifier extends Notifier<List<TableColumnConfig>> {
   @override
-  List<TableColumn<TrackWithArtists>> build() => _initialColumns;
+  List<TableColumnConfig> build() => _initialColumns;
 
   void toggleVisibility(String columnId) {
     state = state.map((col) {
@@ -166,111 +122,67 @@ class AlbumDetailPageTableColumnsNotifier extends Notifier<List<TableColumn<Trac
     }).toList();
   }
 
-  static final List<TableColumn<TrackWithArtists>> _initialColumns = [
-    TableColumn<TrackWithArtists>(
+  static const List<TableColumnConfig> _initialColumns = [
+    TableColumnConfig(
       id: 'index',
       label: "#",
       width: 50,
       minWidth: 50,
       alignment: Alignment.centerRight,
-      cellBuilder: (context, track, index) {
-        return Consumer(
-          builder: (context, ref, child) {
-            final isActiveTrack = ref.watch(currentTrackProvider)?.track.filePath == track.track.filePath;
-
-            if (isActiveTrack) {
-              final isAudioPlaying = ref.watch(isPlayingProvider);
-
-              return AnimatedEqualizerIcon(
-                color: Theme.of(context).colorScheme.primary,
-                size: 16,
-                isPlaying: isAudioPlaying,
-              );
-            }
-            return Text(
-              track.track.trackNumber.toString(),
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
-            );
-          },
-        );
-      },
     ),
-    TableColumn<TrackWithArtists>(
+    TableColumnConfig(
       id: 'title',
       label: "Title",
       flex: 5,
       minWidth: 150,
-      cellBuilder: (context, track, index) {
-        return Text(track.track.title);
-      },
     ),
-    TableColumn<TrackWithArtists>(
+    TableColumnConfig(
       id: 'duration',
       label: 'Duration',
       width: 90,
       minWidth: 90,
       alignment: Alignment.center,
-      cellBuilder: (context, track, index) {
-        return Text(track.track.durationMs.toDurationString());
-      },
     ),
-    TableColumn<TrackWithArtists>(
+    TableColumnConfig(
       id: 'context_menu',
       label: '',
       width: 115,
       minWidth: 115,
       alignment: Alignment.centerRight,
-      cellBuilder: (context, track, index) {
-        return Consumer(
-          builder: (context, ref, child) {
-            final appIconSet = ref.watch(appIconProvider);
-
-            return Row(
-              mainAxisAlignment: .end,
-              children: [
-                IconButton(
-                  onPressed: () {
-                    unimplemented(context);
-                  },
-                  icon: AppIcon(appIconSet.favorite),
-                ),
-                Listener(
-                  onPointerDown: (event) {
-                    // Sync Selection consistently using 'album'
-                    final selectionNotifier = ref.read(selectedTracksIndexProvider('album').notifier);
-                    if (!ref.read(selectedTracksIndexProvider('album')).contains(index)) {
-                      selectionNotifier.selectTrack(index, isCtrlSelect: false, isShiftSelect: false);
-                    }
-
-                    final albumId = track.album.id;
-                    final sortedData = ref.read(sortedAlbumWithTracksProvider(albumId)).value;
-                    final tracks = sortedData?.tracks ?? [];
-
-                    final selectedIndices = ref.read(selectedTracksIndexProvider('album')).toList()..sort();
-                    final selectedTracks = selectedIndices
-                        .where((i) => i >= 0 && i < tracks.length)
-                        .map((i) => tracks[i])
-                        .toList();
-
-                    TrackContextMenu.show(
-                      context: context,
-                      ref: ref,
-                      isAdaptive: ref.read(configServiceProvider).adaptiveBg,
-                      globalPosition: event.position,
-                      tracks: tracks,
-                      clickedIndex: index,
-                      selectedTracks: selectedTracks,
-                      playbackContextType: 'album',
-                      playbackContextId: albumId,
-                    );
-                  },
-                  child: IconButton(icon: AppIcon(appIconSet.contextMenu), onPressed: () {}),
-                ),
-              ],
-            );
-          },
-        );
-      },
     ),
   ];
 }
+
+/// ViewModel coordinating album detail playback and presentation actions.
+class AlbumDetailViewModel(final Ref _ref) with LoggerMixin {
+  PlayerService get _playerService => _ref.read(playerServiceProvider);
+  PreferenceService get _preferenceService => _ref.read(preferenceServiceProvider.notifier);
+
+  /// Plays the given album tracks, optionally picking a random start index if shuffle is enabled,
+  /// and synchronizes user preferences.
+  void playAlbum({
+    required List<TrackWithArtists> tracks,
+    required int albumId,
+    required bool shouldShuffle,
+    int? initialIndex,
+    bool forceReload = true,
+  }) {
+    if (tracks.isEmpty) return;
+
+    final startIndex = initialIndex ??
+        (shouldShuffle && tracks.isNotEmpty ? Random().nextInt(tracks.length) : 0);
+
+    _preferenceService.setShuffleMode(shouldShuffle);
+
+    _playerService.setPlaylist(
+      tracksToPlay: tracks,
+      initialIndex: startIndex,
+      playbackContextType: 'album',
+      playbackContextId: albumId,
+      forceReload: forceReload,
+    );
+  }
+}
+
+/// Riverpod provider exposing [AlbumDetailViewModel].
+final albumDetailViewModelProvider = Provider<AlbumDetailViewModel>((ref) => AlbumDetailViewModel(ref));
