@@ -4,15 +4,16 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/database/app_database.dart';
 import 'package:nordplayer/data/repositories/repositories.dart';
+import 'package:nordplayer/features/playlists/viewmodels/playlists_viewmodel.dart';
+import 'package:nordplayer/features/queue/viewmodels/queue_viewmodel.dart';
 import 'package:nordplayer/pages/pages_helper.dart';
 import 'package:nordplayer/routes/router.dart';
-import 'package:nordplayer/core/services/logger.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/core/services/preference_service.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
-import 'package:nordplayer/widgets/nord_alert_dialog.dart';
+import 'package:nordplayer/widgets/dialogs/playlist_dialogs.dart';
 import 'package:nordplayer/widgets/nord_snack_bar.dart';
 
 class TrackContextMenu {
@@ -129,17 +130,11 @@ class TrackContextMenu {
             label: 'Remove from queue',
             onTap: () {
               final selectionSet = ref.read(selectedTracksIndexProvider('queue_page'));
-
-              // Convert to list and sort descending for safe remove
-              final indicesToRemove = selectionSet.toList()..sort((a, b) => b.compareTo(a));
-
-              // Remove from highest index to lowest so the queue shifting doesn't break the math
-              for (final index in indicesToRemove) {
-                ref.read(playerServiceProvider).removeTrack(index);
+              if (selectionSet.isNotEmpty) {
+                ref.read(queueViewModelProvider).removeSelectedTracks(selectionSet.toList());
+              } else {
+                ref.read(queueViewModelProvider).removeTrack(clickedIndex);
               }
-
-              // Clear the selection so the UI doesn't hold onto invalid, out-of-bounds highlighted rows
-              ref.read(selectedTracksIndexProvider('queue_page').notifier).clear();
             },
           ),
         ContextSubMenuAction(
@@ -155,14 +150,15 @@ class TrackContextMenu {
         //     unimplemented(context);
         //   }, // TODO: Add Metadata context menu
         // ),
-        ContextMenuActions(
-          icon: appIconSet.showInfolder,
-          label: 'Show in folder',
-          onTap: () async {
-            final path = tracks[clickedIndex].track.filePath;
-            await showInFolder(path);
-          },
-        ),
+        if (clickedIndex >= 0 && clickedIndex < tracks.length)
+          ContextMenuActions(
+            icon: appIconSet.showInfolder,
+            label: 'Show in folder',
+            onTap: () async {
+              final path = tracks[clickedIndex].track.filePath;
+              await showInFolder(path);
+            },
+          ),
       ],
     );
   }
@@ -305,12 +301,7 @@ class _SearchablePlaylistMenuState extends ConsumerState<SearchablePlaylistConte
         InkWell(
           onTap: () async {
             ContextMenu.closeAll();
-
-            await showDialog(
-              context: context,
-              builder: (context) =>
-                  CreatePlaylistDialog(database: ref.read(appDatabaseProvider), tracksToAdd: widget.tracksToAdd),
-            );
+            await showCreatePlaylistDialogAndAddTracks(context, widget.tracksToAdd);
           },
           child: Container(
             height: 36,
@@ -359,10 +350,9 @@ class _SearchablePlaylistMenuState extends ConsumerState<SearchablePlaylistConte
                   final playlist = filtered[index].playlist;
                   return InkWell(
                     onTap: () async {
-                      // ADD TO DATABASE
-                      final db = ref.read(appDatabaseProvider);
+                      final vm = ref.read(playlistsViewModelProvider);
                       final trackIds = widget.tracksToAdd.map((t) => t.track.id).toList();
-                      await db.addTracksToPlaylist(playlist.id, trackIds);
+                      await vm.addTracksToPlaylist(playlist.id, trackIds);
 
                       ContextMenu.closeAll();
 
@@ -387,92 +377,6 @@ class _SearchablePlaylistMenuState extends ConsumerState<SearchablePlaylistConte
             );
           },
         ),
-      ],
-    );
-  }
-}
-
-class CreatePlaylistDialog extends ConsumerStatefulWidget {
-  final AppDatabase database;
-  final List<TrackWithArtists> tracksToAdd;
-
-  const CreatePlaylistDialog({super.key, required this.database, this.tracksToAdd = const []});
-
-  @override
-  ConsumerState<CreatePlaylistDialog> createState() => _CreatePlaylistDialogState();
-}
-
-class _CreatePlaylistDialogState extends ConsumerState<CreatePlaylistDialog> with LoggerMixin {
-  late final TextEditingController _textController;
-
-  @override
-  void initState() {
-    super.initState();
-    _textController = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _textController.dispose();
-    super.dispose();
-  }
-
-  void _submit() async {
-    final name = _textController.text.trim();
-
-    if (name.isEmpty) {
-      Navigator.pop(context);
-      return;
-    }
-
-    final newPlaylistId = await widget.database.addPlaylist(PlaylistsCompanion.insert(name: name));
-
-    if (!mounted) return;
-
-    log.i('$name created successfully');
-
-    if (widget.tracksToAdd.isNotEmpty) {
-      final db = ref.read(appDatabaseProvider);
-      final trackIds = widget.tracksToAdd.map((t) => t.track.id).toList();
-
-      await db.addTracksToPlaylist(newPlaylistId, trackIds);
-
-      showNordSnackBar(
-        message: 'Created "$name" with ${trackIds.length} tracks',
-        type: .success,
-        actionLabel: 'Open Playlist',
-        onAction: (snackBarContext) {
-          snackBarContext.go('${Routes.playlistsPage}/$newPlaylistId');
-        },
-      );
-    } else {
-      showNordSnackBar(
-        message: 'Playlist "$name" created',
-        type: .success,
-        actionLabel: 'Open',
-        onAction: (snackBarContext) {
-          snackBarContext.go('${Routes.playlistsPage}/$newPlaylistId');
-        },
-      );
-    }
-
-    if (!mounted) return;
-    Navigator.pop(context);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return NordAlertDialog(
-      title: 'Create New Playlist',
-      content: TextField(
-        controller: _textController,
-        autofocus: true,
-        decoration: const InputDecoration(hintText: 'Playlist Name', border: OutlineInputBorder()),
-        onSubmitted: (_) => _submit(),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        FilledButton(onPressed: _submit, child: const Text('Create')),
       ],
     );
   }

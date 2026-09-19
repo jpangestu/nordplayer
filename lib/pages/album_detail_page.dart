@@ -5,16 +5,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/database/app_database.dart';
-import 'package:nordplayer/data/repositories/repositories.dart';
+import 'package:nordplayer/features/albums/viewmodels/album_detail_viewmodel.dart';
 import 'package:nordplayer/pages/pages_context_menu.dart';
 import 'package:nordplayer/pages/pages_helper.dart';
 import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/services/player_service.dart';
+
+export 'package:nordplayer/features/albums/viewmodels/album_detail_viewmodel.dart';
 import 'package:nordplayer/core/services/preference_service.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/core/utils/int_extension.dart';
 import 'package:nordplayer/widgets/unimplemented.dart';
-import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
@@ -34,6 +35,7 @@ class AlbumDetailPage extends ConsumerWidget {
     final appConfig = ref.watch(configServiceProvider).requireValue;
     final albumsWithTracks = ref.watch(sortedAlbumWithTracksProvider(albumId));
     final albumDetailColumns = ref.watch(albumDetailPageTableColumnsProvider);
+    final selectedIndices = ref.watch(selectedTracksIndexProvider('album'));
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface.withValues(
@@ -68,6 +70,7 @@ class AlbumDetailPage extends ConsumerWidget {
               SliverResizableTable(
                 items: data.tracks,
                 columns: albumDetailColumns,
+                selectedIndices: selectedIndices,
                 isAdaptive: appConfig.adaptiveBg,
                 headerBlur: appConfig.adaptiveBgPanelBlur,
                 headerThemeOverlay: appConfig.adaptiveBgThemeOverlay,
@@ -483,257 +486,3 @@ class _AlbumDetailPageHeader extends ConsumerState<AlbumDetailPageHeader> {
   }
 }
 
-enum AlbumTrackSort {
-  trackNumber('Track Number'),
-  title('Title'),
-  duration('Duration');
-
-  final String label;
-  const AlbumTrackSort(this.label);
-}
-
-final albumTrackSortProvider = NotifierProvider<AlbumTrackSortNotifier, AlbumTrackSort>(AlbumTrackSortNotifier.new);
-
-class AlbumTrackSortNotifier extends Notifier<AlbumTrackSort> {
-  @override
-  AlbumTrackSort build() => AlbumTrackSort.trackNumber;
-
-  void setSort(AlbumTrackSort sort) {
-    state = sort;
-  }
-}
-
-enum SortOrder {
-  ascending('Ascending'),
-  descending('Descending');
-
-  final String label;
-  const SortOrder(this.label);
-}
-
-final albumTrackSortOrderProvider = NotifierProvider<AlbumTrackSortOrderNotifier, SortOrder>(
-  AlbumTrackSortOrderNotifier.new,
-);
-
-class AlbumTrackSortOrderNotifier extends Notifier<SortOrder> {
-  @override
-  SortOrder build() => SortOrder.ascending;
-
-  void setOrder(SortOrder order) {
-    state = order;
-  }
-}
-
-final albumShowFavoritesOnlyProvider = NotifierProvider<AlbumShowFavoritesOnlyNotifier, bool>(
-  AlbumShowFavoritesOnlyNotifier.new,
-);
-
-class AlbumShowFavoritesOnlyNotifier extends Notifier<bool> {
-  @override
-  bool build() => false;
-
-  void toggle() {
-    state = !state;
-  }
-}
-
-final sortedAlbumWithTracksProvider = Provider.family<AsyncValue<AlbumWithTracks?>, int>((ref, albumId) {
-  final albumAsync = ref.watch(albumWithTracksProvider(albumId));
-  final currentSort = ref.watch(albumTrackSortProvider);
-  final currentOrder = ref.watch(albumTrackSortOrderProvider);
-  final showFavoritesOnly = ref.watch(albumShowFavoritesOnlyProvider);
-
-  return albumAsync.whenData((data) {
-    if (data == null) return null;
-    final orderMultiplier = currentOrder == SortOrder.ascending ? 1 : -1;
-    var sortedTracks = List<TrackWithArtists>.from(data.tracks);
-
-    if (showFavoritesOnly) {
-      // TODO: filter favorite on albums detail page
-    }
-
-    switch (currentSort) {
-      case AlbumTrackSort.trackNumber:
-        sortedTracks.sort((a, b) => a.track.trackNumber.compareTo(b.track.trackNumber) * orderMultiplier);
-        break;
-      case AlbumTrackSort.title:
-        sortedTracks.sort(
-          (a, b) => a.track.title.toLowerCase().compareTo(b.track.title.toLowerCase()) * orderMultiplier,
-        );
-        break;
-      case AlbumTrackSort.duration:
-        sortedTracks.sort((a, b) => a.track.durationMs.compareTo(b.track.durationMs) * orderMultiplier);
-        break;
-    }
-    return AlbumWithTracks(album: data.album, tracks: sortedTracks, tracksLengthMs: data.tracksLengthMs);
-  });
-});
-
-class AlbumDetailPageTableColumnSelectorMenu extends ConsumerWidget {
-  const AlbumDetailPageTableColumnSelectorMenu({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final columns = ref.watch(albumDetailPageTableColumnsProvider);
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: columns.map((col) {
-        return InkWell(
-          onTap: () {
-            ref.read(albumDetailPageTableColumnsProvider.notifier).toggleVisibility(col.id);
-          },
-          child: Container(
-            height: 36,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              children: [
-                Icon(
-                  col.isVisible ? Icons.check_box : Icons.check_box_outline_blank,
-                  size: 20,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  col.label.isEmpty ? (col.id == 'context_menu' ? 'More Options' : col.id) : col.label,
-                  style: const TextStyle(fontWeight: FontWeight.w500),
-                ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
-
-final albumDetailPageTableColumnsProvider =
-    NotifierProvider<AlbumDetailPageTableColumnsNotifier, List<TableColumn<TrackWithArtists>>>(
-      AlbumDetailPageTableColumnsNotifier.new,
-    );
-
-class AlbumDetailPageTableColumnsNotifier extends Notifier<List<TableColumn<TrackWithArtists>>> {
-  @override
-  List<TableColumn<TrackWithArtists>> build() {
-    return _initialColumns;
-  }
-
-  void toggleVisibility(String columnId) {
-    state = state.map((col) {
-      if (col.id == columnId) {
-        return col.copyWith(isVisible: !col.isVisible);
-      }
-      return col;
-    }).toList();
-  }
-
-  static final List<TableColumn<TrackWithArtists>> _initialColumns = [
-    TableColumn<TrackWithArtists>(
-      id: 'index',
-      label: "#",
-      width: 50,
-      minWidth: 50,
-      alignment: Alignment.centerRight,
-      cellBuilder: (context, track, index) {
-        return Consumer(
-          builder: (context, ref, child) {
-            final isActiveTrack = ref.watch(currentTrackProvider)?.track.filePath == track.track.filePath;
-
-            if (isActiveTrack) {
-              final isAudioPlaying = ref.watch(isPlayingProvider);
-
-              return AnimatedEqualizerIcon(
-                color: Theme.of(context).colorScheme.primary,
-                size: 16,
-                isPlaying: isAudioPlaying,
-              );
-            }
-            return Text(
-              track.track.trackNumber.toString(),
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
-            );
-          },
-        );
-      },
-    ),
-    TableColumn<TrackWithArtists>(
-      id: 'title',
-      label: "Title",
-      flex: 5,
-      minWidth: 150,
-      cellBuilder: (context, track, index) {
-        return Text(track.track.title);
-      },
-    ),
-    TableColumn<TrackWithArtists>(
-      id: 'duration',
-      label: 'Duration',
-      width: 90,
-      minWidth: 90,
-      alignment: Alignment.center,
-      cellBuilder: (context, track, index) {
-        return Text(track.track.durationMs.toDurationString());
-      },
-    ),
-    TableColumn<TrackWithArtists>(
-      id: 'context_menu',
-      label: '',
-      width: 115,
-      minWidth: 115,
-      alignment: Alignment.centerRight,
-      cellBuilder: (context, track, index) {
-        return Consumer(
-          builder: (context, ref, child) {
-            final appIconSet = ref.watch(appIconProvider);
-
-            return Row(
-              mainAxisAlignment: .end,
-              children: [
-                IconButton(
-                  onPressed: () {
-                    unimplemented(context);
-                  },
-                  icon: AppIcon(appIconSet.favorite), // TODO: do favorite system
-                ),
-                Listener(
-                  onPointerDown: (event) {
-                    // Sync Selection
-                    final selectionNotifier = ref.read(selectedTracksIndexProvider('albums').notifier);
-                    if (!ref.read(selectedTracksIndexProvider('albums')).contains(index)) {
-                      selectionNotifier.selectTrack(index, isCtrlSelect: false, isShiftSelect: false);
-                    }
-
-                    // Grab the albumId directly from the track of the row that was clicked!
-                    final albumId = track.album.id;
-
-                    final albumData = ref.read(albumWithTracksProvider(albumId)).value;
-                    final tracks = albumData?.tracks ?? [];
-
-                    final selectedIndices = ref.read(selectedTracksIndexProvider('albums')).toList()..sort();
-                    final selectedTracks = selectedIndices.map((i) => tracks[i]).toList();
-
-                    TrackContextMenu.show(
-                      context: context,
-                      ref: ref,
-                      isAdaptive: ref.read(configServiceProvider).requireValue.adaptiveBg,
-                      globalPosition: event.position,
-                      tracks: tracks,
-                      clickedIndex: index,
-                      selectedTracks: selectedTracks,
-
-                      // 3. Make sure to pass the correct context to the menu!
-                      playbackContextType: 'album',
-                      playbackContextId: albumId,
-                    );
-                  },
-                  child: IconButton(icon: AppIcon(appIconSet.contextMenu), onPressed: () {}),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    ),
-  ];
-}
