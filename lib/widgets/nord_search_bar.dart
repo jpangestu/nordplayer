@@ -5,7 +5,7 @@ import 'package:nordplayer/data/repositories/repositories.dart';
 import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/core/utils/debouncer.dart';
-import 'package:nordplayer/utils/shortcuts.dart';
+import 'package:nordplayer/core/shortcuts/shortcuts.dart';
 
 class NordSearchBar extends ConsumerStatefulWidget {
   const NordSearchBar({super.key});

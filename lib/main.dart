@@ -12,7 +12,7 @@ import 'package:nordplayer/services/library_indexer/library_indexer.dart';
 import 'package:nordplayer/services/library_watcher.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:nordplayer/core/services/preference_service.dart';
-import 'package:nordplayer/utils/shortcuts.dart';
+import 'package:nordplayer/core/shortcuts/shortcuts.dart';
 import 'package:nordplayer/widgets/adaptive_scaffold.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';

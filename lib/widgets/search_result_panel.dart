@@ -4,7 +4,7 @@ import 'package:nordplayer/data/repositories/repositories.dart';
 import 'package:nordplayer/pages/pages_context_menu.dart';
 import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/services/player_service.dart';
-import 'package:nordplayer/utils/shortcuts.dart';
+import 'package:nordplayer/core/shortcuts/shortcuts.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
 

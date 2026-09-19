@@ -28,7 +28,7 @@ class _AlbumsPageState extends ConsumerState<AlbumsPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
     final appIconSet = ref.watch(appIconProvider);
     final albums = ref.watch(albumsProvider);
 

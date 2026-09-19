@@ -10,7 +10,7 @@ import 'package:nordplayer/core/database/app_database.dart';
 import 'package:nordplayer/core/services/background_task_service.dart';
 import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/core/services/logger.dart';
-import 'package:nordplayer/utils/audio_metadata_hasher.dart';
+import 'package:nordplayer/core/utils/audio_metadata_hasher.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 

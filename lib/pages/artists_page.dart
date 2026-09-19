@@ -4,27 +4,14 @@ import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/core/theme/theme-extension/nord_semantic_theme.dart';
 
-class ArtistsPage extends ConsumerStatefulWidget {
+class ArtistsPage extends ConsumerWidget {
   const ArtistsPage({super.key});
 
   @override
-  ConsumerState<ArtistsPage> createState() => _ArtistsPageState();
-}
-
-class _ArtistsPageState extends ConsumerState<ArtistsPage> {
-  final TextEditingController _textController = TextEditingController();
-
-  @override
-  void dispose() {
-    _textController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider).requireValue;
-    final warningColor = Theme.of(context).extension<NordSemanticTheme>()!.warning;
+    final appConfig = ref.watch(configServiceProvider);
+    final warningColor = theme.extension<NordSemanticTheme>()!.warning;
 
     return Scaffold(
       backgroundColor: appConfig.adaptiveBg
@@ -39,7 +26,7 @@ class _ArtistsPageState extends ConsumerState<ArtistsPage> {
             const SizedBox(width: 8),
             Text(
               'Artists page is still under construction',
-              style: Theme.of(context).textTheme.titleLarge!.copyWith(color: warningColor),
+              style: theme.textTheme.titleLarge!.copyWith(color: warningColor),
             ),
           ],
         ),

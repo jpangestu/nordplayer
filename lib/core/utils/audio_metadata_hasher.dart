@@ -14,11 +14,11 @@ class AudioMetadataHasher {
 
   // Generate file hash using FNV-1a + file size
   static String calculateHash(File file) {
-    final size = file.lengthSync();
-    final ext = p.extension(file.path).toLowerCase();
-
     RandomAccessFile? raf;
+    int size = 0;
     try {
+      size = file.lengthSync();
+      final ext = p.extension(file.path).toLowerCase();
       raf = file.openSync(mode: FileMode.read);
       List<int> metadataBytes = [];
 

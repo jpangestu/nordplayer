@@ -21,7 +21,7 @@ class AppLayout extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     bool isExtended = ref.watch(preferenceServiceProvider).sidebarExtended;
     bool showQueue = ref.watch(preferenceServiceProvider).showQueue;
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
     final appIconSet = ref.watch(appIconProvider);
 
     // IMPORTANT: Orders matters! Should refer to router.dart
@@ -138,7 +138,7 @@ class AdaptiveDivider extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
 
     if (!appConfig.adaptiveBg) {
       return Divider(height: 2, thickness: 2, color: Theme.of(context).colorScheme.outlineVariant);
@@ -159,7 +159,7 @@ class AdaptiveVerticalDivider extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
 
     if (!appConfig.adaptiveBg) {
       return VerticalDivider(width: 2, thickness: 2, color: Theme.of(context).colorScheme.outlineVariant);
