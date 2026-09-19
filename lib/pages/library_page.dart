@@ -32,8 +32,8 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider).requireValue;
-    final adaptiveBg = ref.watch(configServiceProvider.select((config) => config.requireValue.adaptiveBg));
+    final appConfig = ref.watch(configServiceProvider);
+    final adaptiveBg = appConfig.adaptiveBg;
     final statsAsync = ref.watch(libraryStatsProvider);
 
     return Scaffold(
@@ -646,7 +646,7 @@ class LibrarySectionsPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final adaptiveBgPanelBlur = ref.watch(
-      configServiceProvider.select((config) => config.requireValue.adaptiveBgPanelBlur),
+      configServiceProvider.select((config) => config.adaptiveBgPanelBlur),
     );
     final appIconSet = ref.watch(appIconProvider);
     final sections = ref.watch(librarySectionsProvider);

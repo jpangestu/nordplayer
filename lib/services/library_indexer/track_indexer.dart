@@ -19,7 +19,7 @@ class TrackIndexer(
   final AppDatabase _db,
   final VoidCallback _onCancelFingerprintTask,
 ) with LoggerMixin {
-  AppConfig get _appConfig => _ref.read(configServiceProvider).requireValue;
+  AppConfig get _appConfig => _ref.read(configServiceProvider);
 
   // Map<ArtistName, ArtistId>
   final Map<String, int> _artistCache = {};

@@ -67,7 +67,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
     final selectedIndices = ref.watch(selectedTracksIndexProvider('queue_page'));
 
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
     final appIconSet = ref.watch(appIconProvider);
 
     // Handle index changes (Next/Prev/Auto-advance)
@@ -209,7 +209,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                   TrackContextMenu.show(
                     context: context,
                     ref: ref,
-                    isAdaptive: ref.watch(configServiceProvider).requireValue.adaptiveBg,
+                    isAdaptive: appConfig.adaptiveBg,
                     globalPosition: globalPosition,
                     tracks: currentTracks.nonNulls.toList(),
                     clickedIndex: index, // Assuming no nulls skewing the index

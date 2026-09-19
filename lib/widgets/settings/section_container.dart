@@ -11,7 +11,7 @@ class SectionContainer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
     final surfaceContainerLow = Theme.of(context).colorScheme.surfaceContainerLow;
 
     final defaultBackgroundColor = appConfig.adaptiveBg

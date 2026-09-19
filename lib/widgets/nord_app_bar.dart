@@ -23,7 +23,7 @@ class _NordplayerAppBarState extends ConsumerState<NordAppBar> {
   Widget build(BuildContext context) {
     final appIconSet = ref.watch(appIconProvider);
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
 
     final navHistory = ref.watch(navigationHistoryProvider);
     final canGoBack = navHistory.canGoBack;

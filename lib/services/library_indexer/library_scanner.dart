@@ -20,7 +20,7 @@ class LibraryScanner(
   final TrackIndexer _trackIndexer,
   final VoidCallback _onCancelFingerprintTask,
 ) with LoggerMixin {
-  AppConfig get _appConfig => _ref.read(configServiceProvider).requireValue;
+  AppConfig get _appConfig => _ref.read(configServiceProvider);
 
   Set<String> supportedExtensions = {
     '.mp3',

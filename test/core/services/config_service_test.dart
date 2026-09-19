@@ -96,15 +96,6 @@ void main() {
       expect(config.trackDirectories, isEmpty); // default
       expect(warnings.length, greaterThanOrEqualTo(4));
     });
-
-    test('AppConfigCompat extensions allow requireValue and value access', () {
-      final config = AppConfig(theme: 'graphite');
-
-      expect(config.requireValue, equals(config));
-      expect(config.value, equals(config));
-      expect(config.requireValue.theme, 'graphite');
-      expect(config.value.theme, 'graphite');
-    });
   });
 
   group('ConfigService Disk I/O & Load Tests', () {

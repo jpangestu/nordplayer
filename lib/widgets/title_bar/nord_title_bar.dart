@@ -30,7 +30,7 @@ class _NordplayerTitleBarState extends ConsumerState<NordTitleBar> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
     final appIconSet = ref.watch(appIconProvider);
 
     return FrostedGlass(

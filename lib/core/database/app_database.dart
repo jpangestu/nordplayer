@@ -2,7 +2,6 @@ import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/core/database/schema.dart';
-import 'package:nordplayer/core/models/track_with_artists.dart';
 import 'package:nordplayer/core/utils/directory_helper.dart';
 
 export 'package:nordplayer/core/models/album_with_tracks.dart';
@@ -122,62 +121,6 @@ class AppDatabase extends _$AppDatabase {
           AND id NOT IN (SELECT DISTINCT artist_id FROM track_artist);
       ''');
     });
-  }
-
-  // Backwards compatibility helper methods for legacy screens prior to Feature Phase 7
-  Future<int> addPlaylist(PlaylistsCompanion playlist) => into(playlists).insert(playlist);
-
-  Future<int> deletePlaylist(int playlistId) =>
-      (delete(playlists)..where((p) => p.id.equals(playlistId))).go();
-
-  Future<int> renamePlaylist(int playlistId, String newName) =>
-      (update(playlists)..where((p) => p.id.equals(playlistId)))
-          .write(PlaylistsCompanion(name: Value(newName)));
-
-  Future<void> addTracksToPlaylist(int playlistId, List<int> trackIds) async {
-    await batch((batch) {
-      batch.insertAll(
-        playlistTrack,
-        trackIds
-            .map((id) => PlaylistTrackCompanion.insert(playlistId: playlistId, trackId: id))
-            .toList(),
-        mode: InsertMode.insertOrIgnore,
-      );
-    });
-  }
-
-  Future<List<TrackWithArtists>> getPlaylistTracks(int playlistId) async {
-    final query = select(tracks).join([
-      innerJoin(playlistTrack, playlistTrack.trackId.equalsExp(tracks.id)),
-      leftOuterJoin(albums, albums.id.equalsExp(tracks.albumId)),
-      leftOuterJoin(trackArtist, trackArtist.trackId.equalsExp(tracks.id)),
-      leftOuterJoin(artists, artists.id.equalsExp(trackArtist.artistId)),
-    ])..where(playlistTrack.playlistId.equals(playlistId) & tracks.isMissing.equals(false));
-
-    final rows = await query.get();
-    final Map<int, TrackWithArtists> groupedTracks = {};
-
-    for (final row in rows) {
-      var track = row.readTable(tracks);
-      final pt = row.readTable(playlistTrack);
-      track = track.copyWith(dateAdded: pt.dateAdded);
-
-      final album = row.readTable(albums);
-      final artist = row.readTableOrNull(artists);
-
-      if (!groupedTracks.containsKey(track.id)) {
-        groupedTracks[track.id] = TrackWithArtists(track: track, album: album, artists: []);
-      }
-
-      if (artist != null && artist.id != 0) {
-        final currentArtists = groupedTracks[track.id]!.artists;
-        if (!currentArtists.any((a) => a.id == artist.id)) {
-          currentArtists.add(artist);
-        }
-      }
-    }
-
-    return groupedTracks.values.toList();
   }
 }
 

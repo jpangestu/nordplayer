@@ -383,10 +383,3 @@ class AppConfig({
   }
 }
 
-/// Compatibility extension for accessing properties on [AppConfig] during
-/// migration from [AsyncNotifier] to synchronous [Notifier].
-extension AppConfigCompat on AppConfig {
-  AppConfig get requireValue => this;
-  AppConfig get value => this;
-}
-

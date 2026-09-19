@@ -47,7 +47,7 @@ class NordSnackBar extends ConsumerWidget {
     final theme = Theme.of(context);
     final nordSnackBarTheme = theme.extension<NordSnackBarTheme>()!;
 
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
     final appIconSet = ref.watch(appIconProvider);
 
     final (snackBarIcon, accentColor) = _getAccents(appIconSet, nordSnackBarTheme);

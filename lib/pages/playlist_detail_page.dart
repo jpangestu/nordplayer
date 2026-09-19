@@ -24,7 +24,7 @@ class PlaylistDetailPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
     // final appIconSet = ref.watch(appIconProvider);
     final playlistWithTracks = ref.watch(playlistWithTracksProvider(playlistId));
     final playlistDetailColumn = ref.watch(playlistDetailPageColumnsProvider);
@@ -132,7 +132,7 @@ class PlaylistDetailPageHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
     final playlistDetailAlbumArt = ref.watch(playlistDetailsAlbumArtProvider(playlistId));
     final nowPlayingAlbumArt = ref.watch(current5TracksAlbumArtInQueueProvider);
 

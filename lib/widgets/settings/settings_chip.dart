@@ -13,7 +13,7 @@ class SettingsChip extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
     final isAdaptive = appConfig.adaptiveBg;
 
     return FrostedGlass(

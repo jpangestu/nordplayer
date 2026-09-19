@@ -15,7 +15,7 @@ class _ButtonContainerState extends ConsumerState<ButtonContainer> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
 
     return Container(
       height: 36,

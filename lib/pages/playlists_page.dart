@@ -29,7 +29,7 @@ class PlaylistsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
     final appIconSet = ref.watch(appIconProvider);
 
     return Scaffold(
@@ -131,7 +131,7 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
     final theme = Theme.of(context);
     final totalTracks = widget.playlistWithDetails.trackCount;
     final playlistId = widget.playlistWithDetails.playlist.id;
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
     final appIconSet = ref.watch(appIconProvider);
 
     final playbackContext = ref.watch(playbackContextProvider);
@@ -291,7 +291,7 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
   }
 
   void _showContextMenu(Offset position, WidgetRef ref) {
-    final appConfig = ref.read(configServiceProvider).requireValue;
+    final appConfig = ref.read(configServiceProvider);
     final appIconSet = ref.read(appIconProvider);
 
     ContextMenu.show(

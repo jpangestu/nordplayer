@@ -32,7 +32,7 @@ class AlbumDetailPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
     final albumsWithTracks = ref.watch(sortedAlbumWithTracksProvider(albumId));
     final albumDetailColumns = ref.watch(albumDetailPageTableColumnsProvider);
     final selectedIndices = ref.watch(selectedTracksIndexProvider('album'));
@@ -167,7 +167,7 @@ class _AlbumDetailPageHeader extends ConsumerState<AlbumDetailPageHeader> {
     final tracks = widget.albumWithTracks.tracks;
     final theme = Theme.of(context);
 
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
     final appIconSet = ref.watch(appIconProvider);
 
     // More info section

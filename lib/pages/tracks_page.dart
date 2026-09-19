@@ -28,7 +28,7 @@ class _TracksState extends ConsumerState<Tracks> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
 
     final libraryAsync = ref.watch(libraryStreamProvider);
     final selectedIndices = ref.watch(selectedTracksIndexProvider('all_tracks'));
@@ -155,7 +155,7 @@ class TracksPageHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
     final libraryAlbumArt = ref.watch(libraryAlbumArtProvider);
     final nowPlayingAlbumArt = ref.watch(current5TracksAlbumArtInQueueProvider);
 

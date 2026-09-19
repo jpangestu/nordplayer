@@ -85,7 +85,7 @@ class const PopoverPanel({
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
 
     return Material(
       type: MaterialType.transparency, // Required for text rendering inside a Stack

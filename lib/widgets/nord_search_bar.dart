@@ -68,7 +68,7 @@ class _NordSearchBarState extends ConsumerState<NordSearchBar> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider).requireValue;
+    final appConfig = ref.watch(configServiceProvider);
     final appIconSet = ref.watch(appIconProvider);
 
     // Escape callback set here cause there's no reason for it to be in global shortcut
