@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/database/app_database.dart';
 import 'package:nordplayer/data/repositories/repositories.dart';
-import 'package:nordplayer/core/models/library_section_config.dart';
+import 'package:nordplayer/features/library/viewmodels/library_viewmodel.dart';
 import 'package:nordplayer/pages/albums_page.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/core/services/config_service.dart';
@@ -177,57 +177,43 @@ class _LibraryHeaderState extends ConsumerState<LibraryHeader> {
         ),
         body: Column(
           children: [
-            SizedBox(
-              width: double.infinity,
-              child: statsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, stack) => Text('Error loading stats: $err'),
-                data: (stats) => Wrap(
-                  spacing: 24,
-                  runSpacing: 16,
-                  alignment: .spaceEvenly,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0, bottom: 24.0),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: statsAsync.when(
-                          loading: () => const Center(child: CircularProgressIndicator()),
-                          error: (err, stack) => Text('Error loading stats: $err'),
-                          data: (stats) => Wrap(
-                            spacing: 24,
-                            runSpacing: 16,
-                            alignment: .spaceEvenly,
-                            children: [
-                              LibraryStatItem(icon: appIconSet.tracks, value: '${stats.trackCount}', label: 'Tracks'),
-                              LibraryStatItem(
-                                icon: appIconSet.artists,
-                                value: '${stats.artistCount}',
-                                label: 'Artists',
-                              ),
-                              LibraryStatItem(icon: appIconSet.albums, value: '${stats.albumCount}', label: 'Albums'),
-                              LibraryStatItem(icon: appIconSet.genres, value: '${stats.genreCount}', label: 'Genres'),
-                              LibraryStatItem(
-                                icon: appIconSet.playlist,
-                                value: '${stats.playlistCount}',
-                                label: 'Playlists',
-                              ),
-                              LibraryStatItem(
-                                icon: appIconSet.playtime,
-                                value: stats.totalPlaytimeMs.toTotalDurationString(),
-                                label: 'Total Playtime',
-                              ),
-                              LibraryStatItem(
-                                icon: appIconSet.storage,
-                                value: stats.totalSizeBytes.toFileSizeString(),
-                                label: 'Total Size',
-                              ),
-                            ],
-                          ),
-                        ),
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0, bottom: 24.0),
+              child: SizedBox(
+                width: double.infinity,
+                child: statsAsync.when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (err, stack) => Text('Error loading stats: $err'),
+                  data: (stats) => Wrap(
+                    spacing: 24,
+                    runSpacing: 16,
+                    alignment: .spaceEvenly,
+                    children: [
+                      LibraryStatItem(icon: appIconSet.tracks, value: '${stats.trackCount}', label: 'Tracks'),
+                      LibraryStatItem(
+                        icon: appIconSet.artists,
+                        value: '${stats.artistCount}',
+                        label: 'Artists',
                       ),
-                    ),
-                  ],
+                      LibraryStatItem(icon: appIconSet.albums, value: '${stats.albumCount}', label: 'Albums'),
+                      LibraryStatItem(icon: appIconSet.genres, value: '${stats.genreCount}', label: 'Genres'),
+                      LibraryStatItem(
+                        icon: appIconSet.playlist,
+                        value: '${stats.playlistCount}',
+                        label: 'Playlists',
+                      ),
+                      LibraryStatItem(
+                        icon: appIconSet.playtime,
+                        value: stats.totalPlaytimeMs.toTotalDurationString(),
+                        label: 'Total Playtime',
+                      ),
+                      LibraryStatItem(
+                        icon: appIconSet.storage,
+                        value: stats.totalSizeBytes.toFileSizeString(),
+                        label: 'Total Size',
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -640,23 +626,8 @@ class LibraryTrackTile extends ConsumerWidget {
 
 // ================================================================================================
 
-class LibrarySectionsPanel extends ConsumerStatefulWidget {
+class LibrarySectionsPanel extends ConsumerWidget {
   const LibrarySectionsPanel({super.key});
-
-  @override
-  ConsumerState<LibrarySectionsPanel> createState() => _LibrarySectionsPanelState();
-}
-
-class _LibrarySectionsPanelState extends ConsumerState<LibrarySectionsPanel> {
-  late List<LibrarySectionConfig> _localSections;
-
-  @override
-  void initState() {
-    super.initState();
-    // Read current config state locally to initialize drag state
-    final currentConfig = ref.read(configServiceProvider).requireValue;
-    _localSections = List<LibrarySectionConfig>.from(currentConfig.librarySections);
-  }
 
   String _getSectionName(String id) {
     switch (id) {
@@ -672,12 +643,13 @@ class _LibrarySectionsPanelState extends ConsumerState<LibrarySectionsPanel> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final adaptiveBgPanelBlur = ref.watch(
       configServiceProvider.select((config) => config.requireValue.adaptiveBgPanelBlur),
     );
     final appIconSet = ref.watch(appIconProvider);
+    final sections = ref.watch(librarySectionsProvider);
 
     return PopoverPanel(
       width: 280,
@@ -703,19 +675,12 @@ class _LibrarySectionsPanelState extends ConsumerState<LibrarySectionsPanel> {
               buildDefaultDragHandles: false,
               shrinkWrap: true,
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              itemCount: _localSections.length,
+              itemCount: sections.length,
               onReorderItem: (int oldIndex, int newIndex) {
-                setState(() {
-                  if (oldIndex < newIndex) {
-                    newIndex -= 1;
-                  }
-                  final item = _localSections.removeAt(oldIndex);
-                  _localSections.insert(newIndex, item);
-                });
-                ref.read(configServiceProvider.notifier).updateConfig(librarySections: _localSections);
+                ref.read(libraryViewModelProvider).reorderSections(oldIndex, newIndex);
               },
               itemBuilder: (context, index) {
-                final section = _localSections[index];
+                final section = sections[index];
                 return Padding(
                   key: ValueKey(section.id),
                   padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -746,10 +711,7 @@ class _LibrarySectionsPanelState extends ConsumerState<LibrarySectionsPanel> {
                           ),
                           IconButton(
                             onPressed: () {
-                              setState(() {
-                                _localSections[index] = section.copyWith(isVisible: !section.isVisible);
-                              });
-                              ref.read(configServiceProvider.notifier).updateConfig(librarySections: _localSections);
+                              ref.read(libraryViewModelProvider).toggleSectionVisibility(section.id);
                             },
                             icon: AppIcon(
                               section.isVisible ? appIconSet.visible : appIconSet.invisible,
