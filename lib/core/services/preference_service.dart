@@ -8,9 +8,12 @@ import 'package:nordplayer/core/services/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 export 'package:nordplayer/core/models/time_label_type.dart';
 
-import 'package:nordplayer/core/services/performance_tracker.dart';
-import 'package:nordplayer/core/services/shared_preferences_provider.dart';
-export 'package:nordplayer/core/services/shared_preferences_provider.dart';
+/// Provider for the pre-initialized [SharedPreferencesWithCache] instance.
+///
+/// Must be overridden in `main.dart` at app startup via `ProviderScope(overrides: [...])`.
+final sharedPrefsProvider = Provider<SharedPreferencesWithCache>((ref) {
+  throw UnimplementedError('sharedPrefsProvider must be initialized in main.dart');
+});
 
 class PrefConstants {
   static const String cachedCurrentAlbumArtPath = 'cachedAlbumArtPath';
@@ -30,6 +33,20 @@ class PrefConstants {
   static const TimeLabelType defaultTimeLabelType = .totalTime;
   static const double defaultVolume = 100;
 
+  static const Set<String> performanceKeys = {
+    'perf_vis_potentialFps',
+    'perf_vis_avgPotentialFps',
+    'perf_vis_minPotentialFps',
+    'perf_vis_maxPotentialFps',
+    'perf_vis_frameLatency',
+    'perf_vis_averageFrameTime',
+    'perf_vis_minFrameTime',
+    'perf_vis_maxFrameTime',
+    'perf_vis_actualFrameRate',
+    'perf_vis_cpuUsage',
+    'perf_vis_ramUsage',
+  };
+
   static const Set<String> allowList = {
     cachedCurrentAlbumArtPath,
     isMuted,
@@ -39,7 +56,7 @@ class PrefConstants {
     sidebarExtended,
     timeLabelType,
     volume,
-    ...PerformanceTracker.prefKeys,
+    ...performanceKeys,
   };
 }
 

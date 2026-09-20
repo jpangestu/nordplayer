@@ -5,7 +5,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/services/shared_preferences_provider.dart';
+import 'package:nordplayer/core/services/preference_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 final performanceTrackerProvider = NotifierProvider<PerformanceTracker, PerformanceState>(() {
@@ -108,19 +108,7 @@ class const PerformanceState({
 }
 
 class PerformanceTracker extends Notifier<PerformanceState> {
-  static const Set<String> prefKeys = {
-    'perf_vis_potentialFps',
-    'perf_vis_avgPotentialFps',
-    'perf_vis_minPotentialFps',
-    'perf_vis_maxPotentialFps',
-    'perf_vis_frameLatency',
-    'perf_vis_averageFrameTime',
-    'perf_vis_minFrameTime',
-    'perf_vis_maxFrameTime',
-    'perf_vis_actualFrameRate',
-    'perf_vis_cpuUsage',
-    'perf_vis_ramUsage',
-  };
+  static const Set<String> prefKeys = PrefConstants.performanceKeys;
 
   static const int _cpuRamUpdateMs = kDebugMode ? 500 : 1000;
   static const int _uiNotifyLimitMs = kDebugMode ? 200 : 500;
