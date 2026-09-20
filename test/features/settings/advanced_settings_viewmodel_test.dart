@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/core/database/app_database.dart';
 import 'package:nordplayer/core/services/config_service.dart';
 import 'package:nordplayer/core/services/preference_service.dart';
-import 'package:nordplayer/features/settings/viewmodels/advanced_settings_viewmodel.dart';
+import 'package:nordplayer/features/settings/advanced_settings_viewmodel.dart';
 import 'package:nordplayer/services/library_indexer/library_indexer.dart';
 import 'package:nordplayer/services/library_watcher.dart';
 import 'package:nordplayer/services/player_service.dart';

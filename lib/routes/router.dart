@@ -1,21 +1,21 @@
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/pages/album_detail_page.dart';
-import 'package:nordplayer/pages/albums_page.dart';
-import 'package:nordplayer/pages/app_layout.dart';
-import 'package:nordplayer/pages/artists_page.dart';
-import 'package:nordplayer/pages/library_page.dart';
-import 'package:nordplayer/pages/playlist_detail_page.dart';
-import 'package:nordplayer/pages/playlists_page.dart';
-import 'package:nordplayer/pages/settings/about_page.dart';
-import 'package:nordplayer/pages/settings/advanced_page.dart';
-import 'package:nordplayer/pages/settings/appearance_page.dart';
-import 'package:nordplayer/pages/settings/duplicates_page.dart';
-import 'package:nordplayer/pages/settings/ignored_paths_page.dart';
-import 'package:nordplayer/pages/settings/library_indexer_page.dart';
-import 'package:nordplayer/pages/settings/license_page.dart';
-import 'package:nordplayer/pages/settings/settings_layout.dart';
-import 'package:nordplayer/pages/tracks_page.dart';
+import 'package:nordplayer/features/albums/album_detail_view.dart';
+import 'package:nordplayer/features/albums/albums_view.dart';
+import 'package:nordplayer/features/artists/artists_view.dart';
+import 'package:nordplayer/features/library/library_view.dart';
+import 'package:nordplayer/features/playlists/playlist_detail_view.dart';
+import 'package:nordplayer/features/playlists/playlists_view.dart';
+import 'package:nordplayer/features/settings/about_view.dart';
+import 'package:nordplayer/features/settings/advanced_settings_view.dart';
+import 'package:nordplayer/features/settings/appearance_view.dart';
+import 'package:nordplayer/features/settings/duplicates_view.dart';
+import 'package:nordplayer/features/settings/ignored_paths_view.dart';
+import 'package:nordplayer/features/settings/library_indexer_view.dart';
+import 'package:nordplayer/features/settings/license_view.dart';
+import 'package:nordplayer/features/settings/settings_layout.dart';
+import 'package:nordplayer/features/shell/app_layout.dart';
+import 'package:nordplayer/features/tracks/tracks_view.dart';
 
 class Routes {
   static const albumsPage = '/albums';
@@ -46,16 +46,16 @@ final router = GoRouter(
       builder: (context, state, navigationShell) => AppLayout(navigationShell: navigationShell),
       branches: [
         StatefulShellBranch(
-          routes: [GoRoute(path: Routes.libraryPage, builder: (context, state) => const LibraryPage())],
+          routes: [GoRoute(path: Routes.libraryPage, builder: (context, state) => const LibraryView())],
         ),
         StatefulShellBranch(
-          routes: [GoRoute(path: Routes.tracksPage, builder: (context, state) => const Tracks())],
+          routes: [GoRoute(path: Routes.tracksPage, builder: (context, state) => const TracksView())],
         ),
         StatefulShellBranch(
           routes: [
             GoRoute(
               path: Routes.playlistsPage,
-              builder: (context, state) => const PlaylistsPage(),
+              builder: (context, state) => const PlaylistsView(),
               routes: [
                 GoRoute(
                   path: ':id',
@@ -63,7 +63,7 @@ final router = GoRouter(
                     final playlistIdStr = state.pathParameters['id']!;
                     final playlistId = int.parse(playlistIdStr);
 
-                    return PlaylistDetailPage(playlistId: playlistId);
+                    return PlaylistDetailView(playlistId: playlistId);
                   },
                 ),
               ],
@@ -74,7 +74,7 @@ final router = GoRouter(
           routes: [
             GoRoute(
               path: Routes.albumsPage,
-              builder: (context, state) => const AlbumsPage(),
+              builder: (context, state) => const AlbumsView(),
               routes: [
                 GoRoute(
                   path: ':id',
@@ -82,7 +82,7 @@ final router = GoRouter(
                     final albumIdStr = state.pathParameters['id']!;
                     final albumId = int.parse(albumIdStr);
 
-                    return AlbumDetailPage(albumId: albumId);
+                    return AlbumDetailView(albumId: albumId);
                   },
                 ),
               ],
@@ -90,7 +90,7 @@ final router = GoRouter(
           ],
         ),
         StatefulShellBranch(
-          routes: [GoRoute(path: Routes.artistsPage, builder: (context, state) => const ArtistsPage())],
+          routes: [GoRoute(path: Routes.artistsPage, builder: (context, state) => const ArtistsView())],
         ),
         StatefulShellBranch(
           routes: [
@@ -98,23 +98,23 @@ final router = GoRouter(
               builder: (context, state, navigationShell) => SettingsLayout(navigationShell: navigationShell),
               branches: [
                 StatefulShellBranch(
-                  routes: [GoRoute(path: Routes.appearancePage, builder: (context, state) => const AppearancePage())],
+                  routes: [GoRoute(path: Routes.appearancePage, builder: (context, state) => const AppearanceView())],
                 ),
                 StatefulShellBranch(
                   routes: [
                     GoRoute(
                       path: Routes.libraryIndexerPage,
-                      builder: (context, state) => const LibraryIndexerPage(),
+                      builder: (context, state) => const LibraryIndexerView(),
                       routes: [
                         GoRoute(
                           path: Routes.duplicatesPage,
                           builder: (context, state) {
-                            return const DuplicatesPage();
+                            return const DuplicatesView();
                           },
                           routes: [
                             GoRoute(
                               path: Routes.ignoredPathsPage,
-                              builder: (context, state) => const IgnoredPathsPage(),
+                              builder: (context, state) => const IgnoredPathsView(),
                             ),
                           ],
                         ),
@@ -123,14 +123,16 @@ final router = GoRouter(
                   ],
                 ),
                 StatefulShellBranch(
-                  routes: [GoRoute(path: Routes.advancePage, builder: (context, state) => const AdvancedPage())],
+                  routes: [
+                    GoRoute(path: Routes.advancePage, builder: (context, state) => const AdvancedSettingsView()),
+                  ],
                 ),
                 StatefulShellBranch(
                   routes: [
                     GoRoute(
                       path: Routes.aboutPage,
-                      builder: (context, state) => const AboutPage(),
-                      routes: [GoRoute(path: Routes.licensesPage, builder: (context, state) => const LicensesPage())],
+                      builder: (context, state) => const AboutView(),
+                      routes: [GoRoute(path: Routes.licensesPage, builder: (context, state) => const LicensesView())],
                     ),
                   ],
                 ),

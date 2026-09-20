@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nordplayer/features/settings/viewmodels/about_viewmodel.dart';
+import 'package:nordplayer/features/settings/about_viewmodel.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 void main() {

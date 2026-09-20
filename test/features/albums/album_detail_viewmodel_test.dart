@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/core/database/app_database.dart';
 import 'package:nordplayer/core/services/preference_service.dart';
 import 'package:nordplayer/data/repositories/repositories.dart';
-import 'package:nordplayer/features/albums/viewmodels/album_detail_viewmodel.dart';
+import 'package:nordplayer/features/albums/album_detail_viewmodel.dart';
 import 'package:nordplayer/services/player_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';

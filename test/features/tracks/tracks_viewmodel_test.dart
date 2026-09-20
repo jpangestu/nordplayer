@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/core/database/app_database.dart';
-import 'package:nordplayer/features/tracks/viewmodels/tracks_viewmodel.dart';
+import 'package:nordplayer/features/tracks/tracks_viewmodel.dart';
 import 'package:nordplayer/services/player_service.dart';
 
 class FakePlayerServiceForTracks extends Fake implements PlayerService {
@@ -56,11 +56,7 @@ void main() {
 
     setUp(() {
       fakePlayer = FakePlayerServiceForTracks();
-      container = ProviderContainer(
-        overrides: [
-          playerServiceProvider.overrideWithValue(fakePlayer),
-        ],
-      );
+      container = ProviderContainer(overrides: [playerServiceProvider.overrideWithValue(fakePlayer)]);
     });
 
     tearDown(() {
@@ -69,10 +65,7 @@ void main() {
 
     test('playTrack sets playlist with context all_tracks', () {
       final vm = container.read(tracksViewModelProvider);
-      final tracks = [
-        _createTrack(1, 'Track 1', '/music/1.mp3'),
-        _createTrack(2, 'Track 2', '/music/2.mp3'),
-      ];
+      final tracks = [_createTrack(1, 'Track 1', '/music/1.mp3'), _createTrack(2, 'Track 2', '/music/2.mp3')];
 
       vm.playTrack(tracks, 1);
 
@@ -98,10 +91,7 @@ void main() {
 
     test('playAsPlaylist delegates to playTrack when only one track selected', () {
       final vm = container.read(tracksViewModelProvider);
-      final allTracks = [
-        _createTrack(1, 'Track 1', '/music/1.mp3'),
-        _createTrack(2, 'Track 2', '/music/2.mp3'),
-      ];
+      final allTracks = [_createTrack(1, 'Track 1', '/music/1.mp3'), _createTrack(2, 'Track 2', '/music/2.mp3')];
 
       vm.playAsPlaylist([allTracks[0]], clickedIndex: 0, allTracks: allTracks);
 

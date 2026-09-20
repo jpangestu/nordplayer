@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/core/services/background_task_service.dart';
 import 'package:nordplayer/core/services/config_service.dart';
-import 'package:nordplayer/features/settings/viewmodels/library_indexer_viewmodel.dart';
+import 'package:nordplayer/features/settings/library_indexer_viewmodel.dart';
 import 'package:nordplayer/services/library_indexer/library_indexer.dart';
 import 'package:nordplayer/services/library_watcher.dart';
 
@@ -59,11 +59,7 @@ void main() {
       container = ProviderContainer(
         overrides: [
           initialAppConfigProvider.overrideWithValue(
-            AppConfig(
-              trackDirectories: ['/music/folder1'],
-              artistDelimiters: [';', '/'],
-              artistExclusions: ['AC/DC'],
-            ),
+            AppConfig(trackDirectories: ['/music/folder1'], artistDelimiters: [';', '/'], artistExclusions: ['AC/DC']),
           ),
           configDirectoryProvider.overrideWithValue(tempDir),
           libraryIndexerProvider.overrideWithValue(fakeIndexer),

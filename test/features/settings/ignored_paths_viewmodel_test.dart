@@ -2,7 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/core/database/app_database.dart';
-import 'package:nordplayer/features/settings/viewmodels/ignored_paths_viewmodel.dart';
+import 'package:nordplayer/features/settings/ignored_paths_viewmodel.dart';
 
 void main() {
   group('IgnoredPathsViewModel', () {
