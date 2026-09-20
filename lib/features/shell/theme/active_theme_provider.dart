@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/theme/app_theme.dart';
 import 'package:nordplayer/core/theme/themes/adaptive.dart';
-import 'package:nordplayer/core/services/config_service.dart';
-import 'package:nordplayer/services/player_service.dart';
-import 'package:nordplayer/core/services/preference_service.dart';
+import 'package:nordplayer/core/system/config_service.dart';
+import 'package:nordplayer/services/audio/player_service.dart';
+import 'package:nordplayer/core/system/preference_service.dart';
 
 final adaptiveThemeProvider = FutureProvider<AdaptiveColorScheme>((ref) async {
   final trackAlbumArtPath = ref.watch(currentTrackProvider.select((t) => t?.album.albumArtPath));

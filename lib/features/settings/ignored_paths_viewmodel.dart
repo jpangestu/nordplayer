@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/core/database/app_database.dart' show IgnoredPath;
-import 'package:nordplayer/core/services/logger.dart';
+import 'package:nordplayer/core/system/logger.dart';
 import 'package:nordplayer/data/repositories/ignored_paths_repository.dart';
 
 export 'package:nordplayer/data/repositories/ignored_paths_repository.dart' show ignoredPathsProvider;

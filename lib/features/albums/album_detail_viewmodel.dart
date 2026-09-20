@@ -4,10 +4,10 @@ import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/core/database/app_database.dart';
 import 'package:nordplayer/core/models/table_column_config.dart';
-import 'package:nordplayer/core/services/logger.dart';
-import 'package:nordplayer/core/services/preference_service.dart';
-import 'package:nordplayer/data/repositories/repositories.dart';
-import 'package:nordplayer/services/player_service.dart';
+import 'package:nordplayer/core/system/logger.dart';
+import 'package:nordplayer/core/system/preference_service.dart';
+import 'package:nordplayer/data/repositories/album_repository.dart';
+import 'package:nordplayer/services/audio/player_service.dart';
 
 /// Available sorting criteria for album tracks.
 enum AlbumTrackSort {

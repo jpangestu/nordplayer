@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/core/services/performance_tracker.dart';
+import 'package:nordplayer/core/system/performance_tracker.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/widgets/popover_panel.dart';
 

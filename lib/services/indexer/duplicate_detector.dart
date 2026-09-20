@@ -3,9 +3,9 @@ import 'dart:isolate';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/core/database/app_database.dart';
-import 'package:nordplayer/core/services/logger.dart';
+import 'package:nordplayer/core/system/logger.dart';
 import 'package:nordplayer/core/utils/string_extension.dart';
-import 'package:nordplayer/services/chromaprint_service.dart';
+import 'package:nordplayer/services/indexer/chromaprint_service.dart';
 import 'package:path/path.dart' as p;
 
 final duplicateDetectorProvider = Provider<DuplicateDetector>((ref) {

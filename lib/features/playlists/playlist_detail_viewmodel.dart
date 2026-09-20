@@ -1,7 +1,7 @@
 import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/core/models/table_column_config.dart';
-import 'package:nordplayer/data/repositories/repositories.dart';
+import 'package:nordplayer/data/repositories/playlist_repository.dart';
 
 /// Computes up to 5 unique album art paths for the playlist header collage.
 final playlistDetailsAlbumArtProvider = Provider.autoDispose.family<List<String>, int>((ref, playlistId) {

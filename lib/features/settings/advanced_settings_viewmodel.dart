@@ -1,14 +1,14 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/services/config_service.dart';
-import 'package:nordplayer/core/services/logger.dart';
-import 'package:nordplayer/core/services/preference_service.dart';
+import 'package:nordplayer/core/system/config_service.dart';
+import 'package:nordplayer/core/system/logger.dart';
+import 'package:nordplayer/core/system/preference_service.dart';
 import 'package:nordplayer/data/repositories/album_repository.dart';
 import 'package:nordplayer/data/repositories/track_repository.dart';
-import 'package:nordplayer/services/library_indexer/library_indexer.dart';
-import 'package:nordplayer/services/library_watcher.dart';
-import 'package:nordplayer/services/player_service.dart';
+import 'package:nordplayer/services/indexer/library_indexer.dart';
+import 'package:nordplayer/services/indexer/library_watcher.dart';
+import 'package:nordplayer/services/audio/player_service.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 

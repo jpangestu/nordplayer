@@ -5,7 +5,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/services/preference_service.dart';
+import 'package:nordplayer/core/system/preference_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 final performanceTrackerProvider = NotifierProvider<PerformanceTracker, PerformanceState>(() {

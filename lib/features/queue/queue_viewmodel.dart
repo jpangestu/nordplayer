@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/core/models/selection_state.dart';
-import 'package:nordplayer/core/services/logger.dart';
-import 'package:nordplayer/services/player_service.dart';
+import 'package:nordplayer/core/system/logger.dart';
+import 'package:nordplayer/services/audio/player_service.dart';
 
 /// ViewModel managing queue actions: atomic batch removals, reordering, and clearing.
 class QueueViewModel(final Ref _ref) with LoggerMixin {

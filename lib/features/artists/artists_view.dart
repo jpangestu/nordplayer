@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/core/services/config_service.dart';
+import 'package:nordplayer/core/system/config_service.dart';
 import 'package:nordplayer/core/theme/theme-extension/nord_semantic_theme.dart';
 
 class ArtistsView extends ConsumerWidget {

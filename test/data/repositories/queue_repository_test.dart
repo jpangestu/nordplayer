@@ -3,7 +3,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/core/database/app_database.dart';
-import 'package:nordplayer/data/repositories/repositories.dart';
+import 'package:nordplayer/data/repositories/queue_repository.dart';
 
 void main() {
   late AppDatabase db;

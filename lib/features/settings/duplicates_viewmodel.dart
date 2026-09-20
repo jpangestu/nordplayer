@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/core/database/app_database.dart';
-import 'package:nordplayer/core/services/background_task_service.dart';
-import 'package:nordplayer/core/services/logger.dart';
+import 'package:nordplayer/core/system/background_task_service.dart';
+import 'package:nordplayer/core/system/logger.dart';
 import 'package:nordplayer/data/repositories/ignored_paths_repository.dart';
-import 'package:nordplayer/services/duplicate_detector.dart';
-import 'package:nordplayer/services/library_indexer/library_indexer.dart';
+import 'package:nordplayer/services/indexer/duplicate_detector.dart';
+import 'package:nordplayer/services/indexer/library_indexer.dart';
 
 /// Provider for loading duplicate groups from the database.
 final duplicateGroupsProvider = FutureProvider.autoDispose<List<DuplicateGroup>>((ref) async {

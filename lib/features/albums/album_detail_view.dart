@@ -6,11 +6,11 @@ import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/database/app_database.dart';
 import 'package:nordplayer/features/albums/album_detail_viewmodel.dart';
 import 'package:nordplayer/features/tracks/widgets/track_context_menu.dart';
-import 'package:nordplayer/core/services/config_service.dart';
-import 'package:nordplayer/services/player_service.dart';
+import 'package:nordplayer/core/system/config_service.dart';
+import 'package:nordplayer/services/audio/player_service.dart';
 
 export 'package:nordplayer/features/albums/album_detail_viewmodel.dart';
-import 'package:nordplayer/core/services/preference_service.dart';
+import 'package:nordplayer/core/system/preference_service.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/core/utils/int_extension.dart';
 import 'package:nordplayer/widgets/app_icon.dart';

@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/services/navigation_history.dart';
+import 'package:nordplayer/routes/navigation_history.dart';
 
 void main() {
   testWidgets('NavigationHistory routing flow widget test with mock router', (WidgetTester tester) async {

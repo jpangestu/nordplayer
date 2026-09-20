@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/core/database/app_database.dart';
 import 'package:nordplayer/data/repositories/playlist_repository.dart';
 import 'package:nordplayer/features/playlists/playlists_viewmodel.dart';
-import 'package:nordplayer/services/player_service.dart';
+import 'package:nordplayer/services/audio/player_service.dart';
 
 class FakePlaylistRepository implements PlaylistRepository {
   final List<String> createdNames = [];

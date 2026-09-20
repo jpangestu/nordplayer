@@ -5,7 +5,7 @@ import 'package:flutter/painting.dart' show BoxFit;
 import 'package:flutter/services.dart' show Brightness;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nordplayer/core/services/config_service.dart';
+import 'package:nordplayer/core/system/config_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

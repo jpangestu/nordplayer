@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/services/config_service.dart';
+import 'package:nordplayer/core/system/config_service.dart';
 import 'package:nordplayer/core/theme/icon-sets/lucide_icons.dart';
 import 'package:nordplayer/core/theme/icon-sets/material_icons.dart';
 

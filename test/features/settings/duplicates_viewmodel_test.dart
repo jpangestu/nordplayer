@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/core/database/app_database.dart';
 import 'package:nordplayer/features/settings/duplicates_viewmodel.dart';
-import 'package:nordplayer/services/duplicate_detector.dart';
+import 'package:nordplayer/services/indexer/duplicate_detector.dart';
 
 class FakeDuplicateDetector extends Fake implements DuplicateDetector {
   List<Track> lastIgnoredTracks = [];

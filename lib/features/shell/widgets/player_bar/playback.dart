@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:nordplayer/core/services/logger.dart';
-import 'package:nordplayer/services/player_service.dart';
-import 'package:nordplayer/core/services/preference_service.dart';
+import 'package:nordplayer/core/system/logger.dart';
+import 'package:nordplayer/services/audio/player_service.dart';
+import 'package:nordplayer/core/system/preference_service.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 

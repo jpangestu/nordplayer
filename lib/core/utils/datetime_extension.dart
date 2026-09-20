@@ -1,7 +1,4 @@
-const List<String> _months = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
+const List<String> _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /// Formats a [DateTime] into a standard string representation (e.g., '01 Jan 2026').
 String formatToStandard(DateTime date) {

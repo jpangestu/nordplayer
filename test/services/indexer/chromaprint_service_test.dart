@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nordplayer/services/chromaprint_service.dart';
+import 'package:nordplayer/services/indexer/chromaprint_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

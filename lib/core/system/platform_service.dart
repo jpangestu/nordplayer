@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/services/logger.dart';
+import 'package:nordplayer/core/system/logger.dart';
 
 /// Platform-level operating system actions (file manager integration, system dialogs).
 class PlatformService with LoggerMixin {

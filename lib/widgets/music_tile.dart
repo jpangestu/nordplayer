@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/core/services/logger.dart';
+import 'package:nordplayer/core/system/logger.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/scrolling_text.dart';

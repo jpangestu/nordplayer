@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/data/repositories/repositories.dart';
+import 'package:nordplayer/data/repositories/track_repository.dart';
 import 'package:nordplayer/features/tracks/widgets/track_context_menu.dart';
-import 'package:nordplayer/core/services/config_service.dart';
-import 'package:nordplayer/services/player_service.dart';
+import 'package:nordplayer/core/system/config_service.dart';
+import 'package:nordplayer/services/audio/player_service.dart';
 import 'package:nordplayer/core/shortcuts/shortcuts.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/music_tile.dart';

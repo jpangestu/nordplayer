@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/services/background_task_service.dart';
-import 'package:nordplayer/core/services/config_service.dart';
-import 'package:nordplayer/core/services/logger.dart';
-import 'package:nordplayer/services/library_indexer/library_indexer.dart';
-import 'package:nordplayer/services/library_watcher.dart';
+import 'package:nordplayer/core/system/background_task_service.dart';
+import 'package:nordplayer/core/system/config_service.dart';
+import 'package:nordplayer/core/system/logger.dart';
+import 'package:nordplayer/services/indexer/library_indexer.dart';
+import 'package:nordplayer/services/indexer/library_watcher.dart';
 
 final libraryIndexerViewModelProvider =
     Provider<LibraryIndexerViewModel>(LibraryIndexerViewModel.new);

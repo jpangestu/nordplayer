@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/database/app_database.dart' show IgnoredPath;
-import 'package:nordplayer/core/services/config_service.dart';
+import 'package:nordplayer/core/system/config_service.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/features/settings/ignored_paths_viewmodel.dart';
 import 'package:nordplayer/widgets/app_icon.dart';

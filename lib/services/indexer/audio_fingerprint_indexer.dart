@@ -7,9 +7,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/core/database/app_database.dart';
-import 'package:nordplayer/core/services/background_task_service.dart';
-import 'package:nordplayer/services/chromaprint_service.dart';
-import 'package:nordplayer/core/services/logger.dart';
+import 'package:nordplayer/core/system/background_task_service.dart';
+import 'package:nordplayer/services/indexer/chromaprint_service.dart';
+import 'package:nordplayer/core/system/logger.dart';
 
 class AudioFingerprintIndexer(final Ref _ref, final AppDatabase _db) with LoggerMixin {
   bool _isCancelled = false;

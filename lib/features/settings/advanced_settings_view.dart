@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/core/services/config_service.dart';
+import 'package:nordplayer/core/system/config_service.dart';
 import 'package:nordplayer/features/settings/advanced_settings_viewmodel.dart';
 import 'package:nordplayer/widgets/nord_alert_dialog.dart';
 import 'package:nordplayer/widgets/sections/section_container.dart';

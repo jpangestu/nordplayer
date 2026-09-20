@@ -2,11 +2,11 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nordplayer/core/services/background_task_service.dart';
-import 'package:nordplayer/core/services/config_service.dart';
+import 'package:nordplayer/core/system/background_task_service.dart';
+import 'package:nordplayer/core/system/config_service.dart';
 import 'package:nordplayer/features/settings/library_indexer_viewmodel.dart';
-import 'package:nordplayer/services/library_indexer/library_indexer.dart';
-import 'package:nordplayer/services/library_watcher.dart';
+import 'package:nordplayer/services/indexer/library_indexer.dart';
+import 'package:nordplayer/services/indexer/library_watcher.dart';
 
 class FakeLibraryIndexer extends Fake implements LibraryIndexer {
   bool scanCalled = false;

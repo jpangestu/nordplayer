@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/core/database/app_database.dart';
 import 'package:nordplayer/core/models/library_section_config.dart';
-import 'package:nordplayer/core/services/config_service.dart';
-import 'package:nordplayer/core/services/logger.dart';
+import 'package:nordplayer/core/system/config_service.dart';
+import 'package:nordplayer/core/system/logger.dart';
 import 'package:nordplayer/data/repositories/track_repository.dart';
 
 /// Provider exposing the current list of configured library sections.

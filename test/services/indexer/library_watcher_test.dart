@@ -4,9 +4,9 @@ import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/core/database/app_database.dart';
-import 'package:nordplayer/core/services/config_service.dart';
-import 'package:nordplayer/services/library_indexer/library_indexer.dart';
-import 'package:nordplayer/services/library_watcher.dart';
+import 'package:nordplayer/core/system/config_service.dart';
+import 'package:nordplayer/services/indexer/library_indexer.dart';
+import 'package:nordplayer/services/indexer/library_watcher.dart';
 
 void main() {
   late AppDatabase db;

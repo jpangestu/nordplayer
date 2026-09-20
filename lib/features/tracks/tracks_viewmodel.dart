@@ -2,9 +2,9 @@ import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/core/database/app_database.dart';
 import 'package:nordplayer/core/models/table_column_config.dart';
-import 'package:nordplayer/core/services/logger.dart';
-import 'package:nordplayer/data/repositories/repositories.dart';
-import 'package:nordplayer/services/player_service.dart';
+import 'package:nordplayer/core/system/logger.dart';
+import 'package:nordplayer/data/repositories/track_repository.dart';
+import 'package:nordplayer/services/audio/player_service.dart';
 
 /// Computes up to 5 unique album art paths for the tracks page header collage.
 final libraryAlbumArtProvider = Provider<List<String>>((ref) {

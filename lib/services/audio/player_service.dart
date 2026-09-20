@@ -4,17 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:nordplayer/core/database/app_database.dart';
 import 'package:nordplayer/core/models/queue_scroll_behavior.dart';
-import 'package:nordplayer/core/services/logger.dart';
-import 'package:nordplayer/core/services/preference_service.dart';
+import 'package:nordplayer/core/system/logger.dart';
+import 'package:nordplayer/core/system/preference_service.dart';
 import 'package:nordplayer/core/utils/debouncer.dart';
 import 'package:nordplayer/core/utils/string_extension.dart';
-import 'package:nordplayer/data/repositories/repositories.dart';
-import 'package:nordplayer/services/player_state.dart';
+import 'package:nordplayer/data/repositories/queue_repository.dart';
+import 'package:nordplayer/services/audio/player_state.dart';
 
 export 'package:nordplayer/core/models/playback_context.dart';
 export 'package:nordplayer/core/models/queue_scroll_behavior.dart';
-export 'package:nordplayer/services/audio_handler.dart';
-export 'package:nordplayer/services/player_state.dart';
+export 'package:nordplayer/services/audio/audio_handler.dart';
+export 'package:nordplayer/services/audio/player_state.dart';
 
 /// Central coordinator for playback operations, queue manipulation,
 /// shuffle/loop sequencing, volume management, and persistent queue state.

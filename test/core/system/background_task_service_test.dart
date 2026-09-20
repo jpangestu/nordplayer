@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nordplayer/core/services/background_task_service.dart';
+import 'package:nordplayer/core/system/background_task_service.dart';
 
 void main() {
   group('BackgroundTask Tests', () {

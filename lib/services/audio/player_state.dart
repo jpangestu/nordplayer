@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:nordplayer/core/database/app_database.dart';
-import 'package:nordplayer/core/services/preference_service.dart';
+import 'package:nordplayer/core/system/preference_service.dart';
 import 'package:nordplayer/core/utils/debouncer.dart';
 import 'package:nordplayer/core/utils/stream_extension.dart';
-import 'package:nordplayer/services/player_service.dart';
+import 'package:nordplayer/services/audio/player_service.dart';
 
 // ========================================== Playback Streams ==========================================
 

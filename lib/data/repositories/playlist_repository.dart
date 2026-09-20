@@ -2,8 +2,6 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/core/database/app_database.dart';
 
-export 'package:nordplayer/core/models/playlist_with_details.dart';
-
 /// Repository interface abstracting playlist queries, mutations, and track associations.
 abstract interface class PlaylistRepository {
   /// Watches all playlists with their aggregate track count and preview album art collage.

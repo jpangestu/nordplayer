@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart' show immutable;
 import 'package:media_kit/media_kit.dart';
 import 'package:nordplayer/core/models/time_label_type.dart';
-import 'package:nordplayer/core/services/logger.dart';
+import 'package:nordplayer/core/system/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 export 'package:nordplayer/core/models/time_label_type.dart';
 

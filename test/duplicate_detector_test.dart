@@ -5,8 +5,8 @@ import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/core/database/app_database.dart';
-import 'package:nordplayer/services/chromaprint_service.dart';
-import 'package:nordplayer/services/duplicate_detector.dart';
+import 'package:nordplayer/services/indexer/chromaprint_service.dart';
+import 'package:nordplayer/services/indexer/duplicate_detector.dart';
 import 'package:nordplayer/core/utils/string_extension.dart';
 
 void main() {

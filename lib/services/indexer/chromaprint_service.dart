@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/services/logger.dart';
+import 'package:nordplayer/core/system/logger.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 

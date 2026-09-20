@@ -4,11 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/core/database/schema.dart';
 import 'package:nordplayer/core/utils/directory_helper.dart';
 
-export 'package:nordplayer/core/models/album_with_tracks.dart';
-export 'package:nordplayer/core/models/library_stats.dart';
-export 'package:nordplayer/core/models/playlist_with_details.dart';
-export 'package:nordplayer/core/models/playlist_with_tracks.dart';
-export 'package:nordplayer/core/models/track_with_artists.dart';
+export 'package:nordplayer/core/models/entities.dart';
 
 part 'app_database.g.dart';
 

@@ -43,11 +43,7 @@ extension StreamExtension<T> on Stream<T> {
     }
 
     if (isBroadcast) {
-      controller = StreamController<T>.broadcast(
-        sync: true,
-        onListen: onListen,
-        onCancel: onCancel,
-      );
+      controller = StreamController<T>.broadcast(sync: true, onListen: onListen, onCancel: onCancel);
     } else {
       controller = StreamController<T>(
         sync: true,

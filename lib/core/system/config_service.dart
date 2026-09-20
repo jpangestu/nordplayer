@@ -7,7 +7,7 @@ import 'package:flutter/services.dart' show Brightness;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/core/models/app_config.dart';
 import 'package:nordplayer/core/models/library_section_config.dart';
-import 'package:nordplayer/core/services/logger.dart';
+import 'package:nordplayer/core/system/logger.dart';
 import 'package:path/path.dart' as p;
 
 export 'package:nordplayer/core/models/app_config.dart';

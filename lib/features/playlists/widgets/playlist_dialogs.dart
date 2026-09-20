@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nordplayer/core/database/app_database.dart';
-import 'package:nordplayer/core/services/logger.dart';
+import 'package:nordplayer/core/system/logger.dart';
 import 'package:nordplayer/features/playlists/playlists_viewmodel.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/widgets/nord_alert_dialog.dart';
