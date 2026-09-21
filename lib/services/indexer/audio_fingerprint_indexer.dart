@@ -32,15 +32,20 @@ class AudioFingerprintIndexer(final Ref _ref, final AppDatabase _db) with Logger
     );
 
     try {
-      final tracksLackingFingerprint = await (_db.select(
-        _db.tracks,
-      )..where((t) => t.audioFingerprint.isNull() & t.isMissing.equals(false))).get();
+      final query = _db.selectOnly(_db.tracks)
+        ..addColumns([_db.tracks.id, _db.tracks.filePath])
+        ..where(_db.tracks.audioFingerprint.isNull() & _db.tracks.isMissing.equals(false));
+      final rows = await query.get();
 
-      if (tracksLackingFingerprint.isEmpty) {
+      if (rows.isEmpty) {
         log.i('No tracks lack fingerprints.');
         bgTaskService.completeTask('fingerprint-generation');
         return;
       }
+
+      final tracksLackingFingerprint = rows
+          .map((r) => (r.read(_db.tracks.id)!, r.read(_db.tracks.filePath)!))
+          .toList();
 
       final total = tracksLackingFingerprint.length;
       int processed = 0;
@@ -73,16 +78,16 @@ class AudioFingerprintIndexer(final Ref _ref, final AppDatabase _db) with Logger
         }
 
         final end = (i + chunkSize < tracksLackingFingerprint.length) ? i + chunkSize : tracksLackingFingerprint.length;
-        final chunk = tracksLackingFingerprint.sublist(i, end).map((t) => (t.id, t.filePath)).toList();
+        final chunk = tracksLackingFingerprint.sublist(i, end);
 
-        final request = FingerprintChunkIsolateRequest(
+        final chunkRequest = (
           tracks: chunk,
           execPath: execPath,
           concurrencyLimit: concurrencyLimit,
           token: RootIsolateToken.instance,
         );
 
-        await Isolate.run(_buildFingerprintIsolateClosure(request));
+        await Isolate.run(_buildFingerprintChunkClosure(chunkRequest));
 
         processed += chunk.length;
         onProgress?.call(processed, total);
@@ -104,18 +109,18 @@ class AudioFingerprintIndexer(final Ref _ref, final AppDatabase _db) with Logger
   }
 }
 
-class const FingerprintChunkIsolateRequest({
-  required final List<(int, String)> tracks,
-  required final String? execPath,
-  required final int concurrencyLimit,
-  required final RootIsolateToken? token,
+typedef _FingerprintChunkRequest = ({
+  List<(int, String)> tracks,
+  String? execPath,
+  int concurrencyLimit,
+  RootIsolateToken? token,
 });
 
-Future<void> Function() _buildFingerprintIsolateClosure(FingerprintChunkIsolateRequest request) {
+Future<void> Function() _buildFingerprintChunkClosure(_FingerprintChunkRequest request) {
   return () => _fingerprintChunkIsolate(request);
 }
 
-Future<void> _fingerprintChunkIsolate(FingerprintChunkIsolateRequest request) async {
+Future<void> _fingerprintChunkIsolate(_FingerprintChunkRequest request) async {
   if (request.token != null) {
     BackgroundIsolateBinaryMessenger.ensureInitialized(request.token!);
   }
@@ -128,6 +133,8 @@ Future<void> _fingerprintChunkIsolate(FingerprintChunkIsolateRequest request) as
   final fingerprinter = ChromaprintService(request.execPath);
 
   var index = 0;
+  final generatedFingerprints = <(int, Uint8List)>[];
+
   Future<void> worker() async {
     while (index < request.tracks.length) {
       final item = request.tracks[index++];
@@ -140,9 +147,7 @@ Future<void> _fingerprintChunkIsolate(FingerprintChunkIsolateRequest request) as
       try {
         final fingerprintRes = await fingerprinter.calculateAudioFingerprint(filePath);
         if (fingerprintRes != null) {
-          await (db.update(db.tracks)..where((t) => t.id.equals(trackId))).write(
-            TracksCompanion(audioFingerprint: Value(fingerprintRes.fingerprintBytes)),
-          );
+          generatedFingerprints.add((trackId, fingerprintRes.fingerprintBytes));
         }
       } catch (e) {
         debugPrint("Error generating fingerprint in isolate for $filePath: $e");
@@ -152,6 +157,16 @@ Future<void> _fingerprintChunkIsolate(FingerprintChunkIsolateRequest request) as
 
   final workers = List.generate(request.concurrencyLimit, (_) => worker());
   await Future.wait(workers);
+
+  if (generatedFingerprints.isNotEmpty) {
+    await db.transaction(() async {
+      for (final (trackId, bytes) in generatedFingerprints) {
+        await (db.update(db.tracks)..where((t) => t.id.equals(trackId))).write(
+          TracksCompanion(audioFingerprint: Value(bytes)),
+        );
+      }
+    });
+  }
 
   await db.close();
 }

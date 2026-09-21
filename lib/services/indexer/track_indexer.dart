@@ -14,12 +14,10 @@ import 'package:nordplayer/core/utils/audio_metadata_hasher.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-class TrackIndexer(
-  final Ref _ref,
-  final AppDatabase _db,
-  final VoidCallback _onCancelFingerprintTask,
-) with LoggerMixin {
+class TrackIndexer(final Ref _ref, final AppDatabase _db, final VoidCallback _onCancelFingerprintTask)
+    with LoggerMixin {
   AppConfig get _appConfig => _ref.read(configServiceProvider);
+  String? get artistSeparatorPattern => _buildArtistSeparatorPattern(_appConfig.artistDelimiters);
 
   // Map<ArtistName, ArtistId>
   final Map<String, int> _artistCache = {};
@@ -35,6 +33,7 @@ class TrackIndexer(
     int processed = 0;
 
     onProgress?.call(0, total);
+    final separatorPattern = artistSeparatorPattern;
 
     for (var i = 0; i < files.length; i += chunkSize) {
       final end = (i + chunkSize < files.length) ? i + chunkSize : files.length;
@@ -42,6 +41,7 @@ class TrackIndexer(
 
       await indexTracksChunk(
         chunk,
+        separatorPattern: separatorPattern,
         onProgress: (insertedInChunk) {
           onProgress?.call(processed + insertedInChunk, total);
         },
@@ -51,7 +51,11 @@ class TrackIndexer(
     }
   }
 
-  Future<void> indexTracksChunk(List<(File, String)> files, {void Function(int inserted)? onProgress}) async {
+  Future<void> indexTracksChunk(
+    List<(File, String)> files, {
+    String? separatorPattern,
+    void Function(int inserted)? onProgress,
+  }) async {
     // Read all metadata on the main thread
     final metadataList = await Future.wait(
       files.map((item) async {
@@ -69,19 +73,20 @@ class TrackIndexer(
 
     int insertedCount = 0;
     final cacheDirPath = await _getCacheDirPath();
+    final effectiveSeparatorPattern = separatorPattern ?? artistSeparatorPattern;
 
-    final request = IndexTracksChunkIsolateRequest(
+    final request = (
       metadataList: metadataList,
       artistExclusions: _appConfig.artistExclusions.map((e) => e.toLowerCase().trim()).toSet(),
-      artistDelimiters: _appConfig.artistDelimiters.toList(),
-      artistCache: Map<String, int>.from(_artistCache),
-      albumCache: Map<String, int>.from(_albumCache),
+      separatorPattern: effectiveSeparatorPattern,
+      artistCache: _artistCache,
+      albumCache: _albumCache,
       cacheDirPath: cacheDirPath,
       token: RootIsolateToken.instance,
     );
 
     try {
-      final response = await Isolate.run(_buildIndexTracksIsolateClosure(request));
+      final response = await Isolate.run(_buildIndexTracksChunkClosure(request));
 
       _artistCache.addAll(response.artistCache);
       _albumCache.addAll(response.albumCache);
@@ -111,7 +116,9 @@ class TrackIndexer(
       _artistCache.clear();
       _albumCache.clear();
 
-      final existingTracks = await _db.select(_db.tracks).get();
+      final query = _db.selectOnly(_db.tracks)
+        ..addColumns([_db.tracks.id, _db.tracks.filePath, _db.tracks.audioFingerprint]);
+      final existingTracks = await query.get();
       if (existingTracks.isEmpty) {
         log.i('No tracks in database to re-index.');
         bgTaskService.completeTask('metadata-reindex');
@@ -131,14 +138,20 @@ class TrackIndexer(
       );
 
       const int chunkSize = 50;
+      final separatorPattern = artistSeparatorPattern;
 
       for (var i = 0; i < existingTracks.length; i += chunkSize) {
         final end = (i + chunkSize < existingTracks.length) ? i + chunkSize : existingTracks.length;
         final chunk = existingTracks.sublist(i, end);
 
-        final chunkTracksPayload = chunk.map((t) => (t.id, t.filePath, t.audioFingerprint)).toList();
+        final chunkTracksPayload = chunk
+            .map(
+              (row) =>
+                  (row.read(_db.tracks.id)!, row.read(_db.tracks.filePath)!, row.read(_db.tracks.audioFingerprint)),
+            )
+            .toList();
 
-        await reindexTracksChunk(chunkTracksPayload);
+        await reindexTracksChunk(chunkTracksPayload, separatorPattern: separatorPattern);
 
         processed += chunk.length;
         onProgress?.call(processed, total);
@@ -163,21 +176,22 @@ class TrackIndexer(
     }
   }
 
-  Future<void> reindexTracksChunk(List<(int, String, Uint8List?)> tracks) async {
+  Future<void> reindexTracksChunk(List<(int, String, Uint8List?)> tracks, {String? separatorPattern}) async {
     final cacheDirPath = await _getCacheDirPath();
+    final effectiveSeparatorPattern = separatorPattern ?? artistSeparatorPattern;
 
-    final request = ReindexTracksChunkIsolateRequest(
+    final request = (
       tracks: tracks,
       artistExclusions: _appConfig.artistExclusions.map((e) => e.toLowerCase().trim()).toSet(),
-      artistDelimiters: _appConfig.artistDelimiters.toList(),
-      artistCache: Map<String, int>.from(_artistCache),
-      albumCache: Map<String, int>.from(_albumCache),
+      separatorPattern: effectiveSeparatorPattern,
+      artistCache: _artistCache,
+      albumCache: _albumCache,
       cacheDirPath: cacheDirPath,
       token: RootIsolateToken.instance,
     );
 
     try {
-      final response = await Isolate.run(_buildReindexTracksIsolateClosure(request));
+      final response = await Isolate.run(_buildReindexTracksChunkClosure(request));
       _artistCache.addAll(response.artistCache);
       _albumCache.addAll(response.albumCache);
     } catch (e) {
@@ -186,49 +200,46 @@ class TrackIndexer(
   }
 }
 
-class const IndexTracksChunkIsolateRequest({
-  required final List<(String, String, Tag?)> metadataList,
-  required final Set<String> artistExclusions,
-  required final List<String> artistDelimiters,
-  required final Map<String, int> artistCache,
-  required final Map<String, int> albumCache,
-  required final String cacheDirPath,
-  required final RootIsolateToken? token,
+typedef _IndexTracksChunkRequest = ({
+  List<(String, String, Tag?)> metadataList,
+  Set<String> artistExclusions,
+  String? separatorPattern,
+  Map<String, int> artistCache,
+  Map<String, int> albumCache,
+  String cacheDirPath,
+  RootIsolateToken? token,
 });
 
-class const TrackIndexerIsolateResponse({
-  required final Map<String, int> artistCache,
-  required final Map<String, int> albumCache,
+typedef _TrackIndexerResponse = ({Map<String, int> artistCache, Map<String, int> albumCache});
+
+typedef _ReindexTracksChunkRequest = ({
+  List<(int, String, Uint8List?)> tracks,
+  Set<String> artistExclusions,
+  String? separatorPattern,
+  Map<String, int> artistCache,
+  Map<String, int> albumCache,
+  String cacheDirPath,
+  RootIsolateToken? token,
 });
 
-class const ReindexTracksChunkIsolateRequest({
-  required final List<(int, String, Uint8List?)> tracks, // (id, filePath, audioFingerprint)
-  required final Set<String> artistExclusions,
-  required final List<String> artistDelimiters,
-  required final Map<String, int> artistCache,
-  required final Map<String, int> albumCache,
-  required final String cacheDirPath,
-  required final RootIsolateToken? token,
-});
-
-Future<TrackIndexerIsolateResponse> Function() _buildIndexTracksIsolateClosure(IndexTracksChunkIsolateRequest request) {
+Future<_TrackIndexerResponse> Function() _buildIndexTracksChunkClosure(_IndexTracksChunkRequest request) {
   return () => _indexTracksChunkIsolate(request);
 }
 
-Future<TrackIndexerIsolateResponse> Function() _buildReindexTracksIsolateClosure(
-  ReindexTracksChunkIsolateRequest request,
-) {
+Future<_TrackIndexerResponse> Function() _buildReindexTracksChunkClosure(_ReindexTracksChunkRequest request) {
   return () => _reindexTracksChunkIsolate(request);
 }
 
-Future<TrackIndexerIsolateResponse> _indexTracksChunkIsolate(IndexTracksChunkIsolateRequest request) async {
+Future<_TrackIndexerResponse> _indexTracksChunkIsolate(_IndexTracksChunkRequest request) async {
   if (request.token != null) {
     BackgroundIsolateBinaryMessenger.ensureInitialized(request.token!);
   }
   final db = AppDatabase();
-  final artistCache = Map<String, int>.from(request.artistCache);
-  final albumCache = Map<String, int>.from(request.albumCache);
-  final separatorRegex = _buildArtistSeparatorRegex(request.artistDelimiters);
+  final artistCache = request.artistCache;
+  final albumCache = request.albumCache;
+  final separatorRegex = request.separatorPattern != null
+      ? RegExp(request.separatorPattern!, caseSensitive: false)
+      : null;
 
   await db.transaction(() async {
     for (var item in request.metadataList) {
@@ -301,17 +312,19 @@ Future<TrackIndexerIsolateResponse> _indexTracksChunkIsolate(IndexTracksChunkIso
 
   await db.close();
 
-  return TrackIndexerIsolateResponse(artistCache: artistCache, albumCache: albumCache);
+  return (artistCache: artistCache, albumCache: albumCache);
 }
 
-Future<TrackIndexerIsolateResponse> _reindexTracksChunkIsolate(ReindexTracksChunkIsolateRequest request) async {
+Future<_TrackIndexerResponse> _reindexTracksChunkIsolate(_ReindexTracksChunkRequest request) async {
   if (request.token != null) {
     BackgroundIsolateBinaryMessenger.ensureInitialized(request.token!);
   }
   final db = AppDatabase();
-  final artistCache = Map<String, int>.from(request.artistCache);
-  final albumCache = Map<String, int>.from(request.albumCache);
-  final separatorRegex = _buildArtistSeparatorRegex(request.artistDelimiters);
+  final artistCache = request.artistCache;
+  final albumCache = request.albumCache;
+  final separatorRegex = request.separatorPattern != null
+      ? RegExp(request.separatorPattern!, caseSensitive: false)
+      : null;
 
   await db.transaction(() async {
     for (final item in request.tracks) {
@@ -391,10 +404,10 @@ Future<TrackIndexerIsolateResponse> _reindexTracksChunkIsolate(ReindexTracksChun
 
   await db.close();
 
-  return TrackIndexerIsolateResponse(artistCache: artistCache, albumCache: albumCache);
+  return (artistCache: artistCache, albumCache: albumCache);
 }
 
-RegExp? _buildArtistSeparatorRegex(List<String> delimiters) {
+String? _buildArtistSeparatorPattern(List<String> delimiters) {
   if (delimiters.isEmpty) return null;
   final sortedDelimiters = List<String>.from(delimiters)..sort((a, b) => b.length.compareTo(a.length));
 
@@ -415,7 +428,7 @@ RegExp? _buildArtistSeparatorRegex(List<String> delimiters) {
   }
 
   final String pattern = regexParts.join('|');
-  return RegExp('\\s*(?:$pattern)\\s*', caseSensitive: false);
+  return '\\s*(?:$pattern)\\s*';
 }
 
 Future<List<int>> _splitArtistsAndGetOrCreateArtistIsolate(

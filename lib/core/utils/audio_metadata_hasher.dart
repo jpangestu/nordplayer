@@ -1,7 +1,5 @@
 import 'dart:io';
 
-import 'package:path/path.dart' as p;
-
 class AudioMetadataHasher {
   // FNV-1a 32-bit hash algorithm
   static int _hashBytes(List<int> bytes, [int seed = 2166136261]) {
@@ -19,7 +17,8 @@ class AudioMetadataHasher {
     int size = 0;
     try {
       size = file.lengthSync();
-      final ext = p.extension(file.path).toLowerCase();
+      final dot = file.path.lastIndexOf('.');
+      final ext = dot != -1 ? file.path.substring(dot).toLowerCase() : '';
       raf = file.openSync(mode: FileMode.read);
       List<int> metadataBytes = [];
 
@@ -54,16 +53,13 @@ class AudioMetadataHasher {
           break;
       }
 
+      if (metadataBytes.isEmpty || metadataBytes.length < 64) {
+        // If parsing returned empty or too small, run fallback reusing open handle
+        metadataBytes = _extractFallbackMetadata(raf, size);
+      }
+
       raf.closeSync();
       raf = null;
-
-      if (metadataBytes.isEmpty || metadataBytes.length < 64) {
-        // If parsing returned empty or too small, run fallback
-        raf = file.openSync(mode: FileMode.read);
-        metadataBytes = _extractFallbackMetadata(raf, size);
-        raf.closeSync();
-        raf = null;
-      }
 
       final hashVal = _hashBytes(metadataBytes);
       return '${hashVal.toRadixString(16)}_$size';

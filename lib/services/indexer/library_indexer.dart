@@ -46,35 +46,41 @@ class LibraryIndexer(final Ref _ref, final AppDatabase _db) with LoggerMixin {
     final trackHash = AudioMetadataHasher.calculateHash(file);
 
     // Check if the file was moved/renamed (hash matches an existing track)
-    final existingTrackByHash =
-        await (_db.select(_db.tracks)
-              ..where((t) => t.fileHash.equals(trackHash))
-              ..limit(1))
-            .getSingleOrNull();
+    final existingTrackByHash = await (_db.selectOnly(_db.tracks)
+          ..addColumns([_db.tracks.id, _db.tracks.filePath])
+          ..where(_db.tracks.fileHash.equals(trackHash))
+          ..limit(1))
+        .getSingleOrNull();
 
     final normalizedPath = file.path.normalizePath().toLowerCase();
 
     if (existingTrackByHash != null) {
-      final normalizedDbPath = existingTrackByHash.filePath.normalizePath().toLowerCase();
+      final oldFilePath = existingTrackByHash.read(_db.tracks.filePath)!;
+      final oldTrackId = existingTrackByHash.read(_db.tracks.id)!;
+      final normalizedDbPath = oldFilePath.normalizePath().toLowerCase();
       if (normalizedDbPath != normalizedPath) {
         log.i(
-          "Detected file moved/renamed via watcher: '${existingTrackByHash.filePath}' -> '${file.path}'. Reconnecting database entry...",
+          "Detected file moved/renamed via watcher: '$oldFilePath' -> '${file.path}'. Reconnecting database entry...",
         );
       }
-      await (_db.update(_db.tracks)..where((t) => t.id.equals(existingTrackByHash.id))).write(
+      await (_db.update(_db.tracks)..where((t) => t.id.equals(oldTrackId))).write(
         TracksCompanion(filePath: Value(file.path), isMissing: const Value(false)),
       );
       return;
     }
 
     // Check if the file already exists in the database by path
-    final existingTrackByPath =
-        await (_db.select(_db.tracks)
-              ..where((t) => t.filePath.lower().equals(normalizedPath))
-              ..limit(1))
-            .getSingleOrNull();
+    final existingTrackByPath = await (_db.selectOnly(_db.tracks)
+          ..addColumns([_db.tracks.id, _db.tracks.audioFingerprint, _db.tracks.durationMs])
+          ..where(_db.tracks.filePath.lower().equals(normalizedPath))
+          ..limit(1))
+        .getSingleOrNull();
 
     if (existingTrackByPath != null) {
+      final trackId = existingTrackByPath.read(_db.tracks.id)!;
+      final storedFingerprint = existingTrackByPath.read(_db.tracks.audioFingerprint);
+      final storedDurationMs = existingTrackByPath.read(_db.tracks.durationMs)!;
+
       try {
         final trackTag = await AudioTags.read(file.path);
         if (trackTag != null) {
@@ -83,7 +89,6 @@ class LibraryIndexer(final Ref _ref, final AppDatabase _db) with LoggerMixin {
 
           bool isSameTrack = false;
           if (fingerprintRes != null) {
-            final storedFingerprint = existingTrackByPath.audioFingerprint;
             if (storedFingerprint != null) {
               final storedRaw = ChromaprintService.parseRawAudioFingerprint(storedFingerprint);
               if (storedRaw != null) {
@@ -99,12 +104,12 @@ class LibraryIndexer(final Ref _ref, final AppDatabase _db) with LoggerMixin {
             } else {
               // Fallback to duration for existing tracks that do not have fingerprints yet
               final newDurationMs = fingerprintRes.durationMs;
-              final durationDifferenceMs = (existingTrackByPath.durationMs - newDurationMs).abs();
+              final durationDifferenceMs = (storedDurationMs - newDurationMs).abs();
               isSameTrack = durationDifferenceMs <= 1000;
 
               if (isSameTrack) {
                 // Cache the fingerprint back to the DB record
-                await (_db.update(_db.tracks)..where((t) => t.id.equals(existingTrackByPath.id))).write(
+                await (_db.update(_db.tracks)..where((t) => t.id.equals(trackId))).write(
                   TracksCompanion(audioFingerprint: Value(fingerprintRes.fingerprintBytes)),
                 );
               }
@@ -112,16 +117,16 @@ class LibraryIndexer(final Ref _ref, final AppDatabase _db) with LoggerMixin {
           } else {
             // Hard fallback to duration if fingerprinting failed
             final newDurationMs = (trackTag.duration ?? 0) * 1000;
-            final durationDifferenceMs = (existingTrackByPath.durationMs - newDurationMs).abs();
+            final durationDifferenceMs = (storedDurationMs - newDurationMs).abs();
             isSameTrack = durationDifferenceMs <= 1000;
           }
 
           if (isSameTrack) {
             log.i("Detected file modified in-place: '${file.path}'. Updating metadata...");
 
-            final fingerprintBytes = fingerprintRes?.fingerprintBytes ?? existingTrackByPath.audioFingerprint;
+            final fingerprintBytes = fingerprintRes?.fingerprintBytes ?? storedFingerprint;
 
-            await _trackIndexer.reindexTracksChunk([(existingTrackByPath.id, file.path, fingerprintBytes)]);
+            await _trackIndexer.reindexTracksChunk([(trackId, file.path, fingerprintBytes)]);
           } else {
             log.i(
               "File at '${file.path}' was replaced with different audio content (fingerprint mismatch). Re-indexing as new...",
@@ -164,20 +169,25 @@ class LibraryIndexer(final Ref _ref, final AppDatabase _db) with LoggerMixin {
     final String separator = p.separator;
     final String queryPrefix = normalizedDir.endsWith(separator) ? normalizedDir : '$normalizedDir$separator';
 
-    // Get all track paths under this directory first to remove them from the queue
-    final tracksInDir = await (_db.select(
-      _db.tracks,
-    )..where((track) => track.filePath.lower().like('$queryPrefix%'))).get();
+    final query = _db.selectOnly(_db.tracks)
+      ..addColumns([_db.tracks.id, _db.tracks.filePath])
+      ..where(_db.tracks.filePath.lower().like('$queryPrefix%'));
+    final tracksInDir = await query.get();
 
-    await (_db.update(_db.tracks)..where((track) => track.filePath.lower().like('$queryPrefix%'))).write(
+    if (tracksInDir.isEmpty) return;
+
+    final trackIds = tracksInDir.map((r) => r.read(_db.tracks.id)!).toList();
+    final trackPaths = tracksInDir.map((r) => r.read(_db.tracks.filePath)!).toList();
+
+    await (_db.update(_db.tracks)..where((track) => track.id.isIn(trackIds))).write(
       const TracksCompanion(isMissing: Value(true)),
     );
 
     // Also remove them from the player queue
     try {
       final playerService = _ref.read(playerServiceProvider);
-      for (final track in tracksInDir) {
-        await playerService.removeTrackByPath(track.filePath);
+      for (final path in trackPaths) {
+        await playerService.removeTrackByPath(path);
       }
     } catch (e) {
       log.e("Failed to remove tracks from player service queue: $e");

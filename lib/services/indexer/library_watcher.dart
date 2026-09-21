@@ -84,7 +84,8 @@ class LibraryWatcher(final LibraryIndexer _libraryIndexer) with LoggerMixin {
     final path = p.isAbsolute(event.path) ? event.path : p.join(trackDirectory, event.path);
 
     log.i("Watcher received event: ${event.type} for path: $path");
-    final ext = p.extension(path).toLowerCase();
+    final dot = path.lastIndexOf('.');
+    final ext = dot != -1 ? path.substring(dot).toLowerCase() : '';
 
     // Ignore non-music files
     if (!_libraryIndexer.supportedExtensions.contains(ext)) return;

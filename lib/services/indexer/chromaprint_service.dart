@@ -12,10 +12,7 @@ final chromaprintServiceProvider = Provider<ChromaprintService>((ref) {
   return ChromaprintService();
 });
 
-class const AudioFingerprintResult({
-  required final List<int> rawAudioFingerprint,
-  required final int durationMs,
-}) {
+class const AudioFingerprintResult({required final List<int> rawAudioFingerprint, required final int durationMs}) {
   Uint8List get fingerprintBytes {
     final uint32list = Uint32List.fromList(rawAudioFingerprint);
     return uint32list.buffer.asUint8List();
@@ -74,13 +71,56 @@ class ChromaprintService([String? fpcalcPath]) with LoggerMixin {
     return (x & 0x0000003F);
   }
 
-  static List<int>? parseRawAudioFingerprint(Uint8List? bytes) {
+  static Uint32List? parseRawAudioFingerprint(Uint8List? bytes) {
     if (bytes == null || bytes.isEmpty) return null;
     if (bytes.offsetInBytes % 4 != 0) {
       final alignedBytes = Uint8List.fromList(bytes);
       return Uint32List.view(alignedBytes.buffer);
     }
     return Uint32List.view(bytes.buffer, bytes.offsetInBytes, bytes.lengthInBytes ~/ 4);
+  }
+
+  /// Uses a spiral search order (0, 1, -1, 2, -2, ...) and early exit / cutoff
+  /// to determine if two fingerprints have >= [threshold] similarity.
+  static bool areFingerprintsMatching(Uint32List fp1, Uint32List fp2, [double threshold = 0.85]) {
+    if (identical(fp1, fp2)) return true;
+    final int len1 = fp1.length;
+    final int len2 = fp2.length;
+    if (len1 < 15 || len2 < 15) return false;
+
+    const int maxOffset = 40;
+
+    bool testOffset(int offset) {
+      final int start1 = offset > 0 ? offset : 0;
+      final int start2 = offset < 0 ? -offset : 0;
+      final int overlapLen = math.min(len1 - start1, len2 - start2);
+
+      if (overlapLen < 15) return false;
+
+      final int minRequiredMatchingBits = (overlapLen * 32 * threshold).ceil();
+      int matchingBits = 0;
+      int remainingBits = overlapLen * 32;
+
+      for (int i = 0; i < overlapLen; i++) {
+        matchingBits += (32 - _popcount(fp1[start1 + i] ^ fp2[start2 + i]));
+        remainingBits -= 32;
+
+        if (matchingBits + remainingBits < minRequiredMatchingBits) {
+          return false;
+        }
+      }
+
+      return matchingBits >= minRequiredMatchingBits;
+    }
+
+    if (testOffset(0)) return true;
+
+    for (int offset = 1; offset <= maxOffset; offset++) {
+      if (testOffset(offset)) return true;
+      if (testOffset(-offset)) return true;
+    }
+
+    return false;
   }
 
   static double compareRawAudioFingerprints(List<int> fp1, List<int> fp2) {
