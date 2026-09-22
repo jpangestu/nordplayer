@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart' hide Track;
-import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/domain/models/models.dart' hide Playlist;
 import 'package:nordplayer/core/system/preference_service.dart';
 import 'package:nordplayer/data/repositories/queue_repository.dart';
 import 'package:nordplayer/services/audio/player_service.dart';

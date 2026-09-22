@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/core/database/app_database.dart' hide PlaylistData, Track, Album, Artist;
+import 'package:nordplayer/data/mappers/db_mappers.dart';
+import 'package:nordplayer/domain/models/models.dart';
 
 /// Repository interface abstracting playlist queries, mutations, and track associations.
 abstract interface class PlaylistRepository {
@@ -8,7 +10,7 @@ abstract interface class PlaylistRepository {
   Stream<List<PlaylistWithDetails>> watchAllPlaylists();
 
   /// Watches metadata for a single playlist by ID.
-  Stream<PlaylistData> watchPlaylist(int playlistId);
+  Stream<Playlist> watchPlaylist(int playlistId);
 
   /// Retrieves the ordered list of tracks belonging to a playlist.
   Future<List<TrackWithArtists>> getPlaylistTracks(int playlistId);
@@ -33,7 +35,10 @@ abstract interface class PlaylistRepository {
 }
 
 /// Drift/SQLite implementation of [PlaylistRepository].
-class const DriftPlaylistRepository(final AppDatabase _db) implements PlaylistRepository {
+class DriftPlaylistRepository implements PlaylistRepository {
+  final AppDatabase _db;
+
+  const DriftPlaylistRepository(this._db);
 
   @override
   Stream<List<PlaylistWithDetails>> watchAllPlaylists() {
@@ -69,7 +74,7 @@ class const DriftPlaylistRepository(final AppDatabase _db) implements PlaylistRe
         }
 
         return PlaylistWithDetails(
-          playlist: row.readTable(_db.playlists),
+          playlist: row.readTable(_db.playlists).toDomain(),
           trackCount: row.read(trackCount) ?? 0,
           imageUrls: covers,
         );
@@ -78,8 +83,10 @@ class const DriftPlaylistRepository(final AppDatabase _db) implements PlaylistRe
   }
 
   @override
-  Stream<PlaylistData> watchPlaylist(int playlistId) {
-    return (_db.select(_db.playlists)..where((p) => p.id.equals(playlistId))).watchSingle();
+  Stream<Playlist> watchPlaylist(int playlistId) {
+    return (_db.select(_db.playlists)..where((p) => p.id.equals(playlistId)))
+        .watchSingle()
+        .map((p) => p.toDomain());
   }
 
   @override
@@ -166,12 +173,12 @@ class const DriftPlaylistRepository(final AppDatabase _db) implements PlaylistRe
     final Map<int, TrackWithArtists> groupedTracks = {};
 
     for (final row in rows) {
-      var track = row.readTable(_db.tracks);
+      final dbTrack = row.readTable(_db.tracks);
       final pt = row.readTable(_db.playlistTrack);
-      track = track.copyWith(dateAdded: pt.dateAdded);
+      final track = dbTrack.toDomain().copyWith(dateAdded: pt.dateAdded);
 
-      final album = row.readTable(_db.albums);
-      final artist = row.readTableOrNull(_db.artists);
+      final album = row.readTable(_db.albums).toDomain();
+      final artist = row.readTableOrNull(_db.artists)?.toDomain();
 
       if (!groupedTracks.containsKey(track.id)) {
         groupedTracks[track.id] = TrackWithArtists(track: track, album: album, artists: []);
@@ -199,7 +206,7 @@ final playlistsStreamProvider = StreamProvider<List<PlaylistWithDetails>>((ref) 
   return ref.watch(playlistRepositoryProvider).watchAllPlaylists();
 });
 
-final singlePlaylistStreamProvider = StreamProvider.autoDispose.family<PlaylistData, int>((ref, playlistId) {
+final singlePlaylistStreamProvider = StreamProvider.autoDispose.family<Playlist, int>((ref, playlistId) {
   return ref.watch(playlistRepositoryProvider).watchPlaylist(playlistId);
 });
 

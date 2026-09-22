@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/domain/models/models.dart';
 import 'package:nordplayer/core/system/logger.dart';
 import 'package:nordplayer/features/playlists/playlists_viewmodel.dart';
 import 'package:nordplayer/routes/router.dart';
@@ -9,7 +9,7 @@ import 'package:nordplayer/widgets/nord_alert_dialog.dart';
 import 'package:nordplayer/widgets/nord_snack_bar.dart';
 
 /// Convenience function to display the [CreatePlaylistDialog].
-Future<void> showCreatePlaylistDialog(BuildContext context, [AppDatabase? database]) async {
+Future<void> showCreatePlaylistDialog(BuildContext context, [Object? database]) async {
   await showDialog(context: context, builder: (context) => const CreatePlaylistDialog());
 }
 
@@ -31,7 +31,7 @@ Future<void> showCreatePlaylistDialogAndAddTracks(
 }
 
 /// Convenience function to display the [RenamePlaylistDialog].
-Future<void> showRenamePlaylistDialog(BuildContext context, PlaylistData playlist, [AppDatabase? database]) async {
+Future<void> showRenamePlaylistDialog(BuildContext context, Playlist playlist, [Object? database]) async {
   await showDialog(
     context: context,
     builder: (context) => RenamePlaylistDialog(playlist: playlist),
@@ -40,7 +40,7 @@ Future<void> showRenamePlaylistDialog(BuildContext context, PlaylistData playlis
 
 /// Dialog allowing users to create a new playlist and optionally add initial tracks.
 class CreatePlaylistDialog extends ConsumerStatefulWidget {
-  final AppDatabase? database;
+  final Object? database;
   final List<TrackWithArtists> tracksToAdd;
 
   const CreatePlaylistDialog({super.key, this.database, this.tracksToAdd = const []});
@@ -138,8 +138,8 @@ class _CreatePlaylistDialogState extends ConsumerState<CreatePlaylistDialog> wit
 
 /// Dialog allowing users to rename an existing playlist.
 class RenamePlaylistDialog extends ConsumerStatefulWidget {
-  final AppDatabase? database;
-  final PlaylistData playlist;
+  final Object? database;
+  final Playlist playlist;
 
   const RenamePlaylistDialog({super.key, required this.playlist, this.database});
 

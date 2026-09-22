@@ -8,6 +8,7 @@ import 'package:nordplayer/core/database/app_database.dart';
 import 'package:nordplayer/services/indexer/chromaprint_service.dart';
 import 'package:nordplayer/services/indexer/duplicate_detector.dart';
 import 'package:nordplayer/core/utils/string_extension.dart';
+import 'package:nordplayer/data/mappers/db_mappers.dart';
 
 void main() {
   late AppDatabase db;
@@ -216,7 +217,7 @@ void main() {
 
       // Delete Track via service
       final track = await (db.select(db.tracks)..where((t) => t.id.equals(10))).getSingle();
-      await detector.ignorePath(track);
+      await detector.ignorePath(track.toDomain());
 
       // Check track is deleted
       final tracksLeft = await db.select(db.tracks).get();

@@ -3,9 +3,11 @@ import 'dart:typed_data';
 
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/core/database/app_database.dart' hide Track;
 import 'package:nordplayer/core/system/logger.dart';
 import 'package:nordplayer/core/utils/string_extension.dart';
+import 'package:nordplayer/data/mappers/db_mappers.dart';
+import 'package:nordplayer/domain/models/models.dart';
 import 'package:nordplayer/services/indexer/chromaprint_service.dart';
 
 final duplicateDetectorProvider = Provider<DuplicateDetector>((ref) {
@@ -85,7 +87,7 @@ class DuplicateDetector(final AppDatabase _db) with LoggerMixin {
       final artist = row.readTableOrNull(_db.artists);
 
       candidateMap[track.id] = DuplicateCandidate(
-        track: track,
+        track: track.toDomain(),
         artistName: artist?.name ?? 'Unknown Artist',
         albumTitle: album?.title ?? 'Unknown Album',
       );

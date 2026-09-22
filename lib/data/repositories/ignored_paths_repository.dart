@@ -1,7 +1,9 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/core/database/app_database.dart' hide Track;
 import 'package:nordplayer/core/utils/string_extension.dart';
+import 'package:nordplayer/data/mappers/db_mappers.dart';
+import 'package:nordplayer/domain/models/models.dart';
 
 /// Repository interface abstracting ignored track paths and restoration operations.
 abstract interface class IgnoredPathsRepository {
@@ -22,7 +24,10 @@ abstract interface class IgnoredPathsRepository {
 }
 
 /// Drift/SQLite implementation of [IgnoredPathsRepository].
-class const DriftIgnoredPathsRepository(final AppDatabase _db) implements IgnoredPathsRepository {
+class DriftIgnoredPathsRepository implements IgnoredPathsRepository {
+  final AppDatabase _db;
+
+  const DriftIgnoredPathsRepository(this._db);
 
   @override
   Future<List<IgnoredPath>> getIgnoredPaths() async {
@@ -64,7 +69,7 @@ class const DriftIgnoredPathsRepository(final AppDatabase _db) implements Ignore
       await (_db.delete(_db.ignoredPaths)..where((t) => t.filePath.isIn(filePaths))).go();
 
       for (final track in tracks) {
-        await _db.into(_db.tracks).insertOnConflictUpdate(track);
+        await _db.into(_db.tracks).insertOnConflictUpdate(track.toCompanion());
         await _db.into(_db.trackArtist).insertOnConflictUpdate(
               TrackArtistCompanion(
                 trackId: Value(track.id),

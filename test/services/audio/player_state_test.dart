@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart' hide Track;
-import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/domain/models/models.dart' hide Playlist;
 import 'package:nordplayer/services/audio/player_state.dart';
 
 void main() {

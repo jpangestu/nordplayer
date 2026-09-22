@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/core/database/app_database.dart' hide Artist;
+import 'package:nordplayer/data/mappers/db_mappers.dart';
+import 'package:nordplayer/domain/models/models.dart';
 
 /// Repository interface abstracting artist catalog queries.
 abstract interface class ArtistRepository {
@@ -9,7 +11,10 @@ abstract interface class ArtistRepository {
 }
 
 /// Drift/SQLite implementation of [ArtistRepository].
-class const DriftArtistRepository(final AppDatabase _db) implements ArtistRepository {
+class DriftArtistRepository implements ArtistRepository {
+  final AppDatabase _db;
+
+  const DriftArtistRepository(this._db);
 
   @override
   Stream<List<Artist>> watchArtists() {
@@ -24,7 +29,7 @@ class const DriftArtistRepository(final AppDatabase _db) implements ArtistReposi
       ..orderBy([OrderingTerm.asc(_db.artists.name.lower())]);
 
     return query.watch().map((rows) {
-      return rows.map((row) => row.readTable(_db.artists)).toList();
+      return rows.map((row) => row.readTable(_db.artists).toDomain()).toList();
     });
   }
 }

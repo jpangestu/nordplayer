@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/core/database/app_database.dart' hide Album, Artist, Track;
+import 'package:nordplayer/data/mappers/db_mappers.dart';
+import 'package:nordplayer/domain/models/models.dart';
 
 /// Repository interface abstracting album queries and track associations.
 abstract interface class AlbumRepository {
@@ -18,7 +20,10 @@ abstract interface class AlbumRepository {
 }
 
 /// Drift/SQLite implementation of [AlbumRepository].
-class const DriftAlbumRepository(final AppDatabase _db) implements AlbumRepository {
+class DriftAlbumRepository implements AlbumRepository {
+  final AppDatabase _db;
+
+  const DriftAlbumRepository(this._db);
 
   @override
   Stream<List<Album>> watchAlbums() {
@@ -32,7 +37,7 @@ class const DriftAlbumRepository(final AppDatabase _db) implements AlbumReposito
       ..orderBy([OrderingTerm.asc(_db.albums.title.lower())]);
 
     return query.watch().map((rows) {
-      return rows.map((row) => row.readTable(_db.albums)).toList();
+      return rows.map((row) => row.readTable(_db.albums).toDomain()).toList();
     });
   }
 
@@ -52,7 +57,7 @@ class const DriftAlbumRepository(final AppDatabase _db) implements AlbumReposito
     return query.watch().map((rows) {
       if (rows.isEmpty) return null;
 
-      final album = rows.first.readTable(_db.albums);
+      final album = rows.first.readTable(_db.albums).toDomain();
       final Map<int, TrackWithArtists> groupedTracks = {};
       int tracksLengthMs = 0;
 
@@ -61,7 +66,7 @@ class const DriftAlbumRepository(final AppDatabase _db) implements AlbumReposito
 
         if (track != null) {
           if (!groupedTracks.containsKey(track.id)) {
-            groupedTracks[track.id] = TrackWithArtists(track: track, album: album, artists: []);
+            groupedTracks[track.id] = TrackWithArtists(track: track.toDomain(), album: album, artists: []);
             tracksLengthMs += track.durationMs;
           }
 
@@ -69,7 +74,7 @@ class const DriftAlbumRepository(final AppDatabase _db) implements AlbumReposito
           if (artist != null && artist.id != 0) {
             final currentArtists = groupedTracks[track.id]!.artists;
             if (!currentArtists.any((a) => a.id == artist.id)) {
-              currentArtists.add(artist);
+              currentArtists.add(artist.toDomain());
             }
           }
         }
@@ -93,7 +98,7 @@ class const DriftAlbumRepository(final AppDatabase _db) implements AlbumReposito
       ..groupBy([_db.artists.id])
       ..orderBy([OrderingTerm.asc(_db.artists.name.lower())]);
 
-    return query.get().then((rows) => rows.map((row) => row.readTable(_db.artists)).toList());
+    return query.get().then((rows) => rows.map((row) => row.readTable(_db.artists).toDomain()).toList());
   }
 
   @override
@@ -108,7 +113,7 @@ class const DriftAlbumRepository(final AppDatabase _db) implements AlbumReposito
       ..orderBy([OrderingTerm(expression: const CustomExpression('RANDOM()'))])
       ..limit(limitAmount);
 
-    return query.get().then((rows) => rows.map((row) => row.readTable(_db.albums)).toList());
+    return query.get().then((rows) => rows.map((row) => row.readTable(_db.albums).toDomain()).toList());
   }
 }
 

@@ -3,7 +3,7 @@ import 'dart:io' show File;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/domain/models/models.dart';
 import 'package:nordplayer/features/albums/album_detail_viewmodel.dart';
 import 'package:nordplayer/features/tracks/widgets/track_context_menu.dart';
 import 'package:nordplayer/core/system/config_service.dart';

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/domain/models/models.dart';
 import 'package:nordplayer/data/repositories/playlist_repository.dart';
 import 'package:nordplayer/features/playlists/playlists_viewmodel.dart';
 import 'package:nordplayer/services/audio/player_service.dart';
@@ -49,7 +49,7 @@ class FakePlaylistRepository implements PlaylistRepository {
   Stream<List<PlaylistWithDetails>> watchAllPlaylists() => Stream.value(const []);
 
   @override
-  Stream<PlaylistData> watchPlaylist(int playlistId) => const Stream.empty();
+  Stream<Playlist> watchPlaylist(int playlistId) => const Stream.empty();
 
   @override
   Stream<List<TrackWithArtists>> watchPlaylistTracks(int playlistId) => Stream.value(const []);

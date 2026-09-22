@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/domain/models/models.dart';
 import 'package:nordplayer/core/models/selection_state.dart';
 import 'package:nordplayer/core/system/config_service.dart';
 import 'package:nordplayer/core/utils/datetime_extension.dart';

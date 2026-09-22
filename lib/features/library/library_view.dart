@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/domain/models/models.dart';
 import 'package:nordplayer/data/repositories/album_repository.dart';
 import 'package:nordplayer/data/repositories/track_repository.dart';
 import 'package:nordplayer/features/library/library_viewmodel.dart';

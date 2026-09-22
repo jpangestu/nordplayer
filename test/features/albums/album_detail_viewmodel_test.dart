@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/domain/models/models.dart';
 import 'package:nordplayer/core/system/preference_service.dart';
 import 'package:nordplayer/data/repositories/album_repository.dart';
 import 'package:nordplayer/features/albums/album_detail_viewmodel.dart';

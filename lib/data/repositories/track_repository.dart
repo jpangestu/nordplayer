@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/core/database/app_database.dart' hide Album, Artist, Track;
+import 'package:nordplayer/data/mappers/db_mappers.dart';
+import 'package:nordplayer/domain/models/models.dart';
 
 /// Repository interface abstracting audio track queries, library statistics,
 /// search, and maintenance operations.
@@ -166,13 +168,17 @@ class const DriftTrackRepository(final AppDatabase _db) implements TrackReposito
       final artist = row.readTableOrNull(_db.artists);
 
       if (!groupedTracks.containsKey(track.id)) {
-        groupedTracks[track.id] = TrackWithArtists(track: track, album: album, artists: []);
+        groupedTracks[track.id] = TrackWithArtists(
+          track: track.toDomain(),
+          album: album.toDomain(),
+          artists: [],
+        );
       }
 
       if (artist != null && artist.id != 0) {
         final currentArtists = groupedTracks[track.id]!.artists;
         if (!currentArtists.any((a) => a.id == artist.id)) {
-          currentArtists.add(artist);
+          currentArtists.add(artist.toDomain());
         }
       }
     }

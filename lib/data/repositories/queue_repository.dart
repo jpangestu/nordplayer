@@ -1,7 +1,9 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/core/database/app_database.dart' hide Track, Album, Artist;
 import 'package:nordplayer/core/utils/string_extension.dart';
+import 'package:nordplayer/data/mappers/db_mappers.dart';
+import 'package:nordplayer/domain/models/models.dart';
 
 /// Repository interface abstracting player queue persistence, restoration,
 /// and active playback position tracking.
@@ -30,7 +32,10 @@ abstract interface class QueueRepository {
 }
 
 /// Drift/SQLite implementation of [QueueRepository].
-class const DriftQueueRepository(final AppDatabase _db) implements QueueRepository {
+class DriftQueueRepository implements QueueRepository {
+  final AppDatabase _db;
+
+  const DriftQueueRepository(this._db);
 
   @override
   Future<void> saveQueue(
@@ -105,7 +110,11 @@ class const DriftQueueRepository(final AppDatabase _db) implements QueueReposito
       final key = entry.originalQueueIndex;
       if (!groupedQueue.containsKey(key)) {
         groupedQueue[key] = (
-          TrackWithArtists(track: track, album: album, artists: []),
+          TrackWithArtists(
+            track: track.toDomain(),
+            album: album.toDomain(),
+            artists: [],
+          ),
           entry.isCurrentlyPlaying,
           entry.resumePositionMs,
         );
@@ -114,7 +123,7 @@ class const DriftQueueRepository(final AppDatabase _db) implements QueueReposito
       if (artist != null && artist.id != 0) {
         final currentArtists = groupedQueue[key]!.$1.artists;
         if (!currentArtists.any((a) => a.id == artist.id)) {
-          currentArtists.add(artist);
+          currentArtists.add(artist.toDomain());
         }
       }
     }

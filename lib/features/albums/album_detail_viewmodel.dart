@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/domain/models/models.dart';
 import 'package:nordplayer/core/models/table_column_config.dart';
 import 'package:nordplayer/core/system/logger.dart';
 import 'package:nordplayer/core/system/preference_service.dart';

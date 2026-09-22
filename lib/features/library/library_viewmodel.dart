@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/database/app_database.dart';
+import 'package:nordplayer/domain/models/models.dart';
 import 'package:nordplayer/core/models/library_section_config.dart';
 import 'package:nordplayer/core/system/config_service.dart';
 import 'package:nordplayer/core/system/logger.dart';
