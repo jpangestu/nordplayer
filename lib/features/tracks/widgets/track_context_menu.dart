@@ -2,15 +2,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/domain/models/models.dart';
 import 'package:nordplayer/core/models/selection_state.dart';
-import 'package:nordplayer/data/repositories/playlist_repository.dart';
-import 'package:nordplayer/features/playlists/playlists_viewmodel.dart';
-import 'package:nordplayer/features/queue/queue_viewmodel.dart';
 import 'package:nordplayer/core/system/platform_service.dart' show showInFolder;
 import 'package:nordplayer/core/system/preference_service.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
+import 'package:nordplayer/data/repositories/playlist_repository.dart';
+import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/features/playlists/playlists_viewmodel.dart';
 import 'package:nordplayer/features/playlists/widgets/playlist_dialogs.dart';
+import 'package:nordplayer/features/queue/queue_viewmodel.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/services/audio/player_service.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
@@ -132,9 +132,9 @@ class TrackContextMenu {
             onTap: () {
               final selectionSet = ref.read(selectedTracksIndexProvider('queue_page'));
               if (selectionSet.isNotEmpty) {
-                ref.read(queueViewModelProvider).removeSelectedTracks(selectionSet.toList());
+                ref.read(queueViewModelProvider.notifier).removeSelectedTracks(selectionSet.toList());
               } else {
-                ref.read(queueViewModelProvider).removeTrack(clickedIndex);
+                ref.read(queueViewModelProvider.notifier).removeTrack(clickedIndex);
               }
             },
           ),

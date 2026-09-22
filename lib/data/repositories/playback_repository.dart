@@ -28,6 +28,7 @@ abstract interface class PlaybackRepository {
   int? get playbackContextId;
 
   Stream<TrackWithArtists?> watchCurrentTrack();
+  Stream<int> watchCurrentIndex();
   Stream<List<TrackWithArtists>> watchQueue();
   Stream<bool> watchIsPlaying();
   Stream<Duration> watchPosition();
@@ -86,10 +87,10 @@ class DefaultPlaybackRepository(
   final Debouncer _queueSaveDebouncer = Debouncer(const Duration(seconds: 1));
   final List<StreamSubscription<dynamic>> _subscriptions = [];
 
-  final StreamController<TrackWithArtists?> _currentTrackController =
-      StreamController<TrackWithArtists?>.broadcast();
+  final StreamController<TrackWithArtists?> _currentTrackController = StreamController<TrackWithArtists?>.broadcast();
   final StreamController<List<TrackWithArtists>> _queueController =
       StreamController<List<TrackWithArtists>>.broadcast();
+  final StreamController<int> _currentIndexController = StreamController<int>.broadcast();
 
   this {
     _init();
@@ -102,6 +103,7 @@ class DefaultPlaybackRepository(
         final current = currentTrack;
         _currentTrackController.add(current);
         _queueController.add(currentQueue);
+        _currentIndexController.add(playlist.index);
 
         if (_isRestoringQueue || playlist.medias.isEmpty) return;
         _queueSaveDebouncer(() => _saveQueueState(newIndex: playlist.index));
@@ -114,8 +116,7 @@ class DefaultPlaybackRepository(
         if (_isRestoringQueue) return;
 
         final now = DateTime.now();
-        if (_lastPositionSaveTime == null ||
-            now.difference(_lastPositionSaveTime!) >= const Duration(seconds: 5)) {
+        if (_lastPositionSaveTime == null || now.difference(_lastPositionSaveTime!) >= const Duration(seconds: 5)) {
           _lastPositionSaveTime = now;
           _queueRepository.updateCurrentPosition(pos.inMilliseconds);
         }
@@ -173,6 +174,9 @@ class DefaultPlaybackRepository(
   Stream<TrackWithArtists?> watchCurrentTrack() => _currentTrackController.stream;
 
   @override
+  Stream<int> watchCurrentIndex() => _currentIndexController.stream;
+
+  @override
   Stream<List<TrackWithArtists>> watchQueue() => _queueController.stream;
 
   @override
@@ -190,21 +194,13 @@ class DefaultPlaybackRepository(
   Media _createMedia(TrackWithArtists trackWithArtists) {
     return Media(
       trackWithArtists.track.filePath,
-      extras: {
-        'title': trackWithArtists.track.title,
-        'artists': trackWithArtists.artists,
-        'data': trackWithArtists,
-      },
+      extras: {'title': trackWithArtists.track.title, 'artists': trackWithArtists.artists, 'data': trackWithArtists},
     );
   }
 
   @override
   Future<void> playTrack(List<TrackWithArtists> tracks, int index) async {
-    await setPlaylist(
-      tracksToPlay: tracks,
-      initialIndex: index,
-      playbackContextType: 'direct',
-    );
+    await setPlaylist(tracksToPlay: tracks, initialIndex: index, playbackContextType: 'direct');
   }
 
   @override
@@ -228,10 +224,7 @@ class DefaultPlaybackRepository(
       _shouldSuppressNextScroll = false;
       _ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.jump);
 
-      await _playerService.open(
-        Playlist(playableMedia, index: initialIndex),
-        play: autoplay,
-      );
+      await _playerService.open(Playlist(playableMedia, index: initialIndex), play: autoplay);
 
       _saveQueueState(newIndex: initialIndex);
     } catch (e, s) {
@@ -365,10 +358,8 @@ class DefaultPlaybackRepository(
 
   @override
   Future<void> reorderQueue(int oldIndex, int newIndex) async {
-    if (oldIndex < newIndex) {
-      newIndex -= 1;
-    }
-    await _playerService.rawPlayer.move(oldIndex, newIndex);
+    final engineNewIndex = oldIndex < newIndex ? newIndex + 1 : newIndex;
+    await _playerService.rawPlayer.move(oldIndex, engineNewIndex);
     if (oldIndex < _originalQueue.length && newIndex < _originalQueue.length) {
       final item = _originalQueue.removeAt(oldIndex);
       _originalQueue.insert(newIndex, item);
@@ -388,8 +379,7 @@ class DefaultPlaybackRepository(
   Future<void> restoreQueue() async {
     _isRestoringQueue = true;
     try {
-      final (restoredQueue, lastIndex, lastPos, contextType, contextId) =
-          await _queueRepository.loadQueue();
+      final (restoredQueue, lastIndex, lastPos, contextType, contextId) = await _queueRepository.loadQueue();
 
       if (restoredQueue.isEmpty) return;
 
@@ -400,10 +390,9 @@ class DefaultPlaybackRepository(
       final playableMedia = restoredQueue.map(_createMedia).toList();
       final validIndex = (lastIndex >= 0 && lastIndex < restoredQueue.length) ? lastIndex : 0;
 
-      await _playerService.open(
-        Playlist(playableMedia, index: validIndex),
-        play: false,
-      );
+      await _playerService.open(Playlist(playableMedia, index: validIndex), play: false);
+
+      _currentIndexController.add(validIndex);
 
       if (lastPos > Duration.zero) {
         await _playerService.seek(lastPos);
@@ -420,9 +409,7 @@ class DefaultPlaybackRepository(
 
   void _saveQueueState({int? newIndex}) {
     final activeIndex = newIndex ?? currentIndex;
-    final playingTrack = (activeIndex >= 0 && activeIndex < currentQueue.length)
-        ? currentQueue[activeIndex]
-        : null;
+    final playingTrack = (activeIndex >= 0 && activeIndex < currentQueue.length) ? currentQueue[activeIndex] : null;
 
     _queueRepository.saveQueue(
       _originalQueue,
@@ -432,7 +419,6 @@ class DefaultPlaybackRepository(
       _playbackContextId,
     );
   }
-
 
   @override
   bool consumeSuppressNextScroll() {
@@ -449,6 +435,7 @@ class DefaultPlaybackRepository(
     }
     _queueSaveDebouncer.cancel();
     _currentTrackController.close();
+    _currentIndexController.close();
     _queueController.close();
   }
 }
@@ -459,12 +446,7 @@ final playbackRepositoryProvider = Provider<PlaybackRepository>((ref) {
   final queueRepo = ref.watch(queueRepositoryProvider);
   final settingsRepo = ref.watch(settingsRepositoryProvider);
 
-  final repo = DefaultPlaybackRepository(
-    playerService,
-    queueRepo,
-    settingsRepo,
-    ref,
-  );
+  final repo = DefaultPlaybackRepository(playerService, queueRepo, settingsRepo, ref);
 
   ref.onDispose(repo.dispose);
   return repo;

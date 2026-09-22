@@ -4,18 +4,17 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:nordplayer/core/models/queue_scroll_behavior.dart';
+import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/domain/models/models.dart';
-import 'package:nordplayer/core/models/selection_state.dart';
 import 'package:nordplayer/features/queue/queue_viewmodel.dart';
 import 'package:nordplayer/features/tracks/widgets/track_context_menu.dart';
-import 'package:nordplayer/core/system/config_service.dart';
-import 'package:nordplayer/services/audio/player_service.dart';
-import 'package:nordplayer/core/system/preference_service.dart';
-import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
 
+/// Pure presentation View for the active playback queue sidebar,
+/// observing [QueueUiState] via [queueViewModelProvider].
 class QueueView extends ConsumerStatefulWidget {
   const QueueView({super.key});
 
@@ -27,17 +26,15 @@ class _QueueViewState extends ConsumerState<QueueView> {
   late ScrollController _scrollController;
 
   /// The height of MusicTile + padding (50 + 8 + 8).
-  final double _itemHeight = 66.0;
+  static const double _itemHeight = 66.0;
   bool _isHeaderHovered = false;
 
   @override
   void initState() {
     super.initState();
 
-    // Read the index exactly once when the page first opens
-    final initialIndex = ref.read(currentTrackIndexProvider);
-
-    // Calculate how far down to scroll. (If index is -1, just stay at 0)
+    // Read initial queue index when page first opens
+    final initialIndex = ref.read(queueViewModelProvider).currentIndex;
     final initialOffset = initialIndex > 0 ? initialIndex * _itemHeight : 0.0;
     _scrollController = ScrollController(initialScrollOffset: initialOffset);
   }
@@ -49,7 +46,7 @@ class _QueueViewState extends ConsumerState<QueueView> {
   }
 
   void _scrollToCurrentTrack() {
-    final currentIndex = ref.read(currentTrackIndexProvider);
+    final currentIndex = ref.read(queueViewModelProvider).currentIndex;
 
     if (currentIndex >= 0 && _scrollController.hasClients) {
       _scrollController.animateTo(
@@ -62,19 +59,15 @@ class _QueueViewState extends ConsumerState<QueueView> {
 
   @override
   Widget build(BuildContext context) {
-    final currentTrack = ref.watch(currentTrackProvider);
-    final currentTracks = ref.watch(currentTracksInQueueProvider);
-    final selectedIndices = ref.watch(selectedTracksIndexProvider('queue_page'));
-
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider);
     final appIconSet = ref.watch(appIconProvider);
+    final uiState = ref.watch(queueViewModelProvider);
+    final viewModel = ref.read(queueViewModelProvider.notifier);
 
-    // Handle index changes (Next/Prev/Auto-advance)
-    ref.listen<int>(currentTrackIndexProvider, (previous, next) {
+    // Auto-scroll when active track index advances
+    ref.listen<int>(queueViewModelProvider.select((s) => s.currentIndex), (previous, next) {
       if (next != previous && next >= 0 && _scrollController.hasClients) {
-        // Read the exact intent of this track change
-        final scrollBehavior = ref.read(queueScrollBehaviorProvider);
+        final scrollBehavior = ref.read(queueViewModelProvider).scrollBehavior;
 
         if (scrollBehavior == QueueScrollBehavior.animate) {
           _scrollController.animateTo(
@@ -86,26 +79,27 @@ class _QueueViewState extends ConsumerState<QueueView> {
           _scrollController.jumpTo(next * _itemHeight);
         }
 
-        // Reset the intent
-        ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.none);
+        viewModel.resetScrollBehavior();
       }
     });
 
+    final currentTracks = uiState.tracks;
+    final selectedIndices = uiState.selectedIndices;
+
     return FrostedGlass(
-      blurSigma: appConfig.adaptiveBgPanelBlur,
+      blurSigma: uiState.adaptiveBgPanelBlur,
       child: SizedBox(
         width: 300,
         child: Scaffold(
           appBar: AppBar(
-            backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surfaceContainer,
+            backgroundColor: uiState.isAdaptiveBg ? Colors.transparent : theme.colorScheme.surfaceContainer,
             toolbarHeight: 60,
-            // Disable app bar changing color when tracks list scrolls below it
             surfaceTintColor: Colors.transparent,
             elevation: 0,
             scrolledUnderElevation: 0.0,
             shadowColor: Colors.black,
             titleSpacing: 0,
-            flexibleSpace: appConfig.adaptiveBg
+            flexibleSpace: uiState.isAdaptiveBg
                 ? ClipRect(
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0, tileMode: .mirror),
@@ -125,96 +119,76 @@ class _QueueViewState extends ConsumerState<QueueView> {
                   children: [
                     if (_isHeaderHovered) ...[
                       IconButton(
-                        onPressed: () {
-                          ref.read(preferenceServiceProvider.notifier).setShowQueue(false);
-                        },
+                        onPressed: viewModel.closeQueue,
                         icon: AppIcon(appIconSet.sidebarOpen),
                         tooltip: 'Close Queue',
                       ),
                       const SizedBox(width: 8),
                     ],
-                    Text('Queue', style: Theme.of(context).textTheme.titleLarge),
+                    Text('Queue', style: theme.textTheme.titleLarge),
                   ],
                 ),
               ),
             ),
           ),
-          backgroundColor: appConfig.adaptiveBg
-              ? theme.colorScheme.surfaceContainerLow.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
+          backgroundColor: uiState.isAdaptiveBg
+              ? theme.colorScheme.surfaceContainerLow.withValues(alpha: uiState.adaptiveBgThemeOverlay)
               : theme.colorScheme.surfaceContainerLow,
           body: ReorderableList(
             padding: const .symmetric(vertical: 8),
             controller: _scrollController,
-            onReorderStart: (index) {
-              ref.read(queueIsDraggingProvider.notifier).setDragging(true);
-            },
-            onReorderEnd: (index) {
-              ref.read(queueIsDraggingProvider.notifier).setDragging(false);
-            },
-            onReorderItem: (oldIndex, newIndex) {
-              ref.read(currentTracksInQueueProvider.notifier).moveTrackOptimistically(oldIndex, newIndex);
-              ref.read(queueViewModelProvider).moveTrack(oldIndex, newIndex);
-            },
+            onReorderStart: (_) => viewModel.setDragging(true),
+            onReorderEnd: (_) => viewModel.setDragging(false),
+            onReorderItem: (oldIndex, newIndex) => viewModel.moveTrack(oldIndex, newIndex),
             itemCount: currentTracks.length,
             itemExtent: _itemHeight,
             itemBuilder: (context, index) {
               final trackItem = currentTracks[index];
-
               final isSelected = selectedIndices.contains(index);
-              final isCurrentlyPlaying =
-                  currentTrack != null && trackItem.track.filePath == currentTrack.track.filePath;
+              final isCurrentlyPlaying = uiState.isCurrentlyPlaying(trackItem);
+
               return _QueueItem(
                 key: ObjectKey(trackItem),
                 index: index,
                 trackItem: trackItem,
                 isSelected: isSelected,
                 isCurrentlyPlaying: isCurrentlyPlaying,
+                isDragging: uiState.isDragging,
                 onRemove: () {
-                  final selection = ref.read(selectedTracksIndexProvider('queue_page'));
-                  if (selection.contains(index)) {
-                    ref.read(queueViewModelProvider).removeSelectedTracks(selection.toList());
+                  if (selectedIndices.contains(index)) {
+                    viewModel.removeSelectedTracks(selectedIndices.toList());
                   } else {
-                    ref.read(queueViewModelProvider).removeTrack(index);
+                    viewModel.removeTrack(index);
                   }
                 },
-                onClick: (index, {required isCtrl, required isShift}) {
-                  ref
-                      .read(selectedTracksIndexProvider('queue_page').notifier)
-                      .selectTrack(index, isCtrlSelect: isCtrl, isShiftSelect: isShift);
+                onClick: (idx, {required isCtrl, required isShift}) {
+                  viewModel.selectTrack(idx, isCtrl: isCtrl, isShift: isShift);
                 },
-                onDoubleClick: (index) {
-                  ref.read(playerServiceProvider).suppressNextScroll();
-                  ref.read(queueViewModelProvider).jumpToTrack(index);
+                onDoubleClick: (idx) {
+                  viewModel.jumpToTrack(idx);
                 },
-                onRightClick: (index, globalPosition) {
-                  final selectionNotifier = ref.read(selectedTracksIndexProvider('queue_page').notifier);
-                  final currentSelection = ref.read(selectedTracksIndexProvider('queue_page'));
-
+                onRightClick: (idx, globalPosition) {
                   // If right-clicking an unselected item, select it first and clear others
-                  if (!currentSelection.contains(index)) {
-                    selectionNotifier.selectTrack(index, isCtrlSelect: false, isShiftSelect: false);
+                  if (!selectedIndices.contains(idx)) {
+                    viewModel.selectTrack(idx, isCtrl: false, isShift: false);
                   }
 
-                  final updatedSelection = ref.read(selectedTracksIndexProvider('queue_page'));
-
-                  // Convert to list and sort the indices
+                  final updatedSelection = ref.read(queueViewModelProvider).selectedIndices;
                   final sortedIndices = updatedSelection.toList()..sort();
-
-                  // Safely map the selected tracks
-                  final List<TrackWithArtists> selectedTracks = sortedIndices
+                  final selectedTracks = sortedIndices
+                      .where((i) => i >= 0 && i < currentTracks.length)
                       .map((i) => currentTracks[i])
-                      .nonNulls
                       .toList();
 
                   TrackContextMenu.show(
                     context: context,
                     ref: ref,
-                    isAdaptive: appConfig.adaptiveBg,
+                    isAdaptive: uiState.isAdaptiveBg,
                     globalPosition: globalPosition,
-                    tracks: currentTracks.nonNulls.toList(),
-                    clickedIndex: index, // Assuming no nulls skewing the index
+                    tracks: currentTracks,
+                    clickedIndex: idx,
                     selectedTracks: selectedTracks,
-                    playbackContextType: 'queue', // Explicitly pass 'queue'
+                    playbackContextType: 'queue',
                     playbackContextId: null,
                   );
                 },
@@ -233,11 +207,12 @@ class _QueueViewState extends ConsumerState<QueueView> {
   }
 }
 
-class _QueueItem extends ConsumerStatefulWidget {
+class _QueueItem extends StatefulWidget {
   final int index;
   final TrackWithArtists trackItem;
   final bool isSelected;
   final bool isCurrentlyPlaying;
+  final bool isDragging;
   final VoidCallback onRemove;
   final void Function(int index, {required bool isCtrl, required bool isShift})? onClick;
   final void Function(int index)? onDoubleClick;
@@ -249,6 +224,7 @@ class _QueueItem extends ConsumerStatefulWidget {
     required this.trackItem,
     required this.isSelected,
     required this.isCurrentlyPlaying,
+    required this.isDragging,
     required this.onRemove,
     required this.onClick,
     required this.onDoubleClick,
@@ -256,24 +232,23 @@ class _QueueItem extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<_QueueItem> createState() => _QueueItemState();
+  State<_QueueItem> createState() => _QueueItemState();
 }
 
-class _QueueItemState extends ConsumerState<_QueueItem> {
+class _QueueItemState extends State<_QueueItem> {
   bool _isHovered = false;
   bool _isHoveringActions = false;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDragging = ref.watch(queueIsDraggingProvider);
 
-    // If we start dragging, hide the hover actions immediately
-    final effectiveHover = _isHovered && !isDragging;
+    // If we start dragging, hide hover actions immediately
+    final effectiveHover = _isHovered && !widget.isDragging;
 
     return MouseRegion(
       onEnter: (_) {
-        if (!isDragging) setState(() => _isHovered = true);
+        if (!widget.isDragging) setState(() => _isHovered = true);
       },
       onExit: (_) => setState(() => _isHovered = false),
       child: Listener(
@@ -350,17 +325,5 @@ class _QueueItemState extends ConsumerState<_QueueItem> {
         ),
       ),
     );
-  }
-}
-
-/// Tracks if a reorder drag is in progress to suppress hover effects and prevent flickering.
-final queueIsDraggingProvider = NotifierProvider<QueueIsDraggingNotifier, bool>(QueueIsDraggingNotifier.new);
-
-class QueueIsDraggingNotifier extends Notifier<bool> {
-  @override
-  bool build() => false;
-
-  void setDragging(bool dragging) {
-    state = dragging;
   }
 }

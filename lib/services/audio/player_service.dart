@@ -175,7 +175,6 @@ class PlayerService with LoggerMixin {
   /// Save current queue state to the database.
   void _saveQueueState({int? newIndex}) {
     if (_originalQueue.isEmpty || _mkPlayer.state.playlist.medias.isEmpty) {
-      log.w("Aborting queue save: originalQueue or medias is empty.");
       return;
     }
 
