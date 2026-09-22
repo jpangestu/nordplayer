@@ -27,6 +27,18 @@ abstract interface class TrackRepository {
 
   /// Wipes all library tables and vacuums the database.
   Future<void> clearAllData();
+
+  /// Marks tracks as missing by their database IDs.
+  Future<void> markTracksMissingByIds(List<int> trackIds);
+
+  /// Updates a track's file path when moved or renamed.
+  Future<void> updateTrackFilePath(int trackId, String newFilePath);
+
+  /// Updates a track's file hash.
+  Future<void> updateTrackHash(int trackId, String newHash);
+
+  /// Deletes a track by ID.
+  Future<void> deleteTrack(int trackId);
 }
 
 /// Drift/SQLite implementation of [TrackRepository].
@@ -156,6 +168,34 @@ class const DriftTrackRepository(final AppDatabase _db) implements TrackReposito
       await _db.customStatement('PRAGMA foreign_keys = ON;');
       await _db.customStatement('VACUUM;');
     }
+  }
+
+  @override
+  Future<void> markTracksMissingByIds(List<int> trackIds) async {
+    const int batchSize = 500;
+    for (var i = 0; i < trackIds.length; i += batchSize) {
+      final end = (i + batchSize < trackIds.length) ? i + batchSize : trackIds.length;
+      final batch = trackIds.sublist(i, end);
+      await (_db.update(_db.tracks)..where((t) => t.id.isIn(batch)))
+          .write(const TracksCompanion(isMissing: Value(true)));
+    }
+  }
+
+  @override
+  Future<void> updateTrackFilePath(int trackId, String newFilePath) async {
+    await (_db.update(_db.tracks)..where((t) => t.id.equals(trackId)))
+        .write(TracksCompanion(filePath: Value(newFilePath), isMissing: const Value(false)));
+  }
+
+  @override
+  Future<void> updateTrackHash(int trackId, String newHash) async {
+    await (_db.update(_db.tracks)..where((t) => t.id.equals(trackId)))
+        .write(TracksCompanion(fileHash: Value(newHash)));
+  }
+
+  @override
+  Future<void> deleteTrack(int trackId) async {
+    await (_db.delete(_db.tracks)..where((t) => t.id.equals(trackId))).go();
   }
 
   /// Groups flattened join rows into composite [TrackWithArtists] domain entities.

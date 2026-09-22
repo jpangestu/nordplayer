@@ -9,6 +9,7 @@ import 'package:nordplayer/core/system/background_task_service.dart';
 import 'package:nordplayer/core/system/config_service.dart';
 import 'package:nordplayer/services/indexer/track_indexer.dart';
 import 'package:nordplayer/core/system/logger.dart';
+import 'package:nordplayer/data/repositories/track_repository.dart';
 import 'package:nordplayer/services/audio/player_service.dart';
 import 'package:nordplayer/core/utils/audio_metadata_hasher.dart';
 import 'package:nordplayer/core/utils/string_extension.dart';
@@ -179,9 +180,9 @@ class LibraryScanner(
               "Detected file moved/renamed: '${oldTrack.filePath}' -> '$newTrackPath'. Reconnecting database entry...",
             );
 
-            await (_db.update(_db.tracks)..where((t) => t.id.equals(oldTrack.id))).write(
-              TracksCompanion(filePath: Value(newTrackPath), isMissing: const Value(false)),
-            );
+            await _ref
+                .read(trackRepositoryProvider)
+                .updateTrackFilePath(oldTrack.id, newTrackPath);
 
             missingTracksMap.remove(oldTrack.id);
           } else {
@@ -198,13 +199,7 @@ class LibraryScanner(
 
         log.i('Marking ${missingIds.length} removed tracks as missing in database...');
 
-        for (var i = 0; i < missingIds.length; i += batchSize) {
-          final end = (i + batchSize < missingIds.length) ? i + batchSize : missingIds.length;
-          final batch = missingIds.sublist(i, end);
-          await (_db.update(
-            _db.tracks,
-          )..where((track) => track.id.isIn(batch))).write(const TracksCompanion(isMissing: Value(true)));
-        }
+        await _ref.read(trackRepositoryProvider).markTracksMissingByIds(missingIds);
         log.i('[Benchmark] Updated missing tracks in DB in ${stepStopwatch.elapsedMilliseconds}ms');
         stepStopwatch.reset();
 
