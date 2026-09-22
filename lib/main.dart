@@ -4,15 +4,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:nordplayer/core/shortcuts/shortcuts.dart';
+import 'package:nordplayer/core/system/config_service.dart';
+import 'package:nordplayer/core/system/preference_service.dart';
 import 'package:nordplayer/core/utils/directory_helper.dart';
 import 'package:nordplayer/features/shell/theme/active_theme_provider.dart';
 import 'package:nordplayer/routes/router.dart';
-import 'package:nordplayer/core/system/config_service.dart';
+import 'package:nordplayer/services/audio/player_service.dart';
 import 'package:nordplayer/services/indexer/library_indexer.dart';
 import 'package:nordplayer/services/indexer/library_watcher.dart';
-import 'package:nordplayer/services/audio/player_service.dart';
-import 'package:nordplayer/core/system/preference_service.dart';
-import 'package:nordplayer/core/shortcuts/shortcuts.dart';
 import 'package:nordplayer/widgets/adaptive_scaffold.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
@@ -126,6 +126,20 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp> with WindowListen
       routerConfig: router,
       title: 'Nordplayer',
       theme: themeData,
+      localizationsDelegates: [
+        GlobalMaterialLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('en', 'US')],
+      localeResolutionCallback: (locale, supportedLocales) {
+        if (locale != null) {
+          for (final supported in supportedLocales) {
+            if (supported.languageCode == locale.languageCode) {
+              return supported;
+            }
+          }
+        }
+        return supportedLocales.first;
+      },
       builder: (context, child) {
         return Shortcuts(
           shortcuts: <ShortcutActivator, Intent>{

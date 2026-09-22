@@ -10,8 +10,6 @@ import 'package:nordplayer/data/repositories/track_repository.dart';
 import 'package:nordplayer/domain/models/models.dart';
 import 'package:nordplayer/features/library/library_ui_state.dart';
 
-export 'package:nordplayer/features/library/library_ui_state.dart';
-
 /// ViewModel coordinating Library overview screen state, sections order, and playback.
 class LibraryViewModel extends Notifier<LibraryUiState> with LoggerMixin {
   PlaybackRepository get _playbackRepository => ref.read(playbackRepositoryProvider);
@@ -92,10 +90,14 @@ class LibraryViewModel extends Notifier<LibraryUiState> with LoggerMixin {
     final currentSections = List<LibrarySectionConfig>.from(state.sections);
     if (oldIndex < 0 || oldIndex >= currentSections.length) return;
 
-    newIndex.clamp(0, currentSections.length - 1);
+    var targetIndex = newIndex;
+    if (oldIndex < targetIndex) {
+      targetIndex -= 1;
+    }
+    targetIndex = targetIndex.clamp(0, currentSections.length - 1);
 
     final item = currentSections.removeAt(oldIndex);
-    currentSections.insert(newIndex, item);
+    currentSections.insert(targetIndex, item);
 
     log.i('Reordered library section "${item.id}" from $oldIndex to $newIndex');
     state = state.copyWith(sections: currentSections);

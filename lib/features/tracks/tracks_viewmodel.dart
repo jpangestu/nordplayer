@@ -10,8 +10,6 @@ import 'package:nordplayer/data/repositories/track_repository.dart';
 import 'package:nordplayer/domain/models/models.dart';
 import 'package:nordplayer/features/tracks/tracks_ui_state.dart';
 
-export 'package:nordplayer/features/tracks/tracks_ui_state.dart';
-
 /// Manages table column configurations (widths, ordering, visibility) for the all-tracks table.
 class TracksPageColumnsNotifier extends Notifier<List<TableColumnConfig>> {
   @override
@@ -27,32 +25,10 @@ class TracksPageColumnsNotifier extends Notifier<List<TableColumnConfig>> {
   }
 
   static const List<TableColumnConfig> initialColumns = [
-    TableColumnConfig(
-      id: 'index',
-      label: "#",
-      width: 60,
-      minWidth: 60,
-      alignment: Alignment.centerRight,
-    ),
-    TableColumnConfig(
-      id: 'title_artist',
-      label: "Title/Artist",
-      flex: 5,
-      minWidth: 150,
-    ),
-    TableColumnConfig(
-      id: 'album',
-      label: "Album",
-      flex: 3,
-      minWidth: 100,
-    ),
-    TableColumnConfig(
-      id: 'path',
-      label: 'Path',
-      flex: 3,
-      minWidth: 120,
-      isVisible: false,
-    ),
+    TableColumnConfig(id: 'index', label: "#", width: 60, minWidth: 60, alignment: Alignment.centerRight),
+    TableColumnConfig(id: 'title_artist', label: "Title/Artist", flex: 5, minWidth: 150),
+    TableColumnConfig(id: 'album', label: "Album", flex: 3, minWidth: 100),
+    TableColumnConfig(id: 'path', label: 'Path', flex: 3, minWidth: 120, isVisible: false),
     TableColumnConfig(
       id: 'date_added',
       label: "Date Added",
@@ -61,20 +37,8 @@ class TracksPageColumnsNotifier extends Notifier<List<TableColumnConfig>> {
       alignment: Alignment.centerRight,
       isVisible: false,
     ),
-    TableColumnConfig(
-      id: 'duration',
-      label: 'Duration',
-      width: 90,
-      minWidth: 90,
-      alignment: Alignment.centerRight,
-    ),
-    TableColumnConfig(
-      id: 'context_menu',
-      label: '',
-      width: 75,
-      minWidth: 75,
-      alignment: Alignment.centerRight,
-    ),
+    TableColumnConfig(id: 'duration', label: 'Duration', width: 90, minWidth: 90, alignment: Alignment.centerRight),
+    TableColumnConfig(id: 'context_menu', label: '', width: 75, minWidth: 75, alignment: Alignment.centerRight),
   ];
 }
 
@@ -104,10 +68,7 @@ class TracksViewModel extends Notifier<TracksUiState> with LoggerMixin {
         );
       },
       onError: (error) {
-        state = state.copyWith(
-          isLoading: false,
-          errorMessage: () => error.toString(),
-        );
+        state = state.copyWith(isLoading: false, errorMessage: () => error.toString());
       },
     );
 
@@ -123,9 +84,7 @@ class TracksViewModel extends Notifier<TracksUiState> with LoggerMixin {
     });
 
     final queueSub = playbackRepo.watchQueue().listen((_) {
-      state = state.copyWith(
-        albumArtCovers: _computeCollageCovers(state.tracks, playbackRepo),
-      );
+      state = state.copyWith(albumArtCovers: _computeCollageCovers(state.tracks, playbackRepo));
     });
 
     final configSub = configRepo.watchConfig().listen((config) {
@@ -163,10 +122,7 @@ class TracksViewModel extends Notifier<TracksUiState> with LoggerMixin {
   }
 
   /// Computes up to 5 unique album art paths for the tracks header collage.
-  List<String> _computeCollageCovers(
-    List<TrackWithArtists> tracks,
-    PlaybackRepository playbackRepo,
-  ) {
+  List<String> _computeCollageCovers(List<TrackWithArtists> tracks, PlaybackRepository playbackRepo) {
     if (playbackRepo.playbackContextType == 'all_tracks') {
       final queue = playbackRepo.currentQueue;
       final currentIndex = playbackRepo.currentIndex;
@@ -244,19 +200,11 @@ class TracksViewModel extends Notifier<TracksUiState> with LoggerMixin {
     if (tracks.isEmpty) return;
 
     final sortedIndices = state.selectedIndices.toList()..sort();
-    final selectedTracks = sortedIndices
-        .where((i) => i >= 0 && i < tracks.length)
-        .map((i) => tracks[i])
-        .toList();
+    final selectedTracks = sortedIndices.where((i) => i >= 0 && i < tracks.length).map((i) => tracks[i]).toList();
 
-    final effectiveClickedIndex =
-        clickedIndex ?? (sortedIndices.isNotEmpty ? sortedIndices.first : 0);
+    final effectiveClickedIndex = clickedIndex ?? (sortedIndices.isNotEmpty ? sortedIndices.first : 0);
 
-    playAsPlaylist(
-      selectedTracks,
-      clickedIndex: effectiveClickedIndex,
-      allTracks: tracks,
-    );
+    playAsPlaylist(selectedTracks, clickedIndex: effectiveClickedIndex, allTracks: tracks);
   }
 
   /// Selects or multi-selects track at [index].
@@ -264,9 +212,7 @@ class TracksViewModel extends Notifier<TracksUiState> with LoggerMixin {
     ref
         .read(selectedTracksIndexProvider('all_tracks').notifier)
         .selectTrack(index, isCtrlSelect: isCtrlSelect, isShiftSelect: isShiftSelect);
-    state = state.copyWith(
-      selectedIndices: ref.read(selectedTracksIndexProvider('all_tracks')),
-    );
+    state = state.copyWith(selectedIndices: ref.read(selectedTracksIndexProvider('all_tracks')));
   }
 
   /// Selects a single track at [index], clearing previous selections.
@@ -300,14 +246,12 @@ class TracksViewModel extends Notifier<TracksUiState> with LoggerMixin {
 }
 
 /// Riverpod provider exposing [TracksViewModel].
-final tracksViewModelProvider =
-    NotifierProvider<TracksViewModel, TracksUiState>(TracksViewModel.new);
+final tracksViewModelProvider = NotifierProvider<TracksViewModel, TracksUiState>(TracksViewModel.new);
 
 /// Backward-compatible provider for table column configurations.
-final tracksPageColumnsProvider =
-    NotifierProvider<TracksPageColumnsNotifier, List<TableColumnConfig>>(
-      TracksPageColumnsNotifier.new,
-    );
+final tracksPageColumnsProvider = NotifierProvider<TracksPageColumnsNotifier, List<TableColumnConfig>>(
+  TracksPageColumnsNotifier.new,
+);
 
 /// Backward-compatible provider for header collage album art paths.
 final libraryAlbumArtProvider = Provider<List<String>>((ref) {

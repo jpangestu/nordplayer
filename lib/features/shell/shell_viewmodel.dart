@@ -3,8 +3,6 @@ import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/settings_repository.dart';
 import 'package:nordplayer/features/shell/shell_ui_state.dart';
 
-export 'package:nordplayer/features/shell/shell_ui_state.dart';
-
 /// ViewModel managing layout, sidebar state, and responsive chrome visibility.
 class ShellViewModel extends Notifier<ShellUiState> {
   late SettingsRepository _settingsRepo;
@@ -27,10 +25,7 @@ class ShellViewModel extends Notifier<ShellUiState> {
     );
 
     final sub1 = _settingsRepo.watchSettings().listen((settings) {
-      state = state.copyWith(
-        isSidebarExtended: settings.sidebarExtended,
-        showQueue: settings.showQueue,
-      );
+      state = state.copyWith(isSidebarExtended: settings.sidebarExtended, showQueue: settings.showQueue);
     });
 
     final sub2 = _configRepo.watchConfig().listen((config) {
@@ -69,7 +64,4 @@ class ShellViewModel extends Notifier<ShellUiState> {
 }
 
 /// Provider for [ShellViewModel] and its immutable [ShellUiState].
-final shellViewModelProvider =
-    NotifierProvider<ShellViewModel, ShellUiState>(
-  ShellViewModel.new,
-);
+final shellViewModelProvider = NotifierProvider<ShellViewModel, ShellUiState>(ShellViewModel.new);

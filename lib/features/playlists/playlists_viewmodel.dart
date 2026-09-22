@@ -1,13 +1,82 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/models/entities.dart';
 import 'package:nordplayer/core/system/logger.dart';
+import 'package:nordplayer/data/repositories/config_repository.dart';
+import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/playlist_repository.dart';
-import 'package:nordplayer/services/audio/player_service.dart';
+import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/features/playlists/playlists_ui_state.dart';
+import 'package:nordplayer/services/audio/player_state.dart';
 
-/// ViewModel orchestrating playlist mutations and playback dispatch via [PlaylistRepository].
-class PlaylistsViewModel(final Ref _ref) with LoggerMixin {
-  PlaylistRepository get _repository => _ref.read(playlistRepositoryProvider);
-  PlayerService get _playerService => _ref.read(playerServiceProvider);
+/// ViewModel orchestrating playlists overview state, mutations, and playback dispatch.
+class PlaylistsViewModel extends Notifier<PlaylistsUiState> with LoggerMixin {
+  PlaylistRepository get _repository => ref.read(playlistRepositoryProvider);
+  PlaybackRepository get _playbackRepository => ref.read(playbackRepositoryProvider);
+
+  @override
+  PlaylistsUiState build() {
+    final playlistRepo = ref.watch(playlistRepositoryProvider);
+    final playbackRepo = ref.watch(playbackRepositoryProvider);
+    final configRepo = ref.watch(configRepositoryProvider);
+
+    final initialConfig = configRepo.currentConfig;
+    final initialActiveId = playbackRepo.playbackContextType == 'playlist' ? playbackRepo.playbackContextId : null;
+    final initialAlbumArt = ref.read(current5TracksAlbumArtInQueueProvider);
+
+    final playlistsSub = playlistRepo.watchAllPlaylists().listen(
+      (playlists) {
+        state = state.copyWith(playlists: playlists, isLoading: false, errorMessage: () => null);
+      },
+      onError: (err) {
+        state = state.copyWith(isLoading: false, errorMessage: () => err.toString());
+      },
+    );
+
+    final playingSub = playbackRepo.watchIsPlaying().listen((playing) {
+      if (state.isAudioPlaying != playing) {
+        state = state.copyWith(isAudioPlaying: playing);
+      }
+    });
+
+    final currentTrackSub = playbackRepo.watchCurrentTrack().listen((_) {
+      final isPlaylistActive = playbackRepo.playbackContextType == 'playlist';
+      final activeId = isPlaylistActive ? playbackRepo.playbackContextId : null;
+      if (state.activePlaylistId != activeId) {
+        state = state.copyWith(activePlaylistId: () => activeId);
+      }
+    });
+
+    final configSub = configRepo.watchConfig().listen((config) {
+      state = state.copyWith(
+        isAdaptiveBg: config.adaptiveBg,
+        adaptiveBgPanelBlur: config.adaptiveBgPanelBlur,
+        adaptiveBgThemeOverlay: config.adaptiveBgThemeOverlay,
+      );
+    });
+
+    ref.listen(current5TracksAlbumArtInQueueProvider, (_, next) {
+      if (!listEquals(state.activePlaylistAlbumArt, next)) {
+        state = state.copyWith(activePlaylistAlbumArt: next);
+      }
+    });
+
+    ref.onDispose(() {
+      playlistsSub.cancel();
+      playingSub.cancel();
+      currentTrackSub.cancel();
+      configSub.cancel();
+    });
+
+    return PlaylistsUiState(
+      isLoading: true,
+      activePlaylistId: initialActiveId,
+      isAudioPlaying: playbackRepo.isPlaying,
+      activePlaylistAlbumArt: initialAlbumArt,
+      isAdaptiveBg: initialConfig.adaptiveBg,
+      adaptiveBgPanelBlur: initialConfig.adaptiveBgPanelBlur,
+      adaptiveBgThemeOverlay: initialConfig.adaptiveBgThemeOverlay,
+    );
+  }
 
   /// Creates a new playlist with [name], optionally adding [trackIds] atomically.
   Future<int> createPlaylist(String name, {List<int>? trackIds}) async {
@@ -56,7 +125,7 @@ class PlaylistsViewModel(final Ref _ref) with LoggerMixin {
     bool forceReload = false,
   }) {
     if (tracks.isEmpty) return;
-    _playerService.setPlaylist(
+    _playbackRepository.setPlaylist(
       tracksToPlay: tracks,
       initialIndex: initialIndex,
       playbackContextType: 'playlist',
@@ -70,7 +139,7 @@ class PlaylistsViewModel(final Ref _ref) with LoggerMixin {
     final tracks = await _repository.getPlaylistTracks(playlistId);
     if (tracks.isEmpty) return false;
 
-    _playerService.setPlaylist(
+    await _playbackRepository.setPlaylist(
       playbackContextType: 'playlist',
       playbackContextId: playlistId,
       tracksToPlay: tracks,
@@ -85,11 +154,10 @@ class PlaylistsViewModel(final Ref _ref) with LoggerMixin {
     final tracks = await _repository.getPlaylistTracks(playlistId);
     if (tracks.isEmpty) return 0;
 
-    final playbackContext = _ref.read(playbackContextProvider);
-    _playerService.addToQueue(tracks, playbackContext?.type ?? '', playbackContext?.id);
+    await _playbackRepository.addToQueue(tracks);
     return tracks.length;
   }
 }
 
 /// Riverpod provider exposing [PlaylistsViewModel].
-final playlistsViewModelProvider = Provider<PlaylistsViewModel>((ref) => PlaylistsViewModel(ref));
+final playlistsViewModelProvider = NotifierProvider<PlaylistsViewModel, PlaylistsUiState>(PlaylistsViewModel.new);

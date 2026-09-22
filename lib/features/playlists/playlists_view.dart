@@ -1,39 +1,35 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/core/models/entities.dart';
-import 'package:nordplayer/core/system/config_service.dart';
 import 'package:nordplayer/core/system/logger.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
-import 'package:nordplayer/data/repositories/playlist_repository.dart';
+import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/features/playlists/playlists_ui_state.dart';
 import 'package:nordplayer/features/playlists/playlists_viewmodel.dart';
+import 'package:nordplayer/features/playlists/widgets/playlist_dialogs.dart';
 import 'package:nordplayer/routes/router.dart';
-import 'package:nordplayer/services/audio/player_service.dart';
 import 'package:nordplayer/widgets/album_art_stack.dart';
 import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
-import 'package:nordplayer/features/playlists/widgets/playlist_dialogs.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/nord_alert_dialog.dart';
 import 'package:nordplayer/widgets/nord_snack_bar.dart';
 import 'package:nordplayer/widgets/sections/section_container.dart';
 import 'package:nordplayer/widgets/sections/section_page_title.dart';
 
-// Re-export dialog helpers for backward compatibility
-export 'package:nordplayer/features/playlists/widgets/playlist_dialogs.dart';
-
+/// Pure presentation View for the Playlists overview screen, observing [PlaylistsUiState].
 class PlaylistsView extends ConsumerWidget {
   const PlaylistsView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider);
+    final uiState = ref.watch(playlistsViewModelProvider);
     final appIconSet = ref.watch(appIconProvider);
 
     return Scaffold(
-      backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
+      backgroundColor: uiState.isAdaptiveBg ? Colors.transparent : theme.colorScheme.surface,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -55,51 +51,49 @@ class PlaylistsView extends ConsumerWidget {
               ),
             ),
           ),
-          Expanded(
-            child: ref
-                .watch(playlistsStreamProvider)
-                .when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (error, _) => Center(child: Text('Error: $error')),
-                  data: (playlistsWithCount) {
-                    if (playlistsWithCount.isEmpty) {
-                      return const Center(child: Text('No playlists yet. Create one to get started!'));
-                    }
-
-                    return LayoutBuilder(
-                      builder: (context, constraints) {
-                        const double minItemWidth = 252.0;
-                        final int crossAxisCount = (constraints.maxWidth / minItemWidth).floor().clamp(1, 100);
-
-                        return GridView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: crossAxisCount,
-                            mainAxisExtent: 240,
-                            crossAxisSpacing: 24,
-                            mainAxisSpacing: 8,
-                          ),
-                          itemCount: playlistsWithCount.length,
-                          itemBuilder: (context, index) {
-                            return Align(
-                              alignment: AlignmentDirectional.topStart,
-                              child: SizedBox(
-                                width: 220,
-                                child: PlaylistCard(
-                                  playlistWithDetails: playlistsWithCount[index],
-                                  playlistId: playlistsWithCount[index].playlist.id,
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    );
-                  },
-                ),
-          ),
+          Expanded(child: _buildBody(context, uiState)),
         ],
       ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, PlaylistsUiState uiState) {
+    if (uiState.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (uiState.errorMessage != null) {
+      return Center(child: Text('Error: ${uiState.errorMessage}'));
+    }
+    if (uiState.isEmpty) {
+      return const Center(child: Text('No playlists yet. Create one to get started!'));
+    }
+
+    final playlists = uiState.playlists;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const double minItemWidth = 252.0;
+        final int crossAxisCount = (constraints.maxWidth / minItemWidth).floor().clamp(1, 100);
+
+        return GridView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            mainAxisExtent: 240,
+            crossAxisSpacing: 24,
+            mainAxisSpacing: 8,
+          ),
+          itemCount: playlists.length,
+          itemBuilder: (context, index) {
+            return Align(
+              alignment: AlignmentDirectional.topStart,
+              child: SizedBox(
+                width: 220,
+                child: PlaylistCard(playlistWithDetails: playlists[index], playlistId: playlists[index].playlist.id),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -127,13 +121,14 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
     final theme = Theme.of(context);
     final totalTracks = widget.playlistWithDetails.trackCount;
     final playlistId = widget.playlistWithDetails.playlist.id;
-    final appConfig = ref.watch(configServiceProvider);
+    final uiState = ref.watch(playlistsViewModelProvider);
     final appIconSet = ref.watch(appIconProvider);
 
-    final playbackContext = ref.watch(playbackContextProvider);
-    final isPlayingThisPlaylist = playbackContext?.isPlaying('playlist', playlistId) ?? false;
-    final isAudioPlaying = ref.watch(isPlayingProvider);
-    final nowPlayingAlbumArt = isPlayingThisPlaylist ? ref.watch(current5TracksAlbumArtInQueueProvider) : null;
+    final isPlayingThisPlaylist = uiState.activePlaylistId == playlistId;
+    final isAudioPlaying = uiState.isAudioPlaying;
+    final nowPlayingAlbumArt = isPlayingThisPlaylist && uiState.activePlaylistAlbumArt.isNotEmpty
+        ? uiState.activePlaylistAlbumArt
+        : null;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -156,7 +151,9 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
                 fit: StackFit.expand,
                 children: [
                   AlbumArtStack(
-                    imageUrls: isPlayingThisPlaylist ? nowPlayingAlbumArt! : widget.playlistWithDetails.imageUrls,
+                    imageUrls: isPlayingThisPlaylist && nowPlayingAlbumArt != null
+                        ? nowPlayingAlbumArt
+                        : widget.playlistWithDetails.imageUrls,
                     sliceWidth: 10,
                     alignment: Alignment.centerLeft,
                   ),
@@ -174,7 +171,7 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(50),
                           child: FrostedGlass(
-                            backgroundColor: appConfig.adaptiveBg
+                            backgroundColor: uiState.isAdaptiveBg
                                 ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
                                 : theme.colorScheme.surfaceContainerHigh,
                             blurSigma: 20,
@@ -223,7 +220,7 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(50),
                           child: FrostedGlass(
-                            backgroundColor: appConfig.adaptiveBg
+                            backgroundColor: uiState.isAdaptiveBg
                                 ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
                                 : theme.colorScheme.surfaceContainerHigh,
                             blurSigma: 20,
@@ -287,11 +284,11 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
   }
 
   void _showContextMenu(Offset position, WidgetRef ref) {
-    final appConfig = ref.read(configServiceProvider);
+    final uiState = ref.read(playlistsViewModelProvider);
     final appIconSet = ref.read(appIconProvider);
 
     ContextMenu.show(
-      isAdaptive: appConfig.adaptiveBg,
+      isAdaptive: uiState.isAdaptiveBg,
       context: context,
       globalPosition: position,
       actionMenus: [
@@ -317,7 +314,7 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
   }
 
   Future<void> _playPlaylist() async {
-    final vm = ref.read(playlistsViewModelProvider);
+    final vm = ref.read(playlistsViewModelProvider.notifier);
     final played = await vm.playPlaylistById(widget.playlistWithDetails.playlist.id);
 
     if (!played && mounted) {
@@ -326,7 +323,7 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
   }
 
   Future<void> _addToQueue() async {
-    final vm = ref.read(playlistsViewModelProvider);
+    final vm = ref.read(playlistsViewModelProvider.notifier);
     final count = await vm.addPlaylistToQueue(widget.playlistWithDetails.playlist.id);
 
     if (!mounted) return;
@@ -357,7 +354,7 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> with LoggerMixin {
     );
 
     if (confirmed == true) {
-      final vm = ref.read(playlistsViewModelProvider);
+      final vm = ref.read(playlistsViewModelProvider.notifier);
       await vm.deletePlaylist(widget.playlistWithDetails.playlist.id);
       if (context.mounted) {
         showNordSnackBar(message: 'Deleted "${widget.playlistWithDetails.playlist.name}"', type: .success);

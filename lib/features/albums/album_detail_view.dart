@@ -3,26 +3,24 @@ import 'dart:io' show File;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/domain/models/models.dart';
-import 'package:nordplayer/features/albums/album_detail_viewmodel.dart';
-import 'package:nordplayer/features/tracks/widgets/track_context_menu.dart';
+import 'package:nordplayer/core/models/selection_state.dart';
 import 'package:nordplayer/core/system/config_service.dart';
-import 'package:nordplayer/services/audio/player_service.dart';
-
-export 'package:nordplayer/features/albums/album_detail_viewmodel.dart';
 import 'package:nordplayer/core/system/preference_service.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/core/utils/int_extension.dart';
-import 'package:nordplayer/widgets/app_icon.dart';
-import 'package:nordplayer/widgets/unimplemented.dart';
-import 'package:nordplayer/core/models/selection_state.dart';
+import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/features/albums/album_detail_viewmodel.dart';
+import 'package:nordplayer/features/tracks/widgets/track_context_menu.dart';
+import 'package:nordplayer/services/audio/player_service.dart';
 import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
+import 'package:nordplayer/widgets/app_icon.dart';
+import 'package:nordplayer/widgets/base_button.dart';
+import 'package:nordplayer/widgets/button_container.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/select_popover.dart';
 import 'package:nordplayer/widgets/sliver_resizable_table.dart';
-import 'package:nordplayer/widgets/base_button.dart';
-import 'package:nordplayer/widgets/button_container.dart';
+import 'package:nordplayer/widgets/unimplemented.dart';
 
 class AlbumDetailView extends ConsumerWidget {
   final int albumId;
@@ -140,11 +138,13 @@ class AlbumDetailView extends ConsumerWidget {
           }
 
           final albumDetailColumns = columnConfigs
-              .map((config) => TableColumn<TrackWithArtists>.fromConfig(
-                    config: config,
-                    cellBuilder: (context, track, index) =>
-                        _buildCell(context, ref, config.id, track, index, albumId, data.tracks),
-                  ))
+              .map(
+                (config) => TableColumn<TrackWithArtists>.fromConfig(
+                  config: config,
+                  cellBuilder: (context, track, index) =>
+                      _buildCell(context, ref, config.id, track, index, albumId, data.tracks),
+                ),
+              )
               .toList();
 
           return CustomScrollView(
@@ -172,12 +172,9 @@ class AlbumDetailView extends ConsumerWidget {
                       .selectTrack(index, isCtrlSelect: isCtrl, isShiftSelect: isShift);
                 },
                 onRowDoubleClick: (index) {
-                  ref.read(albumDetailViewModelProvider).playAlbum(
-                    tracks: data.tracks,
-                    albumId: albumId,
-                    shouldShuffle: false,
-                    initialIndex: index,
-                  );
+                  ref
+                      .read(albumDetailViewModelProvider)
+                      .playAlbum(tracks: data.tracks, albumId: albumId, shouldShuffle: false, initialIndex: index);
                 },
                 onRowRightClick: (index, globalPosition) {
                   final selectionNotifier = ref.read(selectedTracksIndexProvider('album').notifier);
@@ -394,11 +391,13 @@ class _AlbumDetailViewHeaderState extends ConsumerState<AlbumDetailViewHeader> {
                       overlayShape: .rectangle,
                       overlayColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
                       onClick: () {
-                        ref.read(albumDetailViewModelProvider).playAlbum(
-                          tracks: tracks,
-                          albumId: widget.albumWithTracks.album.id,
-                          shouldShuffle: shouldShuffle,
-                        );
+                        ref
+                            .read(albumDetailViewModelProvider)
+                            .playAlbum(
+                              tracks: tracks,
+                              albumId: widget.albumWithTracks.album.id,
+                              shouldShuffle: shouldShuffle,
+                            );
                       },
                     ),
 
@@ -598,4 +597,3 @@ class AlbumDetailViewTableColumnSelectorMenu extends ConsumerWidget {
     );
   }
 }
-

@@ -6,6 +6,7 @@ import 'package:nordplayer/core/utils/datetime_extension.dart';
 import 'package:nordplayer/core/utils/int_extension.dart';
 import 'package:nordplayer/domain/models/models.dart';
 import 'package:nordplayer/features/albums/albums_view.dart';
+import 'package:nordplayer/features/library/library_ui_state.dart';
 import 'package:nordplayer/features/library/library_viewmodel.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
@@ -15,9 +16,6 @@ import 'package:nordplayer/widgets/sections/section_container.dart';
 import 'package:nordplayer/widgets/sections/section_expansible.dart';
 import 'package:nordplayer/widgets/sections/section_page_title.dart';
 import 'package:nordplayer/widgets/unimplemented.dart';
-
-export 'package:nordplayer/features/library/library_ui_state.dart';
-export 'package:nordplayer/features/library/library_viewmodel.dart';
 
 /// Pure presentation View for the Library overview screen, observing [LibraryUiState].
 class LibraryView extends ConsumerWidget {
@@ -125,11 +123,8 @@ class LibraryView extends ConsumerWidget {
             tracks: uiState.recentlyAddedTracks,
             showMore: uiState.isRecentlyAddedExpanded,
             onToggleShowMore: viewModel.toggleRecentlyAddedExpanded,
-            onPlayTrack: (tracks, index) => viewModel.playTrack(
-              tracksToPlay: tracks,
-              index: index,
-              playbackContextType: 'recently_added',
-            ),
+            onPlayTrack: (tracks, index) =>
+                viewModel.playTrack(tracksToPlay: tracks, index: index, playbackContextType: 'recently_added'),
           ),
         );
       case 'albums':
@@ -148,11 +143,8 @@ class LibraryView extends ConsumerWidget {
           onTitleClick: () => context.go(Routes.tracksPage),
           body: TracksPanel(
             sampleTracks: uiState.sampleTracks,
-            onPlayTrack: (tracks, index) => viewModel.playTrack(
-              tracksToPlay: tracks,
-              index: index,
-              playbackContextType: 'top_tracks',
-            ),
+            onPlayTrack: (tracks, index) =>
+                viewModel.playTrack(tracksToPlay: tracks, index: index, playbackContextType: 'top_tracks'),
           ),
         );
       default:
@@ -191,11 +183,7 @@ class LibraryHeader extends ConsumerWidget {
                   child: const LibrarySectionsPanel(),
                 );
               },
-              icon: AppIcon(
-                appIconSet.settings2,
-                color: theme.textTheme.headlineSmall!.color,
-                size: 22,
-              ),
+              icon: AppIcon(appIconSet.settings2, color: theme.textTheme.headlineSmall!.color, size: 22),
               tooltip: 'Customize Sections',
             ),
             const SizedBox(width: 8),
@@ -212,31 +200,11 @@ class LibraryHeader extends ConsumerWidget {
                   runSpacing: 16,
                   alignment: WrapAlignment.spaceEvenly,
                   children: [
-                    LibraryStatItem(
-                      icon: appIconSet.tracks,
-                      value: '${stats.trackCount}',
-                      label: 'Tracks',
-                    ),
-                    LibraryStatItem(
-                      icon: appIconSet.artists,
-                      value: '${stats.artistCount}',
-                      label: 'Artists',
-                    ),
-                    LibraryStatItem(
-                      icon: appIconSet.albums,
-                      value: '${stats.albumCount}',
-                      label: 'Albums',
-                    ),
-                    LibraryStatItem(
-                      icon: appIconSet.genres,
-                      value: '${stats.genreCount}',
-                      label: 'Genres',
-                    ),
-                    LibraryStatItem(
-                      icon: appIconSet.playlist,
-                      value: '${stats.playlistCount}',
-                      label: 'Playlists',
-                    ),
+                    LibraryStatItem(icon: appIconSet.tracks, value: '${stats.trackCount}', label: 'Tracks'),
+                    LibraryStatItem(icon: appIconSet.artists, value: '${stats.artistCount}', label: 'Artists'),
+                    LibraryStatItem(icon: appIconSet.albums, value: '${stats.albumCount}', label: 'Albums'),
+                    LibraryStatItem(icon: appIconSet.genres, value: '${stats.genreCount}', label: 'Genres'),
+                    LibraryStatItem(icon: appIconSet.playlist, value: '${stats.playlistCount}', label: 'Playlists'),
                     LibraryStatItem(
                       icon: appIconSet.playtime,
                       value: stats.totalPlaytimeMs.toTotalDurationString(),
@@ -264,12 +232,7 @@ class LibraryStatItem extends StatelessWidget {
   final String value;
   final IconData icon;
 
-  const LibraryStatItem({
-    super.key,
-    required this.label,
-    required this.value,
-    required this.icon,
-  });
+  const LibraryStatItem({super.key, required this.label, required this.value, required this.icon});
 
   @override
   Widget build(BuildContext context) {
@@ -285,16 +248,8 @@ class LibraryStatItem extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              value,
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
+            Text(value, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            Text(label, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
           ],
         ),
       ],
@@ -354,24 +309,14 @@ class _AlbumsPanelState extends State<AlbumsPanel> {
 
   void _scrollLeft() {
     if (!_scrollController.hasClients) return;
-    final target =
-        (_scrollController.offset - 360).clamp(0.0, _scrollController.position.maxScrollExtent);
-    _scrollController.animateTo(
-      target,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
+    final target = (_scrollController.offset - 360).clamp(0.0, _scrollController.position.maxScrollExtent);
+    _scrollController.animateTo(target, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
   }
 
   void _scrollRight() {
     if (!_scrollController.hasClients) return;
-    final target =
-        (_scrollController.offset + 360).clamp(0.0, _scrollController.position.maxScrollExtent);
-    _scrollController.animateTo(
-      target,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
+    final target = (_scrollController.offset + 360).clamp(0.0, _scrollController.position.maxScrollExtent);
+    _scrollController.animateTo(target, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
   }
 
   @override
@@ -394,10 +339,7 @@ class _AlbumsPanelState extends State<AlbumsPanel> {
               children: [
                 for (int i = 0; i < albums.length; i++) ...[
                   Padding(
-                    padding: EdgeInsets.only(
-                      left: i == 0 ? 0 : 12.0,
-                      right: i == albums.length - 1 ? 0 : 12.0,
-                    ),
+                    padding: EdgeInsets.only(left: i == 0 ? 0 : 12.0, right: i == albums.length - 1 ? 0 : 12.0),
                     child: SizedBox(
                       width: 160,
                       child: AlbumCard(
@@ -423,14 +365,9 @@ class _AlbumsPanelState extends State<AlbumsPanel> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: theme.colorScheme.surface.withValues(alpha: 0.8),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4),
-                  ],
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4)],
                 ),
-                child: IconButton(
-                  icon: const Icon(Icons.chevron_left),
-                  onPressed: _scrollLeft,
-                ),
+                child: IconButton(icon: const Icon(Icons.chevron_left), onPressed: _scrollLeft),
               ),
             ),
           if (_showRightButton)
@@ -441,14 +378,9 @@ class _AlbumsPanelState extends State<AlbumsPanel> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: theme.colorScheme.surface.withValues(alpha: 0.8),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4),
-                  ],
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4)],
                 ),
-                child: IconButton(
-                  icon: const Icon(Icons.chevron_right),
-                  onPressed: _scrollRight,
-                ),
+                child: IconButton(icon: const Icon(Icons.chevron_right), onPressed: _scrollRight),
               ),
             ),
         ],
@@ -462,11 +394,7 @@ class TracksPanel extends StatelessWidget {
   final List<TrackWithArtists> sampleTracks;
   final void Function(List<TrackWithArtists> tracks, int index) onPlayTrack;
 
-  const TracksPanel({
-    super.key,
-    required this.sampleTracks,
-    required this.onPlayTrack,
-  });
+  const TracksPanel({super.key, required this.sampleTracks, required this.onPlayTrack});
 
   @override
   Widget build(BuildContext context) {
@@ -480,9 +408,7 @@ class TracksPanel extends StatelessWidget {
           builder: (context, constraints) {
             final bool useTwoColumns = constraints.maxWidth > 600;
             const double spacing = 8.0;
-            final double itemWidth = useTwoColumns
-                ? (constraints.maxWidth - spacing) / 2
-                : constraints.maxWidth;
+            final double itemWidth = useTwoColumns ? (constraints.maxWidth - spacing) / 2 : constraints.maxWidth;
 
             return Wrap(
               spacing: spacing,
@@ -529,15 +455,11 @@ class RecentlyAddedPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     if (tracks.isEmpty) {
       return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Text('No recently added tracks.'),
-        ),
+        child: Padding(padding: EdgeInsets.all(16.0), child: Text('No recently added tracks.')),
       );
     }
 
-    final int shownLength =
-        showMore ? tracks.length : (tracks.length < 6 ? tracks.length : 6);
+    final int shownLength = showMore ? tracks.length : (tracks.length < 6 ? tracks.length : 6);
 
     return Column(
       children: [
@@ -545,9 +467,7 @@ class RecentlyAddedPanel extends StatelessWidget {
           builder: (context, constraints) {
             final bool useTwoColumns = constraints.maxWidth > 600;
             const double spacing = 8.0;
-            final double itemWidth = useTwoColumns
-                ? (constraints.maxWidth - spacing) / 2
-                : constraints.maxWidth;
+            final double itemWidth = useTwoColumns ? (constraints.maxWidth - spacing) / 2 : constraints.maxWidth;
 
             return Wrap(
               spacing: spacing,
@@ -626,14 +546,8 @@ class LibraryTrackTile extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 24),
-              if (showDateAdded) ...[
-                Text(track.track.dateAdded.toRelativeTime()),
-                const SizedBox(width: 24),
-              ],
-              if (showDuration) ...[
-                Text(track.track.durationMs.toDurationString()),
-                const SizedBox(width: 24),
-              ],
+              if (showDateAdded) ...[Text(track.track.dateAdded.toRelativeTime()), const SizedBox(width: 24)],
+              if (showDuration) ...[Text(track.track.durationMs.toDurationString()), const SizedBox(width: 24)],
               IconButton(
                 onPressed: () {
                   unimplemented(context);
@@ -675,9 +589,7 @@ class LibrarySectionsPanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final adaptiveBgPanelBlur = ref.watch(
-      libraryViewModelProvider.select((s) => s.adaptiveBgPanelBlur),
-    );
+    final adaptiveBgPanelBlur = ref.watch(libraryViewModelProvider.select((s) => s.adaptiveBgPanelBlur));
     final appIconSet = ref.watch(appIconProvider);
     final sections = ref.watch(librarySectionsProvider);
 
@@ -741,9 +653,7 @@ class LibrarySectionsPanel extends ConsumerWidget {
                           ),
                           IconButton(
                             onPressed: () {
-                              ref
-                                  .read(libraryViewModelProvider.notifier)
-                                  .toggleSectionVisibility(section.id);
+                              ref.read(libraryViewModelProvider.notifier).toggleSectionVisibility(section.id);
                             },
                             icon: AppIcon(
                               section.isVisible ? appIconSet.visible : appIconSet.invisible,

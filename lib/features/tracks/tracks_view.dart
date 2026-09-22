@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/utils/datetime_extension.dart';
 import 'package:nordplayer/core/utils/int_extension.dart';
 import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/features/tracks/tracks_ui_state.dart';
 import 'package:nordplayer/features/tracks/tracks_viewmodel.dart';
 import 'package:nordplayer/features/tracks/widgets/track_context_menu.dart';
 import 'package:nordplayer/routes/router.dart';
@@ -15,9 +16,6 @@ import 'package:nordplayer/widgets/context_menu.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
 import 'package:nordplayer/widgets/sliver_resizable_table.dart';
-
-export 'package:nordplayer/features/tracks/tracks_ui_state.dart';
-export 'package:nordplayer/features/tracks/tracks_viewmodel.dart';
 
 /// Pure presentation View for the Tracks screen, observing [TracksUiState].
 class TracksView extends ConsumerWidget {
@@ -44,9 +42,7 @@ class TracksView extends ConsumerWidget {
         }
         return Text(
           "${index + 1}",
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-          ),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
         );
       case 'title_artist':
         final isPlaying = uiState.activeTrackPath == track.track.filePath;
@@ -69,11 +65,7 @@ class TracksView extends ConsumerWidget {
       case 'path':
         return Text(track.track.filePath, maxLines: 1, overflow: TextOverflow.ellipsis);
       case 'date_added':
-        return Text(
-          track.track.dateAdded.toRelativeTime(),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        );
+        return Text(track.track.dateAdded.toRelativeTime(), maxLines: 1, overflow: TextOverflow.ellipsis);
       case 'duration':
         return Text(track.track.durationMs.toDurationString());
       case 'context_menu':
@@ -101,10 +93,7 @@ class TracksView extends ConsumerWidget {
               playbackContextType: 'all_tracks',
             );
           },
-          child: IconButton(
-            icon: const Icon(Icons.more_horiz),
-            onPressed: () {},
-          ),
+          child: IconButton(icon: const Icon(Icons.more_horiz), onPressed: () {}),
         );
       default:
         return const SizedBox.shrink();
@@ -121,54 +110,39 @@ class TracksView extends ConsumerWidget {
         .map(
           (config) => TableColumn<TrackWithArtists>.fromConfig(
             config: config,
-            cellBuilder: (context, track, index) => _buildCell(
-              context,
-              ref,
-              config.id,
-              track,
-              index,
-              uiState,
-              viewModel,
-            ),
+            cellBuilder: (context, track, index) =>
+                _buildCell(context, ref, config.id, track, index, uiState, viewModel),
           ),
         )
         .toList();
 
     if (uiState.isLoading) {
       return Scaffold(
-        backgroundColor:
-            uiState.isAdaptiveBg ? Colors.transparent : theme.colorScheme.surface,
+        backgroundColor: uiState.isAdaptiveBg ? Colors.transparent : theme.colorScheme.surface,
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (uiState.errorMessage != null) {
       return Scaffold(
-        backgroundColor:
-            uiState.isAdaptiveBg ? Colors.transparent : theme.colorScheme.surface,
+        backgroundColor: uiState.isAdaptiveBg ? Colors.transparent : theme.colorScheme.surface,
         body: Center(child: Text('Error loading tracks: ${uiState.errorMessage}')),
       );
     }
 
     if (uiState.isEmpty) {
       return Scaffold(
-        backgroundColor:
-            uiState.isAdaptiveBg ? Colors.transparent : theme.colorScheme.surface,
+        backgroundColor: uiState.isAdaptiveBg ? Colors.transparent : theme.colorScheme.surface,
         body: Column(
           children: [
-            TracksPageHeader(
-              tracks: uiState.tracks,
-              albumArtCovers: uiState.albumArtCovers,
-            ),
+            TracksPageHeader(tracks: uiState.tracks, albumArtCovers: uiState.albumArtCovers),
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     "Your library is empty",
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -195,15 +169,11 @@ class TracksView extends ConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor:
-          uiState.isAdaptiveBg ? Colors.transparent : theme.colorScheme.surface,
+      backgroundColor: uiState.isAdaptiveBg ? Colors.transparent : theme.colorScheme.surface,
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
-            child: TracksPageHeader(
-              tracks: uiState.tracks,
-              albumArtCovers: uiState.albumArtCovers,
-            ),
+            child: TracksPageHeader(tracks: uiState.tracks, albumArtCovers: uiState.albumArtCovers),
           ),
           SliverResizableTable(
             items: uiState.tracks,
@@ -219,9 +189,7 @@ class TracksView extends ConsumerWidget {
                 context: context,
                 isAdaptive: uiState.isAdaptiveBg,
                 globalPosition: globalPosition,
-                actionMenus: [
-                  ContextMenuCustomWidget(child: const HeaderColumnSelectorMenu()),
-                ],
+                actionMenus: [ContextMenuCustomWidget(child: const HeaderColumnSelectorMenu())],
               );
             },
             onRowClick: (index, {required isCtrl, required isShift}) {
@@ -237,8 +205,7 @@ class TracksView extends ConsumerWidget {
 
               final updatedSelection = ref.read(tracksViewModelProvider).selectedIndices;
               final sortedIndices = updatedSelection.toList()..sort();
-              final List<TrackWithArtists> selectedTracks =
-                  sortedIndices.map((i) => uiState.tracks[i]).toList();
+              final List<TrackWithArtists> selectedTracks = sortedIndices.map((i) => uiState.tracks[i]).toList();
 
               TrackContextMenu.show(
                 context: context,
@@ -264,11 +231,7 @@ class TracksPageHeader extends ConsumerWidget {
   final List<TrackWithArtists> tracks;
   final List<String> albumArtCovers;
 
-  const TracksPageHeader({
-    super.key,
-    required this.tracks,
-    required this.albumArtCovers,
-  });
+  const TracksPageHeader({super.key, required this.tracks, required this.albumArtCovers});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -276,13 +239,11 @@ class TracksPageHeader extends ConsumerWidget {
     final isAdaptive = ref.watch(tracksViewModelProvider.select((s) => s.isAdaptiveBg));
     final panelBlur = ref.watch(tracksViewModelProvider.select((s) => s.adaptiveBgPanelBlur));
     final themeOverlay = ref.watch(tracksViewModelProvider.select((s) => s.adaptiveBgThemeOverlay));
-    final int totalDurationMs =
-        tracks.fold(0, (sum, track) => sum + track.track.durationMs);
+    final int totalDurationMs = tracks.fold(0, (sum, track) => sum + track.track.durationMs);
 
     return FrostedGlass(
       backgroundColor: isAdaptive
-          ? theme.colorScheme.surfaceContainer
-              .withValues(alpha: themeOverlay)
+          ? theme.colorScheme.surfaceContainer.withValues(alpha: themeOverlay)
           : theme.colorScheme.surface,
       blurSigma: panelBlur,
       child: Container(
@@ -309,12 +270,7 @@ class TracksPageHeader extends ConsumerWidget {
                 width: 244,
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: AlbumArtStack(
-                    imageUrls: albumArtCovers,
-                    size: 180,
-                    maxLayers: 5,
-                    sliceWidth: 16,
-                  ),
+                  child: AlbumArtStack(imageUrls: albumArtCovers, size: 180, maxLayers: 5, sliceWidth: 16),
                 ),
               ),
               Padding(
@@ -323,16 +279,9 @@ class TracksPageHeader extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Tracks',
-                      style: theme.textTheme.headlineMedium,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    Text('Tracks', style: theme.textTheme.headlineMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 4),
-                    Text(
-                      '${tracks.length} Tracks, ${totalDurationMs.toTotalDurationString()}',
-                    ),
+                    Text('${tracks.length} Tracks, ${totalDurationMs.toTotalDurationString()}'),
                   ],
                 ),
               ),

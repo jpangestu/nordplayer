@@ -5,8 +5,6 @@ import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/settings_repository.dart';
 import 'package:nordplayer/features/shell/player_bar_ui_state.dart';
 
-export 'package:nordplayer/features/shell/player_bar_ui_state.dart';
-
 /// ViewModel managing the player bar and playback controls.
 class PlayerBarViewModel extends Notifier<PlayerBarUiState> {
   late PlaybackRepository _playbackRepo;
@@ -106,8 +104,7 @@ class PlayerBarViewModel extends Notifier<PlayerBarUiState> {
 
   Future<void> setVolumeDown([double step = 5]) => _playbackRepo.setVolumeDown(step);
 
-  Future<void> toggleShowQueue() =>
-      _settingsRepo.setShowQueue(!state.showQueue);
+  Future<void> toggleShowQueue() => _settingsRepo.setShowQueue(!state.showQueue);
 
   Future<void> toggleTimeLabelType() {
     final nextType = state.timeLabelType == TimeLabelType.totalTime
@@ -118,7 +115,4 @@ class PlayerBarViewModel extends Notifier<PlayerBarUiState> {
 }
 
 /// Provider for [PlayerBarViewModel] and its immutable [PlayerBarUiState].
-final playerBarViewModelProvider =
-    NotifierProvider<PlayerBarViewModel, PlayerBarUiState>(
-  PlayerBarViewModel.new,
-);
+final playerBarViewModelProvider = NotifierProvider<PlayerBarViewModel, PlayerBarUiState>(PlayerBarViewModel.new);

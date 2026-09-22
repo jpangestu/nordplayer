@@ -351,7 +351,7 @@ class _SearchablePlaylistMenuState extends ConsumerState<SearchablePlaylistConte
                   final playlist = filtered[index].playlist;
                   return InkWell(
                     onTap: () async {
-                      final vm = ref.read(playlistsViewModelProvider);
+                      final vm = ref.read(playlistsViewModelProvider.notifier);
                       final trackIds = widget.tracksToAdd.map((t) => t.track.id).toList();
                       await vm.addTracksToPlaylist(playlist.id, trackIds);
 

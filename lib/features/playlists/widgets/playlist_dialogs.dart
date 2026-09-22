@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/system/logger.dart';
+import 'package:nordplayer/domain/models/models.dart';
 import 'package:nordplayer/features/playlists/playlists_viewmodel.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/widgets/nord_alert_dialog.dart';
@@ -78,7 +78,7 @@ class _CreatePlaylistDialogState extends ConsumerState<CreatePlaylistDialog> wit
 
     try {
       final trackIds = widget.tracksToAdd.map((t) => t.track.id).toList();
-      final vm = ref.read(playlistsViewModelProvider);
+      final vm = ref.read(playlistsViewModelProvider.notifier);
       final newPlaylistId = await vm.createPlaylist(name, trackIds: trackIds);
 
       if (!mounted) return;
@@ -176,7 +176,7 @@ class _RenamePlaylistDialogState extends ConsumerState<RenamePlaylistDialog> wit
     setState(() => _isSubmitting = true);
 
     try {
-      final vm = ref.read(playlistsViewModelProvider);
+      final vm = ref.read(playlistsViewModelProvider.notifier);
       await vm.renamePlaylist(widget.playlist.id, newName);
 
       if (!mounted) return;
