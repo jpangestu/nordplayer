@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/data/repositories/track_repository.dart';
 import 'package:nordplayer/features/tracks/widgets/track_context_menu.dart';
-import 'package:nordplayer/core/system/config_service.dart';
+import 'package:nordplayer/features/shell/shell_viewmodel.dart';
 import 'package:nordplayer/services/audio/player_service.dart';
 import 'package:nordplayer/core/shortcuts/shortcuts.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
@@ -13,7 +13,7 @@ class SearchResultsDropdown extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final appConfig = ref.watch(configServiceProvider);
+    final shellState = ref.watch(shellViewModelProvider);
     final searchQuery = ref.watch(searchQueryProvider);
     final searchResultsAsync = ref.watch(searchResultsProvider);
     final theme = Theme.of(context);
@@ -34,9 +34,9 @@ class SearchResultsDropdown extends ConsumerWidget {
         constraints: BoxConstraints(maxWidth: (MediaQuery.sizeOf(context).width * 0.4).clamp(200, 500), maxHeight: 400),
         child: FrostedGlass(
           backgroundColor: theme.colorScheme.surfaceContainerHigh.withValues(
-            alpha: appConfig.adaptiveBg ? appConfig.adaptiveBgThemeOverlay * 0.5 : 1.0,
+            alpha: shellState.isAdaptiveBg ? shellState.adaptiveBgThemeOverlay * 0.5 : 1.0,
           ),
-          blurSigma: appConfig.adaptiveBgPanelBlur,
+          blurSigma: shellState.adaptiveBgPanelBlur,
           borderRadius: 12,
           child: searchResultsAsync.when(
             loading: () => const SizedBox(height: 100, child: Center(child: CircularProgressIndicator())),
@@ -83,7 +83,7 @@ class SearchResultsDropdown extends ConsumerWidget {
                         SearchTracksContextMenu.show(
                           context: context,
                           ref: ref,
-                          isAdaptive: appConfig.adaptiveBg,
+                          isAdaptive: shellState.isAdaptiveBg,
                           globalPosition: globalPosition,
                           tracks: tracks,
                           indexToPlay: index,

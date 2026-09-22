@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/settings_repository.dart';
-import 'package:nordplayer/features/shell/viewmodels/shell_ui_state.dart';
+import 'package:nordplayer/features/shell/shell_ui_state.dart';
+
+export 'package:nordplayer/features/shell/shell_ui_state.dart';
 
 /// ViewModel managing layout, sidebar state, and responsive chrome visibility.
 class ShellViewModel extends Notifier<ShellUiState> {

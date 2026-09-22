@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/system/background_task_service.dart';
-import 'package:nordplayer/core/system/config_service.dart';
 import 'package:nordplayer/core/system/performance_tracker.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
+import 'package:nordplayer/features/shell/shell_viewmodel.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/popover_panel.dart';
 import 'package:nordplayer/features/shell/widgets/title_bar/background_task_panel.dart';
@@ -30,13 +30,13 @@ class _NordplayerTitleBarState extends ConsumerState<NordTitleBar> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final appConfig = ref.watch(configServiceProvider);
+    final shellState = ref.watch(shellViewModelProvider);
     final appIconSet = ref.watch(appIconProvider);
 
     return FrostedGlass(
-      blurSigma: (appConfig.adaptiveBgPanelBlur + 30).clamp(0, 100),
-      backgroundColor: appConfig.adaptiveBg
-          ? colorScheme.surfaceContainer.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
+      blurSigma: (shellState.adaptiveBgPanelBlur + 30).clamp(0, 100),
+      backgroundColor: shellState.isAdaptiveBg
+          ? colorScheme.surfaceContainer.withValues(alpha: shellState.adaptiveBgThemeOverlay)
           : colorScheme.surfaceContainer,
       child: SizedBox(
         height: 34,

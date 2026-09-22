@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/features/queue/queue_view.dart';
-import 'package:nordplayer/features/shell/viewmodels/shell_viewmodel.dart';
+import 'package:nordplayer/features/shell/shell_viewmodel.dart';
 import 'package:nordplayer/features/shell/widgets/nord_app_bar.dart';
 import 'package:nordplayer/features/shell/widgets/nord_sidebar.dart';
 import 'package:nordplayer/features/shell/widgets/player_bar/nord_player_bar.dart';

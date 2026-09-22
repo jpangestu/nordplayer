@@ -2,10 +2,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/data/repositories/track_repository.dart';
-import 'package:nordplayer/core/system/config_service.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/core/utils/debouncer.dart';
 import 'package:nordplayer/core/shortcuts/shortcuts.dart';
+import 'package:nordplayer/features/shell/shell_viewmodel.dart';
 
 class NordSearchBar extends ConsumerStatefulWidget {
   const NordSearchBar({super.key});
@@ -62,13 +62,14 @@ class _NordSearchBarState extends ConsumerState<NordSearchBar> {
     _focusNode.removeListener(_handleFocusChange);
     _textController.removeListener(_updateShortcutVisibility);
     _textController.dispose();
+    _debouncer.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider);
+    final isAdaptiveBg = ref.watch(shellViewModelProvider.select((s) => s.isAdaptiveBg));
     final appIconSet = ref.watch(appIconProvider);
 
     // Escape callback set here cause there's no reason for it to be in global shortcut
@@ -87,7 +88,7 @@ class _NordSearchBarState extends ConsumerState<NordSearchBar> {
           style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurface),
           decoration: InputDecoration(
             // Transparent if filled set to false
-            filled: appConfig.adaptiveBg ? false : true,
+            filled: isAdaptiveBg ? false : true,
             fillColor: theme.colorScheme.surfaceContainerHigh,
             hintText: 'Search...',
             hintStyle: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
@@ -96,13 +97,11 @@ class _NordSearchBarState extends ConsumerState<NordSearchBar> {
               padding: const .only(left: 10.0),
               child: Icon(appIconSet.search, color: theme.colorScheme.onSurfaceVariant),
             ),
-            suffixIcon: showSuffixIcon(transparent: appConfig.adaptiveBg, hasText: _textController.text.isNotEmpty),
+            suffixIcon: showSuffixIcon(transparent: isAdaptiveBg, hasText: _textController.text.isNotEmpty),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(24),
               // To make it look like it doesn't have border. If removed, it'll just be a black border.
-              borderSide: BorderSide(
-                color: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surfaceContainer,
-              ),
+              borderSide: BorderSide(color: isAdaptiveBg ? Colors.transparent : theme.colorScheme.surfaceContainer),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(24),
@@ -151,9 +150,8 @@ class _NordSearchBarState extends ConsumerState<NordSearchBar> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHigh.withValues(alpha: transparent ? 0.0 : 1.0),
+                    color: Theme.of(context).colorScheme.surfaceContainerHigh
+                        .withValues(alpha: transparent ? 0.0 : 1.0),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(

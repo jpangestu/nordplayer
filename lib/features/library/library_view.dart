@@ -1,117 +1,136 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/domain/models/models.dart';
-import 'package:nordplayer/data/repositories/album_repository.dart';
-import 'package:nordplayer/data/repositories/track_repository.dart';
-import 'package:nordplayer/features/library/library_viewmodel.dart';
-import 'package:nordplayer/features/albums/albums_view.dart';
-import 'package:nordplayer/routes/router.dart';
-import 'package:nordplayer/core/system/config_service.dart';
-import 'package:nordplayer/services/audio/player_service.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/core/utils/datetime_extension.dart';
 import 'package:nordplayer/core/utils/int_extension.dart';
-import 'package:nordplayer/widgets/unimplemented.dart';
+import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/features/albums/albums_view.dart';
+import 'package:nordplayer/features/library/library_viewmodel.dart';
+import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
 import 'package:nordplayer/widgets/popover_panel.dart';
 import 'package:nordplayer/widgets/sections/section_container.dart';
 import 'package:nordplayer/widgets/sections/section_expansible.dart';
 import 'package:nordplayer/widgets/sections/section_page_title.dart';
+import 'package:nordplayer/widgets/unimplemented.dart';
 
-class LibraryView extends ConsumerStatefulWidget {
+export 'package:nordplayer/features/library/library_ui_state.dart';
+export 'package:nordplayer/features/library/library_viewmodel.dart';
+
+/// Pure presentation View for the Library overview screen, observing [LibraryUiState].
+class LibraryView extends ConsumerWidget {
   const LibraryView({super.key});
 
   @override
-  ConsumerState<LibraryView> createState() => _LibraryViewState();
-}
-
-class _LibraryViewState extends ConsumerState<LibraryView> {
-  bool isExpanded = true;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider);
-    final adaptiveBg = appConfig.adaptiveBg;
-    final statsAsync = ref.watch(libraryStatsProvider);
+    final uiState = ref.watch(libraryViewModelProvider);
+    final adaptiveBg = uiState.isAdaptiveBg;
+    final viewModel = ref.read(libraryViewModelProvider.notifier);
 
-    return Scaffold(
-      backgroundColor: adaptiveBg ? Colors.transparent : Theme.of(context).colorScheme.surface,
-      body: statsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Text('Error loading stats: $err'),
-        data: (stats) {
-          if (stats.trackCount == 0) {
-            return Padding(
-              padding: const EdgeInsetsGeometry.all(12),
-              child: Column(
-                children: [
-                  const LibraryHeader(),
+    if (uiState.isLoading) {
+      return Scaffold(
+        backgroundColor: adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: .center,
-                      children: [
-                        Text(
-                          "Your library is empty",
-                          style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          "Scan your local folders to set up your music library.",
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        FilledButton.icon(
-                          onPressed: () {
-                            context.go('/settings/libraryIndexer');
-                          },
-                          icon: const AppIcon(Icons.create_new_folder),
-                          label: const Text("Add Music Folders"),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
+    if (uiState.errorMessage != null) {
+      return Scaffold(
+        backgroundColor: adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
+        body: Center(child: Text('Error loading stats: ${uiState.errorMessage}')),
+      );
+    }
 
-          return Column(
+    if (uiState.isEmpty) {
+      return Scaffold(
+        backgroundColor: adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
+        body: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
             children: [
+              LibraryHeader(stats: uiState.stats),
               Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const LibraryHeader(),
-
-                    const SizedBox(height: 12),
-
-                    for (final section in appConfig.librarySections)
-                      if (section.isVisible) ...[_buildSection(section.id, theme), const SizedBox(height: 12)],
+                    Text(
+                      "Your library is empty",
+                      style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Scan your local folders to set up your music library.",
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton.icon(
+                      onPressed: () {
+                        context.go('/settings/libraryIndexer');
+                      },
+                      icon: const AppIcon(Icons.create_new_folder),
+                      label: const Text("Add Music Folders"),
+                    ),
                   ],
                 ),
               ),
             ],
-          );
-        },
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              children: [
+                LibraryHeader(stats: uiState.stats),
+                const SizedBox(height: 12),
+                for (final section in uiState.sections)
+                  if (section.isVisible) ...[
+                    _buildSection(context, section.id, theme, uiState, viewModel),
+                    const SizedBox(height: 12),
+                  ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSection(String id, ThemeData theme) {
+  Widget _buildSection(
+    BuildContext context,
+    String id,
+    ThemeData theme,
+    LibraryUiState uiState,
+    LibraryViewModel viewModel,
+  ) {
     switch (id) {
       case 'recently_added':
         return SectionExpansible(
           initialState: InitialState.expanded,
           title: 'Recently Added',
           titleStyle: theme.textTheme.titleLarge,
-          body: const RecentlyAddedPanel(),
+          body: RecentlyAddedPanel(
+            tracks: uiState.recentlyAddedTracks,
+            showMore: uiState.isRecentlyAddedExpanded,
+            onToggleShowMore: viewModel.toggleRecentlyAddedExpanded,
+            onPlayTrack: (tracks, index) => viewModel.playTrack(
+              tracksToPlay: tracks,
+              index: index,
+              playbackContextType: 'recently_added',
+            ),
+          ),
         );
       case 'albums':
         return SectionExpansible(
@@ -119,7 +138,7 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
           title: 'Albums',
           titleStyle: theme.textTheme.titleLarge,
           onTitleClick: () => context.go(Routes.albumsPage),
-          body: const AlbumsPanel(),
+          body: AlbumsPanel(albums: uiState.randomAlbums),
         );
       case 'tracks':
         return SectionExpansible(
@@ -127,7 +146,14 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
           title: 'Tracks',
           titleStyle: theme.textTheme.titleLarge,
           onTitleClick: () => context.go(Routes.tracksPage),
-          body: const TracksPanel(),
+          body: TracksPanel(
+            sampleTracks: uiState.sampleTracks,
+            onPlayTrack: (tracks, index) => viewModel.playTrack(
+              tracksToPlay: tracks,
+              index: index,
+              playbackContextType: 'top_tracks',
+            ),
+          ),
         );
       default:
         return const SizedBox.shrink();
@@ -135,26 +161,21 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
   }
 }
 
-class LibraryHeader extends ConsumerStatefulWidget {
-  const LibraryHeader({super.key});
-
-  @override
-  ConsumerState<LibraryHeader> createState() => _LibraryHeaderState();
-}
-
-class _LibraryHeaderState extends ConsumerState<LibraryHeader> {
-  bool isExpanded = true;
+/// Header widget displaying aggregate library stats and section customization button.
+class LibraryHeader extends ConsumerWidget {
+  final LibraryStats stats;
   final GlobalKey _customizeSectionButtonKey = GlobalKey();
 
+  LibraryHeader({super.key, required this.stats});
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final appIconSet = ref.watch(appIconProvider);
-    final statsAsync = ref.watch(libraryStatsProvider);
 
     return SectionContainer(
       child: SectionPageTitle(
-        initialState: .expanded,
+        initialState: InitialState.expanded,
         title: 'Library',
         titleStyle: theme.textTheme.headlineSmall,
         trailing: Row(
@@ -166,11 +187,15 @@ class _LibraryHeaderState extends ConsumerState<LibraryHeader> {
                   context: context,
                   anchorKey: _customizeSectionButtonKey,
                   width: 280,
-                  padding: const .symmetric(vertical: 8.0, horizontal: 12.0),
+                  padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
                   child: const LibrarySectionsPanel(),
                 );
               },
-              icon: AppIcon(appIconSet.settings2, color: theme.textTheme.headlineSmall!.color, size: 22),
+              icon: AppIcon(
+                appIconSet.settings2,
+                color: theme.textTheme.headlineSmall!.color,
+                size: 22,
+              ),
               tooltip: 'Customize Sections',
             ),
             const SizedBox(width: 8),
@@ -182,31 +207,47 @@ class _LibraryHeaderState extends ConsumerState<LibraryHeader> {
               padding: const EdgeInsets.only(top: 8.0, bottom: 24.0),
               child: SizedBox(
                 width: double.infinity,
-                child: statsAsync.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (err, stack) => Text('Error loading stats: $err'),
-                  data: (stats) => Wrap(
-                    spacing: 24,
-                    runSpacing: 16,
-                    alignment: .spaceEvenly,
-                    children: [
-                      LibraryStatItem(icon: appIconSet.tracks, value: '${stats.trackCount}', label: 'Tracks'),
-                      LibraryStatItem(icon: appIconSet.artists, value: '${stats.artistCount}', label: 'Artists'),
-                      LibraryStatItem(icon: appIconSet.albums, value: '${stats.albumCount}', label: 'Albums'),
-                      LibraryStatItem(icon: appIconSet.genres, value: '${stats.genreCount}', label: 'Genres'),
-                      LibraryStatItem(icon: appIconSet.playlist, value: '${stats.playlistCount}', label: 'Playlists'),
-                      LibraryStatItem(
-                        icon: appIconSet.playtime,
-                        value: stats.totalPlaytimeMs.toTotalDurationString(),
-                        label: 'Total Playtime',
-                      ),
-                      LibraryStatItem(
-                        icon: appIconSet.storage,
-                        value: stats.totalSizeBytes.toFileSizeString(),
-                        label: 'Total Size',
-                      ),
-                    ],
-                  ),
+                child: Wrap(
+                  spacing: 24,
+                  runSpacing: 16,
+                  alignment: WrapAlignment.spaceEvenly,
+                  children: [
+                    LibraryStatItem(
+                      icon: appIconSet.tracks,
+                      value: '${stats.trackCount}',
+                      label: 'Tracks',
+                    ),
+                    LibraryStatItem(
+                      icon: appIconSet.artists,
+                      value: '${stats.artistCount}',
+                      label: 'Artists',
+                    ),
+                    LibraryStatItem(
+                      icon: appIconSet.albums,
+                      value: '${stats.albumCount}',
+                      label: 'Albums',
+                    ),
+                    LibraryStatItem(
+                      icon: appIconSet.genres,
+                      value: '${stats.genreCount}',
+                      label: 'Genres',
+                    ),
+                    LibraryStatItem(
+                      icon: appIconSet.playlist,
+                      value: '${stats.playlistCount}',
+                      label: 'Playlists',
+                    ),
+                    LibraryStatItem(
+                      icon: appIconSet.playtime,
+                      value: stats.totalPlaytimeMs.toTotalDurationString(),
+                      label: 'Total Playtime',
+                    ),
+                    LibraryStatItem(
+                      icon: appIconSet.storage,
+                      value: stats.totalSizeBytes.toFileSizeString(),
+                      label: 'Total Size',
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -217,12 +258,18 @@ class _LibraryHeaderState extends ConsumerState<LibraryHeader> {
   }
 }
 
+/// Stat display item showing an icon, value, and label.
 class LibraryStatItem extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
 
-  const LibraryStatItem({super.key, required this.label, required this.value, required this.icon});
+  const LibraryStatItem({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -233,15 +280,21 @@ class LibraryStatItem extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Icon(icon, size: 32, color: theme.colorScheme.primary),
-
         const SizedBox(width: 12),
-
         Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(value, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-            Text(label, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            Text(
+              value,
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
           ],
         ),
       ],
@@ -249,14 +302,17 @@ class LibraryStatItem extends StatelessWidget {
   }
 }
 
-class AlbumsPanel extends ConsumerStatefulWidget {
-  const AlbumsPanel({super.key});
+/// Horizontal scrollable panel displaying random albums with left/right navigation arrows.
+class AlbumsPanel extends StatefulWidget {
+  final List<Album> albums;
+
+  const AlbumsPanel({super.key, required this.albums});
 
   @override
-  ConsumerState<AlbumsPanel> createState() => _AlbumsPanelState();
+  State<AlbumsPanel> createState() => _AlbumsPanelState();
 }
 
-class _AlbumsPanelState extends ConsumerState<AlbumsPanel> {
+class _AlbumsPanelState extends State<AlbumsPanel> {
   final ScrollController _scrollController = ScrollController();
   bool _showLeftButton = false;
   bool _showRightButton = false;
@@ -264,11 +320,13 @@ class _AlbumsPanelState extends ConsumerState<AlbumsPanel> {
   @override
   void initState() {
     super.initState();
-    // Listen for scrolling to update button visibility
     _scrollController.addListener(_updateScrollButtons);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateScrollButtons());
+  }
 
-    // Wait for the first frame to render so we know the max scroll extent, which tells us if we need to show the right
-    // arrow on initial load.
+  @override
+  void didUpdateWidget(covariant AlbumsPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
     WidgetsBinding.instance.addPostFrameCallback((_) => _updateScrollButtons());
   }
 
@@ -279,14 +337,11 @@ class _AlbumsPanelState extends ConsumerState<AlbumsPanel> {
     super.dispose();
   }
 
-  // The logic to evaluate if buttons should be shown
   void _updateScrollButtons() {
     if (!_scrollController.hasClients) return;
 
     final position = _scrollController.position;
-    // Show left if we've scrolled past 0
     final showLeft = position.pixels > 0;
-    // Show right if we haven't reached the absolute end
     final showRight = position.pixels < position.maxScrollExtent;
 
     if (showLeft != _showLeftButton || showRight != _showRightButton) {
@@ -297,247 +352,238 @@ class _AlbumsPanelState extends ConsumerState<AlbumsPanel> {
     }
   }
 
-  // Smooth scrolling functions (jumps by ~2 albums at a time)
   void _scrollLeft() {
     if (!_scrollController.hasClients) return;
-
-    final target = (_scrollController.offset - 360).clamp(0.0, _scrollController.position.maxScrollExtent);
-
-    _scrollController.animateTo(target, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+    final target =
+        (_scrollController.offset - 360).clamp(0.0, _scrollController.position.maxScrollExtent);
+    _scrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   void _scrollRight() {
     if (!_scrollController.hasClients) return;
-
-    final target = (_scrollController.offset + 360).clamp(0.0, _scrollController.position.maxScrollExtent);
-
-    _scrollController.animateTo(target, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+    final target =
+        (_scrollController.offset + 360).clamp(0.0, _scrollController.position.maxScrollExtent);
+    _scrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final randomAlbumsAsync = ref.watch(randomAlbumsProvider);
+    final albums = widget.albums;
+    if (albums.isEmpty) return const Text('No albums found.');
+
     final theme = Theme.of(context);
 
-    return randomAlbumsAsync.when(
-      data: (albums) {
-        if (albums.isEmpty) return const Text('No albums found.');
-
-        // Force to check for arrows right after the albums finish rendering
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _updateScrollButtons();
-        });
-
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              SingleChildScrollView(
-                controller: _scrollController,
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (int i = 0; i < albums.length; i++) ...[
-                      Padding(
-                        padding: EdgeInsets.only(left: i == 0 ? 0 : 12.0, right: i == albums.length - 1 ? 0 : 12.0),
-                        child: SizedBox(
-                          width: 160,
-                          child: AlbumCard(
-                            album: albums[i],
-                            albumSize: 160,
-                            onAlbumTap: () {
-                              final basePath = Routes.albumsPage;
-                              final targetId = albums[i].id;
-
-                              context.go('$basePath/$targetId');
-                            },
-                          ),
-                        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SingleChildScrollView(
+            controller: _scrollController,
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (int i = 0; i < albums.length; i++) ...[
+                  Padding(
+                    padding: EdgeInsets.only(
+                      left: i == 0 ? 0 : 12.0,
+                      right: i == albums.length - 1 ? 0 : 12.0,
+                    ),
+                    child: SizedBox(
+                      width: 160,
+                      child: AlbumCard(
+                        album: albums[i],
+                        albumSize: 160,
+                        onAlbumTap: () {
+                          final basePath = Routes.albumsPage;
+                          final targetId = albums[i].id;
+                          context.go('$basePath/$targetId');
+                        },
                       ),
-                    ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (_showLeftButton)
+            Positioned(
+              left: 0,
+              top: 56,
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: theme.colorScheme.surface.withValues(alpha: 0.8),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4),
                   ],
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.chevron_left),
+                  onPressed: _scrollLeft,
                 ),
               ),
-
-              // Left Scroll Button
-              if (_showLeftButton)
-                Positioned(
-                  left: 0,
-                  top: 56,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: theme.colorScheme.surface.withValues(alpha: 0.8),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4)],
-                    ),
-                    child: IconButton(icon: const Icon(Icons.chevron_left), onPressed: _scrollLeft),
-                  ),
-                ),
-
-              // Right Scroll Button
-              if (_showRightButton)
-                Positioned(
-                  right: 0,
-                  top: 56,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: theme.colorScheme.surface.withValues(alpha: 0.8),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4)],
-                    ),
-                    child: IconButton(icon: const Icon(Icons.chevron_right), onPressed: _scrollRight),
-                  ),
-                ),
-            ],
-          ),
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Text('Error: $err'),
-    );
-  }
-}
-
-class TracksPanel extends ConsumerWidget {
-  const TracksPanel({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final libraryAsync = ref.watch(libraryStreamProvider);
-    final sixTracks = ref.watch(librarySampleTracksProvider);
-
-    return libraryAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text('Error: $error')),
-      data: (tracks) {
-        if (tracks.isEmpty) {
-          return const Text("No tracks found");
-        }
-
-        return Column(
-          children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                // The breakpoint for when it should switch to 2 columns
-                final bool useTwoColumns = constraints.maxWidth > 600;
-                const double spacing = 8.0;
-
-                // Calculate the exact width each tile should take
-                final double itemWidth = useTwoColumns
-                    // Subtract spacing to prevent overflow
-                    ? (constraints.maxWidth - spacing) / 2
-                    : constraints.maxWidth;
-
-                return Wrap(
-                  spacing: spacing,
-                  runSpacing: spacing,
-                  children: [
-                    for (int i = 0; i < sixTracks.length; i++)
-                      if (sixTracks[i].isNotEmpty)
-                        SizedBox(
-                          width: itemWidth,
-                          child: LibraryTrackTile(
-                            track: sixTracks[i],
-                            showDuration: true,
-                            playbackContextType: 'top_tracks',
-                            tracksToPlay: sixTracks,
-                            indexToPlay: i,
-                          ),
-                        ),
-                  ],
-                );
-              },
             ),
-          ],
-        );
-      },
+          if (_showRightButton)
+            Positioned(
+              right: 0,
+              top: 56,
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: theme.colorScheme.surface.withValues(alpha: 0.8),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4),
+                  ],
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: _scrollRight,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
 
-class RecentlyAddedPanel extends ConsumerStatefulWidget {
-  const RecentlyAddedPanel({super.key});
+/// Panel displaying up to 6 sample tracks in a 1-or-2-column wrap.
+class TracksPanel extends StatelessWidget {
+  final List<TrackWithArtists> sampleTracks;
+  final void Function(List<TrackWithArtists> tracks, int index) onPlayTrack;
 
-  @override
-  ConsumerState<RecentlyAddedPanel> createState() => _RecentlyAddedPanelState();
-}
-
-class _RecentlyAddedPanelState extends ConsumerState<RecentlyAddedPanel> {
-  bool showMore = false;
+  const TracksPanel({
+    super.key,
+    required this.sampleTracks,
+    required this.onPlayTrack,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final recentTracksAsync = ref.watch(recentlyAddedTracksProvider);
+    if (sampleTracks.isEmpty) {
+      return const Text("No tracks found");
+    }
 
-    return recentTracksAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Text('Error loading recent tracks: $err'),
-      data: (recentTracks) {
-        if (recentTracks.isEmpty) {
-          return const Center(
-            child: Padding(padding: EdgeInsets.all(16.0), child: Text('No recently added tracks.')),
-          );
-        }
+    return Column(
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final bool useTwoColumns = constraints.maxWidth > 600;
+            const double spacing = 8.0;
+            final double itemWidth = useTwoColumns
+                ? (constraints.maxWidth - spacing) / 2
+                : constraints.maxWidth;
 
-        int shownLength = showMore ? recentTracks.length : (recentTracks.length < 6 ? recentTracks.length : 6);
-
-        return Column(
-          children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                // The breakpoint for when it should switch to 2 columns
-                final bool useTwoColumns = constraints.maxWidth > 600;
-                const double spacing = 8.0;
-
-                // Calculate the exact width each tile should take
-                final double itemWidth = useTwoColumns
-                    // Subtract spacing to prevent overflow
-                    ? (constraints.maxWidth - spacing) / 2
-                    : constraints.maxWidth;
-
-                return Wrap(
-                  spacing: spacing,
-                  runSpacing: spacing,
-                  children: [
-                    for (int i = 0; i < shownLength; i++)
-                      if (recentTracks[i].isNotEmpty)
-                        SizedBox(
-                          width: itemWidth,
-                          child: LibraryTrackTile(
-                            track: recentTracks[i],
-                            showDateAdded: true,
-                            playbackContextType: 'recently_added',
-                            tracksToPlay: recentTracks,
-                            indexToPlay: i,
-                          ),
-                        ),
-                  ],
-                );
-              },
-            ),
-
-            const SizedBox(height: 8),
-
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  showMore = !showMore;
-                });
-              },
-              child: Text(
-                showMore ? 'Show Less' : 'Show More',
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-              ),
-            ),
-          ],
-        );
-      },
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: [
+                for (int i = 0; i < sampleTracks.length; i++)
+                  if (sampleTracks[i].isNotEmpty)
+                    SizedBox(
+                      width: itemWidth,
+                      child: LibraryTrackTile(
+                        track: sampleTracks[i],
+                        showDuration: true,
+                        playbackContextType: 'top_tracks',
+                        tracksToPlay: sampleTracks,
+                        indexToPlay: i,
+                        onPlayTrack: onPlayTrack,
+                      ),
+                    ),
+              ],
+            );
+          },
+        ),
+      ],
     );
   }
 }
 
+/// Panel displaying recently added tracks with show more / show less toggle.
+class RecentlyAddedPanel extends StatelessWidget {
+  final List<TrackWithArtists> tracks;
+  final bool showMore;
+  final VoidCallback onToggleShowMore;
+  final void Function(List<TrackWithArtists> tracks, int index) onPlayTrack;
+
+  const RecentlyAddedPanel({
+    super.key,
+    required this.tracks,
+    required this.showMore,
+    required this.onToggleShowMore,
+    required this.onPlayTrack,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (tracks.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Text('No recently added tracks.'),
+        ),
+      );
+    }
+
+    final int shownLength =
+        showMore ? tracks.length : (tracks.length < 6 ? tracks.length : 6);
+
+    return Column(
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final bool useTwoColumns = constraints.maxWidth > 600;
+            const double spacing = 8.0;
+            final double itemWidth = useTwoColumns
+                ? (constraints.maxWidth - spacing) / 2
+                : constraints.maxWidth;
+
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: [
+                for (int i = 0; i < shownLength; i++)
+                  if (tracks[i].isNotEmpty)
+                    SizedBox(
+                      width: itemWidth,
+                      child: LibraryTrackTile(
+                        track: tracks[i],
+                        showDateAdded: true,
+                        playbackContextType: 'recently_added',
+                        tracksToPlay: tracks,
+                        indexToPlay: i,
+                        onPlayTrack: onPlayTrack,
+                      ),
+                    ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: onToggleShowMore,
+          child: Text(
+            showMore ? 'Show Less' : 'Show More',
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Dumb track tile for library overview panels.
 class LibraryTrackTile extends ConsumerWidget {
   const LibraryTrackTile({
     super.key,
@@ -547,15 +593,16 @@ class LibraryTrackTile extends ConsumerWidget {
     required this.playbackContextType,
     required this.tracksToPlay,
     required this.indexToPlay,
+    required this.onPlayTrack,
   });
 
   final TrackWithArtists track;
   final bool showDateAdded;
   final bool showDuration;
-
   final String playbackContextType;
   final List<TrackWithArtists> tracksToPlay;
   final int indexToPlay;
+  final void Function(List<TrackWithArtists> tracks, int index) onPlayTrack;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -564,34 +611,29 @@ class LibraryTrackTile extends ConsumerWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: .circular(6),
-        onDoubleTap: () {
-          ref
-              .read(playerServiceProvider)
-              .setPlaylist(
-                playbackContextType: playbackContextType,
-                playbackContextId: null,
-                tracksToPlay: tracksToPlay,
-                initialIndex: indexToPlay,
-              );
-        },
+        borderRadius: BorderRadius.circular(6),
+        onDoubleTap: () => onPlayTrack(tracksToPlay, indexToPlay),
         child: SizedBox(
           height: 68,
           child: Row(
             children: [
               Expanded(
                 child: MusicTile(
-                  padding: const .only(left: 8.0),
+                  padding: const EdgeInsets.only(left: 8.0),
                   title: track.track.title,
                   artists: track.artists.map((artist) => artist.name).toList(),
                   albumArtPath: track.album.albumArtPath,
                 ),
               ),
-
               const SizedBox(width: 24),
-              if (showDateAdded) ...[Text(track.track.dateAdded.toRelativeTime()), const SizedBox(width: 24)],
-              if (showDuration) ...[Text(track.track.durationMs.toDurationString()), const SizedBox(width: 24)],
-
+              if (showDateAdded) ...[
+                Text(track.track.dateAdded.toRelativeTime()),
+                const SizedBox(width: 24),
+              ],
+              if (showDuration) ...[
+                Text(track.track.durationMs.toDurationString()),
+                const SizedBox(width: 24),
+              ],
               IconButton(
                 onPressed: () {
                   unimplemented(context);
@@ -613,8 +655,7 @@ class LibraryTrackTile extends ConsumerWidget {
   }
 }
 
-// ================================================================================================
-
+/// Popover panel permitting users to reorder and toggle visibility of library sections.
 class LibrarySectionsPanel extends ConsumerWidget {
   const LibrarySectionsPanel({super.key});
 
@@ -634,7 +675,9 @@ class LibrarySectionsPanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final adaptiveBgPanelBlur = ref.watch(configServiceProvider.select((config) => config.adaptiveBgPanelBlur));
+    final adaptiveBgPanelBlur = ref.watch(
+      libraryViewModelProvider.select((s) => s.adaptiveBgPanelBlur),
+    );
     final appIconSet = ref.watch(appIconProvider);
     final sections = ref.watch(librarySectionsProvider);
 
@@ -664,7 +707,7 @@ class LibrarySectionsPanel extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
               itemCount: sections.length,
               onReorderItem: (int oldIndex, int newIndex) {
-                ref.read(libraryViewModelProvider).reorderSections(oldIndex, newIndex);
+                ref.read(libraryViewModelProvider.notifier).reorderSections(oldIndex, newIndex);
               },
               itemBuilder: (context, index) {
                 final section = sections[index];
@@ -698,7 +741,9 @@ class LibrarySectionsPanel extends ConsumerWidget {
                           ),
                           IconButton(
                             onPressed: () {
-                              ref.read(libraryViewModelProvider).toggleSectionVisibility(section.id);
+                              ref
+                                  .read(libraryViewModelProvider.notifier)
+                                  .toggleSectionVisibility(section.id);
                             },
                             icon: AppIcon(
                               section.isVisible ? appIconSet.visible : appIconSet.invisible,

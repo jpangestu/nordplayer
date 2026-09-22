@@ -4,7 +4,7 @@ import 'package:nordplayer/core/database/app_database.dart' hide Album, Artist, 
 import 'package:nordplayer/data/mappers/db_mappers.dart';
 import 'package:nordplayer/domain/models/models.dart';
 
-export 'package:nordplayer/features/shell/viewmodels/search_viewmodel.dart';
+export 'package:nordplayer/features/shell/search_viewmodel.dart';
 
 /// Repository interface abstracting audio track queries, library statistics,
 /// search, and maintenance operations.

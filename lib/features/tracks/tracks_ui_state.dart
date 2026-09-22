@@ -12,6 +12,9 @@ class const TracksUiState({
   final String? activeTrackPath,
   final bool isAudioPlaying = false,
   final String? errorMessage,
+  final bool isAdaptiveBg = false,
+  final double adaptiveBgPanelBlur = 20.0,
+  final double adaptiveBgThemeOverlay = 0.5,
 }) {
   /// Total duration of all loaded tracks in milliseconds.
   int get totalDurationMs => tracks.fold(0, (sum, track) => sum + track.track.durationMs);
@@ -31,6 +34,9 @@ class const TracksUiState({
     String? Function()? activeTrackPath,
     bool? isAudioPlaying,
     String? Function()? errorMessage,
+    bool? isAdaptiveBg,
+    double? adaptiveBgPanelBlur,
+    double? adaptiveBgThemeOverlay,
   }) {
     return TracksUiState(
       tracks: tracks ?? this.tracks,
@@ -41,6 +47,9 @@ class const TracksUiState({
       activeTrackPath: activeTrackPath != null ? activeTrackPath() : this.activeTrackPath,
       isAudioPlaying: isAudioPlaying ?? this.isAudioPlaying,
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
+      isAdaptiveBg: isAdaptiveBg ?? this.isAdaptiveBg,
+      adaptiveBgPanelBlur: adaptiveBgPanelBlur ?? this.adaptiveBgPanelBlur,
+      adaptiveBgThemeOverlay: adaptiveBgThemeOverlay ?? this.adaptiveBgThemeOverlay,
     );
   }
 
@@ -56,7 +65,10 @@ class const TracksUiState({
           isLoading == other.isLoading &&
           activeTrackPath == other.activeTrackPath &&
           isAudioPlaying == other.isAudioPlaying &&
-          errorMessage == other.errorMessage;
+          errorMessage == other.errorMessage &&
+          isAdaptiveBg == other.isAdaptiveBg &&
+          adaptiveBgPanelBlur == other.adaptiveBgPanelBlur &&
+          adaptiveBgThemeOverlay == other.adaptiveBgThemeOverlay;
 
   @override
   int get hashCode => Object.hash(
@@ -68,5 +80,8 @@ class const TracksUiState({
         activeTrackPath,
         isAudioPlaying,
         errorMessage,
+        isAdaptiveBg,
+        adaptiveBgPanelBlur,
+        adaptiveBgThemeOverlay,
       );
 }

@@ -1,11 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/core/system/config_service.dart';
 import 'package:nordplayer/core/utils/datetime_extension.dart';
 import 'package:nordplayer/core/utils/int_extension.dart';
 import 'package:nordplayer/domain/models/models.dart';
-import 'package:nordplayer/features/tracks/viewmodels/tracks_viewmodel.dart';
+import 'package:nordplayer/features/tracks/tracks_viewmodel.dart';
 import 'package:nordplayer/features/tracks/widgets/track_context_menu.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/widgets/album_art_stack.dart';
@@ -17,8 +16,8 @@ import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/music_tile.dart';
 import 'package:nordplayer/widgets/sliver_resizable_table.dart';
 
-export 'package:nordplayer/features/tracks/viewmodels/tracks_ui_state.dart';
-export 'package:nordplayer/features/tracks/viewmodels/tracks_viewmodel.dart';
+export 'package:nordplayer/features/tracks/tracks_ui_state.dart';
+export 'package:nordplayer/features/tracks/tracks_viewmodel.dart';
 
 /// Pure presentation View for the Tracks screen, observing [TracksUiState].
 class TracksView extends ConsumerWidget {
@@ -94,7 +93,7 @@ class TracksView extends ConsumerWidget {
             TrackContextMenu.show(
               context: context,
               ref: ref,
-              isAdaptive: ref.read(configServiceProvider).adaptiveBg,
+              isAdaptive: uiState.isAdaptiveBg,
               globalPosition: event.position,
               tracks: uiState.tracks,
               clickedIndex: index,
@@ -115,7 +114,6 @@ class TracksView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider);
     final uiState = ref.watch(tracksViewModelProvider);
     final viewModel = ref.read(tracksViewModelProvider.notifier);
 
@@ -139,7 +137,7 @@ class TracksView extends ConsumerWidget {
     if (uiState.isLoading) {
       return Scaffold(
         backgroundColor:
-            appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
+            uiState.isAdaptiveBg ? Colors.transparent : theme.colorScheme.surface,
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -147,7 +145,7 @@ class TracksView extends ConsumerWidget {
     if (uiState.errorMessage != null) {
       return Scaffold(
         backgroundColor:
-            appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
+            uiState.isAdaptiveBg ? Colors.transparent : theme.colorScheme.surface,
         body: Center(child: Text('Error loading tracks: ${uiState.errorMessage}')),
       );
     }
@@ -155,7 +153,7 @@ class TracksView extends ConsumerWidget {
     if (uiState.isEmpty) {
       return Scaffold(
         backgroundColor:
-            appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
+            uiState.isAdaptiveBg ? Colors.transparent : theme.colorScheme.surface,
         body: Column(
           children: [
             TracksPageHeader(
@@ -198,7 +196,7 @@ class TracksView extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor:
-          appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
+          uiState.isAdaptiveBg ? Colors.transparent : theme.colorScheme.surface,
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
@@ -213,13 +211,13 @@ class TracksView extends ConsumerWidget {
             selectedIndices: uiState.selectedIndices,
             rowHeight: 66.0,
             tablePadding: const EdgeInsets.only(left: 24, top: 8, bottom: 24, right: 24),
-            isAdaptive: appConfig.adaptiveBg,
-            headerBlur: appConfig.adaptiveBgPanelBlur,
-            headerThemeOverlay: appConfig.adaptiveBgThemeOverlay,
+            isAdaptive: uiState.isAdaptiveBg,
+            headerBlur: uiState.adaptiveBgPanelBlur,
+            headerThemeOverlay: uiState.adaptiveBgThemeOverlay,
             onHeaderRightClick: (globalPosition) {
               ContextMenu.show(
                 context: context,
-                isAdaptive: appConfig.adaptiveBg,
+                isAdaptive: uiState.isAdaptiveBg,
                 globalPosition: globalPosition,
                 actionMenus: [
                   ContextMenuCustomWidget(child: const HeaderColumnSelectorMenu()),
@@ -245,7 +243,7 @@ class TracksView extends ConsumerWidget {
               TrackContextMenu.show(
                 context: context,
                 ref: ref,
-                isAdaptive: appConfig.adaptiveBg,
+                isAdaptive: uiState.isAdaptiveBg,
                 globalPosition: globalPosition,
                 tracks: uiState.tracks,
                 clickedIndex: index,
@@ -275,19 +273,21 @@ class TracksPageHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider);
+    final isAdaptive = ref.watch(tracksViewModelProvider.select((s) => s.isAdaptiveBg));
+    final panelBlur = ref.watch(tracksViewModelProvider.select((s) => s.adaptiveBgPanelBlur));
+    final themeOverlay = ref.watch(tracksViewModelProvider.select((s) => s.adaptiveBgThemeOverlay));
     final int totalDurationMs =
         tracks.fold(0, (sum, track) => sum + track.track.durationMs);
 
     return FrostedGlass(
-      backgroundColor: appConfig.adaptiveBg
+      backgroundColor: isAdaptive
           ? theme.colorScheme.surfaceContainer
-              .withValues(alpha: appConfig.adaptiveBgThemeOverlay)
+              .withValues(alpha: themeOverlay)
           : theme.colorScheme.surface,
-      blurSigma: appConfig.adaptiveBgPanelBlur,
+      blurSigma: panelBlur,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24),
-        decoration: appConfig.adaptiveBg
+        decoration: isAdaptive
             ? const BoxDecoration()
             : BoxDecoration(
                 gradient: LinearGradient(

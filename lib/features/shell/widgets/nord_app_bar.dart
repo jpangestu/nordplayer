@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/core/system/config_service.dart';
+import 'package:nordplayer/features/shell/shell_viewmodel.dart';
 import 'package:nordplayer/routes/navigation_history.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
@@ -23,30 +23,30 @@ class _NordplayerAppBarState extends ConsumerState<NordAppBar> {
   Widget build(BuildContext context) {
     final appIconSet = ref.watch(appIconProvider);
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider);
+    final shellState = ref.watch(shellViewModelProvider);
 
     final navHistory = ref.watch(navigationHistoryProvider);
     final canGoBack = navHistory.canGoBack;
     final canGoForward = navHistory.canGoForward;
 
     return AppBar(
-      backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surfaceContainer,
+      backgroundColor: shellState.isAdaptiveBg ? Colors.transparent : theme.colorScheme.surfaceContainer,
       toolbarHeight: 60,
       elevation: 0,
       // To disable the surface tint color when app bar is scrolled
       scrolledUnderElevation: 0,
-      flexibleSpace: appConfig.adaptiveBg
+      flexibleSpace: shellState.isAdaptiveBg
           ? ClipRect(
               child: BackdropFilter(
                 filter: ImageFilter.blur(
-                  sigmaX: appConfig.adaptiveBgPanelBlur,
-                  sigmaY: appConfig.adaptiveBgPanelBlur,
+                  sigmaX: shellState.adaptiveBgPanelBlur,
+                  sigmaY: shellState.adaptiveBgPanelBlur,
                   tileMode: TileMode.mirror,
                 ),
                 child: Container(
                   color: Theme.of(
                     context,
-                  ).colorScheme.surfaceContainer.withValues(alpha: appConfig.adaptiveBgThemeOverlay),
+                  ).colorScheme.surfaceContainer.withValues(alpha: shellState.adaptiveBgThemeOverlay),
                 ),
               ),
             )

@@ -113,6 +113,10 @@ final configRepositoryProvider = Provider<ConfigRepository>((ref) {
     initialConfig: initialConfig,
   );
 
+  ref.listen(configServiceProvider, (_, next) {
+    repo.updateConfig(next);
+  });
+
   ref.onDispose(repo.dispose);
   return repo;
 });

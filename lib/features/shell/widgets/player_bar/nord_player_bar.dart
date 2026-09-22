@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
-import 'package:nordplayer/features/shell/viewmodels/player_bar_viewmodel.dart';
+import 'package:nordplayer/features/shell/player_bar_viewmodel.dart';
 import 'package:nordplayer/features/shell/widgets/player_bar/playback.dart';
 import 'package:nordplayer/features/shell/widgets/player_bar/progress_bar.dart';
 import 'package:nordplayer/features/shell/widgets/player_bar/volume_slider.dart';

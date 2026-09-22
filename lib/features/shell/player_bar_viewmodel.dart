@@ -1,11 +1,11 @@
-import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/core/models/time_label_type.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/settings_repository.dart';
-import 'package:nordplayer/features/shell/viewmodels/player_bar_ui_state.dart';
+import 'package:nordplayer/features/shell/player_bar_ui_state.dart';
+
+export 'package:nordplayer/features/shell/player_bar_ui_state.dart';
 
 /// ViewModel managing the player bar and playback controls.
 class PlayerBarViewModel extends Notifier<PlayerBarUiState> {
