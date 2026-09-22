@@ -4,16 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/domain/models/models.dart';
-import 'package:nordplayer/data/repositories/album_repository.dart';
-import 'package:nordplayer/routes/router.dart';
-import 'package:nordplayer/core/system/config_service.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
+import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/features/albums/albums_ui_state.dart';
+import 'package:nordplayer/features/albums/albums_viewmodel.dart';
+import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/context_menu.dart';
 import 'package:nordplayer/widgets/sections/section_container.dart';
 import 'package:nordplayer/widgets/sections/section_page_title.dart';
 
+/// Pure presentation View for the Albums overview screen, observing [AlbumsUiState].
 class AlbumsView extends ConsumerStatefulWidget {
   const AlbumsView({super.key});
 
@@ -22,22 +23,28 @@ class AlbumsView extends ConsumerStatefulWidget {
 }
 
 class _AlbumsViewState extends ConsumerState<AlbumsView> {
-  // final GlobalKey _customizeSectionButtonKey = GlobalKey();
   final GlobalKey _filterButtonKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider);
     final appIconSet = ref.watch(appIconProvider);
-    final albums = ref.watch(albumsProvider);
+    final uiState = ref.watch(albumsViewModelProvider);
 
     return Scaffold(
-      backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
-      body: albums.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Text('Error loading albums: $err'),
-        data: (data) {
+      backgroundColor: uiState.isAdaptiveBg ? Colors.transparent : theme.colorScheme.surface,
+      body: Builder(
+        builder: (context) {
+          if (uiState.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (uiState.errorMessage != null) {
+            return Center(child: Text('Error loading albums: ${uiState.errorMessage}'));
+          }
+
+          final data = uiState.albums;
+
           return CustomScrollView(
             slivers: [
               SliverPadding(
@@ -55,49 +62,51 @@ class _AlbumsViewState extends ConsumerState<AlbumsView> {
                             icon: AppIcon(appIconSet.filter, color: theme.textTheme.headlineSmall!.color, size: 22),
                             tooltip: 'Filter',
                           ),
-
-                          // const SizedBox(width: 8),
-
-                          // IconButton(
-                          //   key: _customizeSectionButtonKey,
-                          //   onPressed: () {},
-                          //   icon: AppIcon(appIconSet.settings2, color: theme.textTheme.headlineSmall!.color, size: 22),
-                          //   tooltip: 'Customize Sections',
-                          // ),
                         ],
                       ),
                     ),
                   ),
                 ),
               ),
-              SliverPadding(
-                padding: const EdgeInsets.only(left: 24, right: 24, top: 0, bottom: 16),
-                sliver: SliverGrid.builder(
-                  itemCount: data.length,
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 200.0,
-                    mainAxisExtent: 240,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 8,
+              if (uiState.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Text(
+                      'No albums found',
+                      style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    ),
                   ),
-                  itemBuilder: (context, index) {
-                    final album = data[index];
-                    return Center(
-                      child: SizedBox(
-                        width: 180,
-                        child: AlbumCard(
-                          album: album,
-                          onAlbumTap: () {
-                            final basePath = Routes.albumsPage;
-                            final targetId = album.id;
-                            context.go('$basePath/$targetId');
-                          },
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.only(left: 24, right: 24, top: 0, bottom: 16),
+                  sliver: SliverGrid.builder(
+                    itemCount: data.length,
+                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 200.0,
+                      mainAxisExtent: 240,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 8,
+                    ),
+                    itemBuilder: (context, index) {
+                      final album = data[index];
+                      return Center(
+                        child: SizedBox(
+                          width: 180,
+                          child: AlbumCard(
+                            album: album,
+                            onAlbumTap: () {
+                              final basePath = Routes.albumsPage;
+                              final targetId = album.id;
+                              context.go('$basePath/$targetId');
+                            },
+                          ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
-              ),
             ],
           );
         },
@@ -106,6 +115,7 @@ class _AlbumsViewState extends ConsumerState<AlbumsView> {
   }
 }
 
+/// Card widget rendering an album cover, title, and artist name with hover effects.
 class AlbumCard extends ConsumerStatefulWidget {
   final Album album;
 
@@ -221,28 +231,25 @@ class _AlbumCardState extends ConsumerState<AlbumCard> {
             onEnter: (_) => setState(() => _isHoveringAlbumArtist = true),
             onExit: (_) => setState(() => _isHoveringAlbumArtist = false),
             child: GestureDetector(
-              onTapDown: (details) {
-                // Fetch featured artists for this album
-                final artistsAsync = ref.read(trackArtistsProvider(widget.album.id));
+              onTapDown: (details) async {
+                // Fetch featured artists for this album via ViewModel
+                final artists = await ref.read(albumsViewModelProvider.notifier).getAlbumArtists(widget.album.id);
+                if (artists.isEmpty || !context.mounted) return;
 
-                artistsAsync.whenData((artists) {
-                  if (artists.isEmpty) return;
-
-                  ContextMenu.show(
-                    context: context,
-                    isAdaptive: true,
-                    globalPosition: details.globalPosition,
-                    actionMenus: artists.map((artist) {
-                      return ContextMenuActions(
-                        icon: Icons.person,
-                        label: artist.name,
-                        onTap: () {
-                          // context.go('${Routes.artistsPage}/${artist.id}');
-                        },
-                      );
-                    }).toList(),
-                  );
-                });
+                ContextMenu.show(
+                  context: context,
+                  isAdaptive: true,
+                  globalPosition: details.globalPosition,
+                  actionMenus: artists.map((artist) {
+                    return ContextMenuActions(
+                      icon: Icons.person,
+                      label: artist.name,
+                      onTap: () {
+                        // context.go('${Routes.artistsPage}/${artist.id}');
+                      },
+                    );
+                  }).toList(),
+                );
               },
               child: Text(
                 widget.album.albumArtist ?? 'Various Artists',

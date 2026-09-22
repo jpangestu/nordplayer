@@ -3,15 +3,12 @@ import 'dart:io' show File;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/core/models/selection_state.dart';
-import 'package:nordplayer/core/system/config_service.dart';
-import 'package:nordplayer/core/system/preference_service.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/core/utils/int_extension.dart';
 import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/features/albums/album_detail_ui_state.dart';
 import 'package:nordplayer/features/albums/album_detail_viewmodel.dart';
 import 'package:nordplayer/features/tracks/widgets/track_context_menu.dart';
-import 'package:nordplayer/services/audio/player_service.dart';
 import 'package:nordplayer/widgets/animated_equalizer_icon.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/base_button.dart';
@@ -22,6 +19,7 @@ import 'package:nordplayer/widgets/select_popover.dart';
 import 'package:nordplayer/widgets/sliver_resizable_table.dart';
 import 'package:nordplayer/widgets/unimplemented.dart';
 
+/// Pure presentation View for the Album Detail screen, observing [AlbumDetailUiState].
 class AlbumDetailView extends ConsumerWidget {
   final int albumId;
 
@@ -30,6 +28,8 @@ class AlbumDetailView extends ConsumerWidget {
   Widget _buildCell(
     BuildContext context,
     WidgetRef ref,
+    AlbumDetailUiState uiState,
+    AlbumDetailViewModel viewModel,
     String columnId,
     TrackWithArtists track,
     int index,
@@ -38,15 +38,13 @@ class AlbumDetailView extends ConsumerWidget {
   ) {
     switch (columnId) {
       case 'index':
-        final isActiveTrack = ref.watch(currentTrackProvider)?.track.filePath == track.track.filePath;
+        final isActiveTrack = uiState.activeTrackPath == track.track.filePath;
 
         if (isActiveTrack) {
-          final isAudioPlaying = ref.watch(isPlayingProvider);
-
           return AnimatedEqualizerIcon(
             color: Theme.of(context).colorScheme.primary,
             size: 16,
-            isPlaying: isAudioPlaying,
+            isPlaying: uiState.isAudioPlaying,
           );
         }
         return Text(
@@ -71,12 +69,13 @@ class AlbumDetailView extends ConsumerWidget {
             ),
             Listener(
               onPointerDown: (event) {
-                final selectionNotifier = ref.read(selectedTracksIndexProvider('album').notifier);
-                if (!ref.read(selectedTracksIndexProvider('album')).contains(index)) {
-                  selectionNotifier.selectTrack(index, isCtrlSelect: false, isShiftSelect: false);
+                if (!uiState.selectedIndices.contains(index)) {
+                  viewModel.selectSingle(index);
                 }
 
-                final selectedIndices = ref.read(selectedTracksIndexProvider('album')).toList()..sort();
+                final selectedIndices = uiState.selectedIndices.contains(index)
+                    ? (uiState.selectedIndices.toList()..sort())
+                    : [index];
                 final selectedTracks = selectedIndices
                     .where((i) => i >= 0 && i < allTracks.length)
                     .map((i) => allTracks[i])
@@ -85,7 +84,7 @@ class AlbumDetailView extends ConsumerWidget {
                 TrackContextMenu.show(
                   context: context,
                   ref: ref,
-                  isAdaptive: ref.read(configServiceProvider).adaptiveBg,
+                  isAdaptive: uiState.isAdaptiveBg,
                   globalPosition: event.position,
                   tracks: allTracks,
                   clickedIndex: index,
@@ -106,20 +105,26 @@ class AlbumDetailView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider);
-    final albumsWithTracks = ref.watch(sortedAlbumWithTracksProvider(albumId));
-    final columnConfigs = ref.watch(albumDetailPageTableColumnsProvider);
-    final selectedIndices = ref.watch(selectedTracksIndexProvider('album'));
+    final uiState = ref.watch(albumDetailViewModelProvider(albumId));
+    final viewModel = ref.read(albumDetailViewModelProvider(albumId).notifier);
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface.withValues(
-        alpha: appConfig.adaptiveBg ? appConfig.adaptiveBgThemeOverlay : 1,
+        alpha: uiState.isAdaptiveBg ? uiState.adaptiveBgThemeOverlay : 1,
       ),
-      body: albumsWithTracks.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Error: $error')),
-        data: (data) {
-          // The album not exist
+      body: Builder(
+        builder: (context) {
+          if (uiState.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (uiState.errorMessage != null) {
+            return Center(child: Text('Error: ${uiState.errorMessage}'));
+          }
+
+          final data = uiState.albumWithTracks;
+
+          // The album does not exist
           if (data == null) {
             return Center(child: Text("Album not found", style: theme.textTheme.titleLarge));
           }
@@ -128,7 +133,9 @@ class AlbumDetailView extends ConsumerWidget {
           if (data.tracks.isEmpty) {
             return CustomScrollView(
               slivers: [
-                SliverToBoxAdapter(child: AlbumDetailViewHeader(albumWithTracks: data)),
+                SliverToBoxAdapter(
+                  child: AlbumDetailViewHeader(albumId: albumId, albumWithTracks: data),
+                ),
                 SliverFillRemaining(
                   hasScrollBody: false,
                   child: Center(child: Text("This album has no tracks", style: theme.textTheme.titleMedium)),
@@ -137,62 +144,62 @@ class AlbumDetailView extends ConsumerWidget {
             );
           }
 
-          final albumDetailColumns = columnConfigs
+          final albumDetailColumns = uiState.columns
               .map(
                 (config) => TableColumn<TrackWithArtists>.fromConfig(
                   config: config,
                   cellBuilder: (context, track, index) =>
-                      _buildCell(context, ref, config.id, track, index, albumId, data.tracks),
+                      _buildCell(context, ref, uiState, viewModel, config.id, track, index, albumId, data.tracks),
                 ),
               )
               .toList();
 
           return CustomScrollView(
             slivers: [
-              SliverToBoxAdapter(child: AlbumDetailViewHeader(albumWithTracks: data)),
+              SliverToBoxAdapter(
+                child: AlbumDetailViewHeader(albumId: albumId, albumWithTracks: data),
+              ),
 
               SliverResizableTable(
                 items: data.tracks,
                 columns: albumDetailColumns,
-                selectedIndices: selectedIndices,
-                isAdaptive: appConfig.adaptiveBg,
-                headerBlur: appConfig.adaptiveBgPanelBlur,
-                headerThemeOverlay: appConfig.adaptiveBgThemeOverlay,
+                selectedIndices: uiState.selectedIndices,
+                isAdaptive: uiState.isAdaptiveBg,
+                headerBlur: uiState.adaptiveBgPanelBlur,
+                headerThemeOverlay: uiState.adaptiveBgThemeOverlay,
                 onHeaderRightClick: (globalPosition) {
                   ContextMenu.show(
                     context: context,
-                    isAdaptive: appConfig.adaptiveBg,
+                    isAdaptive: uiState.isAdaptiveBg,
                     globalPosition: globalPosition,
-                    actionMenus: [ContextMenuCustomWidget(child: const AlbumDetailViewTableColumnSelectorMenu())],
+                    actionMenus: [
+                      ContextMenuCustomWidget(child: AlbumDetailViewTableColumnSelectorMenu(albumId: albumId)),
+                    ],
                   );
                 },
                 onRowClick: (index, {required isCtrl, required isShift}) {
-                  ref
-                      .read(selectedTracksIndexProvider('album').notifier)
-                      .selectTrack(index, isCtrlSelect: isCtrl, isShiftSelect: isShift);
+                  viewModel.selectTrack(index, isCtrlSelect: isCtrl, isShiftSelect: isShift);
                 },
                 onRowDoubleClick: (index) {
-                  ref
-                      .read(albumDetailViewModelProvider)
-                      .playAlbum(tracks: data.tracks, albumId: albumId, shouldShuffle: false, initialIndex: index);
+                  viewModel.playAlbum(tracks: data.tracks, initialIndex: index, shouldShuffle: false);
                 },
                 onRowRightClick: (index, globalPosition) {
-                  final selectionNotifier = ref.read(selectedTracksIndexProvider('album').notifier);
-                  final currentSelection = ref.read(selectedTracksIndexProvider('album'));
-
-                  if (!currentSelection.contains(index)) {
-                    selectionNotifier.selectTrack(index, isCtrlSelect: false, isShiftSelect: false);
+                  if (!uiState.selectedIndices.contains(index)) {
+                    viewModel.selectSingle(index);
                   }
 
-                  final updatedSelection = ref.read(selectedTracksIndexProvider('album'));
-                  final sortedIndices = updatedSelection.toList()..sort();
-
-                  final List<TrackWithArtists> selectedTracks = sortedIndices.map((i) => data.tracks[i]).toList();
+                  final currentSelection = uiState.selectedIndices.contains(index)
+                      ? (uiState.selectedIndices.toList()..sort())
+                      : [index];
+                  final List<TrackWithArtists> selectedTracks = currentSelection
+                      .where((i) => i >= 0 && i < data.tracks.length)
+                      .map((i) => data.tracks[i])
+                      .toList();
 
                   TrackContextMenu.show(
                     context: context,
                     ref: ref,
-                    isAdaptive: appConfig.adaptiveBg,
+                    isAdaptive: uiState.isAdaptiveBg,
                     globalPosition: globalPosition,
                     tracks: data.tracks,
                     clickedIndex: index,
@@ -210,16 +217,18 @@ class AlbumDetailView extends ConsumerWidget {
   }
 }
 
+/// Header component for Album Detail displaying artwork, title, metadata, and actions.
 class AlbumDetailViewHeader extends ConsumerStatefulWidget {
+  final int albumId;
   final AlbumWithTracks albumWithTracks;
-  const AlbumDetailViewHeader({super.key, required this.albumWithTracks});
+
+  const AlbumDetailViewHeader({super.key, required this.albumId, required this.albumWithTracks});
 
   @override
   ConsumerState<AlbumDetailViewHeader> createState() => _AlbumDetailViewHeaderState();
 }
 
 class _AlbumDetailViewHeaderState extends ConsumerState<AlbumDetailViewHeader> {
-  late bool shouldShuffle;
   bool _isTitleHovered = false;
   final GlobalKey _sortButtonKey = GlobalKey();
   final GlobalKey _filterButtonKey = GlobalKey();
@@ -234,20 +243,16 @@ class _AlbumDetailViewHeaderState extends ConsumerState<AlbumDetailViewHeader> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    shouldShuffle = ref.read(preferenceServiceProvider).shuffleMode;
-  }
-
-  @override
   Widget build(BuildContext context) {
     final album = widget.albumWithTracks.album;
     final artPath = widget.albumWithTracks.album.albumArtPath;
     final tracks = widget.albumWithTracks.tracks;
     final theme = Theme.of(context);
-
-    final appConfig = ref.watch(configServiceProvider);
     final appIconSet = ref.watch(appIconProvider);
+
+    final uiState = ref.watch(albumDetailViewModelProvider(widget.albumId));
+    final viewModel = ref.read(albumDetailViewModelProvider(widget.albumId).notifier);
+    final shouldShuffle = uiState.shouldShuffle;
 
     // More info section
     final moreInfoParts = <String>[];
@@ -259,14 +264,14 @@ class _AlbumDetailViewHeaderState extends ConsumerState<AlbumDetailViewHeader> {
     final moreInfoString = moreInfoParts.join('  •  ');
 
     return FrostedGlass(
-      backgroundColor: appConfig.adaptiveBg
-          ? theme.colorScheme.surfaceContainer.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
+      backgroundColor: uiState.isAdaptiveBg
+          ? theme.colorScheme.surfaceContainer.withValues(alpha: uiState.adaptiveBgThemeOverlay)
           : theme.colorScheme.surface,
-      blurSigma: appConfig.adaptiveBgPanelBlur,
+      blurSigma: uiState.adaptiveBgPanelBlur,
       child: Container(
         padding: const .symmetric(horizontal: 24, vertical: 24),
         height: 200 + 48 + 24 + 36,
-        decoration: appConfig.adaptiveBg
+        decoration: uiState.isAdaptiveBg
             ? const BoxDecoration()
             : BoxDecoration(
                 gradient: LinearGradient(
@@ -391,13 +396,7 @@ class _AlbumDetailViewHeaderState extends ConsumerState<AlbumDetailViewHeader> {
                       overlayShape: .rectangle,
                       overlayColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
                       onClick: () {
-                        ref
-                            .read(albumDetailViewModelProvider)
-                            .playAlbum(
-                              tracks: tracks,
-                              albumId: widget.albumWithTracks.album.id,
-                              shouldShuffle: shouldShuffle,
-                            );
+                        viewModel.playAlbum(tracks: tracks, shouldShuffle: shouldShuffle);
                       },
                     ),
 
@@ -414,9 +413,7 @@ class _AlbumDetailViewHeaderState extends ConsumerState<AlbumDetailViewHeader> {
                       overlayColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
                       tooltip: 'Shuffle',
                       onClick: () {
-                        setState(() {
-                          shouldShuffle = !shouldShuffle;
-                        });
+                        viewModel.toggleShuffle();
                       },
                     ),
                   ],
@@ -477,9 +474,9 @@ class _AlbumDetailViewHeaderState extends ConsumerState<AlbumDetailViewHeader> {
                           context: context,
                           anchorKey: _sortButtonKey,
                           closeOnSelect: false,
-                          sectionsBuilder: (context, ref) {
-                            final currentSort = ref.watch(albumTrackSortProvider);
-                            final currentOrder = ref.watch(albumTrackSortOrderProvider);
+                          sectionsBuilder: (context, popoverRef) {
+                            final currentSort = uiState.sortCriteria;
+                            final currentOrder = uiState.sortOrder;
 
                             return [
                               SelectPopoverSection<AlbumTrackSort>(
@@ -491,7 +488,7 @@ class _AlbumDetailViewHeaderState extends ConsumerState<AlbumDetailViewHeader> {
                                   SelectPopoverOption(title: 'Duration', value: AlbumTrackSort.duration),
                                 ],
                                 onSelected: (sort) {
-                                  ref.read(albumTrackSortProvider.notifier).setSort(sort);
+                                  viewModel.setSort(sort);
                                 },
                               ),
                               SelectPopoverSection<SortOrder>(
@@ -502,7 +499,7 @@ class _AlbumDetailViewHeaderState extends ConsumerState<AlbumDetailViewHeader> {
                                   SelectPopoverOption(title: 'Descending', value: SortOrder.descending),
                                 ],
                                 onSelected: (order) {
-                                  ref.read(albumTrackSortOrderProvider.notifier).setOrder(order);
+                                  viewModel.setOrder(order);
                                 },
                               ),
                             ];
@@ -526,8 +523,8 @@ class _AlbumDetailViewHeaderState extends ConsumerState<AlbumDetailViewHeader> {
                           context: context,
                           anchorKey: _filterButtonKey,
                           closeOnSelect: false,
-                          sectionsBuilder: (context, ref) {
-                            final showFavoritesOnly = ref.watch(albumShowFavoritesOnlyProvider);
+                          sectionsBuilder: (context, popoverRef) {
+                            final showFavoritesOnly = uiState.showFavoritesOnly;
                             return [
                               SelectPopoverSection<bool>(
                                 title: 'Filter',
@@ -537,7 +534,7 @@ class _AlbumDetailViewHeaderState extends ConsumerState<AlbumDetailViewHeader> {
                                     value: true,
                                     isSelected: showFavoritesOnly,
                                     onTap: () {
-                                      ref.read(albumShowFavoritesOnlyProvider.notifier).toggle();
+                                      viewModel.toggleFavoritesOnly();
                                     },
                                   ),
                                 ],
@@ -560,11 +557,14 @@ class _AlbumDetailViewHeaderState extends ConsumerState<AlbumDetailViewHeader> {
 
 /// Context menu popup widget for selecting which columns appear in the album detail table.
 class AlbumDetailViewTableColumnSelectorMenu extends ConsumerWidget {
-  const AlbumDetailViewTableColumnSelectorMenu({super.key});
+  final int albumId;
+
+  const AlbumDetailViewTableColumnSelectorMenu({super.key, required this.albumId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final columns = ref.watch(albumDetailPageTableColumnsProvider);
+    final columns = ref.watch(albumDetailViewModelProvider(albumId).select((s) => s.columns));
+    final viewModel = ref.read(albumDetailViewModelProvider(albumId).notifier);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -572,7 +572,7 @@ class AlbumDetailViewTableColumnSelectorMenu extends ConsumerWidget {
       children: columns.map((col) {
         return InkWell(
           onTap: () {
-            ref.read(albumDetailPageTableColumnsProvider.notifier).toggleVisibility(col.id);
+            viewModel.toggleColumnVisibility(col.id);
           },
           child: Container(
             height: 36,
