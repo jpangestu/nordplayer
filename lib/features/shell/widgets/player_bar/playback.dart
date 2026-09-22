@@ -1,28 +1,23 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:nordplayer/core/system/logger.dart';
-import 'package:nordplayer/services/audio/player_service.dart';
-import 'package:nordplayer/core/system/preference_service.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
+import 'package:nordplayer/features/shell/viewmodels/player_bar_viewmodel.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 
-class Playback extends ConsumerStatefulWidget {
+/// Presentation widget for playback controls (shuffle, previous, play/pause, next, loop).
+class Playback extends ConsumerWidget {
   const Playback({super.key});
 
   @override
-  ConsumerState<Playback> createState() => _PlaybackState();
-}
-
-class _PlaybackState extends ConsumerState<Playback> with LoggerMixin {
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final appIconSet = ref.watch(appIconProvider);
 
-    final isPlaying = ref.watch(isPlayingProvider);
-    final isShuffled = ref.watch(preferenceServiceProvider).shuffleMode;
-    final loopMode = ref.watch(preferenceServiceProvider).loopMode;
+    final isPlaying = ref.watch(playerBarViewModelProvider.select((s) => s.isPlaying));
+    final isShuffled = ref.watch(playerBarViewModelProvider.select((s) => s.isShuffle));
+    final loopMode = ref.watch(playerBarViewModelProvider.select((s) => s.loopMode));
+    final viewModel = ref.read(playerBarViewModelProvider.notifier);
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -30,23 +25,23 @@ class _PlaybackState extends ConsumerState<Playback> with LoggerMixin {
         IconButton(
           icon: AppIcon(appIconSet.shuffle, color: isShuffled ? colorScheme.primary : null),
           iconSize: 24,
-          onPressed: () => ref.read(playerServiceProvider).toggleShuffle(),
+          onPressed: viewModel.toggleShuffle,
         ),
         IconButton(
           icon: AppIcon(appIconSet.previous),
           iconSize: 24,
-          onPressed: () => ref.read(playerServiceProvider).previous(),
+          onPressed: viewModel.previous,
         ),
         IconButton(
           isSelected: true,
           icon: AppIcon(isPlaying ? appIconSet.pause : appIconSet.play),
           iconSize: 36,
-          onPressed: () => ref.read(playerServiceProvider).playOrPause(),
+          onPressed: viewModel.playOrPause,
         ),
         IconButton(
           icon: AppIcon(appIconSet.next),
           iconSize: 24,
-          onPressed: () => ref.read(playerServiceProvider).next(),
+          onPressed: viewModel.next,
         ),
         IconButton(
           icon: AppIcon(switch (loopMode) {
@@ -55,7 +50,7 @@ class _PlaybackState extends ConsumerState<Playback> with LoggerMixin {
             PlaylistMode.single => appIconSet.repeatOne,
           }, color: loopMode != PlaylistMode.none ? colorScheme.primary : null),
           iconSize: 24,
-          onPressed: () => ref.read(playerServiceProvider).cycleLoopMode(),
+          onPressed: viewModel.cycleLoopMode,
         ),
       ],
     );

@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/models/selection_state.dart';
 import 'package:nordplayer/core/models/entities.dart';
-import 'package:nordplayer/services/audio/player_service.dart';
+import 'package:nordplayer/data/repositories/playback_repository.dart';
 
 /// Checks if any text field in the app currently has focus.
 /// Used to prevent global shortcuts (like Spacebar) from stealing keystrokes while typing.
@@ -45,10 +45,7 @@ class PlayOrPauseIntent extends Intent {
   const PlayOrPauseIntent();
 }
 
-class PlayOrPauseAction extends Action<PlayOrPauseIntent> {
-  PlayOrPauseAction(this.ref);
-  final WidgetRef ref;
-
+class PlayOrPauseAction(final WidgetRef ref) extends Action<PlayOrPauseIntent> {
   @override
   bool isEnabled(covariant PlayOrPauseIntent intent) {
     if (_isAnyTextFieldFocused()) return false;
@@ -57,7 +54,7 @@ class PlayOrPauseAction extends Action<PlayOrPauseIntent> {
 
   @override
   void invoke(covariant PlayOrPauseIntent intent) {
-    ref.read(playerServiceProvider).playOrPause();
+    ref.read(playbackRepositoryProvider).playOrPause();
   }
 }
 
@@ -65,10 +62,7 @@ class SkipToNextIntent extends Intent {
   const SkipToNextIntent();
 }
 
-class SkipToNextAction extends Action<SkipToNextIntent> {
-  SkipToNextAction(this.ref);
-  final WidgetRef ref;
-
+class SkipToNextAction(final WidgetRef ref) extends Action<SkipToNextIntent> {
   @override
   bool isEnabled(covariant SkipToNextIntent intent) {
     if (_isAnyTextFieldFocused()) return false;
@@ -77,7 +71,7 @@ class SkipToNextAction extends Action<SkipToNextIntent> {
 
   @override
   void invoke(covariant SkipToNextIntent intent) {
-    ref.read(playerServiceProvider).next();
+    ref.read(playbackRepositoryProvider).next();
   }
 }
 
@@ -85,10 +79,7 @@ class SkipToPreviousIntent extends Intent {
   const SkipToPreviousIntent();
 }
 
-class SkipToPreviousAction extends Action<SkipToPreviousIntent> {
-  SkipToPreviousAction(this.ref);
-  final WidgetRef ref;
-
+class SkipToPreviousAction(final WidgetRef ref) extends Action<SkipToPreviousIntent> {
   @override
   bool isEnabled(covariant SkipToPreviousIntent intent) {
     if (_isAnyTextFieldFocused()) return false;
@@ -97,7 +88,7 @@ class SkipToPreviousAction extends Action<SkipToPreviousIntent> {
 
   @override
   void invoke(covariant SkipToPreviousIntent intent) {
-    ref.read(playerServiceProvider).previous();
+    ref.read(playbackRepositoryProvider).previous();
   }
 }
 
@@ -105,10 +96,7 @@ class ToggleShuffleIntent extends Intent {
   const ToggleShuffleIntent();
 }
 
-class ToggleShuffleAction extends Action<ToggleShuffleIntent> {
-  ToggleShuffleAction(this.ref);
-  final WidgetRef ref;
-
+class ToggleShuffleAction(final WidgetRef ref) extends Action<ToggleShuffleIntent> {
   @override
   bool isEnabled(covariant ToggleShuffleIntent intent) {
     if (_isAnyTextFieldFocused()) return false;
@@ -117,7 +105,7 @@ class ToggleShuffleAction extends Action<ToggleShuffleIntent> {
 
   @override
   void invoke(covariant ToggleShuffleIntent intent) {
-    ref.read(playerServiceProvider).toggleShuffle();
+    ref.read(playbackRepositoryProvider).toggleShuffle();
   }
 }
 
@@ -125,10 +113,7 @@ class CycleLoopIntent extends Intent {
   const CycleLoopIntent();
 }
 
-class CycleLoopAction extends Action<CycleLoopIntent> {
-  CycleLoopAction(this.ref);
-  final WidgetRef ref;
-
+class CycleLoopAction(final WidgetRef ref) extends Action<CycleLoopIntent> {
   @override
   bool isEnabled(covariant CycleLoopIntent intent) {
     if (_isAnyTextFieldFocused()) return false;
@@ -137,7 +122,7 @@ class CycleLoopAction extends Action<CycleLoopIntent> {
 
   @override
   void invoke(covariant CycleLoopIntent intent) {
-    ref.read(playerServiceProvider).cycleLoopMode();
+    ref.read(playbackRepositoryProvider).toggleLoop();
   }
 }
 
@@ -145,10 +130,7 @@ class VolumeUpIntent extends Intent {
   const VolumeUpIntent();
 }
 
-class VolumeUpAction extends Action<VolumeUpIntent> {
-  VolumeUpAction(this.ref);
-  final WidgetRef ref;
-
+class VolumeUpAction(final WidgetRef ref) extends Action<VolumeUpIntent> {
   @override
   bool isEnabled(covariant VolumeUpIntent intent) {
     if (_isAnyTextFieldFocused()) return false;
@@ -157,7 +139,7 @@ class VolumeUpAction extends Action<VolumeUpIntent> {
 
   @override
   void invoke(covariant VolumeUpIntent intent) {
-    ref.read(playerServiceProvider).setVolumeUp(5);
+    ref.read(playbackRepositoryProvider).setVolumeUp(5);
   }
 }
 
@@ -165,10 +147,7 @@ class VolumeDownIntent extends Intent {
   const VolumeDownIntent();
 }
 
-class VolumeDownAction extends Action<VolumeDownIntent> {
-  VolumeDownAction(this.ref);
-  final WidgetRef ref;
-
+class VolumeDownAction(final WidgetRef ref) extends Action<VolumeDownIntent> {
   @override
   bool isEnabled(covariant VolumeDownIntent intent) {
     if (_isAnyTextFieldFocused()) return false;
@@ -177,7 +156,7 @@ class VolumeDownAction extends Action<VolumeDownIntent> {
 
   @override
   void invoke(covariant VolumeDownIntent intent) {
-    ref.read(playerServiceProvider).setVolumeDown(5);
+    ref.read(playbackRepositoryProvider).setVolumeDown(5);
   }
 }
 
@@ -185,10 +164,7 @@ class MuteIntent extends Intent {
   const MuteIntent();
 }
 
-class MuteAction extends Action<MuteIntent> {
-  MuteAction(this.ref);
-  final WidgetRef ref;
-
+class MuteAction(final WidgetRef ref) extends Action<MuteIntent> {
   @override
   bool isEnabled(covariant MuteIntent intent) {
     if (_isAnyTextFieldFocused()) return false;
@@ -197,7 +173,7 @@ class MuteAction extends Action<MuteIntent> {
 
   @override
   void invoke(covariant MuteIntent intent) {
-    ref.read(playerServiceProvider).toggleMute();
+    ref.read(playbackRepositoryProvider).toggleMute();
   }
 }
 
@@ -213,10 +189,7 @@ class FocusSearchIntent extends Intent {
   const FocusSearchIntent();
 }
 
-class FocusSearchAction extends Action<FocusSearchIntent> {
-  FocusSearchAction(this.ref);
-  final WidgetRef ref;
-
+class FocusSearchAction(final WidgetRef ref) extends Action<FocusSearchIntent> {
   @override
   void invoke(covariant FocusSearchIntent intent) {
     ref.read(searchFocusNodeProvider).requestFocus();
@@ -229,20 +202,13 @@ class PlaySelectedIntent extends Intent {
   const PlaySelectedIntent();
 }
 
-class PlaySelectedAction extends Action<PlaySelectedIntent> {
-  PlaySelectedAction({
-    required this.ref,
-    required this.tableId,
-    required this.playbackContextType,
-    this.playbackContextId,
-    required this.getTracks,
-  });
-
-  final WidgetRef ref;
-  final String tableId;
-  final String playbackContextType;
-  final int? playbackContextId;
-  final List<TrackWithArtists> Function() getTracks;
+class PlaySelectedAction({
+  required final WidgetRef ref,
+  required final String tableId,
+  required final String playbackContextType,
+  final int? playbackContextId,
+  required final List<TrackWithArtists> Function() getTracks,
+}) extends Action<PlaySelectedIntent> {
 
   @override
   bool isEnabled(covariant PlaySelectedIntent intent) {
@@ -265,7 +231,7 @@ class PlaySelectedAction extends Action<PlaySelectedIntent> {
       // Single Selection: Play the whole list, starting at the selected index
       final targetIndex = selectedIndices.first;
       ref
-          .read(playerServiceProvider)
+          .read(playbackRepositoryProvider)
           .setPlaylist(
             tracksToPlay: tracks,
             initialIndex: targetIndex,
@@ -278,7 +244,7 @@ class PlaySelectedAction extends Action<PlaySelectedIntent> {
       final selectedTracks = sortedIndices.map((i) => tracks[i]).toList();
 
       ref
-          .read(playerServiceProvider)
+          .read(playbackRepositoryProvider)
           .setPlaylist(
             tracksToPlay: selectedTracks,
             initialIndex: 0,
