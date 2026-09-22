@@ -4,6 +4,8 @@ import 'package:nordplayer/core/database/app_database.dart' hide Album, Artist, 
 import 'package:nordplayer/data/mappers/db_mappers.dart';
 import 'package:nordplayer/domain/models/models.dart';
 
+export 'package:nordplayer/features/shell/viewmodels/search_viewmodel.dart';
+
 /// Repository interface abstracting audio track queries, library statistics,
 /// search, and maintenance operations.
 abstract interface class TrackRepository {
@@ -243,28 +245,4 @@ final libraryStreamProvider = StreamProvider<List<TrackWithArtists>>((ref) {
 
 final recentlyAddedTracksProvider = StreamProvider<List<TrackWithArtists>>((ref) {
   return ref.watch(trackRepositoryProvider).watchRecentlyAddedTracks(limitAmount: 12);
-});
-
-final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(SearchQueryNotifier.new);
-
-class SearchQueryNotifier extends Notifier<String> {
-  @override
-  String build() => '';
-
-  void updateQuery(String query) {
-    state = query;
-  }
-
-  void clear() {
-    state = '';
-  }
-}
-
-final searchResultsProvider = StreamProvider.autoDispose<List<TrackWithArtists>>((ref) {
-  final query = ref.watch(searchQueryProvider);
-  if (query.trim().isEmpty) {
-    return Stream.value([]);
-  }
-
-  return ref.watch(trackRepositoryProvider).searchTracks(query);
 });
