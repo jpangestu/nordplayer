@@ -4,8 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/core/database/app_database.dart' hide Track;
 import 'package:nordplayer/domain/models/models.dart';
-import 'package:nordplayer/features/settings/duplicates_viewmodel.dart';
+import 'package:nordplayer/features/settings/library_indexer/duplicates_viewmodel.dart';
 import 'package:nordplayer/services/indexer/duplicate_detector.dart';
+import 'package:nordplayer/services/indexer/library_indexer.dart';
 
 class FakeDuplicateDetector extends Fake implements DuplicateDetector {
   List<Track> lastIgnoredTracks = [];
@@ -26,7 +27,22 @@ class FakeDuplicateDetector extends Fake implements DuplicateDetector {
   }
 }
 
-Track _createDummyTrack(int id, String title, String path) {
+class FakeLibraryIndexer extends Fake implements LibraryIndexer {
+  bool scanCalled = false;
+  bool fingerprintsCalled = false;
+
+  @override
+  Future<void> scanLibrary({void Function(int processed, int total)? onProgress}) async {
+    scanCalled = true;
+  }
+
+  @override
+  Future<void> generateMissingFingerprints({void Function(int processed, int total)? onProgress}) async {
+    fingerprintsCalled = true;
+  }
+}
+
+Track _createDummyTrack(int id, String title, String path, {int fileSize = 5000000}) {
   return Track(
     id: id,
     title: title,
@@ -38,7 +54,7 @@ Track _createDummyTrack(int id, String title, String path) {
     fileHash: 'hash_$id',
     isMissing: false,
     filePath: path,
-    fileSize: 5000000,
+    fileSize: fileSize,
     artistId: 1,
     albumId: 1,
     dateAdded: DateTime.now(),
@@ -49,6 +65,7 @@ void main() {
   group('DuplicatesViewModel', () {
     late AppDatabase db;
     late FakeDuplicateDetector fakeDetector;
+    late FakeLibraryIndexer fakeIndexer;
     late ProviderContainer container;
 
     setUp(() async {
@@ -60,10 +77,12 @@ void main() {
         ),
       );
       fakeDetector = FakeDuplicateDetector();
+      fakeIndexer = FakeLibraryIndexer();
       container = ProviderContainer(
         overrides: [
           appDatabaseProvider.overrideWithValue(db),
           duplicateDetectorProvider.overrideWithValue(fakeDetector),
+          libraryIndexerProvider.overrideWithValue(fakeIndexer),
         ],
       );
 
@@ -81,7 +100,30 @@ void main() {
       container.dispose();
     });
 
-    test('keepBestCopy ignores non-preferred tracks', () async {
+    test('initial load populates duplicate groups and sets isLoading false', () async {
+      final t1 = _createDummyTrack(1, 'Song A', '/music/a.flac');
+      final t2 = _createDummyTrack(2, 'Song A', '/music/a.mp3');
+      fakeDetector.duplicateGroupsToReturn = [
+        DuplicateGroup(
+          title: 'Song A',
+          artist: 'Artist A',
+          album: 'Album A',
+          tracks: [t1, t2],
+          preferredTrack: t1,
+        ),
+      ];
+
+      final vm = container.read(duplicatesViewModelProvider.notifier);
+      await vm.loadDuplicates();
+
+      final state = container.read(duplicatesViewModelProvider);
+      expect(state.isLoading, isFalse);
+      expect(state.duplicateGroups.length, equals(1));
+      expect(state.filteredGroups.length, equals(1));
+      expect(state.showStats, isTrue);
+    });
+
+    test('keepBestCopy ignores non-preferred tracks and updates state', () async {
       final t1 = _createDummyTrack(1, 'Song A', '/music/a.flac');
       final t2 = _createDummyTrack(2, 'Song A', '/music/a.mp3');
       final group = DuplicateGroup(
@@ -91,12 +133,20 @@ void main() {
         tracks: [t1, t2],
         preferredTrack: t1,
       );
+      fakeDetector.duplicateGroupsToReturn = [group];
 
-      final vm = container.read(duplicatesViewModelProvider);
+      final vm = container.read(duplicatesViewModelProvider.notifier);
+      await vm.loadDuplicates();
+
       final ignored = await vm.keepBestCopy(group);
 
       expect(ignored, equals([t2]));
       expect(fakeDetector.lastIgnoredTracks, equals([t2]));
+
+      final state = container.read(duplicatesViewModelProvider);
+      expect(state.manuallyIgnoredTrackIds, contains(t2.id));
+      // After ignoring t2, only 1 track remains in group, so filteredGroups becomes empty
+      expect(state.filteredGroups, isEmpty);
     });
 
     test('keepAllBestCopies ignores all non-preferred tracks across groups', () async {
@@ -119,21 +169,41 @@ void main() {
         tracks: [t3, t4],
         preferredTrack: t3,
       );
+      fakeDetector.duplicateGroupsToReturn = [g1, g2];
 
-      final vm = container.read(duplicatesViewModelProvider);
+      final vm = container.read(duplicatesViewModelProvider.notifier);
+      await vm.loadDuplicates();
+
       final ignored = await vm.keepAllBestCopies([g1, g2]);
 
       expect(ignored, equals([t2, t4]));
       expect(fakeDetector.lastIgnoredTracks, equals([t2, t4]));
+
+      final state = container.read(duplicatesViewModelProvider);
+      expect(state.manuallyIgnoredTrackIds, containsAll([t2.id, t4.id]));
+      expect(state.filteredGroups, isEmpty);
     });
 
-    test('ignoreTrack ignores a single track', () async {
+    test('ignoreTrack ignores a single track and updates state', () async {
       final t1 = _createDummyTrack(1, 'Song A', '/music/a.flac');
-      final vm = container.read(duplicatesViewModelProvider);
+      final t2 = _createDummyTrack(2, 'Song A', '/music/a.mp3');
+      final group = DuplicateGroup(
+        title: 'Song A',
+        artist: 'Artist A',
+        album: 'Album A',
+        tracks: [t1, t2],
+        preferredTrack: t1,
+      );
+      fakeDetector.duplicateGroupsToReturn = [group];
 
-      await vm.ignoreTrack(t1);
+      final vm = container.read(duplicatesViewModelProvider.notifier);
+      await vm.loadDuplicates();
 
-      expect(fakeDetector.lastSingleIgnoredTrack, equals(t1));
+      await vm.ignoreTrack(t2);
+
+      expect(fakeDetector.lastSingleIgnoredTrack, equals(t2));
+      final state = container.read(duplicatesViewModelProvider);
+      expect(state.manuallyIgnoredTrackIds, contains(t2.id));
     });
 
     test('restoreTracks removes from ignoredPaths and re-inserts track', () async {
@@ -143,7 +213,7 @@ void main() {
           );
 
       final t = _createDummyTrack(10, 'Song X', '/music/a.mp3');
-      final vm = container.read(duplicatesViewModelProvider);
+      final vm = container.read(duplicatesViewModelProvider.notifier);
 
       await vm.restoreTracks([t]);
 
@@ -153,6 +223,14 @@ void main() {
       final restoredTracks = await db.select(db.tracks).get();
       expect(restoredTracks.length, equals(1));
       expect(restoredTracks.first.id, equals(10));
+    });
+
+    test('triggerRescan sets scanningTriggered and invokes library indexer', () {
+      final vm = container.read(duplicatesViewModelProvider.notifier);
+      vm.triggerRescan();
+
+      expect(fakeIndexer.scanCalled, isTrue);
+      expect(container.read(duplicatesViewModelProvider).isScanningTriggered, isTrue);
     });
   });
 }

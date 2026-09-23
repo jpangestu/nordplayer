@@ -5,8 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/core/system/config_service.dart';
-import 'package:nordplayer/features/settings/library_indexer_viewmodel.dart';
+import 'package:nordplayer/features/settings/library_indexer/library_indexer_viewmodel.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/nord_snack_bar.dart';
@@ -52,42 +51,36 @@ class _LibraryIndexerViewState extends ConsumerState<LibraryIndexerView> {
   }
 
   void _handleLinkReindex() {
-    ref.read(libraryIndexerViewModelProvider).triggerReindex();
+    ref.read(libraryIndexerViewModelProvider.notifier).triggerReindex();
   }
 
   void _triggerScan() {
-    ref.read(libraryIndexerViewModelProvider).triggerScan();
+    ref.read(libraryIndexerViewModelProvider.notifier).triggerScan();
   }
 
   void _triggerReindex() {
-    ref.read(libraryIndexerViewModelProvider).triggerReindex();
+    ref.read(libraryIndexerViewModelProvider.notifier).triggerReindex();
   }
 
   void _triggerFingerprint() {
-    ref.read(libraryIndexerViewModelProvider).triggerFingerprint();
+    ref.read(libraryIndexerViewModelProvider.notifier).triggerFingerprint();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider);
-    List<String> trackDirectories = appConfig.trackDirectories;
-    List<String> currentDelimiters = appConfig.artistDelimiters;
-    List<String> currentExclusions = appConfig.artistExclusions;
-
-    final defaultSet = AppConfig.defaultArtistExclusions.map((e) => e.toLowerCase().trim()).toSet();
-    final customExclusions = currentExclusions.where((e) => !defaultSet.contains(e.toLowerCase().trim())).toList()
-      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-    final activeDefaultExclusions = currentExclusions.where((e) => defaultSet.contains(e.toLowerCase().trim())).toList()
-      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-
-    final isScanning = ref.watch(isLibraryScanningProvider);
-    final isReindexing = ref.watch(isLibraryReindexingProvider);
-    final isFingerprinting = ref.watch(isLibraryFingerprintingProvider);
-    final isAnyRunning = ref.watch(isAnyLibraryTaskRunningProvider);
+    final uiState = ref.watch(libraryIndexerViewModelProvider);
+    final trackDirectories = uiState.trackDirectories;
+    final currentDelimiters = uiState.artistDelimiters;
+    final customExclusions = uiState.customExclusions;
+    final activeDefaultExclusions = uiState.activeDefaultExclusions;
+    final isScanning = uiState.isScanning;
+    final isReindexing = uiState.isReindexing;
+    final isFingerprinting = uiState.isFingerprinting;
+    final isAnyRunning = uiState.isAnyTaskRunning;
 
     return Scaffold(
-      backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
+      backgroundColor: uiState.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
@@ -130,9 +123,9 @@ class _LibraryIndexerViewState extends ConsumerState<LibraryIndexerView> {
                 SwitchListTile(
                   title: Text('Watch folders for changes', style: theme.textTheme.bodyLarge),
                   subtitle: const Text('Automatically detect new, moved, or deleted music files in your locations.'),
-                  value: appConfig.watchTrackDirectories,
+                  value: uiState.watchTrackDirectories,
                   onChanged: (val) {
-                    ref.read(libraryIndexerViewModelProvider).toggleWatchFolders(val);
+                    ref.read(libraryIndexerViewModelProvider.notifier).toggleWatchFolders(val);
                   },
                 ),
               ],
@@ -184,6 +177,7 @@ class _LibraryIndexerViewState extends ConsumerState<LibraryIndexerView> {
                         children: currentDelimiters.map((delimiter) {
                           return SettingsChip(
                             label: delimiter,
+                            isAdaptive: uiState.adaptiveBg,
                             onDelete: (currentDelimiters.length > 1) ? () => _removeDelimiter(delimiter) : null,
                           );
                         }).toList(),
@@ -311,7 +305,11 @@ class _LibraryIndexerViewState extends ConsumerState<LibraryIndexerView> {
                           spacing: 8,
                           runSpacing: 8,
                           children: customExclusions.map((exclusion) {
-                            return SettingsChip(label: exclusion, onDelete: () => _removeExclusion(exclusion));
+                            return SettingsChip(
+                              label: exclusion,
+                              isAdaptive: uiState.adaptiveBg,
+                              onDelete: () => _removeExclusion(exclusion),
+                            );
                           }).toList(),
                         ),
 
@@ -349,7 +347,11 @@ class _LibraryIndexerViewState extends ConsumerState<LibraryIndexerView> {
                             spacing: 8,
                             runSpacing: 8,
                             children: activeDefaultExclusions.map((exclusion) {
-                              return SettingsChip(label: exclusion, onDelete: () => _removeExclusion(exclusion));
+                              return SettingsChip(
+                                label: exclusion,
+                                isAdaptive: uiState.adaptiveBg,
+                                onDelete: () => _removeExclusion(exclusion),
+                              );
                             }).toList(),
                           ),
                       ],
@@ -496,18 +498,18 @@ class _LibraryIndexerViewState extends ConsumerState<LibraryIndexerView> {
     final selectedPaths = await getDirectoryPaths();
     if (selectedPaths.isNotEmpty) {
       final validPaths = selectedPaths.whereType<String>().where((p) => p.isNotEmpty).toList();
-      await ref.read(libraryIndexerViewModelProvider).addFolders(validPaths);
+      await ref.read(libraryIndexerViewModelProvider.notifier).addFolders(validPaths);
     }
   }
 
   Future<void> _removeFolder(String path) async {
-    await ref.read(libraryIndexerViewModelProvider).removeFolder(path);
+    await ref.read(libraryIndexerViewModelProvider.notifier).removeFolder(path);
   }
 
   void _addNewDelimiter() {
     final newDelimiter = _addDelimiterController.text.trim().toLowerCase();
     if (newDelimiter.isNotEmpty) {
-      final added = ref.read(libraryIndexerViewModelProvider).addDelimiter(newDelimiter);
+      final added = ref.read(libraryIndexerViewModelProvider.notifier).addDelimiter(newDelimiter);
       if (added) {
         _addDelimiterController.clear();
         _addDelimiterFocusNode.requestFocus();
@@ -518,17 +520,17 @@ class _LibraryIndexerViewState extends ConsumerState<LibraryIndexerView> {
   }
 
   void _removeDelimiter(String delimiter) {
-    ref.read(libraryIndexerViewModelProvider).removeDelimiter(delimiter);
+    ref.read(libraryIndexerViewModelProvider.notifier).removeDelimiter(delimiter);
   }
 
   void _resetDelimitersToDefault() {
-    ref.read(libraryIndexerViewModelProvider).resetDelimitersToDefault();
+    ref.read(libraryIndexerViewModelProvider.notifier).resetDelimitersToDefault();
   }
 
   void _addNewExclusion() {
     final newExclusion = _addExclusionController.text.trim();
     if (newExclusion.isNotEmpty) {
-      final added = ref.read(libraryIndexerViewModelProvider).addExclusion(newExclusion);
+      final added = ref.read(libraryIndexerViewModelProvider.notifier).addExclusion(newExclusion);
       if (added) {
         _addExclusionController.clear();
         _addExclusionFocusNode.requestFocus();
@@ -539,10 +541,10 @@ class _LibraryIndexerViewState extends ConsumerState<LibraryIndexerView> {
   }
 
   void _removeExclusion(String exclusion) {
-    ref.read(libraryIndexerViewModelProvider).removeExclusion(exclusion);
+    ref.read(libraryIndexerViewModelProvider.notifier).removeExclusion(exclusion);
   }
 
   void _resetExclusionsToDefault() {
-    ref.read(libraryIndexerViewModelProvider).resetExclusionsToDefault();
+    ref.read(libraryIndexerViewModelProvider.notifier).resetExclusionsToDefault();
   }
 }

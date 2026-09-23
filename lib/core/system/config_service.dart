@@ -164,6 +164,12 @@ class ConfigService extends Notifier<AppConfig> with LoggerMixin {
     }
   }
 
+  void setConfig(AppConfig newConfig) {
+    if (state == newConfig) return;
+    state = newConfig;
+    _scheduleSave(newConfig);
+  }
+
   /// Flushes any debounced pending changes to disk immediately.
   Future<void> flush() async {
     _debounceTimer?.cancel();

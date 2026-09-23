@@ -2,9 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/core/system/config_service.dart';
 import 'package:nordplayer/core/utils/string_extension.dart';
-import 'package:nordplayer/features/settings/about_viewmodel.dart';
+import 'package:nordplayer/features/settings/about/about_viewmodel.dart';
 import 'package:nordplayer/routes/router.dart';
 import 'package:nordplayer/widgets/sections/section_container.dart';
 import 'package:nordplayer/widgets/sections/section_divider.dart';
@@ -16,11 +15,10 @@ class AboutView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider);
-    final packageInfo = ref.watch(packageInfoProvider).value;
+    final uiState = ref.watch(aboutViewModelProvider);
 
     return Scaffold(
-      backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
+      backgroundColor: uiState.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
       body: ListView(
         padding: const EdgeInsets.all(24.0),
         children: [
@@ -51,17 +49,17 @@ class AboutView extends ConsumerWidget {
                               ),
                             ),
 
-                            if (packageInfo != null)
+                            if (uiState.packageInfo != null)
                               Column(
                                 crossAxisAlignment: .start,
                                 children: [
                                   const SizedBox(height: 4),
                                   Text(
-                                    packageInfo.appName.toPascalCase(),
+                                    uiState.appName.toPascalCase(),
                                     style: theme.textTheme.titleLarge!.copyWith(color: theme.colorScheme.onSurface),
                                   ),
                                   Text(
-                                    "v${packageInfo.version}",
+                                    uiState.version,
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: theme.colorScheme.onSurface.withValues(alpha: 0.5),

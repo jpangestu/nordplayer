@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/core/database/app_database.dart';
 import 'package:nordplayer/core/system/config_service.dart';
 import 'package:nordplayer/core/system/preference_service.dart';
-import 'package:nordplayer/features/settings/advanced_settings_viewmodel.dart';
+import 'package:nordplayer/features/settings/advanced/advanced_settings_viewmodel.dart';
 import 'package:nordplayer/services/indexer/library_indexer.dart';
 import 'package:nordplayer/services/indexer/library_watcher.dart';
 import 'package:nordplayer/services/audio/player_service.dart';
@@ -109,9 +109,12 @@ void main() {
             ArtistsCompanion.insert(name: 'Orphan Artist'),
           );
 
-      final vm = container.read(advancedSettingsViewModelProvider);
+      final vm = container.read(advancedSettingsViewModelProvider.notifier);
+      expect(container.read(advancedSettingsViewModelProvider).isProcessing, isFalse);
+
       await vm.resetSettingsToDefault();
 
+      expect(container.read(advancedSettingsViewModelProvider).isProcessing, isFalse);
       expect(fakePlayer.clearedQueue, isTrue);
       expect(fakeWatcher.stoppedDirectories, containsAll(['/music/dir1', '/music/dir2']));
       expect(fakeIndexer.missingDirectories, containsAll(['/music/dir1', '/music/dir2']));
@@ -139,9 +142,10 @@ void main() {
       await sampleArt.writeAsString('sample bytes');
       expect(await sampleArt.exists(), isTrue);
 
-      final vm = container.read(advancedSettingsViewModelProvider);
+      final vm = container.read(advancedSettingsViewModelProvider.notifier);
       await vm.wipeAllLibraryData(getCacheDir: () async => tempDir);
 
+      expect(container.read(advancedSettingsViewModelProvider).isProcessing, isFalse);
       expect(fakePlayer.clearedQueue, isTrue);
       expect(await artDir.exists(), isFalse);
       expect(fakeIndexer.scanCalled, isTrue);

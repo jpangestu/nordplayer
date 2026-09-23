@@ -1,8 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/core/system/config_service.dart';
 import 'package:nordplayer/core/utils/string_extension.dart';
-import 'package:nordplayer/features/settings/about_viewmodel.dart';
+import 'package:nordplayer/features/settings/about/about_viewmodel.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 
 class LicensesView extends ConsumerWidget {
@@ -11,8 +10,7 @@ class LicensesView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider);
-    final packageInfo = ref.watch(packageInfoProvider).value;
+    final uiState = ref.watch(aboutViewModelProvider);
     final packageLicensesAsync = ref.watch(packageLicensesProvider);
 
     const String appLicenseText =
@@ -37,10 +35,10 @@ class LicensesView extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: FrostedGlass(
-        backgroundColor: appConfig.adaptiveBg
-            ? theme.colorScheme.surface.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
+        backgroundColor: uiState.adaptiveBg
+            ? theme.colorScheme.surface.withValues(alpha: uiState.adaptiveBgThemeOverlay)
             : theme.colorScheme.surface,
-        blurSigma: appConfig.adaptiveBgPanelBlur,
+        blurSigma: uiState.adaptiveBgPanelBlur,
         child: packageLicensesAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Center(child: Text('Failed to load licenses: $e')),
@@ -59,11 +57,11 @@ class LicensesView extends ConsumerWidget {
                   return Column(
                     children: [
                       Text(
-                        packageInfo?.appName.toPascalCase() ?? 'Nordplayer',
+                        uiState.appName.toPascalCase(),
                         style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 8),
-                      Text(packageInfo != null ? packageInfo.version : '', style: theme.textTheme.bodyMedium),
+                      Text(uiState.version, style: theme.textTheme.bodyMedium),
                       const SizedBox(height: 16),
                       Text(appLicenseText, style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace')),
                       const SizedBox(height: 48),

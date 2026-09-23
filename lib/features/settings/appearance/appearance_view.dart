@@ -1,23 +1,25 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/theme/app_theme.dart';
-import 'package:nordplayer/core/system/config_service.dart';
+import 'package:nordplayer/features/settings/appearance/appearance_viewmodel.dart';
 import 'package:nordplayer/features/settings/widgets/choice_tile.dart';
+import 'package:nordplayer/features/settings/widgets/slider_tile.dart';
 import 'package:nordplayer/widgets/sections/section_container.dart';
 import 'package:nordplayer/widgets/sections/section_divider.dart';
 import 'package:nordplayer/widgets/sections/section_header.dart';
-import 'package:nordplayer/features/settings/widgets/slider_tile.dart';
 
+/// Pure presentation View for the Appearance settings screen, observing [AppearanceUiState].
 class AppearanceView extends ConsumerWidget {
   const AppearanceView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider);
+    final uiState = ref.watch(appearanceViewModelProvider);
+    final viewModel = ref.read(appearanceViewModelProvider.notifier);
 
     return Scaffold(
-      backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
+      backgroundColor: uiState.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
@@ -34,19 +36,19 @@ class AppearanceView extends ConsumerWidget {
                         children: [
                           ChoiceTile(
                             label: 'Static',
-                            isSelected: appConfig.theme != 'adaptive',
-                            onTap: () => ref.read(configServiceProvider.notifier).updateConfig(theme: 'nord'),
+                            isSelected: uiState.theme != 'adaptive',
+                            onTap: () => viewModel.setTheme('nord'),
                           ),
                           const SizedBox(width: 12),
                           ChoiceTile(
                             label: 'Adaptive',
-                            isSelected: appConfig.theme == 'adaptive',
-                            onTap: () => ref.read(configServiceProvider.notifier).updateConfig(theme: 'adaptive'),
+                            isSelected: uiState.theme == 'adaptive',
+                            onTap: () => viewModel.setTheme('adaptive'),
                           ),
                         ],
                       ),
                       const SizedBox(height: 24),
-                      if (appConfig.theme == 'adaptive') ...[
+                      if (uiState.theme == 'adaptive') ...[
                         LayoutBuilder(
                           builder: (context, constraints) {
                             final useVerticalLayout = constraints.maxWidth < 380;
@@ -54,19 +56,15 @@ class AppearanceView extends ConsumerWidget {
                               ChoiceTile(
                                 label: 'Light',
                                 verticalPadding: 8,
-                                isSelected: appConfig.themeBrightness == Brightness.light,
-                                onTap: () => ref
-                                    .read(configServiceProvider.notifier)
-                                    .updateConfig(themeBrightness: Brightness.light),
+                                isSelected: uiState.themeBrightness == Brightness.light,
+                                onTap: () => viewModel.setThemeBrightness(Brightness.light),
                               ),
                               const SizedBox(width: 8),
                               ChoiceTile(
                                 label: 'Dark',
                                 verticalPadding: 8,
-                                isSelected: appConfig.themeBrightness == Brightness.dark,
-                                onTap: () => ref
-                                    .read(configServiceProvider.notifier)
-                                    .updateConfig(themeBrightness: Brightness.dark),
+                                isSelected: uiState.themeBrightness == Brightness.dark,
+                                onTap: () => viewModel.setThemeBrightness(Brightness.dark),
                               ),
                             ];
 
@@ -97,7 +95,7 @@ class AppearanceView extends ConsumerWidget {
                             Text('Color Theme', style: theme.textTheme.bodyLarge),
                             const SizedBox(width: 48),
                             DropdownMenu<String>(
-                              initialSelection: appConfig.theme,
+                              initialSelection: uiState.theme,
                               inputDecorationTheme: InputDecorationTheme(
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                                 isDense: true,
@@ -105,19 +103,18 @@ class AppearanceView extends ConsumerWidget {
                               ),
                               menuStyle: MenuStyle(
                                 backgroundColor: WidgetStatePropertyAll(
-                                  appConfig.adaptiveBg
+                                  uiState.adaptiveBg
                                       ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.8)
                                       : theme.colorScheme.surfaceContainer,
                                 ),
                               ),
-                              dropdownMenuEntries: AppTheme.labels.entries.where((e) => e.key != 'adaptive').map((
-                                entry,
-                              ) {
-                                return DropdownMenuEntry(value: entry.key, label: entry.value);
-                              }).toList(),
+                              dropdownMenuEntries: AppTheme.labels.entries
+                                  .where((e) => e.key != 'adaptive')
+                                  .map((entry) => DropdownMenuEntry(value: entry.key, label: entry.value))
+                                  .toList(),
                               onSelected: (selectedTheme) {
                                 if (selectedTheme == null) return;
-                                ref.read(configServiceProvider.notifier).updateConfig(theme: selectedTheme);
+                                viewModel.setTheme(selectedTheme);
                               },
                             ),
                           ],
@@ -136,7 +133,7 @@ class AppearanceView extends ConsumerWidget {
                   child: ListTile(
                     title: Text('Icon Set', style: theme.textTheme.bodyLarge),
                     trailing: DropdownMenu<String>(
-                      initialSelection: appConfig.iconSet,
+                      initialSelection: uiState.iconSet,
                       inputDecorationTheme: InputDecorationTheme(
                         contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                         isDense: true,
@@ -144,7 +141,7 @@ class AppearanceView extends ConsumerWidget {
                       ),
                       menuStyle: MenuStyle(
                         backgroundColor: WidgetStatePropertyAll(
-                          appConfig.adaptiveBg
+                          uiState.adaptiveBg
                               ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.8)
                               : theme.colorScheme.surfaceContainer,
                         ),
@@ -155,7 +152,7 @@ class AppearanceView extends ConsumerWidget {
                       ],
                       onSelected: (selectedIconSet) {
                         if (selectedIconSet == null) return;
-                        ref.read(configServiceProvider.notifier).updateConfig(iconSet: selectedIconSet);
+                        viewModel.setIconSet(selectedIconSet);
                       },
                     ),
                   ),
@@ -170,13 +167,11 @@ class AppearanceView extends ConsumerWidget {
                     SwitchListTile(
                       title: Text('Adaptive Background', style: theme.textTheme.bodyLarge),
                       subtitle: const Text("Use the currently played track's album art as the background"),
-                      value: appConfig.adaptiveBg,
-                      onChanged: (val) {
-                        ref.read(configServiceProvider.notifier).updateConfig(adaptiveBg: val);
-                      },
+                      value: uiState.adaptiveBg,
+                      onChanged: viewModel.setAdaptiveBg,
                     ),
 
-                    if (appConfig.adaptiveBg) ...[
+                    if (uiState.adaptiveBg) ...[
                       const SectionDivider(),
 
                       Padding(
@@ -184,7 +179,7 @@ class AppearanceView extends ConsumerWidget {
                         child: ListTile(
                           title: Text('Album Art Fit', style: theme.textTheme.bodyLarge),
                           trailing: DropdownMenu<BoxFit>(
-                            initialSelection: appConfig.adaptiveBgAlbumFit,
+                            initialSelection: uiState.adaptiveBgAlbumFit,
                             inputDecorationTheme: InputDecorationTheme(
                               contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                               isDense: true,
@@ -192,7 +187,7 @@ class AppearanceView extends ConsumerWidget {
                             ),
                             menuStyle: MenuStyle(
                               backgroundColor: WidgetStatePropertyAll(
-                                appConfig.adaptiveBg
+                                uiState.adaptiveBg
                                     ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.8)
                                     : theme.colorScheme.surfaceContainer,
                               ),
@@ -204,7 +199,7 @@ class AppearanceView extends ConsumerWidget {
                             ],
                             onSelected: (selectedFit) {
                               if (selectedFit == null) return;
-                              ref.read(configServiceProvider.notifier).updateConfig(albumFit: selectedFit);
+                              viewModel.setAlbumFit(selectedFit);
                             },
                           ),
                         ),
@@ -214,46 +209,36 @@ class AppearanceView extends ConsumerWidget {
 
                       SliderTile(
                         label: 'Album Art Blur',
-                        value: appConfig.adaptiveBgAlbumBlur,
+                        value: uiState.adaptiveBgAlbumBlur,
                         min: 0.0,
                         max: 100.0,
                         labelBuilder: (val) => val.toInt().toString(),
-                        onChanged: (val) {
-                          ref.read(configServiceProvider.notifier).updateConfig(albumBlur: val, save: false);
-                        },
-                        onChangeEnd: (val) {
-                          ref.read(configServiceProvider.notifier).updateConfig(albumBlur: val);
-                        },
+                        onChanged: viewModel.setAlbumBlur,
+                        onChangeEnd: viewModel.setAlbumBlur,
                       ),
+
+                      const SectionDivider(),
 
                       SliderTile(
                         label: 'Panel Blur',
-                        value: appConfig.adaptiveBgPanelBlur,
+                        value: uiState.adaptiveBgPanelBlur,
                         min: 0.0,
                         max: 100.0,
                         labelBuilder: (val) => val.toInt().toString(),
-                        onChanged: (val) {
-                          ref.read(configServiceProvider.notifier).updateConfig(panelBlur: val, save: false);
-                        },
-                        onChangeEnd: (val) {
-                          ref.read(configServiceProvider.notifier).updateConfig(panelBlur: val);
-                        },
+                        onChanged: viewModel.setPanelBlur,
+                        onChangeEnd: viewModel.setPanelBlur,
                       ),
 
                       const SectionDivider(),
 
                       SliderTile(
                         label: 'Theme Overlay',
-                        value: appConfig.adaptiveBgThemeOverlay,
+                        value: uiState.adaptiveBgThemeOverlay,
                         min: 0.0,
                         max: 1.0,
                         labelBuilder: (val) => "${(val * 100).toInt()}%",
-                        onChanged: (val) {
-                          ref.read(configServiceProvider.notifier).updateConfig(tinter: val, save: false);
-                        },
-                        onChangeEnd: (val) {
-                          ref.read(configServiceProvider.notifier).updateConfig(tinter: val);
-                        },
+                        onChanged: viewModel.setThemeOverlay,
+                        onChangeEnd: viewModel.setThemeOverlay,
                       ),
                     ],
                   ],
@@ -272,7 +257,7 @@ class AppearanceView extends ConsumerWidget {
               child: ListTile(
                 title: Text('Font Family', style: theme.textTheme.bodyLarge),
                 trailing: DropdownMenu<String>(
-                  initialSelection: appConfig.fontFamily,
+                  initialSelection: uiState.fontFamily,
                   inputDecorationTheme: InputDecorationTheme(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                     isDense: true,
@@ -280,7 +265,7 @@ class AppearanceView extends ConsumerWidget {
                   ),
                   menuStyle: MenuStyle(
                     backgroundColor: WidgetStatePropertyAll(
-                      appConfig.adaptiveBg
+                      uiState.adaptiveBg
                           ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.8)
                           : theme.colorScheme.surfaceContainer,
                     ),
@@ -292,14 +277,14 @@ class AppearanceView extends ConsumerWidget {
                       style: MenuItemButton.styleFrom(
                         textStyle: TextStyle(
                           fontFamily: entry.key,
-                          fontSize: 16, // Slightly larger size makes the preview clearer
+                          fontSize: 16,
                         ),
                       ),
                     );
                   }).toList(),
                   onSelected: (selectedFont) {
                     if (selectedFont == null) return;
-                    ref.read(configServiceProvider.notifier).updateConfig(fontFamily: selectedFont);
+                    viewModel.setFontFamily(selectedFont);
                   },
                 ),
               ),
@@ -311,18 +296,12 @@ class AppearanceView extends ConsumerWidget {
           SectionContainer(
             child: SliderTile(
               label: 'Font Scale',
-              value: appConfig.textScale,
+              value: uiState.textScale,
               min: 0.75,
               max: 1.5,
               labelBuilder: (val) => "${(val * 100).toInt()}%",
-              onChanged: (val) {
-                double roundedValue = (val * 100).round() / 100;
-                ref.read(configServiceProvider.notifier).updateConfig(textScale: roundedValue, save: false);
-              },
-              onChangeEnd: (val) {
-                double roundedValue = (val * 100).round() / 100;
-                ref.read(configServiceProvider.notifier).updateConfig(textScale: roundedValue);
-              },
+              onChanged: viewModel.setTextScale,
+              onChangeEnd: viewModel.setTextScale,
             ),
           ),
         ],

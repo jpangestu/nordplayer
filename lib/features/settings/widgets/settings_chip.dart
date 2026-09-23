@@ -1,20 +1,22 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/core/system/config_service.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 
-class SettingsChip extends ConsumerWidget {
+class SettingsChip extends StatelessWidget {
   final String label;
   final VoidCallback? onDelete;
+  final bool isAdaptive;
 
-  const SettingsChip({super.key, required this.label, this.onDelete});
+  const SettingsChip({
+    super.key,
+    required this.label,
+    this.onDelete,
+    this.isAdaptive = false,
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider);
-    final isAdaptive = appConfig.adaptiveBg;
 
     return FrostedGlass(
       borderRadius: 8.0,

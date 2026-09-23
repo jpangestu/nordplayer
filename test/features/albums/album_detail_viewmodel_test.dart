@@ -73,7 +73,7 @@ class FakePlaybackRepositoryForAlbum extends Fake implements PlaybackRepository 
   }
 }
 
-class FakeSettingsRepository implements SettingsRepository {
+class FakeSettingsRepository extends Fake implements SettingsRepository {
   final StreamController<PreferencesState> _settingsController = StreamController<PreferencesState>.broadcast();
   PreferencesState _state = const PreferencesState(
     cachedAlbumArtPath: null,

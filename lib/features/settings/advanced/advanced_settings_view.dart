@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/core/system/config_service.dart';
-import 'package:nordplayer/features/settings/advanced_settings_viewmodel.dart';
+import 'package:nordplayer/features/settings/advanced/advanced_settings_viewmodel.dart';
 import 'package:nordplayer/widgets/nord_alert_dialog.dart';
 import 'package:nordplayer/widgets/sections/section_container.dart';
 import 'package:nordplayer/widgets/sections/section_header.dart';
@@ -12,10 +11,10 @@ class AdvancedSettingsView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider);
+    final uiState = ref.watch(advancedSettingsViewModelProvider);
 
     return Scaffold(
-      backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
+      backgroundColor: uiState.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
       body: ListView(
         padding: const .all(24),
         children: [
@@ -31,7 +30,7 @@ class AdvancedSettingsView extends ConsumerWidget {
                 'Themes, music locations, and player preferences',
                 style: TextStyle(color: theme.colorScheme.onError.withValues(alpha: 0.74)),
               ),
-              onTap: () => _showResetSettingsDialog(context, ref),
+              onTap: uiState.isProcessing ? null : () => _showResetSettingsDialog(context, ref),
             ),
           ),
           const SizedBox(height: 4),
@@ -46,7 +45,7 @@ class AdvancedSettingsView extends ConsumerWidget {
                 'Wipes database and album art (does not delete music files)',
                 style: TextStyle(color: theme.colorScheme.onError.withValues(alpha: 0.74)),
               ),
-              onTap: () => _showDeleteDataDialog(context, ref),
+              onTap: uiState.isProcessing ? null : () => _showDeleteDataDialog(context, ref),
             ),
           ),
         ],
@@ -64,7 +63,7 @@ class AdvancedSettingsView extends ConsumerWidget {
     );
 
     if (confirmed == true) {
-      await ref.read(advancedSettingsViewModelProvider).resetSettingsToDefault();
+      await ref.read(advancedSettingsViewModelProvider.notifier).resetSettingsToDefault();
     }
   }
 
@@ -78,7 +77,7 @@ class AdvancedSettingsView extends ConsumerWidget {
     );
 
     if (confirmed == true) {
-      await ref.read(advancedSettingsViewModelProvider).wipeAllLibraryData();
+      await ref.read(advancedSettingsViewModelProvider.notifier).wipeAllLibraryData();
     }
   }
 }
@@ -98,11 +97,11 @@ Future<bool?> _confirmAction(
       actions: [
         TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
         FilledButton(
+          onPressed: () => Navigator.pop(context, true),
           style: FilledButton.styleFrom(
             backgroundColor: Theme.of(context).colorScheme.error,
             foregroundColor: Theme.of(context).colorScheme.onError,
           ),
-          onPressed: () => Navigator.pop(context, true),
           child: Text(buttonText),
         ),
       ],

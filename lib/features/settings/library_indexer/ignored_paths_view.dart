@@ -1,9 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/database/app_database.dart' show IgnoredPath;
-import 'package:nordplayer/core/system/config_service.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
-import 'package:nordplayer/features/settings/ignored_paths_viewmodel.dart';
+import 'package:nordplayer/features/settings/library_indexer/ignored_paths_viewmodel.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/nord_alert_dialog.dart';
@@ -18,19 +17,15 @@ class IgnoredPathsView extends ConsumerStatefulWidget {
 }
 
 class _IgnoredPathsViewState extends ConsumerState<IgnoredPathsView> {
-  bool _isProcessing = false;
-  final Set<String> _manuallyRestoredPaths = {};
-
   Future<void> _ignorePaths(List<String> filePaths) async {
     try {
-      await ref.read(ignoredPathsViewModelProvider).reignorePaths(filePaths);
+      await ref.read(ignoredPathsViewModelProvider.notifier).reignorePaths(filePaths);
     } catch (_) {}
   }
 
   Future<void> _restorePath(IgnoredPath path) async {
-    setState(() => _manuallyRestoredPaths.add(path.filePath));
     try {
-      await ref.read(ignoredPathsViewModelProvider).restorePath(path);
+      await ref.read(ignoredPathsViewModelProvider.notifier).restorePath(path);
 
       if (mounted) {
         showNordSnackBar(
@@ -39,24 +34,11 @@ class _IgnoredPathsViewState extends ConsumerState<IgnoredPathsView> {
           actionLabel: 'Undo',
           duration: const Duration(seconds: 6),
           onAction: (context) async {
-            setState(() {
-              _manuallyRestoredPaths.remove(path.filePath);
-            });
             await _ignorePaths([path.filePath]);
           },
         );
       }
-    } catch (_) {
-      if (mounted) {
-        setState(() => _manuallyRestoredPaths.remove(path.filePath));
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _manuallyRestoredPaths.remove(path.filePath);
-        });
-      }
-    }
+    } catch (_) {}
   }
 
   Future<void> _restoreAll(List<IgnoredPath> paths) async {
@@ -77,13 +59,9 @@ class _IgnoredPathsViewState extends ConsumerState<IgnoredPathsView> {
     if (result != true) return;
 
     final pathsToRestore = paths.map((p) => p.filePath).toList();
-    setState(() {
-      _isProcessing = true;
-      _manuallyRestoredPaths.addAll(pathsToRestore);
-    });
 
     try {
-      await ref.read(ignoredPathsViewModelProvider).restoreAll(paths);
+      await ref.read(ignoredPathsViewModelProvider.notifier).restoreAll(paths);
 
       if (mounted) {
         showNordSnackBar(
@@ -92,51 +70,28 @@ class _IgnoredPathsViewState extends ConsumerState<IgnoredPathsView> {
           actionLabel: 'Undo',
           duration: const Duration(seconds: 6),
           onAction: (context) async {
-            setState(() {
-              _manuallyRestoredPaths.removeAll(pathsToRestore);
-            });
             await _ignorePaths(pathsToRestore);
           },
         );
       }
-    } catch (_) {
-      if (mounted) {
-        setState(() => _manuallyRestoredPaths.removeAll(pathsToRestore));
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-          _manuallyRestoredPaths.removeAll(pathsToRestore);
-        });
-      }
-    }
+    } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider);
     final appIconSet = ref.watch(appIconProvider);
+    final uiState = ref.watch(ignoredPathsViewModelProvider);
 
-    final ignoredPathsAsync = ref.watch(ignoredPathsProvider);
-    final paths = ignoredPathsAsync.value ?? [];
-    final isLoading = ignoredPathsAsync.isLoading && !ignoredPathsAsync.hasValue;
-    final hasError = ignoredPathsAsync.hasError && !ignoredPathsAsync.hasValue;
-
-    // Clean up _manuallyRestoredPaths for paths that are no longer in the paths list
-    if (_manuallyRestoredPaths.isNotEmpty) {
-      final allIgnoredPaths = paths.map((p) => p.filePath).toSet();
-      _manuallyRestoredPaths.retainAll(allIgnoredPaths);
-    }
-
-    final filteredPaths = paths.where((p) => !_manuallyRestoredPaths.contains(p.filePath)).toList();
-    final showRestoreAll = filteredPaths.isNotEmpty;
-    final showEmptyMessage = filteredPaths.isEmpty;
-    final showList = filteredPaths.isNotEmpty;
+    final filteredPaths = uiState.filteredPaths;
+    final isLoading = uiState.isLoading;
+    final hasError = uiState.hasError;
+    final showRestoreAll = uiState.showRestoreAll;
+    final showEmptyMessage = uiState.showEmptyMessage;
+    final showList = uiState.showList;
 
     return Scaffold(
-      backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
+      backgroundColor: uiState.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
@@ -148,7 +103,7 @@ class _IgnoredPathsViewState extends ConsumerState<IgnoredPathsView> {
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: Text('Error: ${ignoredPathsAsync.error}', style: TextStyle(color: theme.colorScheme.error)),
+                    child: Text('Error: ${uiState.errorMessage}', style: TextStyle(color: theme.colorScheme.error)),
                   ),
                 )
               else
@@ -167,11 +122,11 @@ class _IgnoredPathsViewState extends ConsumerState<IgnoredPathsView> {
                             ),
                           ),
                           child: FrostedGlass(
-                            blurSigma: appConfig.adaptiveBgPanelBlur,
+                            blurSigma: uiState.adaptiveBgPanelBlur,
                             borderRadius: 16,
-                            backgroundColor: appConfig.adaptiveBg
+                            backgroundColor: uiState.adaptiveBg
                                 ? theme.colorScheme.surfaceContainerLow.withValues(
-                                    alpha: appConfig.adaptiveBgThemeOverlay,
+                                    alpha: uiState.adaptiveBgThemeOverlay,
                                   )
                                 : theme.colorScheme.surfaceContainerLow,
                             child: Padding(
@@ -208,7 +163,7 @@ class _IgnoredPathsViewState extends ConsumerState<IgnoredPathsView> {
                                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                           ),
-                                          onPressed: _isProcessing ? null : () => _restoreAll(filteredPaths),
+                                          onPressed: uiState.isProcessing ? null : () => _restoreAll(filteredPaths),
                                           icon: const AppIcon(Icons.restore_page, size: 18),
                                           label: const Text(
                                             'Restore All',
@@ -259,11 +214,11 @@ class _IgnoredPathsViewState extends ConsumerState<IgnoredPathsView> {
                                 ),
                               ),
                               child: FrostedGlass(
-                                blurSigma: appConfig.adaptiveBgPanelBlur,
+                                blurSigma: uiState.adaptiveBgPanelBlur,
                                 borderRadius: 12,
-                                backgroundColor: appConfig.adaptiveBg
+                                backgroundColor: uiState.adaptiveBg
                                     ? theme.colorScheme.surfaceContainer.withValues(
-                                        alpha: appConfig.adaptiveBgThemeOverlay,
+                                        alpha: uiState.adaptiveBgThemeOverlay,
                                       )
                                     : theme.colorScheme.surfaceContainer,
                                 child: Padding(
@@ -325,7 +280,7 @@ class _IgnoredPathsViewState extends ConsumerState<IgnoredPathsView> {
                                         icon: const AppIcon(Icons.restore),
                                         tooltip: 'Restore track',
                                         color: theme.colorScheme.primary,
-                                        onPressed: _isProcessing ? null : () => _restorePath(path),
+                                        onPressed: uiState.isProcessing ? null : () => _restorePath(path),
                                       ),
                                     ],
                                   ),

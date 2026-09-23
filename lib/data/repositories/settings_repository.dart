@@ -37,12 +37,16 @@ abstract interface class SettingsRepository {
 
   /// Sets audio playback volume (0-100).
   void setVolume(double value);
+
+  /// Resets all preferences to initial defaults.
+  Future<void> resetToDefaults();
 }
 
 /// Default implementation of [SettingsRepository] backed by [SharedPreferencesService].
 class DefaultSettingsRepository(
-  final SharedPreferencesService _prefsService,
-) with LoggerMixin implements SettingsRepository {
+  final SharedPreferencesService _prefsService, {
+  final Future<void> Function()? onReset,
+}) with LoggerMixin implements SettingsRepository {
   final StreamController<PreferencesState> _controller = StreamController<PreferencesState>.broadcast();
   late PreferencesState _state;
   Timer? _volumeDebounce;
@@ -144,6 +148,31 @@ class DefaultSettingsRepository(
     });
   }
 
+  @override
+  Future<void> resetToDefaults() async {
+    _volumeDebounce?.cancel();
+    const defaultState = PreferencesState(
+      cachedAlbumArtPath: null,
+      isMuted: PrefConstants.defaultIsMuted,
+      loopMode: PrefConstants.defaultLoopMode,
+      showQueue: PrefConstants.defaultShowQueue,
+      shuffleMode: PrefConstants.defaultShuffleMode,
+      sidebarExtended: PrefConstants.defaultSidebarExtended,
+      timeLabelType: PrefConstants.defaultTimeLabelType,
+      volume: PrefConstants.defaultVolume,
+    );
+    _emit(defaultState);
+    await _prefsService.setBool(PrefConstants.isMuted, PrefConstants.defaultIsMuted);
+    await _prefsService.setString(PrefConstants.loopMode, PrefConstants.defaultLoopMode.toString());
+    await _prefsService.setBool(PrefConstants.showQueue, PrefConstants.defaultShowQueue);
+    await _prefsService.setBool(PrefConstants.shuffleMode, PrefConstants.defaultShuffleMode);
+    await _prefsService.setBool(PrefConstants.sidebarExtended, PrefConstants.defaultSidebarExtended);
+    await _prefsService.setString(PrefConstants.timeLabelType, PrefConstants.defaultTimeLabelType.toString());
+    await _prefsService.setDouble(PrefConstants.volume, PrefConstants.defaultVolume);
+    await _prefsService.remove(PrefConstants.cachedCurrentAlbumArtPath);
+    await onReset?.call();
+  }
+
   void dispose() {
     _volumeDebounce?.cancel();
     _controller.close();
@@ -155,13 +184,19 @@ final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
   // If sharedPreferencesInstanceProvider is overridden (e.g. from main or tests), use it
   try {
     final prefsService = ref.watch(sharedPreferencesServiceProvider);
-    final repo = DefaultSettingsRepository(prefsService);
+    final repo = DefaultSettingsRepository(
+      prefsService,
+      onReset: () async => ref.read(preferenceServiceProvider.notifier).resetToDefaults(),
+    );
     ref.onDispose(repo.dispose);
     return repo;
   } catch (_) {
     // Fallback using sharedPrefsProvider for existing test harnesses
     final rawPrefs = ref.watch(sharedPrefsProvider);
-    final repo = DefaultSettingsRepository(SharedPreferencesService(rawPrefs));
+    final repo = DefaultSettingsRepository(
+      SharedPreferencesService(rawPrefs),
+      onReset: () async => ref.read(preferenceServiceProvider.notifier).resetToDefaults(),
+    );
     ref.onDispose(repo.dispose);
     return repo;
   }

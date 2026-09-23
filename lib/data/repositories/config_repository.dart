@@ -28,6 +28,7 @@ class DefaultConfigRepository(
   final ConfigFileService _fileService,
   final File? _configFile, {
   required AppConfig initialConfig,
+  final void Function(AppConfig)? onConfigUpdated,
 }) with LoggerMixin implements ConfigRepository {
   final StreamController<AppConfig> _controller = StreamController<AppConfig>.broadcast();
 
@@ -49,6 +50,7 @@ class DefaultConfigRepository(
     _controller.add(_state);
 
     _scheduleSave(newConfig);
+    onConfigUpdated?.call(newConfig);
   }
 
   void _scheduleSave(AppConfig config) {
@@ -111,6 +113,9 @@ final configRepositoryProvider = Provider<ConfigRepository>((ref) {
     fileService,
     configFile,
     initialConfig: initialConfig,
+    onConfigUpdated: (newConfig) {
+      ref.read(configServiceProvider.notifier).setConfig(newConfig);
+    },
   );
 
   ref.listen(configServiceProvider, (_, next) {

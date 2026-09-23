@@ -1,11 +1,11 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:nordplayer/core/system/config_service.dart';
-import 'package:nordplayer/core/system/preference_service.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
-import 'package:nordplayer/widgets/app_icon.dart';
+import 'package:nordplayer/data/repositories/config_repository.dart';
+import 'package:nordplayer/data/repositories/settings_repository.dart';
 import 'package:nordplayer/features/shell/widgets/nord_sidebar.dart';
+import 'package:nordplayer/widgets/app_icon.dart';
 
 class SettingsLayout extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
@@ -14,13 +14,16 @@ class SettingsLayout extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final appConfig = ref.watch(configServiceProvider);
+    final configRepo = ref.watch(configRepositoryProvider);
+    final appConfig = configRepo.currentConfig;
     final appIconSet = ref.watch(appIconProvider);
-    bool mainSidebarExtended = ref.watch(preferenceServiceProvider).sidebarExtended;
+    final settingsRepo = ref.watch(settingsRepositoryProvider);
+    final mainSidebarExtended = settingsRepo.currentSettings.sidebarExtended;
+
     bool isExtended = true;
     final double screenWidth = MediaQuery.sizeOf(context).width;
     if (screenWidth <= 850) {
-      mainSidebarExtended ? isExtended = false : isExtended = true;
+      isExtended = !mainSidebarExtended;
     } else {
       isExtended = true;
     }

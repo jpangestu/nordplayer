@@ -3,13 +3,11 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/domain/models/models.dart';
 import 'package:nordplayer/core/system/background_task_service.dart';
-import 'package:nordplayer/core/system/config_service.dart';
 import 'package:nordplayer/core/theme/icon-sets/app_icon_set.dart';
 import 'package:nordplayer/core/utils/int_extension.dart';
-import 'package:nordplayer/features/settings/duplicates_viewmodel.dart';
+import 'package:nordplayer/features/settings/library_indexer/duplicates_ui_state.dart';
+import 'package:nordplayer/features/settings/library_indexer/duplicates_viewmodel.dart';
 import 'package:nordplayer/routes/router.dart';
-import 'package:nordplayer/services/indexer/duplicate_detector.dart' show DuplicateGroup;
-import 'package:nordplayer/services/indexer/library_indexer.dart';
 import 'package:nordplayer/widgets/app_icon.dart';
 import 'package:nordplayer/widgets/frosted_glass.dart';
 import 'package:nordplayer/widgets/nord_alert_dialog.dart';
@@ -24,62 +22,25 @@ class DuplicatesView extends ConsumerStatefulWidget {
 }
 
 class _DuplicatesViewState extends ConsumerState<DuplicatesView> {
-  bool _isProcessing = false;
-  bool _isScanningTriggered = false;
-  final Set<int> _manuallyIgnoredTrackIds = {};
-
   Future<void> _restoreTracks(List<Track> tracks) async {
     try {
-      await ref.read(duplicatesViewModelProvider).restoreTracks(tracks);
+      await ref.read(duplicatesViewModelProvider.notifier).restoreTracks(tracks);
     } catch (_) {}
   }
 
   Future<void> _keepBestCopy(DuplicateGroup group) async {
-    final tracksToIgnore = group.tracks.where((t) => t.id != group.preferredTrack.id).toList();
-    if (tracksToIgnore.isEmpty) return;
-
-    setState(() {
-      _isProcessing = true;
-      for (final t in tracksToIgnore) {
-        _manuallyIgnoredTrackIds.add(t.id);
-      }
-    });
-
     try {
-      await ref.read(duplicatesViewModelProvider).keepBestCopy(group);
-
-      if (mounted) {
+      final tracksToIgnore = await ref.read(duplicatesViewModelProvider.notifier).keepBestCopy(group);
+      if (mounted && tracksToIgnore.isNotEmpty) {
         showNordSnackBar(
           message: 'Kept best copy of "${group.title}"',
           type: NordSnackBarType.general,
           actionLabel: 'Undo',
           duration: const Duration(seconds: 6),
-          onAction: (context) async {
-            setState(() {
-              for (final t in tracksToIgnore) {
-                _manuallyIgnoredTrackIds.remove(t.id);
-              }
-            });
-            await _restoreTracks(tracksToIgnore);
-          },
+          onAction: (context) => _restoreTracks(tracksToIgnore),
         );
       }
-    } catch (_) {
-      // Revert optimistic updates on error
-      if (mounted) {
-        setState(() {
-          for (final t in tracksToIgnore) {
-            _manuallyIgnoredTrackIds.remove(t.id);
-          }
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-        });
-      }
-    }
+    } catch (_) {}
   }
 
   Future<void> _keepAllBestCopies(BuildContext context, List<DuplicateGroup> groups) async {
@@ -99,50 +60,14 @@ class _DuplicatesViewState extends ConsumerState<DuplicatesView> {
 
     if (result != true) return;
 
-    final tracksToIgnore = <Track>[];
-    for (final group in groups) {
-      for (final track in group.tracks) {
-        if (track.id != group.preferredTrack.id) {
-          tracksToIgnore.add(track);
-        }
-      }
-    }
-
-    if (tracksToIgnore.isEmpty) return;
-
-    setState(() {
-      _isProcessing = true;
-      for (final t in tracksToIgnore) {
-        _manuallyIgnoredTrackIds.add(t.id);
-      }
-    });
-
     try {
-      await ref.read(duplicatesViewModelProvider).keepAllBestCopies(groups);
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          for (final t in tracksToIgnore) {
-            _manuallyIgnoredTrackIds.remove(t.id);
-          }
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-        });
-      }
-    }
+      await ref.read(duplicatesViewModelProvider.notifier).keepAllBestCopies(groups);
+    } catch (_) {}
   }
 
   Future<void> _ignoreTrack(Track track) async {
-    setState(() {
-      _isProcessing = true;
-      _manuallyIgnoredTrackIds.add(track.id);
-    });
     try {
-      await ref.read(duplicatesViewModelProvider).ignoreTrack(track);
+      await ref.read(duplicatesViewModelProvider.notifier).ignoreTrack(track);
 
       if (mounted) {
         showNordSnackBar(
@@ -150,72 +75,26 @@ class _DuplicatesViewState extends ConsumerState<DuplicatesView> {
           type: NordSnackBarType.general,
           actionLabel: 'Undo',
           duration: const Duration(seconds: 6),
-          onAction: (context) async {
-            setState(() {
-              _manuallyIgnoredTrackIds.remove(track.id);
-            });
-            await _restoreTracks([track]);
-          },
+          onAction: (context) => _restoreTracks([track]),
         );
       }
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _manuallyIgnoredTrackIds.remove(track.id);
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-        });
-      }
-    }
+    } catch (_) {}
   }
 
   @override
   void initState() {
     super.initState();
     Future.microtask(() {
-      ref.read(duplicatesViewModelProvider).generateMissingFingerprintsIfNeeded();
+      ref.read(duplicatesViewModelProvider.notifier).generateMissingFingerprintsIfNeeded();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final appConfig = ref.watch(configServiceProvider);
+    final uiState = ref.watch(duplicatesViewModelProvider);
     final tasks = ref.watch(backgroundTaskServiceProvider);
     final theme = Theme.of(context);
-
-    ref.listen<AsyncValue<List<DuplicateGroup>>>(duplicateGroupsProvider, (previous, next) {
-      if (!next.isLoading && next.hasValue) {
-        setState(() {
-          _isScanningTriggered = false;
-        });
-      }
-    });
-
-    ref.listen<List<BackgroundTask>>(backgroundTaskServiceProvider, (previous, next) {
-      final wasScanning =
-          previous?.any(
-            (t) =>
-                (t.id == 'library-scan' || t.id == 'metadata-reindex' || t.id == 'fingerprint-generation') &&
-                t.status == BackgroundTaskStatus.running,
-          ) ??
-          false;
-      final isScanningNow = next.any(
-        (t) =>
-            (t.id == 'library-scan' || t.id == 'metadata-reindex' || t.id == 'fingerprint-generation') &&
-            t.status == BackgroundTaskStatus.running,
-      );
-
-      if (wasScanning && !isScanningNow) {
-        setState(() {
-          _isScanningTriggered = true;
-        });
-        ref.invalidate(duplicateGroupsProvider);
-      }
-    });
+    final appIconSet = ref.watch(appIconProvider);
 
     final libraryScanTask = tasks
         .where(
@@ -224,50 +103,15 @@ class _DuplicatesViewState extends ConsumerState<DuplicatesView> {
               t.status == BackgroundTaskStatus.running,
         )
         .firstOrNull;
-    final isScanning = libraryScanTask != null;
 
-    final duplicateGroupsAsync = ref.watch(duplicateGroupsProvider);
-    final duplicateGroups = duplicateGroupsAsync.value ?? [];
-    final appIconSet = ref.watch(appIconProvider);
-
-    // Clean up _manuallyIgnoredTrackIds for IDs that are no longer in the duplicateGroups
-    if (_manuallyIgnoredTrackIds.isNotEmpty) {
-      final allTrackIds = duplicateGroups.expand((g) => g.tracks).map((t) => t.id).toSet();
-      _manuallyIgnoredTrackIds.retainAll(allTrackIds);
-    }
-
-    // Apply optimistic updates (filter out manually ignored tracks)
-    final filteredGroups = duplicateGroups
-        .map((group) {
-          final remainingTracks = group.tracks.where((t) => !_manuallyIgnoredTrackIds.contains(t.id)).toList();
-          if (remainingTracks.length < 2) return null;
-
-          final preferredTrack = remainingTracks.contains(group.preferredTrack)
-              ? group.preferredTrack
-              : remainingTracks.first;
-
-          return DuplicateGroup(
-            title: group.title,
-            artist: group.artist,
-            album: group.album,
-            tracks: remainingTracks,
-            preferredTrack: preferredTrack,
-          );
-        })
-        .whereType<DuplicateGroup>()
-        .toList();
-
-    final sortedGroups = List<DuplicateGroup>.from(filteredGroups)
-      ..sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
-
-    final isLoading = duplicateGroupsAsync.isLoading && !duplicateGroupsAsync.hasValue;
-    final isScanLoading = isLoading || isScanning || _isScanningTriggered;
-    final hasError = duplicateGroupsAsync.hasError;
-    final showKeepAllBest = !isScanLoading && !hasError && sortedGroups.isNotEmpty;
-    final showStats = !isScanLoading && !hasError && sortedGroups.isNotEmpty;
+    final sortedGroups = uiState.filteredGroups;
+    final isScanLoading = uiState.isScanLoading;
+    final hasError = uiState.hasError;
+    final showKeepAllBest = uiState.showKeepAllBest;
+    final showStats = uiState.showStats;
 
     return Scaffold(
-      backgroundColor: appConfig.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
+      backgroundColor: uiState.adaptiveBg ? Colors.transparent : theme.colorScheme.surface,
       body: CustomScrollView(
         slivers: [
           SliverPadding(
@@ -282,10 +126,10 @@ class _DuplicatesViewState extends ConsumerState<DuplicatesView> {
                       border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5), width: 1),
                     ),
                     child: FrostedGlass(
-                      blurSigma: appConfig.adaptiveBgPanelBlur,
+                      blurSigma: uiState.adaptiveBgPanelBlur,
                       borderRadius: 16,
-                      backgroundColor: appConfig.adaptiveBg
-                          ? theme.colorScheme.surfaceContainerLow.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
+                      backgroundColor: uiState.adaptiveBg
+                          ? theme.colorScheme.surfaceContainerLow.withValues(alpha: uiState.adaptiveBgThemeOverlay)
                           : theme.colorScheme.surfaceContainerLow,
                       child: Padding(
                         padding: const EdgeInsets.all(20),
@@ -334,7 +178,7 @@ class _DuplicatesViewState extends ConsumerState<DuplicatesView> {
                                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                         ),
-                                        onPressed: _isProcessing
+                                        onPressed: uiState.isProcessing
                                             ? null
                                             : () => _keepAllBestCopies(context, sortedGroups),
                                         icon: const AppIcon(Icons.auto_awesome, size: 18),
@@ -348,12 +192,7 @@ class _DuplicatesViewState extends ConsumerState<DuplicatesView> {
                                     IconButton(
                                       onPressed: isScanLoading
                                           ? null
-                                          : () {
-                                              setState(() {
-                                                _isScanningTriggered = true;
-                                              });
-                                              ref.read(libraryIndexerProvider).scanLibrary();
-                                            },
+                                          : () => ref.read(duplicatesViewModelProvider.notifier).triggerRescan(),
                                       icon: isScanLoading
                                           ? const SizedBox(
                                               width: 18,
@@ -380,7 +219,7 @@ class _DuplicatesViewState extends ConsumerState<DuplicatesView> {
                                       AppIcon(Icons.error_outline, size: 32, color: theme.colorScheme.error),
                                       const SizedBox(height: 12),
                                       Text(
-                                        'Error: ${duplicateGroupsAsync.error}',
+                                        'Error: ${uiState.errorMessage}',
                                         style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
                                         textAlign: TextAlign.center,
                                       ),
@@ -394,18 +233,21 @@ class _DuplicatesViewState extends ConsumerState<DuplicatesView> {
                                 children: [
                                   _buildStatItem(
                                     context,
+                                    uiState,
                                     label: 'Duplicate Groups',
                                     value: '${sortedGroups.length}',
                                     icon: appIconSet.copy,
                                   ),
                                   _buildStatItem(
                                     context,
+                                    uiState,
                                     label: 'Redundant Tracks',
                                     value: '${sortedGroups.fold<int>(0, (sum, g) => sum + g.tracks.length - 1)}',
                                     icon: appIconSet.tracks,
                                   ),
                                   _buildStatItem(
                                     context,
+                                    uiState,
                                     label: 'Indexed Space Redundancy',
                                     value: sortedGroups
                                         .fold<int>(
@@ -425,9 +267,9 @@ class _DuplicatesViewState extends ConsumerState<DuplicatesView> {
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: appConfig.adaptiveBg
+                                  color: uiState.adaptiveBg
                                       ? theme.colorScheme.surfaceContainer.withValues(
-                                          alpha: appConfig.adaptiveBgThemeOverlay,
+                                          alpha: uiState.adaptiveBgThemeOverlay,
                                         )
                                       : theme.colorScheme.surfaceContainer,
                                   borderRadius: BorderRadius.circular(8),
@@ -485,7 +327,7 @@ class _DuplicatesViewState extends ConsumerState<DuplicatesView> {
                       final group = sortedGroups[idx];
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 16.0),
-                        child: _buildDuplicateGroupCard(context, group),
+                        child: _buildDuplicateGroupCard(context, uiState, group),
                       );
                     },
                   ),
@@ -498,17 +340,22 @@ class _DuplicatesViewState extends ConsumerState<DuplicatesView> {
     );
   }
 
-  Widget _buildStatItem(BuildContext context, {required String label, required String value, required IconData icon}) {
+  Widget _buildStatItem(
+    BuildContext context,
+    DuplicatesUiState uiState, {
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider);
 
     return Expanded(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 4),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
         decoration: BoxDecoration(
-          color: appConfig.adaptiveBg
-              ? theme.colorScheme.surfaceContainerHigh.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
+          color: uiState.adaptiveBg
+              ? theme.colorScheme.surfaceContainerHigh.withValues(alpha: uiState.adaptiveBgThemeOverlay)
               : theme.colorScheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3), width: 0.5),
@@ -533,10 +380,8 @@ class _DuplicatesViewState extends ConsumerState<DuplicatesView> {
     );
   }
 
-  Widget _buildDuplicateGroupCard(BuildContext context, DuplicateGroup group) {
+  Widget _buildDuplicateGroupCard(BuildContext context, DuplicatesUiState uiState, DuplicateGroup group) {
     final theme = Theme.of(context);
-
-    final appConfig = ref.watch(configServiceProvider);
 
     return Container(
       decoration: BoxDecoration(
@@ -544,10 +389,10 @@ class _DuplicatesViewState extends ConsumerState<DuplicatesView> {
         border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3), width: 1),
       ),
       child: FrostedGlass(
-        blurSigma: appConfig.adaptiveBgPanelBlur,
+        blurSigma: uiState.adaptiveBgPanelBlur,
         borderRadius: 12,
-        backgroundColor: appConfig.adaptiveBg
-            ? theme.colorScheme.surfaceContainerLow.withValues(alpha: appConfig.adaptiveBgThemeOverlay)
+        backgroundColor: uiState.adaptiveBg
+            ? theme.colorScheme.surfaceContainerLow.withValues(alpha: uiState.adaptiveBgThemeOverlay)
             : theme.colorScheme.surfaceContainerLow,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -602,7 +447,7 @@ class _DuplicatesViewState extends ConsumerState<DuplicatesView> {
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                     ),
-                    onPressed: _isProcessing ? null : () => _keepBestCopy(group),
+                    onPressed: uiState.isProcessing ? null : () => _keepBestCopy(group),
                     icon: const AppIcon(Icons.auto_awesome, size: 16),
                     label: const Text('Keep Best', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                   ),
@@ -616,7 +461,7 @@ class _DuplicatesViewState extends ConsumerState<DuplicatesView> {
               child: Column(
                 children: group.tracks.map((track) {
                   final isPreferred = track.id == group.preferredTrack.id;
-                  return _buildTrackRow(context, track, isPreferred, group);
+                  return _buildTrackRow(context, uiState, track, isPreferred, group);
                 }).toList(),
               ),
             ),
@@ -626,7 +471,13 @@ class _DuplicatesViewState extends ConsumerState<DuplicatesView> {
     );
   }
 
-  Widget _buildTrackRow(BuildContext context, Track track, bool isPreferred, DuplicateGroup group) {
+  Widget _buildTrackRow(
+    BuildContext context,
+    DuplicatesUiState uiState,
+    Track track,
+    bool isPreferred,
+    DuplicateGroup group,
+  ) {
     final theme = Theme.of(context);
     final ext = p.extension(track.filePath).toUpperCase().replaceAll('.', '');
 
@@ -745,7 +596,7 @@ class _DuplicatesViewState extends ConsumerState<DuplicatesView> {
               ),
               const SizedBox(width: 8),
               IconButton(
-                onPressed: _isProcessing ? null : () => _ignoreTrack(track),
+                onPressed: uiState.isProcessing ? null : () => _ignoreTrack(track),
                 icon: AppIcon(
                   Icons.remove_circle_outline,
                   color: isPreferred
