@@ -2,8 +2,8 @@ import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nordplayer/core/database/app_database.dart' hide Track, Album, Artist;
-import 'package:nordplayer/data/mappers/db_mappers.dart';
+import 'package:nordplayer/data/database/app_database.dart' hide Track, Album, Artist;
+import 'package:nordplayer/data/database/db_mappers.dart';
 import 'package:nordplayer/data/repositories/queue_repository.dart';
 import 'package:nordplayer/domain/models/models.dart';
 

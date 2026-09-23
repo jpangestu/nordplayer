@@ -1,0 +1,138 @@
+import 'package:material_ui/material_ui.dart';
+import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
+
+class MaterialIconSet implements AppIconSet {
+  const MaterialIconSet();
+
+  @override
+  double get opticalScale => 1.0;
+
+  // Top Bar
+  @override
+  IconData get keyboardShortcut => Icons.bolt;
+  @override
+  IconData get search => Icons.search;
+
+  // Sidebar
+  @override
+  IconData get sidebarClose => Icons.menu_open;
+  @override
+  IconData get sidebarOpen => Icons.menu;
+  @override
+  IconData get library => Icons.library_music;
+  @override
+  IconData get albums => Icons.album;
+  @override
+  IconData get tracks => Icons.music_note;
+  @override
+  IconData get artists => Icons.people;
+  @override
+  IconData get genres => Icons.label;
+  @override
+  IconData get playlist => Icons.queue_music;
+
+  // Player Bar
+  @override
+  IconData get play => Icons.play_circle;
+  @override
+  IconData get pause => Icons.pause_circle;
+  @override
+  IconData get next => Icons.skip_next;
+  @override
+  IconData get previous => Icons.skip_previous;
+  @override
+  IconData get repeat => Icons.repeat;
+  @override
+  IconData get repeatOne => Icons.repeat_one;
+  @override
+  IconData get shuffle => Icons.shuffle;
+  @override
+  IconData get lyrics => Icons.lyrics_outlined;
+  @override
+  IconData get queue => Icons.format_list_bulleted;
+  @override
+  IconData get volumeHigh => Icons.volume_up;
+  @override
+  IconData get volumeLow => Icons.volume_down;
+  @override
+  IconData get volumeMute => Icons.volume_off;
+
+  // Settings
+  @override
+  IconData get settings => Icons.settings_outlined;
+  @override
+  IconData get appearanceSettings => Icons.palette;
+  @override
+  IconData get librarySettings => Icons.library_music_outlined;
+  @override
+  IconData get advancedSettings => Icons.build;
+  @override
+  IconData get about => Icons.info;
+
+  // Snack Bar type
+  @override
+  IconData get general => Icons.info_rounded;
+  @override
+  IconData get info => Icons.info_rounded;
+  @override
+  IconData get warning => Icons.warning_amber_rounded;
+  @override
+  IconData get success => Icons.check_circle_rounded;
+  @override
+  IconData get error => Icons.error_rounded;
+
+  @override
+  IconData get contextMenu => Icons.more_horiz;
+  @override
+  IconData get playNext => Icons.playlist_add;
+  @override
+  IconData get addToQueue => Icons.playlist_add;
+  @override
+  IconData get removeFromQueue => Icons.playlist_remove;
+  @override
+  IconData get add => Icons.add;
+  @override
+  IconData get showMetadata => Icons.description_outlined;
+  @override
+  IconData get showInfolder => Icons.folder_outlined;
+  @override
+  IconData get rename => Icons.edit_outlined;
+  @override
+  IconData get delete => Icons.edit_outlined;
+
+  // Others
+  @override
+  IconData get copy => Icons.copy_all_outlined;
+  @override
+  IconData get favorite => Icons.favorite_outline;
+  @override
+  IconData get navigationLeft => Icons.chevron_left;
+  @override
+  IconData get navigationRight => Icons.chevron_right;
+  @override
+  IconData get navigationUp => Icons.keyboard_arrow_up;
+  @override
+  IconData get navigationDown => Icons.keyboard_arrow_down;
+  @override
+  IconData get performance => Icons.speed;
+  @override
+  IconData get playtime => Icons.schedule;
+  @override
+  IconData get preference => Icons.tune;
+  @override
+  IconData get statistic => Icons.bar_chart;
+  @override
+  IconData get storage => Icons.storage;
+  @override
+  IconData get visible => Icons.visibility;
+  @override
+  IconData get invisible => Icons.visibility_off;
+  @override
+  IconData get settings2 => Icons.tune;
+  @override
+  IconData get dragVertical => Icons.drag_handle;
+  @override
+  IconData get sort => Icons.swap_vert;
+  @override
+  IconData get filter => Icons.filter_list;
+}

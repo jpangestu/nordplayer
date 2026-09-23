@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/database/app_database.dart' hide Artist;
-import 'package:nordplayer/data/mappers/db_mappers.dart';
+import 'package:nordplayer/data/database/app_database.dart' hide Artist;
+import 'package:nordplayer/data/database/db_mappers.dart';
 import 'package:nordplayer/domain/models/models.dart';
 
 /// Repository interface abstracting artist catalog queries.

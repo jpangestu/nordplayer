@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:nordplayer/core/system/logger.dart';
-import 'package:nordplayer/core/system/preference_service.dart';
-import 'package:nordplayer/services/storage/shared_preferences_service.dart';
+import 'package:nordplayer/utils/logger.dart';
+import 'package:nordplayer/data/services/system/preference_service.dart';
+import 'package:nordplayer/data/services/storage/shared_preferences_service.dart';
 
 /// Repository interface abstracting user preferences and settings.
 abstract interface class SettingsRepository {

@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/system/logger.dart';
-import 'package:nordplayer/core/utils/result.dart';
+import 'package:nordplayer/utils/logger.dart';
+import 'package:nordplayer/utils/result.dart';
 import 'package:nordplayer/data/repositories/track_repository.dart';
-import 'package:nordplayer/services/indexer/library_indexer.dart';
+import 'package:nordplayer/data/services/indexer/library_indexer.dart';
 
 /// Use case that orchestrates a complete music library scan.
 class ScanLibraryUseCase(

@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/core/system/config_service.dart';
-import 'package:nordplayer/core/system/logger.dart';
-import 'package:nordplayer/services/storage/config_file_service.dart';
+import 'package:nordplayer/data/services/system/config_service.dart';
+import 'package:nordplayer/utils/logger.dart';
+import 'package:nordplayer/data/services/storage/config_file_service.dart';
 import 'package:path/path.dart' as p;
 
 /// Repository interface abstracting application configuration persistence and updates.

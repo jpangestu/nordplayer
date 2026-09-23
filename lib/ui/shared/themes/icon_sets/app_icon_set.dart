@@ -1,0 +1,95 @@
+import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nordplayer/data/services/system/config_service.dart';
+import 'package:nordplayer/ui/shared/themes/icon_sets/lucide_icons.dart';
+import 'package:nordplayer/ui/shared/themes/icon_sets/material_icons.dart';
+
+abstract class AppIconSet {
+  // To make sure all icon set (that'll definitely has different margin/spacing) will ended up with the same size
+  // Use material icon set as the default scale (material = 1.0)
+  double get opticalScale;
+
+  // Top Bar
+  IconData get keyboardShortcut;
+  IconData get search;
+
+  // Sidebar
+  IconData get sidebarClose;
+  IconData get sidebarOpen;
+  IconData get library;
+  IconData get albums;
+  IconData get tracks;
+  IconData get artists;
+  IconData get genres;
+  IconData get playlist;
+
+  // Player Bar
+  IconData get play;
+  IconData get pause;
+  IconData get next;
+  IconData get previous;
+  IconData get repeat;
+  IconData get repeatOne;
+  IconData get shuffle;
+  IconData get lyrics;
+  IconData get queue;
+  IconData get volumeHigh;
+  IconData get volumeLow;
+  IconData get volumeMute;
+
+  // Settings
+  IconData get settings;
+  IconData get appearanceSettings;
+  IconData get librarySettings;
+  IconData get advancedSettings;
+  IconData get about;
+
+  // Snack Bar type
+  IconData get general;
+  IconData get info;
+  IconData get warning;
+  IconData get success;
+  IconData get error;
+
+  // Context Menu
+  IconData get contextMenu; // Horizontal
+  IconData get playNext;
+  IconData get addToQueue; // Play last
+  IconData get removeFromQueue;
+  IconData get add;
+  IconData get showMetadata;
+  IconData get showInfolder;
+  IconData get rename;
+  IconData get delete;
+
+  // Others
+  IconData get copy;
+  IconData get favorite; // Heart
+  IconData get navigationLeft;
+  IconData get navigationRight;
+  IconData get navigationUp;
+  IconData get navigationDown;
+  IconData get performance;
+  IconData get playtime;
+  IconData get preference;
+  IconData get statistic;
+  IconData get storage;
+  IconData get visible;
+  IconData get invisible;
+  IconData get settings2;
+  IconData get dragVertical;
+  IconData get sort;
+  IconData get filter;
+}
+
+final appIconProvider = Provider<AppIconSet>((ref) {
+  final iconSetName = ref.watch(configServiceProvider.select((c) => c.iconSet));
+
+  switch (iconSetName) {
+    case 'material':
+      return const MaterialIconSet();
+    case 'lucide':
+    default:
+      return const LucideIconSet();
+  }
+});
