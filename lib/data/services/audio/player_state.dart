@@ -1,8 +1,10 @@
+import 'package:nordplayer/ui/queue/queue_scroll_behavior.dart';
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:nordplayer/domain/models/models.dart' hide Playlist;
+import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/playback_context.dart';
 import 'package:nordplayer/data/services/system/preference_service.dart';
 import 'package:nordplayer/utils/debouncer.dart';
 import 'package:nordplayer/utils/stream_extension.dart';

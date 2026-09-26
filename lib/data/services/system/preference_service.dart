@@ -6,7 +6,6 @@ import 'package:media_kit/media_kit.dart';
 import 'package:nordplayer/domain/models/time_label_type.dart';
 import 'package:nordplayer/utils/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-export 'package:nordplayer/domain/models/time_label_type.dart';
 
 /// Provider for the pre-initialized [SharedPreferencesWithCache] instance.
 ///

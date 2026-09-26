@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/ui/albums/albums_ui_state.dart';
 import 'package:nordplayer/ui/albums/albums_viewmodel.dart';
 import 'package:nordplayer/routing/router.dart';

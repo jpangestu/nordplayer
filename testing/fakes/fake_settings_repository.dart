@@ -3,26 +3,25 @@ import 'dart:async';
 import 'package:media_kit/media_kit.dart';
 import 'package:nordplayer/data/repositories/settings_repository.dart';
 import 'package:nordplayer/data/services/system/preference_service.dart';
+import 'package:nordplayer/domain/models/time_label_type.dart';
 
 /// In-memory test double for [SettingsRepository].
-class FakeSettingsRepository implements SettingsRepository {
-  PreferencesState _state;
+class FakeSettingsRepository({
+  PreferencesState? initialState,
+}) implements SettingsRepository {
+  PreferencesState _state = initialState ??
+      const PreferencesState(
+        cachedAlbumArtPath: null,
+        isMuted: PrefConstants.defaultIsMuted,
+        loopMode: PrefConstants.defaultLoopMode,
+        showQueue: PrefConstants.defaultShowQueue,
+        shuffleMode: PrefConstants.defaultShuffleMode,
+        sidebarExtended: PrefConstants.defaultSidebarExtended,
+        timeLabelType: PrefConstants.defaultTimeLabelType,
+        volume: PrefConstants.defaultVolume,
+      );
   final StreamController<PreferencesState> _controller =
       StreamController<PreferencesState>.broadcast();
-
-  FakeSettingsRepository({
-    PreferencesState? initialState,
-  }) : _state = initialState ??
-            const PreferencesState(
-              cachedAlbumArtPath: null,
-              isMuted: PrefConstants.defaultIsMuted,
-              loopMode: PrefConstants.defaultLoopMode,
-              showQueue: PrefConstants.defaultShowQueue,
-              shuffleMode: PrefConstants.defaultShuffleMode,
-              sidebarExtended: PrefConstants.defaultSidebarExtended,
-              timeLabelType: PrefConstants.defaultTimeLabelType,
-              volume: PrefConstants.defaultVolume,
-            );
 
   @override
   PreferencesState get currentSettings => _state;

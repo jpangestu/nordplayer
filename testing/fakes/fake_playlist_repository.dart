@@ -1,26 +1,22 @@
 import 'dart:async';
 
 import 'package:nordplayer/data/repositories/playlist_repository.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/playlist.dart';
 
 /// In-memory test double for [PlaylistRepository].
-class FakePlaylistRepository implements PlaylistRepository {
-  List<PlaylistWithDetails> playlists;
-  Map<int, List<TrackWithArtists>> playlistTracks;
-  int _nextId = 1;
+class FakePlaylistRepository({
+  List<PlaylistWithDetails>? initialPlaylists,
+  Map<int, List<TrackWithArtists>>? initialPlaylistTracks,
+}) implements PlaylistRepository {
+  List<PlaylistWithDetails> playlists = initialPlaylists ?? [];
+  Map<int, List<TrackWithArtists>> playlistTracks = initialPlaylistTracks ?? {};
+  int _nextId = (initialPlaylists != null && initialPlaylists.isNotEmpty)
+      ? initialPlaylists.map((p) => p.playlist.id).reduce((a, b) => a > b ? a : b) + 1
+      : 1;
 
   final StreamController<List<PlaylistWithDetails>> _playlistsController =
       StreamController<List<PlaylistWithDetails>>.broadcast();
-
-  FakePlaylistRepository({
-    List<PlaylistWithDetails>? initialPlaylists,
-    Map<int, List<TrackWithArtists>>? initialPlaylistTracks,
-  })  : playlists = initialPlaylists ?? [],
-        playlistTracks = initialPlaylistTracks ?? {} {
-    if (playlists.isNotEmpty) {
-      _nextId = playlists.map((p) => p.playlist.id).reduce((a, b) => a > b ? a : b) + 1;
-    }
-  }
 
   void emitPlaylists(List<PlaylistWithDetails> newPlaylists) {
     playlists = newPlaylists;

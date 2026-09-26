@@ -1,7 +1,7 @@
+import 'package:nordplayer/ui/shell/search_viewmodel.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/data/repositories/track_repository.dart';
 import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
 import 'package:nordplayer/utils/debouncer.dart';
 import 'package:nordplayer/ui/shared/shortcuts.dart';

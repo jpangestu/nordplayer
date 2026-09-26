@@ -5,7 +5,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/domain/models/time_label_type.dart';
-export 'package:nordplayer/domain/models/time_label_type.dart';
 
 // A modified version of audio_video_progress_bar
 // https://pub.dev/packages/audio_video_progress_bar (MIT License)

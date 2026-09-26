@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/ui/queue/queue_scroll_behavior.dart';
-import 'package:nordplayer/domain/models/models.dart';
 
 /// Immutable UI state representing the active playback queue, current track,
 /// selection state, drag-and-drop status, and adaptive styling tokens.

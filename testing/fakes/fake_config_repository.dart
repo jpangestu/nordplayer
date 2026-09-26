@@ -4,17 +4,15 @@ import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 
 /// In-memory test double for [ConfigRepository].
-class FakeConfigRepository implements ConfigRepository {
-  AppConfig _state;
+class FakeConfigRepository({
+  AppConfig? initialConfig,
+}) implements ConfigRepository {
+  AppConfig _state = initialConfig ?? AppConfig();
   final StreamController<AppConfig> _controller =
       StreamController<AppConfig>.broadcast();
 
   final List<AppConfig> updatedConfigs = [];
   bool flushCalled = false;
-
-  FakeConfigRepository({
-    AppConfig? initialConfig,
-  }) : _state = initialConfig ?? AppConfig();
 
   @override
   AppConfig get currentConfig => _state;

@@ -1,10 +1,10 @@
+import 'package:nordplayer/data/services/audio/player_state.dart';
 import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/data/services/system/config_service.dart';
-import 'package:nordplayer/data/services/audio/player_service.dart';
 import 'package:nordplayer/data/services/system/preference_service.dart';
 
 class AdaptiveScaffold extends ConsumerWidget {

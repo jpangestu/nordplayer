@@ -4,22 +4,34 @@ import 'dart:async';
 
 import 'package:media_kit/media_kit.dart' hide Track;
 import 'package:nordplayer/data/repositories/playback_repository.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
 
 /// In-memory test double for [PlaybackRepository].
-class FakePlaybackRepository implements PlaybackRepository {
-  List<TrackWithArtists> _currentQueue;
-  List<TrackWithArtists> _originalQueue;
-  int _currentIndex;
-  bool _isPlaying;
-  Duration _position;
-  final Duration _duration;
-  double _volume;
-  bool _isMuted;
-  bool _isShuffle;
-  PlaylistMode _loopMode;
-  String _playbackContextType;
-  final int? _playbackContextId;
+class FakePlaybackRepository({
+  List<TrackWithArtists>? initialQueue,
+  int initialIndex = 0,
+  bool isPlaying = false,
+  Duration position = Duration.zero,
+  Duration duration = const Duration(minutes: 3),
+  double volume = 100.0,
+  bool isMuted = false,
+  bool isShuffle = false,
+  PlaylistMode loopMode = PlaylistMode.none,
+  String playbackContextType = '',
+  int? playbackContextId,
+}) implements PlaybackRepository {
+  List<TrackWithArtists> _currentQueue = initialQueue ?? [];
+  List<TrackWithArtists> _originalQueue = initialQueue != null ? List.from(initialQueue) : [];
+  int _currentIndex = initialIndex;
+  bool _isPlaying = isPlaying;
+  Duration _position = position;
+  final Duration _duration = duration;
+  double _volume = volume;
+  bool _isMuted = isMuted;
+  bool _isShuffle = isShuffle;
+  PlaylistMode _loopMode = loopMode;
+  String _playbackContextType = playbackContextType;
+  final int? _playbackContextId = playbackContextId;
   bool _suppressNextScroll = false;
 
   final StreamController<TrackWithArtists?> _currentTrackController =
@@ -38,31 +50,6 @@ class FakePlaybackRepository implements PlaybackRepository {
       StreamController<double>.broadcast();
   final StreamController<List<String>> _queueCoverArtController =
       StreamController<List<String>>.broadcast();
-
-  FakePlaybackRepository({
-    List<TrackWithArtists>? initialQueue,
-    int initialIndex = 0,
-    bool isPlaying = false,
-    Duration position = Duration.zero,
-    Duration duration = const Duration(minutes: 3),
-    double volume = 100.0,
-    bool isMuted = false,
-    bool isShuffle = false,
-    PlaylistMode loopMode = PlaylistMode.none,
-    String playbackContextType = '',
-    int? playbackContextId,
-  })  : _currentQueue = initialQueue ?? [],
-        _originalQueue = initialQueue != null ? List.from(initialQueue) : [],
-        _currentIndex = initialIndex,
-        _isPlaying = isPlaying,
-        _position = position,
-        _duration = duration,
-        _volume = volume,
-        _isMuted = isMuted,
-        _isShuffle = isShuffle,
-        _loopMode = loopMode,
-        _playbackContextType = playbackContextType,
-        _playbackContextId = playbackContextId;
 
   @override
   List<TrackWithArtists> get originalQueue => List.unmodifiable(_originalQueue);

@@ -1,3 +1,4 @@
+import 'package:nordplayer/config/app_config.dart';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';

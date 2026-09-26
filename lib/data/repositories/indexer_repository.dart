@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/track.dart';
+import 'package:nordplayer/domain/models/duplicate_group.dart';
 import 'package:nordplayer/data/services/indexer/duplicate_detector.dart';
 import 'package:nordplayer/data/services/indexer/library_indexer.dart';
 import 'package:nordplayer/data/services/indexer/library_watcher.dart';

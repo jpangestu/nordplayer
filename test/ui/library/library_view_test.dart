@@ -1,6 +1,10 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/track.dart';
+import 'package:nordplayer/domain/models/album.dart';
+import 'package:nordplayer/domain/models/artist.dart';
+import 'package:nordplayer/domain/models/library_stats.dart';
 import 'package:nordplayer/ui/library/library_view.dart';
 
 import '../../../testing/app.dart';

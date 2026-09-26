@@ -1,6 +1,9 @@
 import 'package:drift/drift.dart';
 import 'package:nordplayer/data/database/app_database.dart' as db;
-import 'package:nordplayer/domain/models/models.dart' as domain;
+import 'package:nordplayer/domain/models/track.dart' as domain;
+import 'package:nordplayer/domain/models/album.dart' as domain;
+import 'package:nordplayer/domain/models/artist.dart' as domain;
+import 'package:nordplayer/domain/models/playlist.dart' as domain;
 
 /// Extension mappers converting raw Drift SQLite database records to pure domain models.
 extension DbTrackMapper on db.Track {

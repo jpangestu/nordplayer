@@ -1,3 +1,4 @@
+import 'package:nordplayer/data/services/audio/player_state.dart';
 import 'dart:io' show File;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,7 +6,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/ui/shared/themes/app_theme.dart';
 import 'package:nordplayer/ui/shared/themes/themes/adaptive.dart';
 import 'package:nordplayer/data/services/system/config_service.dart';
-import 'package:nordplayer/data/services/audio/player_service.dart';
 import 'package:nordplayer/data/services/system/preference_service.dart';
 
 final adaptiveThemeProvider = FutureProvider<AdaptiveColorScheme>((ref) async {

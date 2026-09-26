@@ -2,26 +2,16 @@ import 'package:flutter/foundation.dart';
 
 /// Pure domain entity representing aggregate library statistics.
 @immutable
-class LibraryStats {
-  final int trackCount;
-  final int albumCount;
-  final int artistCount;
-  final int playlistCount;
-  final int genreCount;
-  final int totalSizeBytes;
-  final int totalPlaytimeMs;
-
-  const LibraryStats({
-    required this.trackCount,
-    required this.albumCount,
-    required this.artistCount,
-    required this.playlistCount,
-    required this.genreCount,
-    required this.totalSizeBytes,
-    required this.totalPlaytimeMs,
-  });
-
-  const LibraryStats.empty()
+class const LibraryStats({
+  required final int trackCount,
+  required final int albumCount,
+  required final int artistCount,
+  required final int playlistCount,
+  required final int genreCount,
+  required final int totalSizeBytes,
+  required final int totalPlaytimeMs,
+}) {
+  const new empty()
       : this(
           trackCount: 0,
           albumCount: 0,

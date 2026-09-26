@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:nordplayer/config/app_config.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/album.dart';
+import 'package:nordplayer/domain/models/library_stats.dart';
 
 /// Immutable UI State snapshot for the Library overview screen.
 class const LibraryUiState({

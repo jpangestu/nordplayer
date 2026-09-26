@@ -1,3 +1,4 @@
+import 'package:nordplayer/config/app_config.dart';
 import 'dart:io';
 import 'dart:isolate';
 

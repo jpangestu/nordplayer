@@ -4,11 +4,11 @@ import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/ignored_paths_repository.dart';
 import 'package:nordplayer/data/repositories/indexer_repository.dart';
 import 'package:nordplayer/data/services/system/background_task_service.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/track.dart';
+import 'package:nordplayer/domain/models/duplicate_group.dart';
 import 'package:nordplayer/ui/settings/library_indexer/duplicates_ui_state.dart';
 import 'package:nordplayer/utils/logger.dart';
 
-export 'package:nordplayer/domain/models/duplicate_group.dart' show DuplicateGroup;
 
 /// ViewModel managing state and operations for Duplicate Tracks detection and resolution.
 class DuplicatesViewModel extends Notifier<DuplicatesUiState> with LoggerMixin {

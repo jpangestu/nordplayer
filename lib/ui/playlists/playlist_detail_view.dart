@@ -1,18 +1,18 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/utils/datetime_extension.dart';
-import 'package:nordplayer/utils/int_extension.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/ui/playlists/playlist_detail_ui_state.dart';
 import 'package:nordplayer/ui/playlists/playlist_detail_viewmodel.dart';
-import 'package:nordplayer/ui/tracks/widgets/track_context_menu.dart';
 import 'package:nordplayer/ui/shared/ui/album_art_stack.dart';
 import 'package:nordplayer/ui/shared/ui/animated_equalizer_icon.dart';
 import 'package:nordplayer/ui/shared/ui/app_icon.dart';
 import 'package:nordplayer/ui/shared/ui/frosted_glass.dart';
 import 'package:nordplayer/ui/shared/ui/music_tile.dart';
 import 'package:nordplayer/ui/shared/ui/sliver_resizable_table.dart';
+import 'package:nordplayer/ui/tracks/widgets/track_context_menu.dart';
+import 'package:nordplayer/utils/datetime_extension.dart';
+import 'package:nordplayer/utils/int_extension.dart';
 
 /// Pure presentation View for the Playlist Detail screen, observing [PlaylistDetailUiState].
 class PlaylistDetailView extends ConsumerWidget {

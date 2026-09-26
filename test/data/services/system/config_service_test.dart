@@ -1,3 +1,4 @@
+import 'package:nordplayer/config/app_config.dart';
 import 'dart:convert';
 import 'dart:io';
 

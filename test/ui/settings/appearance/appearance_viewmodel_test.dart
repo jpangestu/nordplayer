@@ -3,15 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nordplayer/data/services/system/config_service.dart';
+import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/ui/settings/appearance/appearance_viewmodel.dart';
 
-class FakeConfigRepository implements ConfigRepository {
+class FakeConfigRepository([AppConfig? initialConfig]) implements ConfigRepository {
   final StreamController<AppConfig> _configController = StreamController<AppConfig>.broadcast();
-  AppConfig _config;
-
-  FakeConfigRepository([AppConfig? initialConfig]) : _config = initialConfig ?? AppConfig();
+  AppConfig _config = initialConfig ?? AppConfig();
 
   @override
   AppConfig get currentConfig => _config;

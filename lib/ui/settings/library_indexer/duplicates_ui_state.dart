@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/duplicate_group.dart';
 
 /// Immutable UI state representing duplicate tracks and resolution processing.
 class const DuplicatesUiState({

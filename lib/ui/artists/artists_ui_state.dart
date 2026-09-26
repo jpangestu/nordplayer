@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/artist.dart';
 
 /// Immutable UI state representing the Artists overview screen.
 class const ArtistsUiState({

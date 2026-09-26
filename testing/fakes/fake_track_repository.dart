@@ -1,12 +1,16 @@
 import 'dart:async';
 
 import 'package:nordplayer/data/repositories/track_repository.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/library_stats.dart';
 
 /// In-memory test double for [TrackRepository].
-class FakeTrackRepository implements TrackRepository {
-  List<TrackWithArtists> tracks;
-  LibraryStats stats;
+class FakeTrackRepository({
+  List<TrackWithArtists>? initialTracks,
+  LibraryStats? initialStats,
+}) implements TrackRepository {
+  List<TrackWithArtists> tracks = initialTracks ?? [];
+  LibraryStats stats = initialStats ?? const LibraryStats.empty();
 
   final StreamController<List<TrackWithArtists>> _tracksController =
       StreamController<List<TrackWithArtists>>.broadcast();
@@ -17,12 +21,6 @@ class FakeTrackRepository implements TrackRepository {
   final List<int> markedMissingTrackIds = [];
   bool deleteOrphanedMetadataCalled = false;
   bool clearAllDataCalled = false;
-
-  FakeTrackRepository({
-    List<TrackWithArtists>? initialTracks,
-    LibraryStats? initialStats,
-  })  : tracks = initialTracks ?? [],
-        stats = initialStats ?? const LibraryStats.empty();
 
   void emitTracks(List<TrackWithArtists> newTracks) {
     tracks = newTracks;

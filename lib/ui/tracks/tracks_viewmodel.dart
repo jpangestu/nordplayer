@@ -7,7 +7,7 @@ import 'package:nordplayer/utils/logger.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/track_repository.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/ui/tracks/tracks_ui_state.dart';
 
 /// Manages table column configurations (widths, ordering, visibility) for the all-tracks table.

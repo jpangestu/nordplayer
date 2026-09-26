@@ -10,7 +10,7 @@ import 'package:nordplayer/data/repositories/album_repository.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/settings_repository.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/ui/albums/album_detail_ui_state.dart';
 
 /// ViewModel orchestrating Album Detail state, sorting, filtering, columns, selection, and playback.

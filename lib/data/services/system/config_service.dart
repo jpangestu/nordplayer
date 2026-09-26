@@ -9,7 +9,6 @@ import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/utils/logger.dart';
 import 'package:path/path.dart' as p;
 
-export 'package:nordplayer/config/app_config.dart';
 
 /// Pre-loaded [AppConfig] at startup. Overridden in [ProviderScope] in `main.dart`.
 final initialAppConfigProvider = Provider<AppConfig>((ref) {

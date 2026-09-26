@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
 
 /// Immutable UI state representing the Playlists overview screen.
 class const PlaylistsUiState({
@@ -57,14 +57,14 @@ class const PlaylistsUiState({
 
   @override
   int get hashCode => Object.hash(
-        Object.hashAll(playlists),
-        isLoading,
-        errorMessage,
-        activePlaylistId,
-        isAudioPlaying,
-        Object.hashAll(activePlaylistAlbumArt),
-        isAdaptiveBg,
-        adaptiveBgPanelBlur,
-        adaptiveBgThemeOverlay,
-      );
+    Object.hashAll(playlists),
+    isLoading,
+    errorMessage,
+    activePlaylistId,
+    isAudioPlaying,
+    Object.hashAll(activePlaylistAlbumArt),
+    isAdaptiveBg,
+    adaptiveBgPanelBlur,
+    adaptiveBgThemeOverlay,
+  );
 }

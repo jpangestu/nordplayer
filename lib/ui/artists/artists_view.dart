@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/artist.dart';
 import 'package:nordplayer/ui/artists/artists_ui_state.dart';
 import 'package:nordplayer/ui/artists/artists_viewmodel.dart';
 import 'package:nordplayer/ui/shared/ui/app_icon.dart';

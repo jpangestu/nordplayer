@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/album.dart';
 
 /// Immutable UI state representing the Albums overview screen.
 class const AlbumsUiState({

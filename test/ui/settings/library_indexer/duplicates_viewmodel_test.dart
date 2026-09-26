@@ -3,7 +3,8 @@ import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/data/database/app_database.dart' hide Track;
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/track.dart';
+import 'package:nordplayer/domain/models/duplicate_group.dart';
 import 'package:nordplayer/data/repositories/indexer_repository.dart';
 import 'package:nordplayer/ui/settings/library_indexer/duplicates_viewmodel.dart';
 

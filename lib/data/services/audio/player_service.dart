@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:nordplayer/domain/models/models.dart' hide Playlist;
+import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/ui/queue/queue_scroll_behavior.dart';
 import 'package:nordplayer/utils/logger.dart';
 import 'package:nordplayer/data/services/system/preference_service.dart';
@@ -11,10 +11,6 @@ import 'package:nordplayer/utils/string_extension.dart';
 import 'package:nordplayer/data/repositories/queue_repository.dart';
 import 'package:nordplayer/data/services/audio/player_state.dart';
 
-export 'package:nordplayer/domain/models/playback_context.dart';
-export 'package:nordplayer/ui/queue/queue_scroll_behavior.dart';
-export 'package:nordplayer/data/services/audio/audio_handler.dart';
-export 'package:nordplayer/data/services/audio/player_state.dart';
 
 /// Central coordinator for playback operations, queue manipulation,
 /// shuffle/loop sequencing, volume management, and persistent queue state.

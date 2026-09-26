@@ -1,9 +1,9 @@
+import 'package:nordplayer/data/database/db_mappers.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/data/database/app_database.dart' hide Track;
 import 'package:nordplayer/utils/string_extension.dart';
-import 'package:nordplayer/data/database/db_mappers.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/track.dart';
 
 /// Repository interface abstracting ignored track paths and restoration operations.
 abstract interface class IgnoredPathsRepository {

@@ -1,11 +1,11 @@
+import 'package:nordplayer/config/app_config.dart';
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nordplayer/data/services/system/config_service.dart';
 import 'package:nordplayer/data/repositories/artist_repository.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/artist.dart';
 import 'package:nordplayer/ui/artists/artists_ui_state.dart';
 import 'package:nordplayer/ui/artists/artists_viewmodel.dart';
 

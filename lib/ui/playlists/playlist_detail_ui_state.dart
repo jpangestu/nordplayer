@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/playlist.dart';
 import 'package:nordplayer/ui/shared/ui/table_column_config.dart';
-import 'package:nordplayer/domain/models/models.dart';
 
 /// Immutable UI state representing the Playlist Detail screen.
 class const PlaylistDetailUiState({
@@ -76,17 +77,17 @@ class const PlaylistDetailUiState({
 
   @override
   int get hashCode => Object.hash(
-        playlist,
-        Object.hashAll(tracks),
-        Object.hashAll(selectedIndices),
-        Object.hashAll(columns),
-        Object.hashAll(albumArtCovers),
-        isLoading,
-        errorMessage,
-        activeTrackPath,
-        isAudioPlaying,
-        isAdaptiveBg,
-        adaptiveBgPanelBlur,
-        adaptiveBgThemeOverlay,
-      );
+    playlist,
+    Object.hashAll(tracks),
+    Object.hashAll(selectedIndices),
+    Object.hashAll(columns),
+    Object.hashAll(albumArtCovers),
+    isLoading,
+    errorMessage,
+    activeTrackPath,
+    isAudioPlaying,
+    isAdaptiveBg,
+    adaptiveBgPanelBlur,
+    adaptiveBgThemeOverlay,
+  );
 }

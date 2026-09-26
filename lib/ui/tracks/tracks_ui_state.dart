@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:nordplayer/ui/shared/ui/table_column_config.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
 
 /// Immutable UI State snapshot for the Tracks screen.
 class const TracksUiState({

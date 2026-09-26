@@ -2,17 +2,11 @@ import 'package:flutter/foundation.dart';
 
 /// Pure domain entity representing a musical artist, independent of database schema.
 @immutable
-class Artist {
-  final int id;
-  final String name;
-  final String? artistImgPath;
-
-  const Artist({
-    required this.id,
-    required this.name,
-    this.artistImgPath,
-  });
-
+class const Artist({
+  required final int id,
+  required final String name,
+  final String? artistImgPath,
+}) {
   Artist copyWith({
     int? id,
     String? name,

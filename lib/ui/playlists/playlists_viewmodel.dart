@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/utils/logger.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/playlist_repository.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/ui/playlists/playlists_ui_state.dart';
+import 'package:nordplayer/utils/logger.dart';
 
 /// ViewModel orchestrating playlists overview state, mutations, and playback dispatch.
 class PlaylistsViewModel extends Notifier<PlaylistsUiState> with LoggerMixin {

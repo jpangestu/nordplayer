@@ -1,13 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/utils/logger.dart';
-import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/routing/router.dart';
 import 'package:nordplayer/ui/playlists/playlists_ui_state.dart';
 import 'package:nordplayer/ui/playlists/playlists_viewmodel.dart';
 import 'package:nordplayer/ui/playlists/widgets/playlist_dialogs.dart';
-import 'package:nordplayer/routing/router.dart';
+import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
 import 'package:nordplayer/ui/shared/ui/album_art_stack.dart';
 import 'package:nordplayer/ui/shared/ui/animated_equalizer_icon.dart';
 import 'package:nordplayer/ui/shared/ui/app_icon.dart';
@@ -17,6 +16,7 @@ import 'package:nordplayer/ui/shared/ui/nord_alert_dialog.dart';
 import 'package:nordplayer/ui/shared/ui/nord_snack_bar.dart';
 import 'package:nordplayer/ui/shared/ui/sections/section_container.dart';
 import 'package:nordplayer/ui/shared/ui/sections/section_page_title.dart';
+import 'package:nordplayer/utils/logger.dart';
 
 /// Pure presentation View for the Playlists overview screen, observing [PlaylistsUiState].
 class PlaylistsView extends ConsumerWidget {

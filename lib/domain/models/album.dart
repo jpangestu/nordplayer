@@ -2,23 +2,14 @@ import 'package:flutter/foundation.dart';
 
 /// Pure domain entity representing an album, independent of database schema.
 @immutable
-class Album {
-  final int id;
-  final String title;
-  final int year;
-  final String? albumArtist;
-  final String? albumArtPath;
-  final int? albumArtistId;
-
-  const Album({
-    required this.id,
-    required this.title,
-    this.year = 0,
-    this.albumArtist,
-    this.albumArtPath,
-    this.albumArtistId,
-  });
-
+class const Album({
+  required final int id,
+  required final String title,
+  final int year = 0,
+  final String? albumArtist,
+  final String? albumArtPath,
+  final int? albumArtistId,
+}) {
   Album copyWith({
     int? id,
     String? title,

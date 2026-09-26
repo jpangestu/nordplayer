@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/data/database/app_database.dart' hide Track, Album, Artist;
 import 'package:nordplayer/data/database/db_mappers.dart';
 import 'package:nordplayer/data/repositories/queue_repository.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
 
 void main() {
   late AppDatabase db;

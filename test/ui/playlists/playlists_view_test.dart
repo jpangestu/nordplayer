@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/playlist.dart';
 import 'package:nordplayer/ui/playlists/playlists_view.dart';
 
 import '../../../testing/app.dart';

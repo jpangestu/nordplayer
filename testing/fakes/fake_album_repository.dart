@@ -1,24 +1,22 @@
 import 'dart:async';
 
 import 'package:nordplayer/data/repositories/album_repository.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/album.dart';
+import 'package:nordplayer/domain/models/artist.dart';
 
 /// In-memory test double for [AlbumRepository].
-class FakeAlbumRepository implements AlbumRepository {
-  List<Album> albums;
-  Map<int, AlbumWithTracks> albumWithTracksMap;
-  Map<int, List<Artist>> trackArtistsMap;
+class FakeAlbumRepository({
+  List<Album>? initialAlbums,
+  Map<int, AlbumWithTracks>? initialAlbumWithTracks,
+  Map<int, List<Artist>>? initialTrackArtists,
+}) implements AlbumRepository {
+  List<Album> albums = initialAlbums ?? [];
+  Map<int, AlbumWithTracks> albumWithTracksMap = initialAlbumWithTracks ?? {};
+  Map<int, List<Artist>> trackArtistsMap = initialTrackArtists ?? {};
 
   final StreamController<List<Album>> _albumsController =
       StreamController<List<Album>>.broadcast();
-
-  FakeAlbumRepository({
-    List<Album>? initialAlbums,
-    Map<int, AlbumWithTracks>? initialAlbumWithTracks,
-    Map<int, List<Artist>>? initialTrackArtists,
-  })  : albums = initialAlbums ?? [],
-        albumWithTracksMap = initialAlbumWithTracks ?? {},
-        trackArtistsMap = initialTrackArtists ?? {};
 
   void emitAlbums(List<Album> newAlbums) {
     albums = newAlbums;

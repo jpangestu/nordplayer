@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/data/database/app_database.dart' hide Track, Album, Artist;
 import 'package:nordplayer/utils/string_extension.dart';
 import 'package:nordplayer/data/database/db_mappers.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
 
 /// Repository interface abstracting player queue persistence, restoration,
 /// and active playback position tracking.

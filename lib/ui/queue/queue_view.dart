@@ -4,14 +4,14 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/ui/queue/queue_scroll_behavior.dart';
-import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
-import 'package:nordplayer/domain/models/models.dart';
 import 'package:nordplayer/ui/queue/queue_viewmodel.dart';
-import 'package:nordplayer/ui/tracks/widgets/track_context_menu.dart';
+import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
 import 'package:nordplayer/ui/shared/ui/app_icon.dart';
 import 'package:nordplayer/ui/shared/ui/frosted_glass.dart';
 import 'package:nordplayer/ui/shared/ui/music_tile.dart';
+import 'package:nordplayer/ui/tracks/widgets/track_context_menu.dart';
 
 /// Pure presentation View for the active playback queue sidebar,
 /// observing [QueueUiState] via [queueViewModelProvider].

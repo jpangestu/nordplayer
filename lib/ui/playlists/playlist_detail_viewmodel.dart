@@ -1,14 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/ui/shared/ui/selection_state.dart';
-import 'package:nordplayer/ui/shared/ui/table_column_config.dart';
-import 'package:nordplayer/utils/logger.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/playlist_repository.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/ui/playlists/playlist_detail_ui_state.dart';
+import 'package:nordplayer/ui/shared/ui/selection_state.dart';
+import 'package:nordplayer/ui/shared/ui/table_column_config.dart';
+import 'package:nordplayer/utils/logger.dart';
 
 /// ViewModel orchestrating Playlist Detail state, selection, column configs, and playback.
 class PlaylistDetailViewModel(final int playlistId) extends Notifier<PlaylistDetailUiState> with LoggerMixin {

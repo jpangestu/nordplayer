@@ -5,7 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
 import 'package:nordplayer/utils/int_extension.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/ui/albums/album_detail_ui_state.dart';
 import 'package:nordplayer/ui/albums/album_detail_viewmodel.dart';
 import 'package:nordplayer/ui/tracks/widgets/track_context_menu.dart';

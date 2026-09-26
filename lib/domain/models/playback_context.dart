@@ -1,11 +1,9 @@
 /// Represents the navigation / collection context from which playback originated
 /// (e.g., 'all_tracks', 'playlist', 'album').
-class PlaybackContext {
-  final String type;
-  final int? id;
-
-  const PlaybackContext({required this.type, this.id});
-
+class const PlaybackContext({
+  required final String type,
+  final int? id,
+}) {
   /// Checks whether playback is currently sourced from the specified collection.
   bool isPlaying(String targetType, int? targetId) =>
       type == targetType && id == targetId;

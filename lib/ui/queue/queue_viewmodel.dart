@@ -1,13 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/ui/queue/queue_scroll_behavior.dart';
-import 'package:nordplayer/ui/shared/ui/selection_state.dart';
-import 'package:nordplayer/utils/logger.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/settings_repository.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/ui/queue/queue_scroll_behavior.dart';
 import 'package:nordplayer/ui/queue/queue_ui_state.dart';
+import 'package:nordplayer/ui/shared/ui/selection_state.dart';
+import 'package:nordplayer/utils/logger.dart';
 
 /// ViewModel managing state and operations for the playback Queue:
 /// optimistic track reordering, single and batch removals, track selection,

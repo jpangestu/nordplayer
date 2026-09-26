@@ -6,7 +6,6 @@ import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/ignored_paths_repository.dart';
 import 'package:nordplayer/ui/settings/library_indexer/ignored_paths_ui_state.dart';
 
-export 'package:nordplayer/data/repositories/ignored_paths_repository.dart' show ignoredPathsProvider;
 
 /// ViewModel managing state and operations for Ignored File Paths.
 class IgnoredPathsViewModel extends Notifier<IgnoredPathsUiState> with LoggerMixin {

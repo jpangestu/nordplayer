@@ -1,5 +1,6 @@
 import 'package:media_kit/media_kit.dart';
-import 'package:nordplayer/domain/models/models.dart' hide Playlist;
+import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/time_label_type.dart';
 
 /// Cohesive immutable UI state representing the player bar and playback controls.
 class const PlayerBarUiState({

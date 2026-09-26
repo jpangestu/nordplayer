@@ -1,10 +1,13 @@
 import 'dart:async';
 
 import 'package:nordplayer/data/repositories/indexer_repository.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/track.dart';
+import 'package:nordplayer/domain/models/duplicate_group.dart';
 
 /// In-memory test double for [IndexerRepository].
-class FakeIndexerRepository implements IndexerRepository {
+class FakeIndexerRepository({
+  List<DuplicateGroup>? initialDuplicateGroups,
+}) implements IndexerRepository {
   bool scanLibraryCalled = false;
   bool reindexTracksCalled = false;
   bool generateMissingFingerprintsCalled = false;
@@ -12,11 +15,7 @@ class FakeIndexerRepository implements IndexerRepository {
   final List<String> missingDirectories = [];
   final List<String> stoppedDirectories = [];
   final List<Track> ignoredTracks = [];
-  List<DuplicateGroup> duplicateGroups;
-
-  FakeIndexerRepository({
-    List<DuplicateGroup>? initialDuplicateGroups,
-  }) : duplicateGroups = initialDuplicateGroups ?? [];
+  List<DuplicateGroup> duplicateGroups = initialDuplicateGroups ?? [];
 
   @override
   void scanLibrary() {

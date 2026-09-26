@@ -1,3 +1,4 @@
+import 'package:nordplayer/data/services/audio/player_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -7,7 +8,7 @@ import 'package:nordplayer/data/services/system/platform_service.dart' show show
 import 'package:nordplayer/data/services/system/preference_service.dart';
 import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
 import 'package:nordplayer/data/repositories/playlist_repository.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/ui/playlists/playlists_viewmodel.dart';
 import 'package:nordplayer/ui/playlists/widgets/playlist_dialogs.dart';
 import 'package:nordplayer/ui/queue/queue_viewmodel.dart';

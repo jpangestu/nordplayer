@@ -2,7 +2,8 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/data/database/app_database.dart' hide PlaylistData, Track, Album, Artist;
 import 'package:nordplayer/data/database/db_mappers.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/playlist.dart';
 
 /// Repository interface abstracting playlist queries, mutations, and track associations.
 abstract interface class PlaylistRepository {

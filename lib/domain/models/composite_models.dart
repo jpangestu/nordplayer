@@ -7,17 +7,11 @@ import 'package:nordplayer/domain/models/track.dart';
 /// Composite domain entity representing a music track along with its parent album
 /// and associated contributing artists.
 @immutable
-class TrackWithArtists {
-  final Track track;
-  final Album album;
-  final List<Artist> artists;
-
-  const TrackWithArtists({
-    required this.track,
-    required this.album,
-    required this.artists,
-  });
-
+class const TrackWithArtists({
+  required final Track track,
+  required final Album album,
+  required final List<Artist> artists,
+}) {
   /// Helper to check whether this object is empty.
   /// A track is considered empty if it has no valid database ID and an empty file path.
   bool get isEmpty => track.id == 0 || track.filePath.isEmpty;
@@ -56,17 +50,11 @@ class TrackWithArtists {
 /// Composite domain entity representing an album with its associated tracks
 /// and cumulative playback duration.
 @immutable
-class AlbumWithTracks {
-  final Album album;
-  final List<TrackWithArtists> tracks;
-  final int tracksLengthMs;
-
-  const AlbumWithTracks({
-    required this.album,
-    required this.tracks,
-    required this.tracksLengthMs,
-  });
-
+class const AlbumWithTracks({
+  required final Album album,
+  required final List<TrackWithArtists> tracks,
+  required final int tracksLengthMs,
+}) {
   AlbumWithTracks copyWith({
     Album? album,
     List<TrackWithArtists>? tracks,
@@ -99,17 +87,11 @@ class AlbumWithTracks {
 /// Composite domain entity representing a playlist with its aggregate track count
 /// and a preview collage of album cover paths.
 @immutable
-class PlaylistWithDetails {
-  final Playlist playlist;
-  final int trackCount;
-  final List<String> imageUrls;
-
-  const PlaylistWithDetails({
-    required this.playlist,
-    required this.trackCount,
-    required this.imageUrls,
-  });
-
+class const PlaylistWithDetails({
+  required final Playlist playlist,
+  required final int trackCount,
+  required final List<String> imageUrls,
+}) {
   PlaylistWithDetails copyWith({
     Playlist? playlist,
     int? trackCount,
@@ -141,15 +123,10 @@ class PlaylistWithDetails {
 
 /// Composite domain entity representing a playlist and its fully-resolved ordered track list.
 @immutable
-class PlaylistWithTracks {
-  final Playlist playlist;
-  final List<TrackWithArtists> tracks;
-
-  const PlaylistWithTracks({
-    required this.playlist,
-    required this.tracks,
-  });
-
+class const PlaylistWithTracks({
+  required final Playlist playlist,
+  required final List<TrackWithArtists> tracks,
+}) {
   bool get isEmpty => tracks.isEmpty;
   bool get isNotEmpty => !isEmpty;
 

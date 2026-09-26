@@ -4,10 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 enum QueueScrollBehavior { animate, jump, none }
 
 /// Riverpod provider managing the active scroll intent for the queue page.
-final queueScrollBehaviorProvider =
-    NotifierProvider<QueueScrollBehaviorNotifier, QueueScrollBehavior>(
-      QueueScrollBehaviorNotifier.new,
-    );
+final queueScrollBehaviorProvider = NotifierProvider<QueueScrollBehaviorNotifier, QueueScrollBehavior>(
+  QueueScrollBehaviorNotifier.new,
+);
 
 /// Notifier that manages transient [QueueScrollBehavior] state.
 class QueueScrollBehaviorNotifier extends Notifier<QueueScrollBehavior> {

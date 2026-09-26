@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/utils/datetime_extension.dart';
 import 'package:nordplayer/utils/int_extension.dart';
-import 'package:nordplayer/domain/models/models.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/ui/tracks/tracks_ui_state.dart';
 import 'package:nordplayer/ui/tracks/tracks_viewmodel.dart';
 import 'package:nordplayer/ui/tracks/widgets/track_context_menu.dart';

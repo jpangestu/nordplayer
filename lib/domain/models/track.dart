@@ -2,43 +2,24 @@ import 'package:flutter/foundation.dart';
 
 /// Pure domain entity representing an audio track, independent of database schema.
 @immutable
-class Track {
-  final int id;
-  final String title;
-  final int trackNumber;
-  final int trackTotal;
-  final int discNumber;
-  final int discTotal;
-  final int durationMs;
-  final String? genre;
-  final String fileHash;
-  final Uint8List? audioFingerprint;
-  final bool isMissing;
-  final String filePath;
-  final int fileSize;
-  final int artistId;
-  final int albumId;
-  final DateTime dateAdded;
-
-  const Track({
-    required this.id,
-    required this.title,
-    this.trackNumber = 0,
-    this.trackTotal = 0,
-    this.discNumber = 0,
-    this.discTotal = 0,
-    this.durationMs = 0,
-    this.genre,
-    required this.fileHash,
-    this.audioFingerprint,
-    this.isMissing = false,
-    required this.filePath,
-    this.fileSize = 0,
-    required this.artistId,
-    required this.albumId,
-    required this.dateAdded,
-  });
-
+class const Track({
+  required final int id,
+  required final String title,
+  final int trackNumber = 0,
+  final int trackTotal = 0,
+  final int discNumber = 0,
+  final int discTotal = 0,
+  final int durationMs = 0,
+  final String? genre,
+  required final String fileHash,
+  final Uint8List? audioFingerprint,
+  final bool isMissing = false,
+  required final String filePath,
+  final int fileSize = 0,
+  required final int artistId,
+  required final int albumId,
+  required final DateTime dateAdded,
+}) {
   Track copyWith({
     int? id,
     String? title,
