@@ -5,9 +5,9 @@ import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/artist.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/playback_context.dart';
-import 'package:nordplayer/domain/queue/queue_models.dart';
 import 'package:nordplayer/domain/models/track.dart';
 import 'package:nordplayer/domain/queue/queue_manager.dart';
+import 'package:nordplayer/domain/queue/queue_models.dart';
 
 TrackWithArtists _makeTrack(int id, String title, {int durationMs = 200000, String? path, String? albumArt}) {
   return TrackWithArtists(

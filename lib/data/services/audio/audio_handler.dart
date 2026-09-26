@@ -1,30 +1,47 @@
 import 'dart:async';
 
 import 'package:audio_service/audio_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 
-/// Bridges [Player] playback events to the host operating system
+/// Bridges [Player] and [PlaybackRepository] playback events to the host operating system
 /// (Windows System Media Transport Controls / Linux MPRIS / Android notification).
-class MediaKitAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
-  final Player _player;
-  final List<StreamSubscription<dynamic>> _subscriptions = [];
+class AppAudioHandler(final Player _player) extends BaseAudioHandler with QueueHandler, SeekHandler {
+  PlaybackRepository? _repository;
+  final List<StreamSubscription<dynamic>> _playerSubscriptions = [];
+  final List<StreamSubscription<dynamic>> _repoSubscriptions = [];
+  StreamSubscription<dynamic>? _fallbackPlaylistSubscription;
   int _lastSyncedQueueLength = -1;
   String _lastSyncedQueueSignature = '';
   DateTime? _lastPositionBroadcast;
 
-  MediaKitAudioHandler(this._player) {
+  this {
     _listenToPlayerStreams();
   }
 
+  /// Underlying raw [Player] instance.
+  Player get player => _player;
+
+  /// Active repository coordinator if attached.
+  PlaybackRepository? get repository => _repository;
+
+  /// Attaches the domain [PlaybackRepository] as the single source of truth for queue
+  /// sequencing, track metadata, and hardware media key actions.
+  void attachRepository(PlaybackRepository repository) {
+    _repository = repository;
+    _listenToRepository(repository);
+  }
+
   void _listenToPlayerStreams() {
-    // Sync playing state and buffering immediately
-    _subscriptions.add(_player.stream.playing.listen((_) => _broadcastState()));
-    _subscriptions.add(_player.stream.buffering.listen((_) => _broadcastState()));
+    // Sync playing state and buffering immediately from transport engine
+    _playerSubscriptions.add(_player.stream.playing.listen((_) => _broadcastState()));
+    _playerSubscriptions.add(_player.stream.buffering.listen((_) => _broadcastState()));
 
     // Throttle periodic position broadcasts to once every second.
     // The OS automatically interpolates playback position between updates.
-    _subscriptions.add(
+    _playerSubscriptions.add(
       _player.stream.position.listen((_) {
         final now = DateTime.now();
         if (_lastPositionBroadcast == null || now.difference(_lastPositionBroadcast!) >= const Duration(seconds: 1)) {
@@ -34,55 +51,101 @@ class MediaKitAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandl
       }),
     );
 
-    // Sync active track and queue
-    _subscriptions.add(
-      _player.stream.playlist.listen((playlist) {
-        if (playlist.medias.isEmpty || playlist.index < 0 || playlist.index >= playlist.medias.length) {
+    // Initial fallback: sync from media_kit playlist until repository is attached
+    _fallbackPlaylistSubscription = _player.stream.playlist.listen((playlist) {
+      if (_repository != null) return; // Repository has precedence
+      if (playlist.medias.isEmpty || playlist.index < 0 || playlist.index >= playlist.medias.length) {
+        mediaItem.add(null);
+        return;
+      }
+
+      final media = playlist.medias[playlist.index];
+      final data = media.extras?['data'] as TrackWithArtists?;
+      if (data != null) {
+        _updateMediaItemFromTrack(data);
+      }
+    });
+  }
+
+  void _listenToRepository(PlaybackRepository repo) {
+    // Cancel fallback media_kit playlist listener
+    _fallbackPlaylistSubscription?.cancel();
+    _fallbackPlaylistSubscription = null;
+
+    for (final sub in _repoSubscriptions) {
+      sub.cancel();
+    }
+    _repoSubscriptions.clear();
+
+    // Initial snapshot sync from attached repository
+    if (repo.currentTrack != null) {
+      _updateMediaItemFromTrack(repo.currentTrack!);
+    } else {
+      mediaItem.add(null);
+    }
+
+    if (repo.currentQueue.isNotEmpty) {
+      _syncQueue(repo.currentQueue);
+    }
+
+    // 1. Sync active track to OS notification / Windows SMTC
+    _repoSubscriptions.add(
+      repo.watchCurrentTrack().listen((track) {
+        if (track == null) {
           mediaItem.add(null);
-          return;
-        }
-
-        final media = playlist.medias[playlist.index];
-        final data = media.extras?['data'] as TrackWithArtists?;
-        if (data != null) {
-          final artPath = data.album.albumArtPath;
-          final artUri = (artPath != null && artPath.isNotEmpty) ? Uri.file(artPath) : null;
-
-          mediaItem.add(
-            MediaItem(
-              id: media.uri,
-              title: data.track.title,
-              artist: data.artists.map((a) => a.name).join(', '),
-              album: data.album.title,
-              duration: Duration(milliseconds: data.track.durationMs),
-              artUri: artUri,
-            ),
-          );
-        }
-
-        // Sync queue only when queue structure/order actually changes
-        final signature = playlist.medias.isEmpty
-            ? ''
-            : '${playlist.medias.length}:${playlist.medias.first.uri}:${playlist.medias.last.uri}';
-
-        if (playlist.medias.length != _lastSyncedQueueLength || signature != _lastSyncedQueueSignature) {
-          _lastSyncedQueueLength = playlist.medias.length;
-          _lastSyncedQueueSignature = signature;
-
-          queue.add(
-            playlist.medias.map((m) {
-              final d = m.extras?['data'] as TrackWithArtists?;
-              return MediaItem(
-                id: m.uri,
-                title: d?.track.title ?? m.uri,
-                artist: d?.artists.map((a) => a.name).join(', ') ?? '',
-                album: d?.album.title,
-                duration: d != null ? Duration(milliseconds: d.track.durationMs) : null,
-              );
-            }).toList(),
-          );
+        } else {
+          _updateMediaItemFromTrack(track);
         }
       }),
+    );
+
+    // 2. Sync full active queue to OS (MPRIS / Android Auto)
+    _repoSubscriptions.add(
+      repo.watchQueue().listen((tracks) {
+        _syncQueue(tracks);
+      }),
+    );
+  }
+
+  void _syncQueue(List<TrackWithArtists> tracks) {
+    final signature = tracks.isEmpty
+        ? ''
+        : '${tracks.length}:${tracks.first.track.filePath}:${tracks.last.track.filePath}';
+
+    if (tracks.length != _lastSyncedQueueLength || signature != _lastSyncedQueueSignature) {
+      _lastSyncedQueueLength = tracks.length;
+      _lastSyncedQueueSignature = signature;
+
+      queue.add(
+        tracks.map((d) {
+          final artPath = d.album.albumArtPath;
+          final artUri = (artPath != null && artPath.isNotEmpty) ? Uri.file(artPath) : null;
+          return MediaItem(
+            id: d.track.filePath,
+            title: d.track.title,
+            artist: d.artists.map((a) => a.name).join(', '),
+            album: d.album.title,
+            duration: Duration(milliseconds: d.track.durationMs),
+            artUri: artUri,
+          );
+        }).toList(),
+      );
+    }
+  }
+
+  void _updateMediaItemFromTrack(TrackWithArtists data) {
+    final artPath = data.album.albumArtPath;
+    final artUri = (artPath != null && artPath.isNotEmpty) ? Uri.file(artPath) : null;
+
+    mediaItem.add(
+      MediaItem(
+        id: data.track.filePath,
+        title: data.track.title,
+        artist: data.artists.map((a) => a.name).join(', '),
+        album: data.album.title,
+        duration: Duration(milliseconds: data.track.durationMs),
+        artUri: artUri,
+      ),
     );
   }
 
@@ -95,7 +158,14 @@ class MediaKitAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandl
           MediaControl.skipToNext,
           MediaControl.stop,
         ],
-        systemActions: const {MediaAction.seek, MediaAction.skipToPrevious, MediaAction.skipToNext},
+        systemActions: const {
+          MediaAction.seek,
+          MediaAction.skipToPrevious,
+          MediaAction.skipToNext,
+          MediaAction.play,
+          MediaAction.pause,
+          MediaAction.stop,
+        },
         androidCompactActionIndices: const [0, 1, 2],
         processingState: _player.state.buffering ? AudioProcessingState.buffering : AudioProcessingState.ready,
         playing: _player.state.playing,
@@ -106,16 +176,31 @@ class MediaKitAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandl
     );
   }
 
-  // --- Playback controls (media keys / OS transport controls) ---
+  // --- Transport Controls (Hardware media keys & OS flyout buttons) ---
 
   @override
-  Future<void> play() => _player.play();
+  Future<void> play() async {
+    if (_repository != null) {
+      await _repository!.play();
+    } else {
+      await _player.play();
+    }
+  }
 
   @override
-  Future<void> pause() => _player.pause();
+  Future<void> pause() async {
+    if (_repository != null) {
+      await _repository!.pause();
+    } else {
+      await _player.pause();
+    }
+  }
 
   @override
   Future<void> stop() async {
+    if (_repository != null) {
+      await _repository!.pause();
+    }
     await _player.stop();
     playbackState.add(playbackState.value.copyWith(processingState: AudioProcessingState.idle, playing: false));
     await super.stop();
@@ -123,25 +208,61 @@ class MediaKitAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandl
 
   @override
   Future<void> seek(Duration position) async {
-    await _player.seek(position);
+    if (_repository != null) {
+      await _repository!.seek(position);
+    } else {
+      await _player.seek(position);
+    }
     _lastPositionBroadcast = DateTime.now();
     _broadcastState();
   }
 
   @override
-  Future<void> skipToNext() => _player.next();
+  Future<void> skipToNext() async {
+    if (_repository != null) {
+      await _repository!.next();
+    } else {
+      await _player.next();
+    }
+  }
 
   @override
-  Future<void> skipToPrevious() => _player.previous();
+  Future<void> skipToPrevious() async {
+    if (_repository != null) {
+      await _repository!.previous();
+    } else {
+      await _player.previous();
+    }
+  }
 
   @override
-  Future<void> skipToQueueItem(int index) => _player.jump(index);
+  Future<void> skipToQueueItem(int index) async {
+    if (_repository != null) {
+      await _repository!.jumpToIndex(index);
+    } else {
+      await _player.jump(index);
+    }
+  }
 
   /// Releases resources and cancels active stream subscriptions.
   Future<void> dispose() async {
-    for (final sub in _subscriptions) {
+    for (final sub in _playerSubscriptions) {
       await sub.cancel();
     }
-    _subscriptions.clear();
+    _playerSubscriptions.clear();
+
+    for (final sub in _repoSubscriptions) {
+      await sub.cancel();
+    }
+    _repoSubscriptions.clear();
+
+    await _fallbackPlaylistSubscription?.cancel();
+    _fallbackPlaylistSubscription = null;
   }
 }
+
+/// Backward-compatible type alias for existing references.
+typedef MediaKitAudioHandler = AppAudioHandler;
+
+/// Riverpod provider for [AppAudioHandler] (can be overridden in [ProviderScope]).
+final audioHandlerProvider = Provider<AppAudioHandler?>((ref) => null);

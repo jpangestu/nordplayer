@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart' hide Track;
 import 'package:nordplayer/data/repositories/queue_repository.dart';
 import 'package:nordplayer/data/repositories/settings_repository.dart';
+import 'package:nordplayer/data/services/audio/audio_handler.dart';
 import 'package:nordplayer/data/services/audio/audio_player_service.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/ui/queue/queue_scroll_behavior.dart';
@@ -484,6 +485,10 @@ final playbackRepositoryProvider = Provider<PlaybackRepository>((ref) {
   final settingsRepo = ref.watch(settingsRepositoryProvider);
 
   final repo = DefaultPlaybackRepository(playerService, queueRepo, settingsRepo, ref);
+  final audioHandler = ref.watch(audioHandlerProvider);
+  if (audioHandler != null) {
+    audioHandler.attachRepository(repo);
+  }
 
   ref.onDispose(repo.dispose);
   return repo;

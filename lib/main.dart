@@ -51,10 +51,10 @@ void main() async {
 
   final appConfig = await ConfigService.loadInitialConfig(configDir);
 
-  // Set here because PlayerService and MediaKitAudioHandler need the same player instance
+  // Set here because PlayerService and AppAudioHandler need the same player instance
   final player = Player();
-  await AudioService.init(
-    builder: () => MediaKitAudioHandler(player),
+  final audioHandler = await AudioService.init(
+    builder: () => AppAudioHandler(player),
     config: const AudioServiceConfig(
       androidNotificationChannelId: 'com.nordplayer.nordplayer.channel.audio',
       androidNotificationChannelName: 'Audio Playback',
@@ -68,6 +68,7 @@ void main() async {
         configDirectoryProvider.overrideWithValue(configDir),
         initialAppConfigProvider.overrideWithValue(appConfig),
         audioPlayerProvider.overrideWithValue(player),
+        audioHandlerProvider.overrideWithValue(audioHandler),
       ],
       child: const NordplayerApp(),
     ),
