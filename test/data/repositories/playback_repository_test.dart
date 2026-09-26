@@ -1,0 +1,347 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:media_kit/media_kit.dart' hide Track;
+import 'package:nordplayer/data/repositories/playback_repository.dart';
+import 'package:nordplayer/data/repositories/queue_repository.dart';
+import 'package:nordplayer/domain/models/album.dart';
+import 'package:nordplayer/domain/models/artist.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/track.dart';
+import 'package:nordplayer/domain/queue/queue_models.dart';
+
+import '../../../testing/fakes/fake_audio_player_engine.dart';
+import '../../../testing/fakes/fake_settings_repository.dart';
+
+class _FakeQueueRepository implements QueueRepository {
+  List<TrackWithArtists> savedQueue = [];
+  String? savedCurrentTrackPath;
+  Duration savedPosition = Duration.zero;
+  String savedContextType = '';
+  int? savedContextId;
+  int? updatedPositionMs;
+
+  @override
+  Future<void> saveQueue(
+    List<TrackWithArtists> originalQueue,
+    String? currentlyPlayedTrackPath,
+    Duration resumePositionMs,
+    String playbackContextType,
+    int? playbackContextId,
+  ) async {
+    savedQueue = List.from(originalQueue);
+    savedCurrentTrackPath = currentlyPlayedTrackPath;
+    savedPosition = resumePositionMs;
+    savedContextType = playbackContextType;
+    savedContextId = playbackContextId;
+  }
+
+  @override
+  Future<(List<TrackWithArtists>, int, Duration, String, int?)> loadQueue() async {
+    return (savedQueue, 0, savedPosition, savedContextType, savedContextId);
+  }
+
+  @override
+  Future<void> updateCurrentPosition(int positionInMs) async {
+    updatedPositionMs = positionInMs;
+  }
+}
+
+TrackWithArtists _makeTrack(int id, String title, {String path = '/music/test.mp3', String? art}) {
+  return TrackWithArtists(
+    track: Track(
+      id: id,
+      title: title,
+      filePath: path,
+      fileHash: 'hash_$id',
+      durationMs: 180000,
+      fileSize: 1024,
+      artistId: 1,
+      albumId: 1,
+      dateAdded: DateTime.now(),
+    ),
+    album: Album(id: 1, title: 'Test Album', albumArtPath: art),
+    artists: [const Artist(id: 1, name: 'Test Artist')],
+  );
+}
+
+void main() {
+  group('DefaultPlaybackRepository', () {
+    late FakeAudioPlayerEngine engine;
+    late _FakeQueueRepository queueRepo;
+    late FakeSettingsRepository settingsRepo;
+    late ProviderContainer container;
+    late Ref testRef;
+    late DefaultPlaybackRepository repo;
+
+    final track1 = _makeTrack(1, 'Song Alpha', path: '/music/alpha.mp3', art: '/covers/alpha.jpg');
+    final track2 = _makeTrack(2, 'Song Beta', path: '/music/beta.mp3', art: '/covers/beta.jpg');
+    final track3 = _makeTrack(3, 'Song Gamma', path: '/music/gamma.mp3', art: '/covers/gamma.jpg');
+
+    setUp(() {
+      engine = FakeAudioPlayerEngine();
+      queueRepo = _FakeQueueRepository();
+      settingsRepo = FakeSettingsRepository();
+      container = ProviderContainer();
+      testRef = container.read(Provider((ref) => ref));
+
+      repo = DefaultPlaybackRepository(engine, queueRepo, settingsRepo, testRef);
+    });
+
+    tearDown(() async {
+      repo.dispose();
+      await engine.dispose();
+      container.dispose();
+    });
+
+    test('initial state when uninitialized', () {
+      expect(repo.currentQueue, isEmpty);
+      expect(repo.currentTrack, isNull);
+      expect(repo.currentIndex, -1);
+      expect(repo.currentQueueCoverArt, isEmpty);
+      expect(repo.isShuffle, isFalse);
+      expect(repo.loopMode, PlaylistMode.none);
+    });
+
+    test('setPlaylist initializes queue, loads current track, and preloads next track for gapless', () async {
+      await repo.setPlaylist(
+        tracksToPlay: [track1, track2, track3],
+        initialIndex: 0,
+        playbackContextType: 'album',
+        playbackContextId: 1,
+      );
+
+      expect(repo.currentQueue.length, 3);
+      expect(repo.currentIndex, 0);
+      expect(repo.currentTrack?.track.title, 'Song Alpha');
+      expect(engine.currentUri, track1.track.filePath);
+      expect(engine.nextUri, track2.track.filePath);
+      expect(engine.isPlaying, isTrue);
+
+      // Verify covers
+      expect(repo.currentQueueCoverArt, ['/covers/alpha.jpg', '/covers/beta.jpg', '/covers/gamma.jpg']);
+    });
+
+    test('next advances queue, opens next track, and updates next media', () async {
+      await repo.setPlaylist(tracksToPlay: [track1, track2, track3], initialIndex: 0, playbackContextType: 'album');
+
+      await repo.next();
+
+      expect(repo.currentIndex, 1);
+      expect(repo.currentTrack?.track.title, 'Song Beta');
+      expect(engine.currentUri, track2.track.filePath);
+      expect(engine.nextUri, track3.track.filePath);
+    });
+
+    test('previous restarts active track if position >= 3s, or steps back if < 3s', () async {
+      await repo.setPlaylist(tracksToPlay: [track1, track2, track3], initialIndex: 1, playbackContextType: 'album');
+
+      // Past 3 seconds -> restarts current track
+      engine.updatePosition(const Duration(seconds: 5));
+      await repo.previous();
+      expect(repo.currentIndex, 1);
+
+      // Under 3 seconds -> steps back to previous track
+      engine.updatePosition(const Duration(seconds: 1));
+      await repo.previous();
+      expect(repo.currentIndex, 0);
+      expect(repo.currentTrack?.track.title, 'Song Alpha');
+    });
+
+    test('jumpToIndex sets target track and pre-buffers subsequent track', () async {
+      await repo.setPlaylist(tracksToPlay: [track1, track2, track3], initialIndex: 0, playbackContextType: 'album');
+
+      await repo.jumpToIndex(2);
+
+      expect(repo.currentIndex, 2);
+      expect(repo.currentTrack?.track.title, 'Song Gamma');
+      expect(engine.currentUri, track3.track.filePath);
+      expect(engine.nextUri, isNull); // Reached end with loopMode off
+    });
+
+    test('completedStream triggers gapless auto-advance without reopening when engine already transitioned', () async {
+      await repo.setPlaylist(tracksToPlay: [track1, track2, track3], initialIndex: 0, playbackContextType: 'album');
+
+      expect(engine.nextUri, track2.track.filePath);
+
+      // Simulate native gapless transition in engine
+      await engine.simulateGaplessTransition();
+
+      // Ensure completedStream handler ran
+      await pumpEventQueue();
+
+      expect(repo.currentIndex, 1);
+      expect(repo.currentTrack?.track.title, 'Song Beta');
+      // Next track Gamma is now pre-buffered into the 2-track window
+      expect(engine.nextUri, track3.track.filePath);
+    });
+
+    test('playNext inserts tracks immediately after active track as userNext', () async {
+      await repo.setPlaylist(tracksToPlay: [track1, track3], initialIndex: 0, playbackContextType: 'album');
+
+      await repo.playNext([track2]);
+
+      expect(repo.currentQueue.length, 3);
+      expect(repo.currentQueue[1].track.title, 'Song Beta');
+      expect(repo.currentQueueItems[1].source, QueueSource.userNext);
+      expect(engine.nextUri, track2.track.filePath);
+    });
+
+    test('addToQueue appends tracks to end of queue as userQueue', () async {
+      await repo.setPlaylist(tracksToPlay: [track1], initialIndex: 0, playbackContextType: 'album');
+
+      await repo.addToQueue([track2]);
+
+      expect(repo.currentQueue.length, 2);
+      expect(repo.currentQueue[1].track.title, 'Song Beta');
+      expect(repo.currentQueueItems[1].source, QueueSource.userQueue);
+      expect(engine.nextUri, track2.track.filePath);
+    });
+
+    test('removeQueueItem removes track and keeps active track aligned', () async {
+      await repo.setPlaylist(tracksToPlay: [track1, track2, track3], initialIndex: 0, playbackContextType: 'album');
+
+      await repo.removeQueueItem(1); // Remove Song Beta
+
+      expect(repo.currentQueue.length, 2);
+      expect(repo.currentQueue.map((t) => t.track.title).toList(), ['Song Alpha', 'Song Gamma']);
+      expect(engine.nextUri, track3.track.filePath);
+    });
+
+    test('removeTrackByPath and removeTracksByPaths purge tracks by file path', () async {
+      await repo.setPlaylist(tracksToPlay: [track1, track2, track3], initialIndex: 0, playbackContextType: 'album');
+
+      await repo.removeTrackByPath(track2.track.filePath);
+      expect(repo.currentQueue.length, 2);
+
+      await repo.removeTracksByPaths({track3.track.filePath});
+      expect(repo.currentQueue.length, 1);
+      expect(repo.currentQueue.first.track.title, 'Song Alpha');
+    });
+
+    test('reorderQueue moves track position and updates streams', () async {
+      await repo.setPlaylist(tracksToPlay: [track1, track2, track3], initialIndex: 0, playbackContextType: 'album');
+
+      await repo.reorderQueue(0, 2); // Move Alpha to index 2
+
+      expect(repo.currentQueue[0].track.title, 'Song Beta');
+      expect(repo.currentQueue[2].track.title, 'Song Alpha');
+      expect(repo.currentIndex, 2); // Active track tracking preserved
+    });
+
+    test('sortBy sorts queue and anchors active track, revertSort restores original context order', () async {
+      await repo.setPlaylist(
+        tracksToPlay: [track3, track1, track2], // Gamma, Alpha, Beta
+        initialIndex: 0, // Playing Gamma
+        playbackContextType: 'album',
+      );
+
+      await repo.sortBy(QueueSortCriteria.title, ascending: true);
+
+      // Alphabetical: Alpha, Beta, Gamma
+      expect(repo.currentQueue.map((t) => t.track.title).toList(), ['Song Alpha', 'Song Beta', 'Song Gamma']);
+      // Gamma was active and should be anchored at index 2
+      expect(repo.currentIndex, 2);
+      expect(repo.currentTrack?.track.title, 'Song Gamma');
+
+      // Revert to original order
+      await repo.revertSort();
+      expect(repo.currentQueue.map((t) => t.track.title).toList(), ['Song Gamma', 'Song Alpha', 'Song Beta']);
+      expect(repo.currentIndex, 0);
+    });
+
+    test('toggleShuffle enables non-destructive shuffle and updates next media', () async {
+      await repo.setPlaylist(
+        tracksToPlay: [track1, track2, track3],
+        initialIndex: 1, // Playing Beta
+        playbackContextType: 'album',
+      );
+
+      await repo.toggleShuffle();
+
+      expect(repo.isShuffle, isTrue);
+      expect(settingsRepo.currentSettings.shuffleMode, isTrue);
+      // In shuffle mode, current active track is pinned to display index 0
+      expect(repo.currentIndex, 0);
+      expect(repo.currentTrack?.track.title, 'Song Beta');
+
+      // Toggling off restores original sequence
+      await repo.toggleShuffle();
+      expect(repo.isShuffle, isFalse);
+      expect(repo.currentQueue.map((t) => t.track.title).toList(), ['Song Alpha', 'Song Beta', 'Song Gamma']);
+      expect(repo.currentIndex, 1);
+    });
+
+    test('toggleLoop cycles through LoopMode.off -> single -> all -> off', () async {
+      await repo.setPlaylist(tracksToPlay: [track1, track2], initialIndex: 0, playbackContextType: 'album');
+
+      expect(repo.loopMode, PlaylistMode.none);
+
+      await repo.toggleLoop();
+      expect(repo.loopMode, PlaylistMode.single);
+      expect(settingsRepo.currentSettings.loopMode, PlaylistMode.single);
+
+      await repo.toggleLoop();
+      expect(repo.loopMode, PlaylistMode.loop);
+      expect(settingsRepo.currentSettings.loopMode, PlaylistMode.loop);
+
+      await repo.toggleLoop();
+      expect(repo.loopMode, PlaylistMode.none);
+      expect(settingsRepo.currentSettings.loopMode, PlaylistMode.none);
+    });
+
+    test('clearQueue pauses playback and resets all queue state', () async {
+      await repo.setPlaylist(tracksToPlay: [track1, track2], initialIndex: 0, playbackContextType: 'album');
+
+      await repo.clearQueue();
+
+      expect(repo.currentQueue, isEmpty);
+      expect(repo.currentTrack, isNull);
+      expect(repo.currentIndex, -1);
+      expect(engine.isPlaying, isFalse);
+      expect(engine.nextUri, isNull);
+    });
+
+    test('restoreQueue loads saved queue from persistence and restores state with autoplay false', () async {
+      queueRepo.savedQueue = [track1, track2];
+      queueRepo.savedPosition = const Duration(seconds: 45);
+      queueRepo.savedContextType = 'album';
+      queueRepo.savedContextId = 1;
+
+      await repo.restoreQueue();
+
+      expect(repo.currentQueue.length, 2);
+      expect(repo.currentTrack?.track.title, 'Song Alpha');
+      expect(engine.currentUri, track1.track.filePath);
+      expect(engine.position, const Duration(seconds: 45));
+      expect(engine.isPlaying, isFalse); // restoreQueue should not autoplay
+      expect(engine.nextUri, track2.track.filePath);
+    });
+
+    test('volume and mute controls delegate to engine and settings repository', () async {
+      await repo.setVolume(75.0);
+      expect(engine.volume, 75.0);
+      expect(settingsRepo.currentSettings.volume, 75.0);
+
+      await repo.setVolumeUp(10.0);
+      expect(engine.volume, 85.0);
+
+      await repo.setVolumeDown(20.0);
+      expect(engine.volume, 65.0);
+
+      await repo.toggleMute();
+      expect(repo.isMuted, isTrue);
+      expect(engine.volume, 0.0);
+
+      await repo.toggleMute();
+      expect(repo.isMuted, isFalse);
+      expect(engine.volume, 65.0);
+    });
+
+    test('scroll suppression toggles and is consumed', () {
+      expect(repo.consumeSuppressNextScroll(), isFalse);
+      repo.suppressNextScroll();
+      expect(repo.consumeSuppressNextScroll(), isTrue);
+      expect(repo.consumeSuppressNextScroll(), isFalse);
+    });
+  });
+}

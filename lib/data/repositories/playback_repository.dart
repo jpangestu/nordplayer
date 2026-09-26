@@ -5,11 +5,32 @@ import 'package:media_kit/media_kit.dart' hide Track;
 import 'package:nordplayer/data/repositories/queue_repository.dart';
 import 'package:nordplayer/data/repositories/settings_repository.dart';
 import 'package:nordplayer/data/services/audio/audio_handler.dart';
-import 'package:nordplayer/data/services/audio/audio_player_service.dart';
+import 'package:nordplayer/data/services/audio/audio_player_engine.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/playback_context.dart';
+import 'package:nordplayer/domain/queue/queue_manager.dart';
+import 'package:nordplayer/domain/queue/queue_models.dart';
 import 'package:nordplayer/ui/queue/queue_scroll_behavior.dart';
 import 'package:nordplayer/utils/debouncer.dart';
 import 'package:nordplayer/utils/logger.dart';
+
+/// Conversion extension between media_kit [PlaylistMode] and domain [LoopMode].
+extension LoopModeConversion on PlaylistMode {
+  LoopMode toLoopMode() => switch (this) {
+    PlaylistMode.none => LoopMode.off,
+    PlaylistMode.single => LoopMode.single,
+    PlaylistMode.loop => LoopMode.all,
+  };
+}
+
+/// Conversion extension between domain [LoopMode] and media_kit [PlaylistMode].
+extension PlaylistModeConversion on LoopMode {
+  PlaylistMode toPlaylistMode() => switch (this) {
+    LoopMode.off => PlaylistMode.none,
+    LoopMode.single => PlaylistMode.single,
+    LoopMode.all => PlaylistMode.loop,
+  };
+}
 
 /// Repository interface abstracting active playback session, queue sequencing,
 /// shuffle/loop state, and persistent queue synchronization.
@@ -27,6 +48,10 @@ abstract interface class PlaybackRepository {
   PlaylistMode get loopMode;
   String get playbackContextType;
   int? get playbackContextId;
+  PlaybackContext get playbackContext;
+
+  QueueState get queueState;
+  List<QueueItem> get currentQueueItems;
 
   Stream<TrackWithArtists?> watchCurrentTrack();
   Stream<int> watchCurrentIndex();
@@ -37,6 +62,9 @@ abstract interface class PlaybackRepository {
   Stream<double> watchVolume();
   List<String> get currentQueueCoverArt;
   Stream<List<String>> watchQueueCoverArt();
+
+  Stream<QueueState> watchQueueState();
+  Stream<List<QueueItem>> watchQueueItems();
 
   Future<void> setPlaylist({
     required List<TrackWithArtists> tracksToPlay,
@@ -65,22 +93,27 @@ abstract interface class PlaybackRepository {
   Future<void> playNext(List<TrackWithArtists> tracks);
   Future<void> removeQueueItem(int index);
   Future<void> removeQueueItems(List<int> indices);
+  Future<void> removeTrackByPath(String filePath);
+  Future<void> removeTracksByPaths(Set<String> filePaths);
   Future<void> reorderQueue(int oldIndex, int newIndex);
+  Future<void> sortBy(QueueSortCriteria criteria, {bool ascending = true});
+  Future<void> revertSort();
   Future<void> clearQueue();
   Future<void> restoreQueue();
   void suppressNextScroll();
   bool consumeSuppressNextScroll();
 }
 
-/// Default implementation of [PlaybackRepository] coordinating [AudioPlayerService],
-/// [QueueRepository], and [SettingsRepository].
+/// Default implementation of [PlaybackRepository] coordinating [QueueManager] and [AudioPlayerEngine]
+/// with non-destructive shuffle, in-memory sorting, gapless transitions, and persistence.
 class DefaultPlaybackRepository(
-  final AudioPlayerService _playerService,
+  final AudioPlayerEngine _playerEngine,
   final QueueRepository _queueRepository,
   final SettingsRepository _settingsRepository,
-  final Ref _ref,
-) with LoggerMixin implements PlaybackRepository {
-  List<TrackWithArtists> _originalQueue = [];
+  final Ref _ref, {
+  QueueManager? queueManager,
+}) with LoggerMixin implements PlaybackRepository {
+  final QueueManager _queueManager = queueManager ?? QueueManager();
   String _playbackContextType = '';
   int? _playbackContextId;
   bool _isRestoringQueue = false;
@@ -95,29 +128,50 @@ class DefaultPlaybackRepository(
       StreamController<List<TrackWithArtists>>.broadcast();
   final StreamController<int> _currentIndexController = StreamController<int>.broadcast();
   final StreamController<List<String>> _queueCoverArtController = StreamController<List<String>>.broadcast();
+  final StreamController<QueueState> _queueStateController = StreamController<QueueState>.broadcast();
+  final StreamController<List<QueueItem>> _queueItemsController = StreamController<List<QueueItem>>.broadcast();
 
   this {
     _init();
   }
 
   void _init() {
-    // Listen to player playlist changes
-    _subscriptions.add(
-      _playerService.playlistStream.listen((playlist) {
-        final current = currentTrack;
-        _currentTrackController.add(current);
-        _queueController.add(currentQueue);
-        _currentIndexController.add(playlist.index);
-        _queueCoverArtController.add(_calculateCoverArt(playlist));
+    // 1. Initial settings sync
+    final initialSettings = _settingsRepository.currentSettings;
+    if (initialSettings.shuffleMode) {
+      _queueManager.toggleShuffle();
+    }
+    _queueManager.setLoopMode(initialSettings.loopMode.toLoopMode());
 
-        if (_isRestoringQueue || playlist.medias.isEmpty) return;
-        _queueSaveDebouncer(() => _saveQueueState(newIndex: playlist.index));
+    // 2. Transport gapless transition & playback completed
+    _subscriptions.add(
+      _playerEngine.completedStream.listen((_) async {
+        final currentEngineUri = _playerEngine.currentUri;
+        final nextItem = _queueManager.advanceNext();
+        _emitQueueState();
+
+        if (nextItem == null) {
+          await _playerEngine.pause();
+          return;
+        }
+
+        final targetFilePath = nextItem.track.track.filePath;
+        if (currentEngineUri == targetFilePath) {
+          // Seamless gapless transition occurred via rolling window; pre-buffer upcoming track
+          await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
+        } else {
+          // Non-seamless (e.g. wrapped around or restarted)
+          await _playerEngine.open(targetFilePath, autoplay: true);
+          await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
+        }
+
+        _queueSaveDebouncer(() => _saveQueueState());
       }),
     );
 
-    // Periodically persist playback position
+    // 3. Position stream updates & periodic persistence
     _subscriptions.add(
-      _playerService.positionStream.listen((pos) {
+      _playerEngine.positionStream.listen((pos) {
         if (_isRestoringQueue) return;
 
         final now = DateTime.now();
@@ -127,79 +181,90 @@ class DefaultPlaybackRepository(
         }
       }),
     );
-  }
 
-  @override
-  List<TrackWithArtists> get originalQueue => List.unmodifiable(_originalQueue);
-
-  @override
-  List<TrackWithArtists> get currentQueue {
-    final medias = _playerService.playlist.medias;
-    return medias.map((m) => m.extras?['data'] as TrackWithArtists?).whereType<TrackWithArtists>().toList();
-  }
-
-  @override
-  TrackWithArtists? get currentTrack {
-    final playlist = _playerService.playlist;
-    if (playlist.index < 0 || playlist.index >= playlist.medias.length) return null;
-    return playlist.medias[playlist.index].extras?['data'] as TrackWithArtists?;
-  }
-
-  @override
-  int get currentIndex => _playerService.playlist.index;
-
-  @override
-  List<String> get currentQueueCoverArt => _calculateCoverArt(_playerService.playlist);
-
-  @override
-  Stream<List<String>> watchQueueCoverArt() => _queueCoverArtController.stream;
-
-  List<String> _calculateCoverArt(Playlist playlist) {
-    if (playlist.medias.isEmpty || playlist.index < 0) return const [];
-
-    final int currIndex = playlist.index;
-    final List<Media> allMedia = playlist.medias;
-    final List<String> stackCovers = [];
-    final loop = loopMode;
-
-    for (int count = 0; count < allMedia.length && stackCovers.length < 5; count++) {
-      int targetIndex = currIndex + count;
-      if (targetIndex >= allMedia.length) {
-        if (loop == PlaylistMode.loop) {
-          targetIndex = targetIndex % allMedia.length;
-        } else {
-          break;
+    // 4. Settings changes sync
+    _subscriptions.add(
+      _settingsRepository.watchSettings().listen((settings) async {
+        bool changed = false;
+        if (settings.shuffleMode != _queueManager.isShuffle) {
+          _queueManager.toggleShuffle();
+          changed = true;
         }
-      }
-      final track = allMedia[targetIndex].extras?['data'] as TrackWithArtists?;
-      if (track != null) {
-        final artPath = (track.album.albumArtPath?.isNotEmpty ?? false) ? track.album.albumArtPath! : '';
-        stackCovers.add(artPath);
-      }
-    }
-    return stackCovers;
+        final targetLoop = settings.loopMode.toLoopMode();
+        if (targetLoop != _queueManager.loopMode) {
+          _queueManager.setLoopMode(targetLoop);
+          changed = true;
+        }
+        if (changed) {
+          await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
+          _emitQueueState();
+        }
+      }),
+    );
+  }
+
+  void _emitQueueState() {
+    _currentTrackController.add(currentTrack);
+    _queueController.add(currentQueue);
+    _currentIndexController.add(currentIndex);
+    _queueCoverArtController.add(currentQueueCoverArt);
+    _queueStateController.add(queueState);
+    _queueItemsController.add(currentQueueItems);
+  }
+
+  PlaybackContext _resolvePlaybackContext(String type, int? id) {
+    return switch (type.toLowerCase()) {
+      'album' => PlaybackContext.album(id: id ?? 0, title: ''),
+      'playlist' => PlaybackContext.playlist(id: id ?? 0, title: ''),
+      'all' || 'tracks' || 'library' => const PlaybackContext.allTracks(),
+      _ => PlaybackContext(type: type, id: id),
+    };
   }
 
   @override
-  bool get isPlaying => _playerService.isPlaying;
+  List<TrackWithArtists> get originalQueue => List.unmodifiable(_queueManager.rawItems.map((item) => item.track));
 
   @override
-  Duration get position => _playerService.position;
+  List<TrackWithArtists> get currentQueue => _queueManager.displayTracks;
 
   @override
-  Duration get duration => _playerService.duration;
+  TrackWithArtists? get currentTrack => _queueManager.currentTrack;
 
   @override
-  double get volume => _playerService.volume;
+  int get currentIndex => _queueManager.currentIndex;
+
+  @override
+  List<String> get currentQueueCoverArt => _queueManager.upcomingCoverArts;
+
+  @override
+  QueueState get queueState => _queueManager.state;
+
+  @override
+  List<QueueItem> get currentQueueItems => _queueManager.displayQueue;
+
+  @override
+  PlaybackContext get playbackContext => _queueManager.context;
+
+  @override
+  bool get isPlaying => _playerEngine.isPlaying;
+
+  @override
+  Duration get position => _playerEngine.position;
+
+  @override
+  Duration get duration => _playerEngine.duration;
+
+  @override
+  double get volume => _playerEngine.volume;
 
   @override
   bool get isMuted => _settingsRepository.currentSettings.isMuted;
 
   @override
-  bool get isShuffle => _settingsRepository.currentSettings.shuffleMode;
+  bool get isShuffle => _queueManager.isShuffle;
 
   @override
-  PlaylistMode get loopMode => _settingsRepository.currentSettings.loopMode;
+  PlaylistMode get loopMode => _queueManager.loopMode.toPlaylistMode();
 
   @override
   String get playbackContextType => _playbackContextType;
@@ -217,23 +282,25 @@ class DefaultPlaybackRepository(
   Stream<List<TrackWithArtists>> watchQueue() => _queueController.stream;
 
   @override
-  Stream<bool> watchIsPlaying() => _playerService.playingStream;
+  Stream<List<String>> watchQueueCoverArt() => _queueCoverArtController.stream;
 
   @override
-  Stream<Duration> watchPosition() => _playerService.positionStream;
+  Stream<QueueState> watchQueueState() => _queueStateController.stream;
 
   @override
-  Stream<Duration> watchDuration() => _playerService.durationStream;
+  Stream<List<QueueItem>> watchQueueItems() => _queueItemsController.stream;
 
   @override
-  Stream<double> watchVolume() => _playerService.volumeStream;
+  Stream<bool> watchIsPlaying() => _playerEngine.isPlayingStream;
 
-  Media _createMedia(TrackWithArtists trackWithArtists) {
-    return Media(
-      trackWithArtists.track.filePath,
-      extras: {'title': trackWithArtists.track.title, 'artists': trackWithArtists.artists, 'data': trackWithArtists},
-    );
-  }
+  @override
+  Stream<Duration> watchPosition() => _playerEngine.positionStream;
+
+  @override
+  Stream<Duration> watchDuration() => _playerEngine.durationStream;
+
+  @override
+  Stream<double> watchVolume() => _playerEngine.volumeStream;
 
   @override
   Future<void> playTrack(List<TrackWithArtists> tracks, int index) async {
@@ -253,59 +320,76 @@ class DefaultPlaybackRepository(
 
     _playbackContextType = playbackContextType;
     _playbackContextId = playbackContextId;
-    _originalQueue = List.from(tracksToPlay);
+    final context = _resolvePlaybackContext(playbackContextType, playbackContextId);
 
-    final playableMedia = tracksToPlay.map(_createMedia).toList();
+    _shouldSuppressNextScroll = false;
+    _ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.jump);
 
-    try {
-      _shouldSuppressNextScroll = false;
-      _ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.jump);
+    _queueManager.setQueue(tracksToPlay, initialIndex: initialIndex, context: context, shuffle: isShuffle);
+    _queueManager.setLoopMode(loopMode.toLoopMode());
 
-      await _playerService.open(Playlist(playableMedia, index: initialIndex), play: autoplay);
+    _emitQueueState();
 
-      _saveQueueState(newIndex: initialIndex);
-    } catch (e, s) {
-      log.e("Error loading media_kit playlist", error: e, stackTrace: s);
+    final current = _queueManager.currentTrack;
+    if (current != null) {
+      await _playerEngine.open(current.track.filePath, autoplay: autoplay);
+      await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
     }
 
-    if (isShuffle) {
-      await Future.delayed(const Duration(milliseconds: 100));
-      await _playerService.rawPlayer.setShuffle(true);
-      final currentEngineIdx = _playerService.playlist.index;
-      if (currentEngineIdx > 0) {
-        await _playerService.rawPlayer.move(currentEngineIdx, 0);
-      }
-    }
+    _queueSaveDebouncer(() => _saveQueueState());
   }
 
   @override
-  Future<void> play() => _playerService.play();
+  Future<void> play() => _playerEngine.play();
 
   @override
-  Future<void> pause() => _playerService.pause();
+  Future<void> pause() => _playerEngine.pause();
 
   @override
-  Future<void> playOrPause() => _playerService.playOrPause();
+  Future<void> playOrPause() => _playerEngine.playOrPause();
 
   @override
-  Future<void> next() => _playerService.rawPlayer.next();
+  Future<void> next() async {
+    final nextItem = _queueManager.advanceNext();
+    _emitQueueState();
+    if (nextItem != null) {
+      await _playerEngine.open(nextItem.track.track.filePath, autoplay: true);
+      await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
+    }
+    _queueSaveDebouncer(() => _saveQueueState());
+  }
 
   @override
-  Future<void> previous() => _playerService.rawPlayer.previous();
+  Future<void> previous() async {
+    final prevItem = _queueManager.stepPrevious(currentPosition: position);
+    _emitQueueState();
+    if (prevItem != null) {
+      await _playerEngine.open(prevItem.track.track.filePath, autoplay: true);
+      await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
+    }
+    _queueSaveDebouncer(() => _saveQueueState());
+  }
 
   @override
   Future<void> jumpToIndex(int index) async {
-    if (index >= 0 && index < _playerService.playlist.medias.length) {
-      await _playerService.rawPlayer.jump(index);
+    if (index >= 0 && index < _queueManager.displayQueue.length) {
+      _queueManager.jumpTo(index);
+      _emitQueueState();
+      final current = _queueManager.currentTrack;
+      if (current != null) {
+        await _playerEngine.open(current.track.filePath, autoplay: true);
+        await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
+      }
+      _queueSaveDebouncer(() => _saveQueueState());
     }
   }
 
   @override
-  Future<void> seek(Duration position) => _playerService.seek(position);
+  Future<void> seek(Duration position) => _playerEngine.seek(position);
 
   @override
   Future<void> setVolume(double volume) async {
-    await _playerService.setVolume(volume);
+    await _playerEngine.setVolume(volume);
     _settingsRepository.setVolume(volume);
   }
 
@@ -331,14 +415,16 @@ class DefaultPlaybackRepository(
   Future<void> toggleMute() async {
     final nextMute = !isMuted;
     await _settingsRepository.setIsMuted(nextMute);
-    await _playerService.setVolume(nextMute ? 0.0 : _settingsRepository.currentSettings.volume);
+    await _playerEngine.setVolume(nextMute ? 0.0 : _settingsRepository.currentSettings.volume);
   }
 
   @override
   Future<void> toggleShuffle() async {
-    final nextShuffle = !isShuffle;
-    await _settingsRepository.setShuffleMode(nextShuffle);
-    await _playerService.rawPlayer.setShuffle(nextShuffle);
+    _queueManager.toggleShuffle();
+    await _settingsRepository.setShuffleMode(_queueManager.isShuffle);
+    await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
+    _emitQueueState();
+    _queueSaveDebouncer(() => _saveQueueState());
   }
 
   @override
@@ -349,66 +435,88 @@ class DefaultPlaybackRepository(
       PlaylistMode.loop => PlaylistMode.none,
     };
     await _settingsRepository.setLoopMode(nextMode);
-    await _playerService.setPlaylistMode(nextMode);
+    _queueManager.setLoopMode(nextMode.toLoopMode());
+    await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
+    _emitQueueState();
   }
 
   @override
   Future<void> addToQueue(List<TrackWithArtists> tracks) async {
     if (tracks.isEmpty) return;
-    _originalQueue.addAll(tracks);
-    for (final track in tracks) {
-      await _playerService.rawPlayer.add(_createMedia(track));
-    }
-    _saveQueueState();
+    _queueManager.addToQueue(tracks);
+    await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
+    _emitQueueState();
+    _queueSaveDebouncer(() => _saveQueueState());
   }
 
   @override
   Future<void> playNext(List<TrackWithArtists> tracks) async {
     if (tracks.isEmpty) return;
-    final insertIndex = currentIndex + 1;
-    _originalQueue.insertAll(insertIndex, tracks);
-    for (var i = 0; i < tracks.length; i++) {
-      await _playerService.rawPlayer.add(_createMedia(tracks[i]));
-      final lastIndex = _playerService.playlist.medias.length - 1;
-      await _playerService.rawPlayer.move(lastIndex, insertIndex + i);
-    }
-    _saveQueueState();
+    _queueManager.playNext(tracks);
+    await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
+    _emitQueueState();
+    _queueSaveDebouncer(() => _saveQueueState());
   }
 
   @override
   Future<void> removeQueueItem(int index) async {
-    if (index < 0 || index >= _playerService.playlist.medias.length) return;
-    await _playerService.rawPlayer.remove(index);
-    if (index < _originalQueue.length) {
-      _originalQueue.removeAt(index);
-    }
-    _saveQueueState();
+    if (index < 0 || index >= _queueManager.displayQueue.length) return;
+    final prevTrack = currentTrack?.track.filePath;
+    _queueManager.removeAt(index);
+    await _handlePostQueueModification(previousActivePath: prevTrack);
   }
 
   @override
   Future<void> removeQueueItems(List<int> indices) async {
-    final sorted = List<int>.from(indices)..sort((a, b) => b.compareTo(a));
-    for (final index in sorted) {
-      await removeQueueItem(index);
-    }
+    final prevTrack = currentTrack?.track.filePath;
+    _queueManager.removeIndices(indices);
+    await _handlePostQueueModification(previousActivePath: prevTrack);
+  }
+
+  @override
+  Future<void> removeTrackByPath(String filePath) async {
+    final prevTrack = currentTrack?.track.filePath;
+    _queueManager.removeTrackByPath(filePath);
+    await _handlePostQueueModification(previousActivePath: prevTrack);
+  }
+
+  @override
+  Future<void> removeTracksByPaths(Set<String> filePaths) async {
+    final prevTrack = currentTrack?.track.filePath;
+    _queueManager.removeTracksByPaths(filePaths);
+    await _handlePostQueueModification(previousActivePath: prevTrack);
   }
 
   @override
   Future<void> reorderQueue(int oldIndex, int newIndex) async {
-    final engineNewIndex = oldIndex < newIndex ? newIndex + 1 : newIndex;
-    await _playerService.rawPlayer.move(oldIndex, engineNewIndex);
-    if (oldIndex < _originalQueue.length && newIndex < _originalQueue.length) {
-      final item = _originalQueue.removeAt(oldIndex);
-      _originalQueue.insert(newIndex, item);
-    }
-    _saveQueueState();
+    _queueManager.reorder(oldIndex, newIndex);
+    await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
+    _emitQueueState();
+    _queueSaveDebouncer(() => _saveQueueState());
+  }
+
+  @override
+  Future<void> sortBy(QueueSortCriteria criteria, {bool ascending = true}) async {
+    _queueManager.sortBy(criteria, ascending: ascending);
+    await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
+    _emitQueueState();
+    _queueSaveDebouncer(() => _saveQueueState());
+  }
+
+  @override
+  Future<void> revertSort() async {
+    _queueManager.revertSort();
+    await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
+    _emitQueueState();
+    _queueSaveDebouncer(() => _saveQueueState());
   }
 
   @override
   Future<void> clearQueue() async {
-    await _playerService.stop();
-    await _playerService.open(const Playlist([]), play: false);
-    _originalQueue.clear();
+    await _playerEngine.pause();
+    await _playerEngine.setNextMedia(null);
+    _queueManager.clear();
+    _emitQueueState();
     await _queueRepository.saveQueue([], null, Duration.zero, '', null);
   }
 
@@ -420,41 +528,61 @@ class DefaultPlaybackRepository(
 
       if (restoredQueue.isEmpty) return;
 
-      _originalQueue = List.from(restoredQueue);
       _playbackContextType = contextType;
       _playbackContextId = contextId;
+      final context = _resolvePlaybackContext(contextType, contextId);
 
-      final playableMedia = restoredQueue.map(_createMedia).toList();
-      final validIndex = (lastIndex >= 0 && lastIndex < restoredQueue.length) ? lastIndex : 0;
+      _queueManager.setQueue(
+        restoredQueue,
+        initialIndex: (lastIndex >= 0 && lastIndex < restoredQueue.length) ? lastIndex : 0,
+        context: context,
+        shuffle: isShuffle,
+      );
+      _queueManager.setLoopMode(loopMode.toLoopMode());
 
-      await _playerService.open(Playlist(playableMedia, index: validIndex), play: false);
+      _emitQueueState();
 
-      _currentIndexController.add(validIndex);
-
-      if (lastPos > Duration.zero) {
-        await _playerService.seek(lastPos);
+      final current = _queueManager.currentTrack;
+      if (current != null) {
+        await _playerEngine.open(current.track.filePath, startPosition: lastPos, autoplay: false);
+        await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
       }
     } finally {
       _isRestoringQueue = false;
     }
   }
 
-  @override
-  void suppressNextScroll() {
-    _shouldSuppressNextScroll = true;
+  Future<void> _handlePostQueueModification({required String? previousActivePath}) async {
+    if (_queueManager.isEmpty) {
+      await _playerEngine.pause();
+      await _playerEngine.setNextMedia(null);
+    } else {
+      final current = _queueManager.currentTrack;
+      if (current != null && current.track.filePath != previousActivePath) {
+        await _playerEngine.open(current.track.filePath, autoplay: _playerEngine.isPlaying);
+      }
+      await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
+    }
+    _emitQueueState();
+    _queueSaveDebouncer(() => _saveQueueState());
   }
 
-  void _saveQueueState({int? newIndex}) {
-    final activeIndex = newIndex ?? currentIndex;
-    final playingTrack = (activeIndex >= 0 && activeIndex < currentQueue.length) ? currentQueue[activeIndex] : null;
+  void _saveQueueState() {
+    if (_isRestoringQueue) return;
+    final current = currentTrack;
 
     _queueRepository.saveQueue(
-      _originalQueue,
-      playingTrack?.track.filePath,
+      originalQueue,
+      current?.track.filePath,
       position,
       _playbackContextType,
       _playbackContextId,
     );
+  }
+
+  @override
+  void suppressNextScroll() {
+    _shouldSuppressNextScroll = true;
   }
 
   @override
@@ -475,16 +603,18 @@ class DefaultPlaybackRepository(
     _currentIndexController.close();
     _queueController.close();
     _queueCoverArtController.close();
+    _queueStateController.close();
+    _queueItemsController.close();
   }
 }
 
 /// Riverpod provider for [PlaybackRepository].
 final playbackRepositoryProvider = Provider<PlaybackRepository>((ref) {
-  final playerService = ref.watch(audioPlayerServiceProvider);
+  final playerEngine = ref.watch(audioPlayerEngineProvider);
   final queueRepo = ref.watch(queueRepositoryProvider);
   final settingsRepo = ref.watch(settingsRepositoryProvider);
 
-  final repo = DefaultPlaybackRepository(playerService, queueRepo, settingsRepo, ref);
+  final repo = DefaultPlaybackRepository(playerEngine, queueRepo, settingsRepo, ref);
   final audioHandler = ref.watch(audioHandlerProvider);
   if (audioHandler != null) {
     audioHandler.attachRepository(repo);

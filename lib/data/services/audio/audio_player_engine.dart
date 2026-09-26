@@ -50,6 +50,9 @@ abstract interface class AudioPlayerEngine {
   /// Stream of buffered duration.
   Stream<Duration> get bufferStream;
 
+  /// Stream of audio volume updates.
+  Stream<double> get volumeStream;
+
   /// Stream emitting when a track completes (either naturally or via gapless handoff),
   /// signaling the queue coordinator to advance.
   Stream<void> get completedStream;
@@ -65,6 +68,12 @@ abstract interface class AudioPlayerEngine {
 
   /// Current volume snapshot (0.0 - 100.0).
   double get volume;
+
+  /// Active track URI currently loaded in the transport engine.
+  String? get currentUri;
+
+  /// Next track URI pre-buffered in the transport engine for gapless playback.
+  String? get nextUri;
 }
 
 /// [media_kit.Player] implementation of [AudioPlayerEngine] featuring a rolling 2-track window
@@ -109,10 +118,10 @@ class MediaKitAudioPlayerEngine(final Player _player) implements AudioPlayerEngi
   /// Underlying raw [Player] instance for native platform integration (e.g. MPRIS / SMTC).
   Player get rawPlayer => _player;
 
-  /// Current active track URI loaded into the player.
+  @override
   String? get currentUri => _currentUri;
 
-  /// Next track URI pre-buffered in the player.
+  @override
   String? get nextUri => _nextUri;
 
   @override
@@ -182,6 +191,9 @@ class MediaKitAudioPlayerEngine(final Player _player) implements AudioPlayerEngi
 
   @override
   Stream<Duration> get bufferStream => _player.stream.buffer;
+
+  @override
+  Stream<double> get volumeStream => _player.stream.volume;
 
   @override
   Stream<void> get completedStream => _completedController.stream;

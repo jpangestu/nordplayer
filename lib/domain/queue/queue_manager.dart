@@ -34,9 +34,18 @@ class QueueManager({Random? random}) {
   /// The active index in [displayQueue].
   int get activeIndex => _activeIndex;
 
+  /// The active index in [displayQueue] (alias for activeIndex).
+  int get currentIndex => _activeIndex;
+
   /// The currently active [QueueItem], if one is selected.
   QueueItem? get currentItem =>
       (_activeIndex >= 0 && _activeIndex < displayQueue.length) ? displayQueue[_activeIndex] : null;
+
+  /// The currently active [TrackWithArtists], if one is selected.
+  TrackWithArtists? get currentTrack => currentItem?.track;
+
+  /// Backward-compatible list of track entities in active display order.
+  List<TrackWithArtists> get displayTracks => displayQueue.map((item) => item.track).toList();
 
   /// The upcoming [QueueItem] that will play next after [currentItem].
   ///
@@ -53,6 +62,19 @@ class QueueManager({Random? random}) {
     }
     return null;
   }
+
+  /// File path of the next upcoming track for gapless lookahead, if available.
+  String? get nextTrackFilePath => nextItem?.track.track.filePath;
+
+  /// Immutable snapshot of current queue state.
+  QueueState get state => QueueState(
+    items: List.unmodifiable(_items),
+    shuffleIndices: List.unmodifiable(_shuffleIndices),
+    activeIndex: _activeIndex,
+    isShuffle: _isShuffle,
+    loopMode: _loopMode,
+    context: _context,
+  );
 
   /// Whether shuffle mode is active.
   bool get isShuffle => _isShuffle;
@@ -225,6 +247,26 @@ class QueueManager({Random? random}) {
     }
   }
 
+  /// Removes all queue items matching any path in [filePaths].
+  void removeTracksByPaths(Set<String> filePaths) {
+    if (filePaths.isEmpty) return;
+    final normalizedSet = filePaths.map((p) => p.normalizePath().toLowerCase()).toSet();
+    for (int i = displayQueue.length - 1; i >= 0; i--) {
+      if (normalizedSet.contains(displayQueue[i].track.track.filePath.normalizePath().toLowerCase())) {
+        removeAt(i);
+      }
+    }
+  }
+
+  /// Removes items at the given display [indices].
+  void removeIndices(List<int> indices) {
+    if (indices.isEmpty) return;
+    final sortedDesc = List<int>.from(indices)..sort((a, b) => b.compareTo(a));
+    for (final index in sortedDesc) {
+      removeAt(index);
+    }
+  }
+
   /// Reorders an item from [oldDisplayIndex] to [newDisplayIndex] in [displayQueue].
   void reorder(int oldDisplayIndex, int newDisplayIndex) {
     if (oldDisplayIndex < 0 || oldDisplayIndex >= displayQueue.length) return;
@@ -314,6 +356,9 @@ class QueueManager({Random? random}) {
       if (_activeIndex == -1) _activeIndex = 0;
     }
   }
+
+  /// Reverts sorting back to original context sequence order.
+  void revertSort() => sortBy(QueueSortCriteria.originalOrder);
 
   /// Jumps directly to [displayIndex].
   void jumpTo(int displayIndex) {

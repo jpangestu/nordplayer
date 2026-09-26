@@ -17,9 +17,13 @@ class FakeAudioPlayerEngine extends Fake implements AudioPlayerEngine {
   final StreamController<Duration> _positionController = StreamController<Duration>.broadcast();
   final StreamController<Duration> _durationController = StreamController<Duration>.broadcast();
   final StreamController<Duration> _bufferController = StreamController<Duration>.broadcast();
+  final StreamController<double> _volumeController = StreamController<double>.broadcast();
   final StreamController<void> _completedController = StreamController<void>.broadcast();
 
+  @override
   String? get currentUri => _currentUri;
+
+  @override
   String? get nextUri => _nextUri;
 
   @override
@@ -47,6 +51,9 @@ class FakeAudioPlayerEngine extends Fake implements AudioPlayerEngine {
 
   @override
   Stream<Duration> get bufferStream => _bufferController.stream;
+
+  @override
+  Stream<double> get volumeStream => _volumeController.stream;
 
   @override
   Stream<void> get completedStream => _completedController.stream;
@@ -109,10 +116,18 @@ class FakeAudioPlayerEngine extends Fake implements AudioPlayerEngine {
   @override
   Future<void> setVolume(double volume) async {
     _volume = volume.clamp(0.0, 100.0);
+    _volumeController.add(_volume);
   }
 
   /// Test helper: simulate natural or gapless track completion.
   void simulateTrackCompleted() {
+    _completedController.add(null);
+  }
+
+  /// Test helper: simulate native gapless transition to pre-buffered track.
+  Future<void> simulateGaplessTransition() async {
+    _currentUri = _nextUri;
+    _nextUri = null;
     _completedController.add(null);
   }
 

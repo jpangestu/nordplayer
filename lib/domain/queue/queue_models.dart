@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/playback_context.dart';
 
 /// Engine-agnostic domain representation of playback loop / repeat mode.
 enum LoopMode {
@@ -130,4 +131,56 @@ class const QueueItem({
 
   @override
   String toString() => 'QueueItem(id: $id, track: ${track.track.title}, order: $originalOrder, source: $source)';
+}
+
+/// Immutable snapshot of the queue state at any given point in time.
+@immutable
+class const QueueState({
+  required final List<QueueItem> items,
+  required final List<int> shuffleIndices,
+  required final int activeIndex,
+  required final bool isShuffle,
+  required final LoopMode loopMode,
+  required final PlaybackContext context,
+}) {
+  /// The active item currently selected, or null if the queue is empty or index invalid.
+  QueueItem? get currentItem =>
+      (activeIndex >= 0 && activeIndex < displayQueue.length) ? displayQueue[activeIndex] : null;
+
+  /// Ordered items as perceived by the listener (mapped via [shuffleIndices] when [isShuffle] is true).
+  List<QueueItem> get displayQueue {
+    if (!isShuffle) return items;
+    return [
+      for (final idx in shuffleIndices)
+        if (idx < items.length) items[idx],
+    ];
+  }
+
+  /// Backward-compatible list of track entities in active playback order.
+  List<TrackWithArtists> get tracks => displayQueue.map((item) => item.track).toList();
+
+  /// User-queued tracks (Up Next / Appended).
+  List<QueueItem> get userQueuedItems => displayQueue.where((item) => item.source != QueueSource.context).toList();
+
+  /// Context-origin tracks (from currently playing album/playlist).
+  List<QueueItem> get contextItems => displayQueue.where((item) => item.source == QueueSource.context).toList();
+
+  /// Calculates upcoming album art paths (up to 5 items) for stacked player bar covers.
+  List<String> get upcomingCoverArts {
+    if (displayQueue.isEmpty || activeIndex < 0) return const [];
+    final covers = <String>[];
+    for (int i = 0; i < displayQueue.length && covers.length < 5; i++) {
+      int targetIdx = activeIndex + i;
+      if (targetIdx >= displayQueue.length) {
+        if (loopMode == LoopMode.all) {
+          targetIdx = targetIdx % displayQueue.length;
+        } else {
+          break;
+        }
+      }
+      final art = displayQueue[targetIdx].track.album.albumArtPath ?? '';
+      covers.add(art);
+    }
+    return covers;
+  }
 }
