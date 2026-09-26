@@ -1,65 +1,13 @@
-import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/config/app_config.dart';
-import 'package:nordplayer/data/services/system/background_task_service.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/indexer_repository.dart';
+import 'package:nordplayer/data/services/system/background_task_service.dart';
 import 'package:nordplayer/ui/settings/library_indexer/library_indexer_viewmodel.dart';
 
-class FakeIndexerRepository extends Fake implements IndexerRepository {
-  bool scanCalled = false;
-  bool reindexCalled = false;
-  bool fingerprintCalled = false;
-  String? lastMarkedMissingPath;
-  String? lastStoppedPath;
-
-  @override
-  void scanLibrary() => scanCalled = true;
-
-  @override
-  void reindexTracks() => reindexCalled = true;
-
-  @override
-  void generateMissingFingerprints() => fingerprintCalled = true;
-
-  @override
-  Future<void> markTracksInDirectoryAsMissing(String path) async {
-    lastMarkedMissingPath = path;
-  }
-
-  @override
-  void stopWatchingDirectory(String path) {
-    lastStoppedPath = path;
-  }
-}
-
-class FakeConfigRepository implements ConfigRepository {
-  final StreamController<AppConfig> _configController = StreamController<AppConfig>.broadcast();
-  AppConfig _config;
-
-  FakeConfigRepository(this._config);
-
-  @override
-  AppConfig get currentConfig => _config;
-
-  @override
-  Stream<AppConfig> watchConfig() => _configController.stream;
-
-  @override
-  void updateConfig(AppConfig newConfig) {
-    _config = newConfig;
-    _configController.add(newConfig);
-  }
-
-  @override
-  Future<void> flush() async {}
-
-  void dispose() {
-    _configController.close();
-  }
-}
+import '../../../../testing/fakes/fake_config_repository.dart';
+import '../../../../testing/fakes/fake_indexer_repository.dart';
 
 void main() {
   group('LibraryIndexerViewModel', () {
@@ -237,9 +185,7 @@ void main() {
 
     test('customExclusions and activeDefaultExclusions helper properties work', () {
       fakeConfigRepo.updateConfig(
-        fakeConfigRepo.currentConfig.copyWith(
-          artistExclusions: ['Earth, Wind & Fire', 'My Custom Band'],
-        ),
+        fakeConfigRepo.currentConfig.copyWith(artistExclusions: ['Earth, Wind & Fire', 'My Custom Band']),
       );
 
       final state = container.read(libraryIndexerViewModelProvider);

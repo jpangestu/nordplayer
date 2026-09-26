@@ -11,19 +11,11 @@ void main() {
 
     setUp(() async {
       db = AppDatabase(NativeDatabase.memory());
-      container = ProviderContainer(
-        overrides: [
-          appDatabaseProvider.overrideWithValue(db),
-        ],
-      );
+      container = ProviderContainer(overrides: [appDatabaseProvider.overrideWithValue(db)]);
 
       // Seed ignored paths
-      await db.into(db.ignoredPaths).insert(
-            IgnoredPathsCompanion.insert(filePath: '/music/z_track.mp3'),
-          );
-      await db.into(db.ignoredPaths).insert(
-            IgnoredPathsCompanion.insert(filePath: '/music/a_track.mp3'),
-          );
+      await db.into(db.ignoredPaths).insert(IgnoredPathsCompanion.insert(filePath: '/music/z_track.mp3'));
+      await db.into(db.ignoredPaths).insert(IgnoredPathsCompanion.insert(filePath: '/music/a_track.mp3'));
     });
 
     tearDown(() async {

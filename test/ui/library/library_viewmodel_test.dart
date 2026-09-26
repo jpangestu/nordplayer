@@ -1,39 +1,29 @@
-import 'package:nordplayer/config/app_config.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nordplayer/data/services/system/config_service.dart';
+import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/repositories/album_repository.dart';
 import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/track_repository.dart';
+import 'package:nordplayer/data/services/system/config_service.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
-import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/library_stats.dart';
 import 'package:nordplayer/ui/library/library_viewmodel.dart';
 
-class FakePlaybackRepositoryForLibrary extends Fake implements PlaybackRepository {
-  List<TrackWithArtists> lastTracks = [];
-  int lastInitialIndex = -1;
-  String lastContextType = '';
+import '../../../testing/fakes/fake_album_repository.dart';
+import '../../../testing/fakes/fake_playback_repository.dart';
+import '../../../testing/fakes/fake_track_repository.dart';
 
-  @override
-  Future<void> setPlaylist({
-    required List<TrackWithArtists> tracksToPlay,
-    required int initialIndex,
-    required String playbackContextType,
-    int? playbackContextId,
-    bool forceReload = false,
-    bool autoplay = true,
-  }) async {
-    lastTracks = List.from(tracksToPlay);
-    lastInitialIndex = initialIndex;
-    lastContextType = playbackContextType;
-  }
-}
+void main() {
+  group('LibraryViewModel', () {
+    late ProviderContainer container;
+    late FakePlaybackRepository fakePlaybackRepo;
+    late FakeTrackRepository fakeTrackRepo;
+    late FakeAlbumRepository fakeAlbumRepo;
 
-class FakeTrackRepositoryForLibrary extends Fake implements TrackRepository {
-  @override
-  Stream<LibraryStats> watchLibraryStats() => Stream.value(
-        const LibraryStats(
+    setUp(() {
+      fakePlaybackRepo = FakePlaybackRepository();
+      fakeTrackRepo = FakeTrackRepository(
+        initialStats: const LibraryStats(
           trackCount: 42,
           albumCount: 10,
           artistCount: 8,
@@ -43,31 +33,7 @@ class FakeTrackRepositoryForLibrary extends Fake implements TrackRepository {
           totalPlaytimeMs: 500000,
         ),
       );
-
-  @override
-  Stream<List<TrackWithArtists>> watchRecentlyAddedTracks({int limitAmount = 10}) =>
-      Stream.value(const []);
-
-  @override
-  Stream<List<TrackWithArtists>> watchAllTracks() => Stream.value(const []);
-}
-
-class FakeAlbumRepositoryForLibrary extends Fake implements AlbumRepository {
-  @override
-  Future<List<Album>> getRandomAlbums({int limitAmount = 10}) async => const [];
-}
-
-void main() {
-  group('LibraryViewModel', () {
-    late ProviderContainer container;
-    late FakePlaybackRepositoryForLibrary fakePlaybackRepo;
-    late FakeTrackRepositoryForLibrary fakeTrackRepo;
-    late FakeAlbumRepositoryForLibrary fakeAlbumRepo;
-
-    setUp(() {
-      fakePlaybackRepo = FakePlaybackRepositoryForLibrary();
-      fakeTrackRepo = FakeTrackRepositoryForLibrary();
-      fakeAlbumRepo = FakeAlbumRepositoryForLibrary();
+      fakeAlbumRepo = FakeAlbumRepository();
 
       final initialSections = [
         const LibrarySectionConfig(id: 'recently_added', isVisible: true),
@@ -77,9 +43,7 @@ void main() {
 
       container = ProviderContainer(
         overrides: [
-          initialAppConfigProvider.overrideWithValue(
-            AppConfig(librarySections: initialSections),
-          ),
+          initialAppConfigProvider.overrideWithValue(AppConfig(librarySections: initialSections)),
           playbackRepositoryProvider.overrideWithValue(fakePlaybackRepo),
           trackRepositoryProvider.overrideWithValue(fakeTrackRepo),
           albumRepositoryProvider.overrideWithValue(fakeAlbumRepo),
@@ -89,6 +53,9 @@ void main() {
 
     tearDown(() {
       container.dispose();
+      fakePlaybackRepo.dispose();
+      fakeTrackRepo.dispose();
+      fakeAlbumRepo.dispose();
     });
 
     test('reorderSections moves section to target index', () {
@@ -128,11 +95,7 @@ void main() {
       final vm = container.read(libraryViewModelProvider.notifier);
       final tracks = <TrackWithArtists>[];
 
-      vm.playTrack(
-        tracksToPlay: tracks,
-        index: 0,
-        playbackContextType: 'recently_added',
-      );
+      vm.playTrack(tracksToPlay: tracks, index: 0, playbackContextType: 'recently_added');
 
       expect(fakePlaybackRepo.lastContextType, equals('recently_added'));
       expect(fakePlaybackRepo.lastInitialIndex, equals(0));

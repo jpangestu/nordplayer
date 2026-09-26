@@ -5,17 +5,14 @@ import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/library_stats.dart';
 
 /// In-memory test double for [TrackRepository].
-class FakeTrackRepository({
-  List<TrackWithArtists>? initialTracks,
-  LibraryStats? initialStats,
-}) implements TrackRepository {
+class FakeTrackRepository({List<TrackWithArtists>? initialTracks, LibraryStats? initialStats})
+    implements TrackRepository {
   List<TrackWithArtists> tracks = initialTracks ?? [];
   LibraryStats stats = initialStats ?? const LibraryStats.empty();
 
   final StreamController<List<TrackWithArtists>> _tracksController =
       StreamController<List<TrackWithArtists>>.broadcast();
-  final StreamController<LibraryStats> _statsController =
-      StreamController<LibraryStats>.broadcast();
+  final StreamController<LibraryStats> _statsController = StreamController<LibraryStats>.broadcast();
 
   final List<int> deletedTrackIds = [];
   final List<int> markedMissingTrackIds = [];
@@ -48,9 +45,8 @@ class FakeTrackRepository({
   @override
   Stream<List<TrackWithArtists>> watchRecentlyAddedTracks({int limitAmount = 10}) {
     final recent = tracks.take(limitAmount).toList();
-    return Stream.value(recent).concatWith([
-      _tracksController.stream.map((list) => list.take(limitAmount).toList()),
-    ]);
+    return Stream.value(recent)
+        .concatWith([_tracksController.stream.map((list) => list.take(limitAmount).toList())]);
   }
 
   @override

@@ -9,7 +9,7 @@ import 'package:nordplayer/domain/models/composite_models.dart';
 /// In-memory test double for [PlaybackRepository].
 class FakePlaybackRepository({
   List<TrackWithArtists>? initialQueue,
-  int initialIndex = 0,
+  int? initialIndex,
   bool isPlaying = false,
   Duration position = Duration.zero,
   Duration duration = const Duration(minutes: 3),
@@ -22,7 +22,7 @@ class FakePlaybackRepository({
 }) implements PlaybackRepository {
   List<TrackWithArtists> _currentQueue = initialQueue ?? [];
   List<TrackWithArtists> _originalQueue = initialQueue != null ? List.from(initialQueue) : [];
-  int _currentIndex = initialIndex;
+  int _currentIndex = initialIndex ?? ((initialQueue != null && initialQueue.isNotEmpty) ? 0 : -1);
   bool _isPlaying = isPlaying;
   Duration _position = position;
   final Duration _duration = duration;
@@ -31,25 +31,43 @@ class FakePlaybackRepository({
   bool _isShuffle = isShuffle;
   PlaylistMode _loopMode = loopMode;
   String _playbackContextType = playbackContextType;
-  final int? _playbackContextId = playbackContextId;
+  int? _playbackContextId = playbackContextId;
   bool _suppressNextScroll = false;
+
+  TrackWithArtists? _overrideCurrentTrack;
+  bool _hasOverrideCurrentTrack = false;
+
+  // Test inspection fields
+  int moveOld = -1;
+  int moveNew = -1;
+  int removedIndex = -1;
+  List<int> batchRemoved = [];
+  bool cleared = false;
+  int jumpedIndex = -1;
+  bool suppressedScroll = false;
+  final List<TrackWithArtists> addedToQueueTracks = [];
+
+  List<TrackWithArtists> lastTracks = [];
+  int lastInitialIndex = -1;
+  String lastContextType = '';
+  int? lastContextId;
+
+  List<TrackWithArtists> get setPlaylistTracks => lastTracks;
+  int get setPlaylistIndex => lastInitialIndex;
+  String get setPlaylistContextType => lastContextType;
+  int? get setPlaylistContextId => lastContextId;
+  bool get clearedQueue => cleared;
 
   final StreamController<TrackWithArtists?> _currentTrackController =
       StreamController<TrackWithArtists?>.broadcast();
-  final StreamController<int> _currentIndexController =
-      StreamController<int>.broadcast();
+  final StreamController<int> _currentIndexController = StreamController<int>.broadcast();
   final StreamController<List<TrackWithArtists>> _queueController =
       StreamController<List<TrackWithArtists>>.broadcast();
-  final StreamController<bool> _isPlayingController =
-      StreamController<bool>.broadcast();
-  final StreamController<Duration> _positionController =
-      StreamController<Duration>.broadcast();
-  final StreamController<Duration> _durationController =
-      StreamController<Duration>.broadcast();
-  final StreamController<double> _volumeController =
-      StreamController<double>.broadcast();
-  final StreamController<List<String>> _queueCoverArtController =
-      StreamController<List<String>>.broadcast();
+  final StreamController<bool> _isPlayingController = StreamController<bool>.broadcast();
+  final StreamController<Duration> _positionController = StreamController<Duration>.broadcast();
+  final StreamController<Duration> _durationController = StreamController<Duration>.broadcast();
+  final StreamController<double> _volumeController = StreamController<double>.broadcast();
+  final StreamController<List<String>> _queueCoverArtController = StreamController<List<String>>.broadcast();
 
   @override
   List<TrackWithArtists> get originalQueue => List.unmodifiable(_originalQueue);
@@ -58,10 +76,10 @@ class FakePlaybackRepository({
   List<TrackWithArtists> get currentQueue => List.unmodifiable(_currentQueue);
 
   @override
-  TrackWithArtists? get currentTrack =>
-      (_currentIndex >= 0 && _currentIndex < _currentQueue.length)
-          ? _currentQueue[_currentIndex]
-          : null;
+  TrackWithArtists? get currentTrack {
+    if (_hasOverrideCurrentTrack) return _overrideCurrentTrack;
+    return (_currentIndex >= 0 && _currentIndex < _currentQueue.length) ? _currentQueue[_currentIndex] : null;
+  }
 
   @override
   int get currentIndex => _currentIndex;
@@ -94,43 +112,53 @@ class FakePlaybackRepository({
   int? get playbackContextId => _playbackContextId;
 
   @override
-  List<String> get currentQueueCoverArt => _currentQueue
-      .map((t) => t.album.albumArtPath)
-      .whereType<String>()
-      .take(5)
-      .toList();
+  List<String> get currentQueueCoverArt =>
+      _currentQueue.map((t) => t.album.albumArtPath).whereType<String>().take(5).toList();
 
   @override
-  Stream<TrackWithArtists?> watchCurrentTrack() =>
-      Stream.value(currentTrack).concatWith([_currentTrackController.stream]);
+  Stream<TrackWithArtists?> watchCurrentTrack() => _currentTrackController.stream;
 
   @override
-  Stream<int> watchCurrentIndex() =>
-      Stream.value(_currentIndex).concatWith([_currentIndexController.stream]);
+  Stream<int> watchCurrentIndex() => _currentIndexController.stream;
 
   @override
-  Stream<List<TrackWithArtists>> watchQueue() =>
-      Stream.value(_currentQueue).concatWith([_queueController.stream]);
+  Stream<List<TrackWithArtists>> watchQueue() => _queueController.stream;
 
   @override
-  Stream<bool> watchIsPlaying() =>
-      Stream.value(_isPlaying).concatWith([_isPlayingController.stream]);
+  Stream<bool> watchIsPlaying() => _isPlayingController.stream;
 
   @override
-  Stream<Duration> watchPosition() =>
-      Stream.value(_position).concatWith([_positionController.stream]);
+  Stream<Duration> watchPosition() => _positionController.stream;
 
   @override
-  Stream<Duration> watchDuration() =>
-      Stream.value(_duration).concatWith([_durationController.stream]);
+  Stream<Duration> watchDuration() => _durationController.stream;
 
   @override
-  Stream<double> watchVolume() =>
-      Stream.value(_volume).concatWith([_volumeController.stream]);
+  Stream<double> watchVolume() => _volumeController.stream;
 
   @override
-  Stream<List<String>> watchQueueCoverArt() =>
-      Stream.value(currentQueueCoverArt).concatWith([_queueCoverArtController.stream]);
+  Stream<List<String>> watchQueueCoverArt() => _queueCoverArtController.stream;
+
+  void emitQueue(List<TrackWithArtists> queue) {
+    _currentQueue = List.from(queue);
+    _queueController.add(_currentQueue);
+  }
+
+  void emitCurrentTrack(TrackWithArtists? track) {
+    _overrideCurrentTrack = track;
+    _hasOverrideCurrentTrack = true;
+    _currentTrackController.add(track);
+  }
+
+  void emitCurrentIndex(int index) {
+    _currentIndex = index;
+    _currentIndexController.add(index);
+  }
+
+  void emitIsPlaying(bool playing) {
+    _isPlaying = playing;
+    _isPlayingController.add(playing);
+  }
 
   @override
   Future<void> setPlaylist({
@@ -141,10 +169,16 @@ class FakePlaybackRepository({
     bool forceReload = false,
     bool autoplay = true,
   }) async {
+    lastTracks = List.from(tracksToPlay);
+    lastInitialIndex = initialIndex;
+    lastContextType = playbackContextType;
+    lastContextId = playbackContextId;
+
     _currentQueue = List.from(tracksToPlay);
     _originalQueue = List.from(tracksToPlay);
     _currentIndex = initialIndex;
     _playbackContextType = playbackContextType;
+    _playbackContextId = playbackContextId;
     if (autoplay) _isPlaying = true;
 
     _queueController.add(_currentQueue);
@@ -156,11 +190,7 @@ class FakePlaybackRepository({
 
   @override
   Future<void> playTrack(List<TrackWithArtists> tracks, int index) async {
-    await setPlaylist(
-      tracksToPlay: tracks,
-      initialIndex: index,
-      playbackContextType: 'direct_play',
-    );
+    await setPlaylist(tracksToPlay: tracks, initialIndex: index, playbackContextType: 'direct_play');
   }
 
   @override
@@ -204,6 +234,7 @@ class FakePlaybackRepository({
 
   @override
   Future<void> jumpToIndex(int index) async {
+    jumpedIndex = index;
     if (index >= 0 && index < _currentQueue.length) {
       _currentIndex = index;
       _currentIndexController.add(_currentIndex);
@@ -255,6 +286,7 @@ class FakePlaybackRepository({
 
   @override
   Future<void> addToQueue(List<TrackWithArtists> tracks) async {
+    addedToQueueTracks.addAll(tracks);
     _currentQueue.addAll(tracks);
     _queueController.add(_currentQueue);
     _queueCoverArtController.add(currentQueueCoverArt);
@@ -274,6 +306,7 @@ class FakePlaybackRepository({
 
   @override
   Future<void> removeQueueItem(int index) async {
+    removedIndex = index;
     if (index >= 0 && index < _currentQueue.length) {
       _currentQueue.removeAt(index);
       if (_currentIndex >= _currentQueue.length && _currentQueue.isNotEmpty) {
@@ -288,6 +321,7 @@ class FakePlaybackRepository({
 
   @override
   Future<void> removeQueueItems(List<int> indices) async {
+    batchRemoved = List.from(indices);
     final sorted = List<int>.from(indices)..sort((a, b) => b.compareTo(a));
     for (final idx in sorted) {
       if (idx >= 0 && idx < _currentQueue.length) {
@@ -305,6 +339,8 @@ class FakePlaybackRepository({
 
   @override
   Future<void> reorderQueue(int oldIndex, int newIndex) async {
+    moveOld = oldIndex;
+    moveNew = newIndex;
     if (oldIndex < _currentQueue.length && newIndex <= _currentQueue.length) {
       var target = newIndex;
       if (oldIndex < target) target -= 1;
@@ -316,12 +352,13 @@ class FakePlaybackRepository({
 
   @override
   Future<void> clearQueue() async {
+    cleared = true;
     _currentQueue.clear();
     _originalQueue.clear();
-    _currentIndex = 0;
+    _currentIndex = -1;
     _isPlaying = false;
     _queueController.add([]);
-    _currentIndexController.add(0);
+    _currentIndexController.add(-1);
     _currentTrackController.add(null);
     _isPlayingController.add(false);
     _queueCoverArtController.add([]);
@@ -332,6 +369,7 @@ class FakePlaybackRepository({
 
   @override
   void suppressNextScroll() {
+    suppressedScroll = true;
     _suppressNextScroll = true;
   }
 
@@ -351,16 +389,5 @@ class FakePlaybackRepository({
     _durationController.close();
     _volumeController.close();
     _queueCoverArtController.close();
-  }
-}
-
-extension on Stream<dynamic> {
-  Stream<T> concatWith<T>(Iterable<Stream<T>> others) async* {
-    if (this is Stream<T>) {
-      yield* this as Stream<T>;
-    }
-    for (final other in others) {
-      yield* other;
-    }
   }
 }

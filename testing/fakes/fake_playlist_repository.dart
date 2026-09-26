@@ -10,13 +10,29 @@ class FakePlaylistRepository({
   Map<int, List<TrackWithArtists>>? initialPlaylistTracks,
 }) implements PlaylistRepository {
   List<PlaylistWithDetails> playlists = initialPlaylists ?? [];
-  Map<int, List<TrackWithArtists>> playlistTracks = initialPlaylistTracks ?? {};
+  Map<int, List<TrackWithArtists>> playlistTracksMap = initialPlaylistTracks ?? {};
   int _nextId = (initialPlaylists != null && initialPlaylists.isNotEmpty)
       ? initialPlaylists.map((p) => p.playlist.id).reduce((a, b) => a > b ? a : b) + 1
-      : 1;
+      : 101;
+
+  final List<String> createdNames = [];
+  final List<List<int>?> createdTrackIds = [];
+  final Map<int, String> renamedPlaylists = {};
+  final List<int> deletedPlaylists = [];
+  final Map<int, List<int>> addedTracks = {};
+  final List<(int, int)> removedTracks = [];
+  List<TrackWithArtists> defaultPlaylistTracks = const [];
 
   final StreamController<List<PlaylistWithDetails>> _playlistsController =
       StreamController<List<PlaylistWithDetails>>.broadcast();
+  final StreamController<List<TrackWithArtists>> _playlistTracksController =
+      StreamController<List<TrackWithArtists>>.broadcast();
+
+  List<TrackWithArtists> get playlistTracks => defaultPlaylistTracks;
+  set playlistTracks(List<TrackWithArtists> tracks) {
+    defaultPlaylistTracks = tracks;
+    _playlistTracksController.add(tracks);
+  }
 
   void emitPlaylists(List<PlaylistWithDetails> newPlaylists) {
     playlists = newPlaylists;
@@ -33,7 +49,7 @@ class FakePlaylistRepository({
     final match = playlists.firstWhere(
       (p) => p.playlist.id == playlistId,
       orElse: () => PlaylistWithDetails(
-        playlist: Playlist(id: playlistId, name: 'Unknown'),
+        playlist: Playlist(id: playlistId, name: 'Test Playlist'),
         trackCount: 0,
         imageUrls: const [],
       ),
@@ -43,16 +59,19 @@ class FakePlaylistRepository({
 
   @override
   Future<List<TrackWithArtists>> getPlaylistTracks(int playlistId) async {
-    return playlistTracks[playlistId] ?? [];
+    return playlistTracksMap[playlistId] ?? defaultPlaylistTracks;
   }
 
   @override
   Stream<List<TrackWithArtists>> watchPlaylistTracks(int playlistId) {
-    return Stream.value(playlistTracks[playlistId] ?? []);
+    final current = playlistTracksMap[playlistId] ?? defaultPlaylistTracks;
+    return Stream.value(current).concatWith([_playlistTracksController.stream]);
   }
 
   @override
   Future<int> createPlaylist(String name, {List<int>? trackIds}) async {
+    createdNames.add(name);
+    createdTrackIds.add(trackIds);
     final id = _nextId++;
     final newPlaylist = PlaylistWithDetails(
       playlist: Playlist(id: id, name: name),
@@ -60,13 +79,14 @@ class FakePlaylistRepository({
       imageUrls: const [],
     );
     playlists.add(newPlaylist);
-    playlistTracks[id] = [];
+    playlistTracksMap[id] = [];
     emitPlaylists(playlists);
     return id;
   }
 
   @override
   Future<void> renamePlaylist(int playlistId, String newName) async {
+    renamedPlaylists[playlistId] = newName;
     final idx = playlists.indexWhere((p) => p.playlist.id == playlistId);
     if (idx != -1) {
       final current = playlists[idx];
@@ -81,19 +101,21 @@ class FakePlaylistRepository({
 
   @override
   Future<void> deletePlaylist(int playlistId) async {
+    deletedPlaylists.add(playlistId);
     playlists.removeWhere((p) => p.playlist.id == playlistId);
-    playlistTracks.remove(playlistId);
+    playlistTracksMap.remove(playlistId);
     emitPlaylists(playlists);
   }
 
   @override
   Future<void> addTracksToPlaylist(int playlistId, List<int> trackIds) async {
-    // In-memory tracking
+    addedTracks[playlistId] = trackIds;
   }
 
   @override
   Future<void> removeTrackFromPlaylist(int playlistId, int trackId) async {
-    final tracks = playlistTracks[playlistId];
+    removedTracks.add((playlistId, trackId));
+    final tracks = playlistTracksMap[playlistId];
     if (tracks != null) {
       tracks.removeWhere((t) => t.track.id == trackId);
       final idx = playlists.indexWhere((p) => p.playlist.id == playlistId);
@@ -110,6 +132,7 @@ class FakePlaylistRepository({
 
   void dispose() {
     _playlistsController.close();
+    _playlistTracksController.close();
   }
 }
 

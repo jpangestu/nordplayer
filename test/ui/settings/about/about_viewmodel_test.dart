@@ -1,8 +1,8 @@
-import 'package:nordplayer/config/app_config.dart';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/services/system/config_service.dart';
 import 'package:nordplayer/ui/settings/about/about_ui_state.dart';
 import 'package:nordplayer/ui/settings/about/about_viewmodel.dart';
@@ -21,11 +21,7 @@ void main() {
       container = ProviderContainer(
         overrides: [
           initialAppConfigProvider.overrideWithValue(
-            AppConfig(
-              adaptiveBg: true,
-              adaptiveBgPanelBlur: 30.0,
-              adaptiveBgThemeOverlay: 0.7,
-            ),
+            AppConfig(adaptiveBg: true, adaptiveBgPanelBlur: 30.0, adaptiveBgThemeOverlay: 0.7),
           ),
           configDirectoryProvider.overrideWithValue(tempDir),
           packageInfoProvider.overrideWith(
@@ -63,11 +59,7 @@ void main() {
     });
 
     test('AboutUiState supports equality and copyWith', () {
-      const state1 = AboutUiState(
-        adaptiveBg: true,
-        adaptiveBgPanelBlur: 20.0,
-        adaptiveBgThemeOverlay: 0.5,
-      );
+      const state1 = AboutUiState(adaptiveBg: true, adaptiveBgPanelBlur: 20.0, adaptiveBgThemeOverlay: 0.5);
 
       final state2 = state1.copyWith();
       expect(state1, equals(state2));

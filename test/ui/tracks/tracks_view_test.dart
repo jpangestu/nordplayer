@@ -1,9 +1,9 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nordplayer/domain/models/composite_models.dart';
-import 'package:nordplayer/domain/models/track.dart';
 import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/artist.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/track.dart';
 import 'package:nordplayer/ui/tracks/tracks_view.dart';
 
 import '../../../testing/app.dart';
@@ -11,9 +11,7 @@ import '../../../testing/fakes/fake_track_repository.dart';
 
 void main() {
   Finder findRichText(String text) {
-    return find.byWidgetPredicate(
-      (widget) => widget is RichText && widget.text.toPlainText().contains(text),
-    );
+    return find.byWidgetPredicate((widget) => widget is RichText && widget.text.toPlainText().contains(text));
   }
 
   TrackWithArtists createSampleTrack({
@@ -47,11 +45,7 @@ void main() {
     testWidgets('renders empty state message when library has no tracks', (tester) async {
       final fakeTrackRepo = FakeTrackRepository(initialTracks: []);
 
-      await pumpTestApp(
-        tester,
-        child: const TracksView(),
-        fakeTrackRepo: fakeTrackRepo,
-      );
+      await pumpTestApp(tester, child: const TracksView(), fakeTrackRepo: fakeTrackRepo);
 
       expect(find.text('Your library is empty'), findsOneWidget);
       expect(find.text('Scan your local folders to set up your music library.'), findsOneWidget);
@@ -59,12 +53,7 @@ void main() {
 
     testWidgets('renders track details in table when tracks are populated', (tester) async {
       final sampleTracks = [
-        createSampleTrack(
-          id: 1,
-          title: 'Comfortably Numb',
-          artistName: 'Pink Floyd',
-          albumTitle: 'The Wall',
-        ),
+        createSampleTrack(id: 1, title: 'Comfortably Numb', artistName: 'Pink Floyd', albumTitle: 'The Wall'),
         createSampleTrack(
           id: 2,
           title: 'Time',
@@ -75,11 +64,7 @@ void main() {
 
       final fakeTrackRepo = FakeTrackRepository(initialTracks: sampleTracks);
 
-      await pumpTestApp(
-        tester,
-        child: const TracksView(),
-        fakeTrackRepo: fakeTrackRepo,
-      );
+      await pumpTestApp(tester, child: const TracksView(), fakeTrackRepo: fakeTrackRepo);
 
       expect(findRichText('Comfortably Numb'), findsOneWidget);
       expect(findRichText('Time'), findsOneWidget);
@@ -90,21 +75,12 @@ void main() {
 
     testWidgets('tracks page header reflects total track count', (tester) async {
       final sampleTracks = [
-        createSampleTrack(
-          id: 1,
-          title: 'Track A',
-          artistName: 'Artist A',
-          albumTitle: 'Album A',
-        ),
+        createSampleTrack(id: 1, title: 'Track A', artistName: 'Artist A', albumTitle: 'Album A'),
       ];
 
       final fakeTrackRepo = FakeTrackRepository(initialTracks: sampleTracks);
 
-      await pumpTestApp(
-        tester,
-        child: const TracksView(),
-        fakeTrackRepo: fakeTrackRepo,
-      );
+      await pumpTestApp(tester, child: const TracksView(), fakeTrackRepo: fakeTrackRepo);
 
       expect(find.text('Tracks'), findsOneWidget);
       expect(find.textContaining('1 Tracks'), findsOneWidget);

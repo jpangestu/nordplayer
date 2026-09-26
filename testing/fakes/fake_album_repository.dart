@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:nordplayer/data/repositories/album_repository.dart';
-import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/artist.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
 
 /// In-memory test double for [AlbumRepository].
 class FakeAlbumRepository({
@@ -14,28 +14,54 @@ class FakeAlbumRepository({
   List<Album> albums = initialAlbums ?? [];
   Map<int, AlbumWithTracks> albumWithTracksMap = initialAlbumWithTracks ?? {};
   Map<int, List<Artist>> trackArtistsMap = initialTrackArtists ?? {};
+  List<Artist> trackArtistsToReturn = const [];
 
-  final StreamController<List<Album>> _albumsController =
-      StreamController<List<Album>>.broadcast();
+  final StreamController<List<Album>> _albumsController = StreamController<List<Album>>.broadcast();
+  final StreamController<AlbumWithTracks?> _albumWithTracksController =
+      StreamController<AlbumWithTracks?>.broadcast();
 
   void emitAlbums(List<Album> newAlbums) {
     albums = newAlbums;
     _albumsController.add(albums);
   }
 
+  void emitError(Object error) {
+    _albumsController.addError(error);
+  }
+
+  void emitAlbum(AlbumWithTracks? album) {
+    if (album != null) {
+      albumWithTracksMap[album.album.id] = album;
+    }
+    _albumWithTracksController.add(album);
+  }
+
+  void emitAlbumWithTracks(int albumId, AlbumWithTracks? album) {
+    if (album != null) {
+      albumWithTracksMap[albumId] = album;
+    }
+    _albumWithTracksController.add(album);
+  }
+
   @override
   Stream<List<Album>> watchAlbums() {
-    return Stream.value(albums).concatWith([_albumsController.stream]);
+    if (albums.isNotEmpty) {
+      return Stream.value(albums).concatWith([_albumsController.stream]);
+    }
+    return _albumsController.stream;
   }
 
   @override
   Stream<AlbumWithTracks?> watchAlbumWithTracks(int albumId) {
-    return Stream.value(albumWithTracksMap[albumId]);
+    if (albumWithTracksMap.containsKey(albumId)) {
+      return Stream.value(albumWithTracksMap[albumId]).concatWith([_albumWithTracksController.stream]);
+    }
+    return _albumWithTracksController.stream;
   }
 
   @override
   Future<List<Artist>> getTrackArtists({required int albumId}) async {
-    return trackArtistsMap[albumId] ?? [];
+    return trackArtistsMap[albumId] ?? trackArtistsToReturn;
   }
 
   @override
@@ -45,6 +71,7 @@ class FakeAlbumRepository({
 
   void dispose() {
     _albumsController.close();
+    _albumWithTracksController.close();
   }
 }
 

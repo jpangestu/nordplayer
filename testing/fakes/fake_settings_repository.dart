@@ -6,10 +6,9 @@ import 'package:nordplayer/data/services/system/preference_service.dart';
 import 'package:nordplayer/domain/models/time_label_type.dart';
 
 /// In-memory test double for [SettingsRepository].
-class FakeSettingsRepository({
-  PreferencesState? initialState,
-}) implements SettingsRepository {
-  PreferencesState _state = initialState ??
+class FakeSettingsRepository({PreferencesState? initialState}) implements SettingsRepository {
+  PreferencesState _state =
+      initialState ??
       const PreferencesState(
         cachedAlbumArtPath: null,
         isMuted: PrefConstants.defaultIsMuted,
@@ -20,16 +19,16 @@ class FakeSettingsRepository({
         timeLabelType: PrefConstants.defaultTimeLabelType,
         volume: PrefConstants.defaultVolume,
       );
-  final StreamController<PreferencesState> _controller =
-      StreamController<PreferencesState>.broadcast();
+  final StreamController<PreferencesState> _controller = StreamController<PreferencesState>.broadcast();
 
   @override
   PreferencesState get currentSettings => _state;
 
+  bool get showQueue => _state.showQueue;
+  set showQueue(bool value) => setShowQueue(value);
+
   @override
-  Stream<PreferencesState> watchSettings() {
-    return Stream.value(_state).concatWith([_controller.stream]);
-  }
+  Stream<PreferencesState> watchSettings() => _controller.stream;
 
   void _emit(PreferencesState newState) {
     _state = newState;
@@ -93,16 +92,5 @@ class FakeSettingsRepository({
 
   void dispose() {
     _controller.close();
-  }
-}
-
-extension on Stream<dynamic> {
-  Stream<T> concatWith<T>(Iterable<Stream<T>> others) async* {
-    if (this is Stream<T>) {
-      yield* this as Stream<T>;
-    }
-    for (final other in others) {
-      yield* other;
-    }
   }
 }

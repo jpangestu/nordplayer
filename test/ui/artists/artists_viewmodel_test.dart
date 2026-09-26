@@ -1,56 +1,14 @@
-import 'package:nordplayer/config/app_config.dart';
-import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/repositories/artist_repository.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/domain/models/artist.dart';
 import 'package:nordplayer/ui/artists/artists_ui_state.dart';
 import 'package:nordplayer/ui/artists/artists_viewmodel.dart';
 
-class FakeArtistRepository implements ArtistRepository {
-  final StreamController<List<Artist>> _artistsController = StreamController<List<Artist>>.broadcast();
-
-  void emitArtists(List<Artist> artists) {
-    _artistsController.add(artists);
-  }
-
-  void emitError(Object error) {
-    _artistsController.addError(error);
-  }
-
-  @override
-  Stream<List<Artist>> watchArtists() => _artistsController.stream;
-
-  void dispose() {
-    _artistsController.close();
-  }
-}
-
-class FakeConfigRepository implements ConfigRepository {
-  final StreamController<AppConfig> _configController = StreamController<AppConfig>.broadcast();
-  AppConfig _config = AppConfig(adaptiveBg: false);
-
-  @override
-  AppConfig get currentConfig => _config;
-
-  @override
-  Stream<AppConfig> watchConfig() => _configController.stream;
-
-  @override
-  void updateConfig(AppConfig newConfig) {
-    _config = newConfig;
-    _configController.add(newConfig);
-  }
-
-  @override
-  Future<void> flush() async {}
-
-  void dispose() {
-    _configController.close();
-  }
-}
+import '../../../testing/fakes/fake_artist_repository.dart';
+import '../../../testing/fakes/fake_config_repository.dart';
 
 void main() {
   group('ArtistsViewModel & ArtistsUiState', () {
@@ -114,7 +72,9 @@ void main() {
 
       expect(container.read(artistsViewModelProvider).isAdaptiveBg, isFalse);
 
-      fakeConfigRepo.updateConfig(AppConfig(adaptiveBg: true, adaptiveBgPanelBlur: 15.0, adaptiveBgThemeOverlay: 0.8));
+      fakeConfigRepo.updateConfig(
+        AppConfig(adaptiveBg: true, adaptiveBgPanelBlur: 15.0, adaptiveBgThemeOverlay: 0.8),
+      );
       await pumpEventQueue();
 
       final state = container.read(artistsViewModelProvider);
@@ -124,7 +84,11 @@ void main() {
     });
 
     test('ArtistsUiState copyWith and equality work correctly', () {
-      const state1 = ArtistsUiState(artists: [Artist(id: 1, name: 'A')], isLoading: false, isAdaptiveBg: true);
+      const state1 = ArtistsUiState(
+        artists: [Artist(id: 1, name: 'A')],
+        isLoading: false,
+        isAdaptiveBg: true,
+      );
       final state2 = state1.copyWith(isAdaptiveBg: false);
 
       expect(state1 == state2, isFalse);

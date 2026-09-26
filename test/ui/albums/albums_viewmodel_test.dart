@@ -1,68 +1,15 @@
-import 'package:nordplayer/config/app_config.dart';
-import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/repositories/album_repository.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
-import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/artist.dart';
 import 'package:nordplayer/ui/albums/albums_ui_state.dart';
 import 'package:nordplayer/ui/albums/albums_viewmodel.dart';
 
-class FakeAlbumRepository implements AlbumRepository {
-  final StreamController<List<Album>> _albumsController = StreamController<List<Album>>.broadcast();
-  List<Artist> trackArtistsToReturn = const [];
-
-  void emitAlbums(List<Album> albums) {
-    _albumsController.add(albums);
-  }
-
-  void emitError(Object error) {
-    _albumsController.addError(error);
-  }
-
-  @override
-  Stream<List<Album>> watchAlbums() => _albumsController.stream;
-
-  @override
-  Stream<AlbumWithTracks?> watchAlbumWithTracks(int albumId) => Stream.value(null);
-
-  @override
-  Future<List<Artist>> getTrackArtists({required int albumId}) async => trackArtistsToReturn;
-
-  @override
-  Future<List<Album>> getRandomAlbums({int limitAmount = 10}) async => const [];
-
-  void dispose() {
-    _albumsController.close();
-  }
-}
-
-class FakeConfigRepository implements ConfigRepository {
-  final StreamController<AppConfig> _configController = StreamController<AppConfig>.broadcast();
-  AppConfig _config = AppConfig(adaptiveBg: false);
-
-  @override
-  AppConfig get currentConfig => _config;
-
-  @override
-  Stream<AppConfig> watchConfig() => _configController.stream;
-
-  @override
-  void updateConfig(AppConfig newConfig) {
-    _config = newConfig;
-    _configController.add(newConfig);
-  }
-
-  @override
-  Future<void> flush() async {}
-
-  void dispose() {
-    _configController.close();
-  }
-}
+import '../../../testing/fakes/fake_album_repository.dart';
+import '../../../testing/fakes/fake_config_repository.dart';
 
 void main() {
   group('AlbumsViewModel & AlbumsUiState', () {
@@ -129,7 +76,9 @@ void main() {
 
       expect(container.read(albumsViewModelProvider).isAdaptiveBg, isFalse);
 
-      fakeConfigRepo.updateConfig(AppConfig(adaptiveBg: true, adaptiveBgPanelBlur: 15.0, adaptiveBgThemeOverlay: 0.8));
+      fakeConfigRepo.updateConfig(
+        AppConfig(adaptiveBg: true, adaptiveBgPanelBlur: 15.0, adaptiveBgThemeOverlay: 0.8),
+      );
       await pumpEventQueue();
 
       final state = container.read(albumsViewModelProvider);

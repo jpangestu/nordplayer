@@ -1,141 +1,19 @@
-import 'package:nordplayer/config/app_config.dart';
-import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nordplayer/ui/queue/queue_scroll_behavior.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/settings_repository.dart';
-import 'package:nordplayer/domain/models/composite_models.dart';
-import 'package:nordplayer/domain/models/track.dart';
 import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/artist.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/track.dart';
+import 'package:nordplayer/ui/queue/queue_scroll_behavior.dart';
 import 'package:nordplayer/ui/queue/queue_ui_state.dart';
 import 'package:nordplayer/ui/queue/queue_viewmodel.dart';
 
-class FakePlaybackRepository extends Fake implements PlaybackRepository {
-  int moveOld = -1;
-  int moveNew = -1;
-  int removedIndex = -1;
-  List<int> batchRemoved = [];
-  bool cleared = false;
-  int jumpedIndex = -1;
-  bool suppressedScroll = false;
-
-  final StreamController<List<TrackWithArtists>> _queueController =
-      StreamController<List<TrackWithArtists>>.broadcast();
-  final StreamController<TrackWithArtists?> _currentTrackController = StreamController<TrackWithArtists?>.broadcast();
-  final StreamController<int> _currentIndexController = StreamController<int>.broadcast();
-
-  List<TrackWithArtists> _queue = [];
-  TrackWithArtists? _currentTrack;
-  int _currentIndex = -1;
-
-  @override
-  List<TrackWithArtists> get currentQueue => _queue;
-
-  @override
-  TrackWithArtists? get currentTrack => _currentTrack;
-
-  @override
-  int get currentIndex => _currentIndex;
-
-  @override
-  Stream<List<TrackWithArtists>> watchQueue() => _queueController.stream;
-
-  @override
-  Stream<TrackWithArtists?> watchCurrentTrack() => _currentTrackController.stream;
-
-  @override
-  Stream<int> watchCurrentIndex() => _currentIndexController.stream;
-
-  void emitQueue(List<TrackWithArtists> queue) {
-    _queue = queue;
-    _queueController.add(queue);
-  }
-
-  void emitCurrentTrack(TrackWithArtists? track) {
-    _currentTrack = track;
-    _currentTrackController.add(track);
-  }
-
-  void emitCurrentIndex(int index) {
-    _currentIndex = index;
-    _currentIndexController.add(index);
-  }
-
-  @override
-  Future<void> reorderQueue(int oldIndex, int newIndex) async {
-    moveOld = oldIndex;
-    moveNew = newIndex;
-  }
-
-  @override
-  Future<void> removeQueueItem(int index) async {
-    removedIndex = index;
-  }
-
-  @override
-  Future<void> removeQueueItems(List<int> indices) async {
-    batchRemoved = List.from(indices);
-  }
-
-  @override
-  Future<void> clearQueue() async {
-    cleared = true;
-    _queue.clear();
-  }
-
-  @override
-  Future<void> jumpToIndex(int index) async {
-    jumpedIndex = index;
-  }
-
-  @override
-  void suppressNextScroll() {
-    suppressedScroll = true;
-  }
-
-  void dispose() {
-    _queueController.close();
-    _currentTrackController.close();
-    _currentIndexController.close();
-  }
-}
-
-class FakeConfigRepository implements ConfigRepository {
-  final StreamController<AppConfig> _configController = StreamController<AppConfig>.broadcast();
-  AppConfig _config = AppConfig(adaptiveBg: false);
-
-  @override
-  AppConfig get currentConfig => _config;
-
-  @override
-  Stream<AppConfig> watchConfig() => _configController.stream;
-
-  @override
-  void updateConfig(AppConfig newConfig) {
-    _config = newConfig;
-    _configController.add(newConfig);
-  }
-
-  @override
-  Future<void> flush() async {}
-
-  void dispose() {
-    _configController.close();
-  }
-}
-
-class FakeSettingsRepository extends Fake implements SettingsRepository {
-  bool showQueue = true;
-
-  @override
-  Future<void> setShowQueue(bool value) async {
-    showQueue = value;
-  }
-}
+import '../../../testing/fakes/fake_config_repository.dart';
+import '../../../testing/fakes/fake_playback_repository.dart';
+import '../../../testing/fakes/fake_settings_repository.dart';
 
 TrackWithArtists _makeTrack(int id, String title, String path) {
   return TrackWithArtists(
@@ -179,6 +57,7 @@ void main() {
       container.dispose();
       fakePlaybackRepo.dispose();
       fakeConfigRepo.dispose();
+      fakeSettingsRepo.dispose();
     });
 
     test('initial state and reactive stream updates', () async {

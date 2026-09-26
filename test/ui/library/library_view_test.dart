@@ -1,10 +1,10 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nordplayer/domain/models/composite_models.dart';
-import 'package:nordplayer/domain/models/track.dart';
 import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/artist.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/library_stats.dart';
+import 'package:nordplayer/domain/models/track.dart';
 import 'package:nordplayer/ui/library/library_view.dart';
 
 import '../../../testing/app.dart';
@@ -12,9 +12,7 @@ import '../../../testing/fakes/fake_track_repository.dart';
 
 void main() {
   Finder findRichText(String text) {
-    return find.byWidgetPredicate(
-      (widget) => widget is RichText && widget.text.toPlainText().contains(text),
-    );
+    return find.byWidgetPredicate((widget) => widget is RichText && widget.text.toPlainText().contains(text));
   }
 
   TrackWithArtists createTrack(int id, String title, String artistName) {
@@ -41,16 +39,9 @@ void main() {
 
   group('LibraryView Widget Tests', () {
     testWidgets('renders empty state when library has 0 tracks', (tester) async {
-      final fakeTrackRepo = FakeTrackRepository(
-        initialTracks: [],
-        initialStats: const LibraryStats.empty(),
-      );
+      final fakeTrackRepo = FakeTrackRepository(initialTracks: [], initialStats: const LibraryStats.empty());
 
-      await pumpTestApp(
-        tester,
-        child: const LibraryView(),
-        fakeTrackRepo: fakeTrackRepo,
-      );
+      await pumpTestApp(tester, child: const LibraryView(), fakeTrackRepo: fakeTrackRepo);
 
       expect(find.text('Your library is empty'), findsOneWidget);
       expect(find.text('Scan your local folders to set up your music library.'), findsOneWidget);
@@ -71,16 +62,9 @@ void main() {
         totalPlaytimeMs: 400000,
       );
 
-      final fakeTrackRepo = FakeTrackRepository(
-        initialTracks: tracks,
-        initialStats: stats,
-      );
+      final fakeTrackRepo = FakeTrackRepository(initialTracks: tracks, initialStats: stats);
 
-      await pumpTestApp(
-        tester,
-        child: const LibraryView(),
-        fakeTrackRepo: fakeTrackRepo,
-      );
+      await pumpTestApp(tester, child: const LibraryView(), fakeTrackRepo: fakeTrackRepo);
 
       // Header should display stats
       expect(find.text('2'), findsWidgets);

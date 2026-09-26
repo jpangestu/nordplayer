@@ -1,9 +1,9 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nordplayer/domain/models/composite_models.dart';
-import 'package:nordplayer/domain/models/track.dart';
 import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/artist.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/track.dart';
 import 'package:nordplayer/ui/shell/widgets/player_bar/nord_player_bar.dart';
 import 'package:nordplayer/ui/shell/widgets/player_bar/playback.dart';
 
@@ -12,9 +12,7 @@ import '../../../testing/fakes/fake_playback_repository.dart';
 
 void main() {
   Finder findRichText(String text) {
-    return find.byWidgetPredicate(
-      (widget) => widget is RichText && widget.text.toPlainText().contains(text),
-    );
+    return find.byWidgetPredicate((widget) => widget is RichText && widget.text.toPlainText().contains(text));
   }
 
   TrackWithArtists createTrack(int id, String title, String artistName) {
@@ -41,16 +39,9 @@ void main() {
 
   group('NordPlayerBar Widget Tests', () {
     testWidgets('renders player bar with playback controls when idle', (tester) async {
-      final fakePlaybackRepo = FakePlaybackRepository(
-        initialQueue: [],
-        isPlaying: false,
-      );
+      final fakePlaybackRepo = FakePlaybackRepository(initialQueue: [], isPlaying: false);
 
-      await pumpTestApp(
-        tester,
-        child: const NordPlayerBar(),
-        fakePlaybackRepo: fakePlaybackRepo,
-      );
+      await pumpTestApp(tester, child: const NordPlayerBar(), fakePlaybackRepo: fakePlaybackRepo);
 
       expect(find.byType(NordPlayerBar), findsOneWidget);
       expect(find.byType(Playback), findsOneWidget);
@@ -64,11 +55,7 @@ void main() {
         isPlaying: true,
       );
 
-      await pumpTestApp(
-        tester,
-        child: const NordPlayerBar(),
-        fakePlaybackRepo: fakePlaybackRepo,
-      );
+      await pumpTestApp(tester, child: const NordPlayerBar(), fakePlaybackRepo: fakePlaybackRepo);
 
       expect(findRichText('Bohemian Rhapsody'), findsOneWidget);
       expect(findRichText('Queen'), findsWidgets);
@@ -82,11 +69,7 @@ void main() {
         isPlaying: false,
       );
 
-      await pumpTestApp(
-        tester,
-        child: const NordPlayerBar(),
-        fakePlaybackRepo: fakePlaybackRepo,
-      );
+      await pumpTestApp(tester, child: const NordPlayerBar(), fakePlaybackRepo: fakePlaybackRepo);
 
       expect(fakePlaybackRepo.isPlaying, isFalse);
 

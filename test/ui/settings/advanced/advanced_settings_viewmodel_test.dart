@@ -1,9 +1,9 @@
-import 'package:nordplayer/config/app_config.dart';
 import 'dart:io';
 
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/database/app_database.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/indexer_repository.dart';
@@ -17,43 +17,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
-class FakePlaybackRepositoryForAdvancedSettings extends Fake implements PlaybackRepository {
-  bool clearedQueue = false;
-
-  @override
-  Future<void> clearQueue() async {
-    clearedQueue = true;
-  }
-}
-
-class FakeIndexerRepositoryForAdvancedSettings extends Fake implements IndexerRepository {
-  bool scanCalled = false;
-  final List<String> missingDirectories = [];
-  final List<String> stoppedDirectories = [];
-
-  @override
-  Future<void> scanLibrary({void Function(int processed, int total)? onProgress}) async {
-    scanCalled = true;
-  }
-
-  @override
-  Future<void> markTracksInDirectoryAsMissing(String path) async {
-    missingDirectories.add(path);
-  }
-
-  @override
-  void stopWatchingDirectory(String path) {
-    stoppedDirectories.add(path);
-  }
-}
+import '../../../../testing/fakes/fake_indexer_repository.dart';
+import '../../../../testing/fakes/fake_playback_repository.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('AdvancedSettingsViewModel', () {
     late AppDatabase db;
-    late FakePlaybackRepositoryForAdvancedSettings fakePlaybackRepo;
-    late FakeIndexerRepositoryForAdvancedSettings fakeIndexerRepo;
+    late FakePlaybackRepository fakePlaybackRepo;
+    late FakeIndexerRepository fakeIndexerRepo;
     late Directory tempDir;
     late ProviderContainer container;
 
@@ -64,14 +37,12 @@ void main() {
       });
 
       final prefs = await SharedPreferencesWithCache.create(
-        cacheOptions: const SharedPreferencesWithCacheOptions(
-          allowList: PrefConstants.allowList,
-        ),
+        cacheOptions: const SharedPreferencesWithCacheOptions(allowList: PrefConstants.allowList),
       );
 
       db = AppDatabase(NativeDatabase.memory());
-      fakePlaybackRepo = FakePlaybackRepositoryForAdvancedSettings();
-      fakeIndexerRepo = FakeIndexerRepositoryForAdvancedSettings();
+      fakePlaybackRepo = FakePlaybackRepository();
+      fakeIndexerRepo = FakeIndexerRepository();
       tempDir = await Directory.systemTemp.createTemp('nordplayer_test_cache_');
 
       container = ProviderContainer(
@@ -81,10 +52,7 @@ void main() {
           indexerRepositoryProvider.overrideWithValue(fakeIndexerRepo),
           sharedPrefsProvider.overrideWithValue(prefs),
           initialAppConfigProvider.overrideWithValue(
-            AppConfig(
-              trackDirectories: ['/music/dir1', '/music/dir2'],
-              theme: 'adaptive',
-            ),
+            AppConfig(trackDirectories: ['/music/dir1', '/music/dir2'], theme: 'adaptive'),
           ),
           configDirectoryProvider.overrideWithValue(tempDir),
         ],
@@ -94,6 +62,7 @@ void main() {
     tearDown(() async {
       await db.close();
       container.dispose();
+      fakePlaybackRepo.dispose();
       if (await tempDir.exists()) {
         await tempDir.delete(recursive: true);
       }
@@ -101,9 +70,7 @@ void main() {
 
     test('resetSettingsToDefault clears queue, resets config/prefs, and un-watches directories', () async {
       // Seed some database rows
-      await db.into(db.artists).insert(
-            ArtistsCompanion.insert(name: 'Orphan Artist'),
-          );
+      await db.into(db.artists).insert(ArtistsCompanion.insert(name: 'Orphan Artist'));
 
       final vm = container.read(advancedSettingsViewModelProvider.notifier);
       expect(container.read(advancedSettingsViewModelProvider).isProcessing, isFalse);

@@ -1,156 +1,19 @@
-import 'package:nordplayer/config/app_config.dart';
-import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:media_kit/media_kit.dart' hide Track;
-import 'package:nordplayer/data/services/system/preference_service.dart';
 import 'package:nordplayer/data/repositories/album_repository.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/settings_repository.dart';
+import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/track.dart';
-import 'package:nordplayer/domain/models/album.dart';
-import 'package:nordplayer/domain/models/artist.dart';
-import 'package:nordplayer/domain/models/time_label_type.dart';
 import 'package:nordplayer/ui/albums/album_detail_ui_state.dart';
 import 'package:nordplayer/ui/albums/album_detail_viewmodel.dart';
 
-class FakeAlbumRepository implements AlbumRepository {
-  final StreamController<AlbumWithTracks?> _albumController = StreamController<AlbumWithTracks?>.broadcast();
-
-  void emitAlbum(AlbumWithTracks? album) {
-    _albumController.add(album);
-  }
-
-  @override
-  Stream<List<Album>> watchAlbums() => Stream.value(const []);
-
-  @override
-  Stream<AlbumWithTracks?> watchAlbumWithTracks(int albumId) => _albumController.stream;
-
-  @override
-  Future<List<Artist>> getTrackArtists({required int albumId}) async => const [];
-
-  @override
-  Future<List<Album>> getRandomAlbums({int limitAmount = 10}) async => const [];
-
-  void dispose() {
-    _albumController.close();
-  }
-}
-
-class FakePlaybackRepositoryForAlbum extends Fake implements PlaybackRepository {
-  List<TrackWithArtists> setPlaylistTracks = [];
-  int setPlaylistIndex = -1;
-  String setPlaylistContextType = '';
-  int? setPlaylistContextId;
-  final bool _isPlaying = false;
-  final TrackWithArtists? _currentTrack = null;
-
-  @override
-  bool get isPlaying => _isPlaying;
-
-  @override
-  TrackWithArtists? get currentTrack => _currentTrack;
-
-  @override
-  Stream<bool> watchIsPlaying() => Stream.value(_isPlaying);
-
-  @override
-  Stream<TrackWithArtists?> watchCurrentTrack() => Stream.value(_currentTrack);
-
-  @override
-  Future<void> setPlaylist({
-    required List<TrackWithArtists> tracksToPlay,
-    required int initialIndex,
-    required String playbackContextType,
-    int? playbackContextId,
-    bool forceReload = false,
-    bool autoplay = true,
-  }) async {
-    setPlaylistTracks = List.from(tracksToPlay);
-    setPlaylistIndex = initialIndex;
-    setPlaylistContextType = playbackContextType;
-    setPlaylistContextId = playbackContextId;
-  }
-}
-
-class FakeSettingsRepository extends Fake implements SettingsRepository {
-  final StreamController<PreferencesState> _settingsController = StreamController<PreferencesState>.broadcast();
-  PreferencesState _state = const PreferencesState(
-    cachedAlbumArtPath: null,
-    isMuted: false,
-    loopMode: PlaylistMode.none,
-    showQueue: false,
-    shuffleMode: false,
-    sidebarExtended: true,
-    timeLabelType: TimeLabelType.totalTime,
-    volume: 80.0,
-  );
-
-  @override
-  PreferencesState get currentSettings => _state;
-
-  @override
-  Stream<PreferencesState> watchSettings() => _settingsController.stream;
-
-  @override
-  Future<void> setShuffleMode(bool value) async {
-    _state = _state.copyWith(shuffleMode: value);
-    _settingsController.add(_state);
-  }
-
-  @override
-  Future<void> setCachedAlbumArtPath(String? path) async {}
-
-  @override
-  Future<void> setIsMuted(bool value) async {}
-
-  @override
-  Future<void> setLoopMode(PlaylistMode value) async {}
-
-  @override
-  Future<void> setShowQueue(bool value) async {}
-
-  @override
-  Future<void> setSidebarExtended(bool value) async {}
-
-  @override
-  Future<void> setTimeLabelType(TimeLabelType value) async {}
-
-  @override
-  void setVolume(double value) {}
-
-  void dispose() {
-    _settingsController.close();
-  }
-}
-
-class FakeConfigRepository implements ConfigRepository {
-  final StreamController<AppConfig> _configController = StreamController<AppConfig>.broadcast();
-  AppConfig _config = AppConfig(adaptiveBg: false);
-
-  @override
-  AppConfig get currentConfig => _config;
-
-  @override
-  Stream<AppConfig> watchConfig() => _configController.stream;
-
-  @override
-  void updateConfig(AppConfig newConfig) {
-    _config = newConfig;
-    _configController.add(newConfig);
-  }
-
-  @override
-  Future<void> flush() async {}
-
-  void dispose() {
-    _configController.close();
-  }
-}
+import '../../../testing/fakes/fake_album_repository.dart';
+import '../../../testing/fakes/fake_config_repository.dart';
+import '../../../testing/fakes/fake_playback_repository.dart';
+import '../../../testing/fakes/fake_settings_repository.dart';
 
 void main() {
   group('AlbumDetailViewModel & AlbumDetailUiState', () {
@@ -221,14 +84,14 @@ void main() {
     );
 
     late FakeAlbumRepository fakeAlbumRepo;
-    late FakePlaybackRepositoryForAlbum fakePlaybackRepo;
+    late FakePlaybackRepository fakePlaybackRepo;
     late FakeSettingsRepository fakeSettingsRepo;
     late FakeConfigRepository fakeConfigRepo;
     late ProviderContainer container;
 
     setUp(() {
       fakeAlbumRepo = FakeAlbumRepository();
-      fakePlaybackRepo = FakePlaybackRepositoryForAlbum();
+      fakePlaybackRepo = FakePlaybackRepository();
       fakeSettingsRepo = FakeSettingsRepository();
       fakeConfigRepo = FakeConfigRepository();
 
@@ -245,6 +108,7 @@ void main() {
     tearDown(() {
       container.dispose();
       fakeAlbumRepo.dispose();
+      fakePlaybackRepo.dispose();
       fakeSettingsRepo.dispose();
       fakeConfigRepo.dispose();
     });
@@ -266,7 +130,10 @@ void main() {
       expect(updated.isLoading, isFalse);
       expect(updated.albumWithTracks, isNotNull);
       // Default: sort by trackNumber ascending -> Apple (1), Zebra (2), Mango (3)
-      expect(updated.albumWithTracks?.tracks.map((t) => t.track.title).toList(), equals(['Apple', 'Zebra', 'Mango']));
+      expect(
+        updated.albumWithTracks?.tracks.map((t) => t.track.title).toList(),
+        equals(['Apple', 'Zebra', 'Mango']),
+      );
       expect(updated.trackCount, equals(3));
       expect(updated.totalDurationMs, equals(420000));
       expect(updated.isEmpty, isFalse);
@@ -276,7 +143,9 @@ void main() {
       final sub = container.listen(albumDetailViewModelProvider(albumId), (_, _) {});
       addTearDown(sub.close);
 
-      fakeAlbumRepo.emitAlbum(AlbumWithTracks(album: album, tracks: [trackA, trackB, trackC], tracksLengthMs: 420000));
+      fakeAlbumRepo.emitAlbum(
+        AlbumWithTracks(album: album, tracks: [trackA, trackB, trackC], tracksLengthMs: 420000),
+      );
       await pumpEventQueue();
 
       final vm = container.read(albumDetailViewModelProvider(albumId).notifier);
@@ -285,20 +154,29 @@ void main() {
       vm.setOrder(SortOrder.descending);
       var state = container.read(albumDetailViewModelProvider(albumId));
       expect(state.sortOrder, equals(SortOrder.descending));
-      expect(state.albumWithTracks?.tracks.map((t) => t.track.title).toList(), equals(['Mango', 'Zebra', 'Apple']));
+      expect(
+        state.albumWithTracks?.tracks.map((t) => t.track.title).toList(),
+        equals(['Mango', 'Zebra', 'Apple']),
+      );
 
       // Sort by title, ascending -> Apple, Mango, Zebra
       vm.setOrder(SortOrder.ascending);
       vm.setSort(AlbumTrackSort.title);
       state = container.read(albumDetailViewModelProvider(albumId));
       expect(state.sortCriteria, equals(AlbumTrackSort.title));
-      expect(state.albumWithTracks?.tracks.map((t) => t.track.title).toList(), equals(['Apple', 'Mango', 'Zebra']));
+      expect(
+        state.albumWithTracks?.tracks.map((t) => t.track.title).toList(),
+        equals(['Apple', 'Mango', 'Zebra']),
+      );
 
       // Sort by duration, ascending -> Mango (60s), Zebra (120s), Apple (240s)
       vm.setSort(AlbumTrackSort.duration);
       state = container.read(albumDetailViewModelProvider(albumId));
       expect(state.sortCriteria, equals(AlbumTrackSort.duration));
-      expect(state.albumWithTracks?.tracks.map((t) => t.track.title).toList(), equals(['Mango', 'Zebra', 'Apple']));
+      expect(
+        state.albumWithTracks?.tracks.map((t) => t.track.title).toList(),
+        equals(['Mango', 'Zebra', 'Apple']),
+      );
     });
 
     test('toggles favorites-only filter', () async {
@@ -347,7 +225,9 @@ void main() {
       final sub = container.listen(albumDetailViewModelProvider(albumId), (_, _) {});
       addTearDown(sub.close);
 
-      fakeAlbumRepo.emitAlbum(AlbumWithTracks(album: album, tracks: [trackA, trackB, trackC], tracksLengthMs: 420000));
+      fakeAlbumRepo.emitAlbum(
+        AlbumWithTracks(album: album, tracks: [trackA, trackB, trackC], tracksLengthMs: 420000),
+      );
       await pumpEventQueue();
 
       final vm = container.read(albumDetailViewModelProvider(albumId).notifier);
@@ -365,7 +245,9 @@ void main() {
 
       expect(container.read(sortedAlbumWithTracksProvider(albumId)).isLoading, isTrue);
 
-      fakeAlbumRepo.emitAlbum(AlbumWithTracks(album: album, tracks: [trackA, trackB], tracksLengthMs: 360000));
+      fakeAlbumRepo.emitAlbum(
+        AlbumWithTracks(album: album, tracks: [trackA, trackB], tracksLengthMs: 360000),
+      );
       await pumpEventQueue();
 
       final result = container.read(sortedAlbumWithTracksProvider(albumId));

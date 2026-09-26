@@ -3,41 +3,12 @@ import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/data/database/app_database.dart' hide Track;
-import 'package:nordplayer/domain/models/track.dart';
-import 'package:nordplayer/domain/models/duplicate_group.dart';
 import 'package:nordplayer/data/repositories/indexer_repository.dart';
+import 'package:nordplayer/domain/models/duplicate_group.dart';
+import 'package:nordplayer/domain/models/track.dart';
 import 'package:nordplayer/ui/settings/library_indexer/duplicates_viewmodel.dart';
 
-class FakeIndexerRepositoryForDuplicates extends Fake implements IndexerRepository {
-  List<Track> lastIgnoredTracks = [];
-  Track? lastSingleIgnoredTrack;
-  List<DuplicateGroup> duplicateGroupsToReturn = [];
-  bool scanCalled = false;
-  bool fingerprintsCalled = false;
-
-  @override
-  Future<List<DuplicateGroup>> findDuplicates() async => duplicateGroupsToReturn;
-
-  @override
-  Future<void> ignoreTracks(List<Track> tracks) async {
-    lastIgnoredTracks = List.from(tracks);
-  }
-
-  @override
-  Future<void> ignoreTrack(Track track) async {
-    lastSingleIgnoredTrack = track;
-  }
-
-  @override
-  void scanLibrary() {
-    scanCalled = true;
-  }
-
-  @override
-  void generateMissingFingerprints() {
-    fingerprintsCalled = true;
-  }
-}
+import '../../../../testing/fakes/fake_indexer_repository.dart';
 
 Track _createDummyTrack(int id, String title, String path, {int fileSize = 5000000}) {
   return Track(
@@ -61,7 +32,7 @@ Track _createDummyTrack(int id, String title, String path, {int fileSize = 50000
 void main() {
   group('DuplicatesViewModel', () {
     late AppDatabase db;
-    late FakeIndexerRepositoryForDuplicates fakeIndexerRepo;
+    late FakeIndexerRepository fakeIndexerRepo;
     late ProviderContainer container;
 
     setUp(() async {
@@ -72,7 +43,7 @@ void main() {
           },
         ),
       );
-      fakeIndexerRepo = FakeIndexerRepositoryForDuplicates();
+      fakeIndexerRepo = FakeIndexerRepository();
       container = ProviderContainer(
         overrides: [
           appDatabaseProvider.overrideWithValue(db),
@@ -81,12 +52,8 @@ void main() {
       );
 
       // Seed parent artist and album for foreign keys
-      await db.into(db.artists).insert(
-            ArtistsCompanion.insert(id: const Value(1), name: 'Artist 1'),
-          );
-      await db.into(db.albums).insert(
-            AlbumsCompanion.insert(id: const Value(1), title: 'Album 1'),
-          );
+      await db.into(db.artists).insert(ArtistsCompanion.insert(id: const Value(1), name: 'Artist 1'));
+      await db.into(db.albums).insert(AlbumsCompanion.insert(id: const Value(1), title: 'Album 1'));
     });
 
     tearDown(() async {
@@ -202,9 +169,7 @@ void main() {
 
     test('restoreTracks removes from ignoredPaths and re-inserts track', () async {
       // Setup ignored path in DB
-      await db.into(db.ignoredPaths).insert(
-            IgnoredPathsCompanion.insert(filePath: '/music/a.mp3'),
-          );
+      await db.into(db.ignoredPaths).insert(IgnoredPathsCompanion.insert(filePath: '/music/a.mp3'));
 
       final t = _createDummyTrack(10, 'Song X', '/music/a.mp3');
       final vm = container.read(duplicatesViewModelProvider.notifier);

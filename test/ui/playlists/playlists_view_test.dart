@@ -11,11 +11,7 @@ void main() {
     testWidgets('renders empty state when no playlists exist', (tester) async {
       final fakePlaylistRepo = FakePlaylistRepository(initialPlaylists: []);
 
-      await pumpTestApp(
-        tester,
-        child: const PlaylistsView(),
-        fakePlaylistRepo: fakePlaylistRepo,
-      );
+      await pumpTestApp(tester, child: const PlaylistsView(), fakePlaylistRepo: fakePlaylistRepo);
 
       expect(find.text('Playlists'), findsOneWidget);
       expect(find.text('No playlists yet. Create one to get started!'), findsOneWidget);
@@ -38,11 +34,7 @@ void main() {
 
       final fakePlaylistRepo = FakePlaylistRepository(initialPlaylists: samplePlaylists);
 
-      await pumpTestApp(
-        tester,
-        child: const PlaylistsView(),
-        fakePlaylistRepo: fakePlaylistRepo,
-      );
+      await pumpTestApp(tester, child: const PlaylistsView(), fakePlaylistRepo: fakePlaylistRepo);
 
       expect(find.text('Playlists'), findsOneWidget);
       expect(find.text('Rock Anthems'), findsOneWidget);

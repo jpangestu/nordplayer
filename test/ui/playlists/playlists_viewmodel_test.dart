@@ -2,130 +2,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/playlist_repository.dart';
+import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/track.dart';
-import 'package:nordplayer/domain/models/album.dart';
-import 'package:nordplayer/domain/models/playlist.dart';
 import 'package:nordplayer/ui/playlists/playlist_detail_viewmodel.dart';
 import 'package:nordplayer/ui/playlists/playlists_viewmodel.dart';
 
-class FakePlaylistRepository implements PlaylistRepository {
-  final List<String> createdNames = [];
-  final List<List<int>?> createdTrackIds = [];
-  final Map<int, String> renamedPlaylists = {};
-  final List<int> deletedPlaylists = [];
-  final Map<int, List<int>> addedTracks = {};
-  final List<(int, int)> removedTracks = [];
-  List<TrackWithArtists> playlistTracks = const [];
-
-  @override
-  Future<int> createPlaylist(String name, {List<int>? trackIds}) async {
-    createdNames.add(name);
-    createdTrackIds.add(trackIds);
-    return 101;
-  }
-
-  @override
-  Future<void> renamePlaylist(int playlistId, String newName) async {
-    renamedPlaylists[playlistId] = newName;
-  }
-
-  @override
-  Future<void> deletePlaylist(int playlistId) async {
-    deletedPlaylists.add(playlistId);
-  }
-
-  @override
-  Future<void> addTracksToPlaylist(int playlistId, List<int> trackIds) async {
-    addedTracks[playlistId] = trackIds;
-  }
-
-  @override
-  Future<void> removeTrackFromPlaylist(int playlistId, int trackId) async {
-    removedTracks.add((playlistId, trackId));
-  }
-
-  @override
-  Future<List<TrackWithArtists>> getPlaylistTracks(int playlistId) async => playlistTracks;
-
-  @override
-  Stream<List<PlaylistWithDetails>> watchAllPlaylists() => Stream.value(const []);
-
-  @override
-  Stream<Playlist> watchPlaylist(int playlistId) =>
-      Stream.value(Playlist(id: playlistId, name: 'Test Playlist'));
-
-  @override
-  Stream<List<TrackWithArtists>> watchPlaylistTracks(int playlistId) =>
-      Stream.value(playlistTracks);
-}
-
-class FakePlaybackRepositoryForPlaylists extends Fake implements PlaybackRepository {
-  List<TrackWithArtists> setPlaylistTracks = [];
-  int setPlaylistIndex = -1;
-  String setPlaylistContextType = '';
-  int? setPlaylistContextId;
-  List<TrackWithArtists> addedToQueueTracks = [];
-  final bool _isPlaying = false;
-  final TrackWithArtists? _currentTrack = null;
-
-  @override
-  bool get isPlaying => _isPlaying;
-
-  @override
-  TrackWithArtists? get currentTrack => _currentTrack;
-
-  @override
-  String get playbackContextType => setPlaylistContextType;
-
-  @override
-  int? get playbackContextId => setPlaylistContextId;
-
-  @override
-  Stream<bool> watchIsPlaying() => Stream.value(_isPlaying);
-
-  @override
-  Stream<TrackWithArtists?> watchCurrentTrack() => Stream.value(_currentTrack);
-
-  @override
-  Stream<List<TrackWithArtists>> watchQueue() => Stream.value(const []);
-
-  @override
-  List<String> get currentQueueCoverArt => const [];
-
-  @override
-  Stream<List<String>> watchQueueCoverArt() => Stream.value(const []);
-
-  @override
-  Future<void> setPlaylist({
-    required List<TrackWithArtists> tracksToPlay,
-    required int initialIndex,
-    required String playbackContextType,
-    int? playbackContextId,
-    bool forceReload = false,
-    bool autoplay = true,
-  }) async {
-    setPlaylistTracks = List.from(tracksToPlay);
-    setPlaylistIndex = initialIndex;
-    setPlaylistContextType = playbackContextType;
-    setPlaylistContextId = playbackContextId;
-  }
-
-  @override
-  Future<void> addToQueue(List<TrackWithArtists> tracks) async {
-    addedToQueueTracks.addAll(tracks);
-  }
-}
+import '../../../testing/fakes/fake_playback_repository.dart';
+import '../../../testing/fakes/fake_playlist_repository.dart';
 
 void main() {
   group('PlaylistsViewModel', () {
     late FakePlaylistRepository fakeRepo;
-    late FakePlaybackRepositoryForPlaylists fakePlayback;
+    late FakePlaybackRepository fakePlayback;
     late ProviderContainer container;
 
     setUp(() {
       fakeRepo = FakePlaylistRepository();
-      fakePlayback = FakePlaybackRepositoryForPlaylists();
+      fakePlayback = FakePlaybackRepository();
       container = ProviderContainer(
         overrides: [
           playlistRepositoryProvider.overrideWithValue(fakeRepo),
@@ -136,6 +30,8 @@ void main() {
 
     tearDown(() {
       container.dispose();
+      fakeRepo.dispose();
+      fakePlayback.dispose();
     });
 
     test('createPlaylist creates playlist with trimmed name and track IDs', () async {
@@ -144,7 +40,12 @@ void main() {
 
       expect(id, equals(101));
       expect(fakeRepo.createdNames, equals(['My Favorites']));
-      expect(fakeRepo.createdTrackIds, equals([[10, 20]]));
+      expect(
+        fakeRepo.createdTrackIds,
+        equals([
+          [10, 20],
+        ]),
+      );
     });
 
     test('createPlaylist throws ArgumentError for empty name', () async {
@@ -260,12 +161,12 @@ void main() {
 
   group('PlaylistDetailViewModel', () {
     late FakePlaylistRepository fakeRepo;
-    late FakePlaybackRepositoryForPlaylists fakePlayback;
+    late FakePlaybackRepository fakePlayback;
     late ProviderContainer container;
 
     setUp(() {
       fakeRepo = FakePlaylistRepository();
-      fakePlayback = FakePlaybackRepositoryForPlaylists();
+      fakePlayback = FakePlaybackRepository();
       container = ProviderContainer(
         overrides: [
           playlistRepositoryProvider.overrideWithValue(fakeRepo),
@@ -276,6 +177,8 @@ void main() {
 
     tearDown(() {
       container.dispose();
+      fakeRepo.dispose();
+      fakePlayback.dispose();
     });
 
     test('loads playlist metadata and tracks into PlaylistDetailUiState', () async {

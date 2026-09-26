@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,29 +5,7 @@ import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/ui/settings/appearance/appearance_viewmodel.dart';
 
-class FakeConfigRepository([AppConfig? initialConfig]) implements ConfigRepository {
-  final StreamController<AppConfig> _configController = StreamController<AppConfig>.broadcast();
-  AppConfig _config = initialConfig ?? AppConfig();
-
-  @override
-  AppConfig get currentConfig => _config;
-
-  @override
-  Stream<AppConfig> watchConfig() => _configController.stream;
-
-  @override
-  void updateConfig(AppConfig newConfig) {
-    _config = newConfig;
-    _configController.add(newConfig);
-  }
-
-  @override
-  Future<void> flush() async {}
-
-  void dispose() {
-    _configController.close();
-  }
-}
+import '../../../../testing/fakes/fake_config_repository.dart';
 
 void main() {
   group('AppearanceViewModel', () {
@@ -52,11 +28,7 @@ void main() {
         ),
       );
 
-      container = ProviderContainer(
-        overrides: [
-          configRepositoryProvider.overrideWithValue(fakeConfigRepo),
-        ],
-      );
+      container = ProviderContainer(overrides: [configRepositoryProvider.overrideWithValue(fakeConfigRepo)]);
     });
 
     tearDown(() {

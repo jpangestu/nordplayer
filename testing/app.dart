@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/data/repositories/album_repository.dart';
+import 'package:nordplayer/data/repositories/artist_repository.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/indexer_repository.dart';
 import 'package:nordplayer/data/repositories/playback_repository.dart';
@@ -11,6 +12,7 @@ import 'package:nordplayer/data/repositories/track_repository.dart';
 import 'package:nordplayer/ui/shared/themes/app_theme.dart';
 
 import 'fakes/fake_album_repository.dart';
+import 'fakes/fake_artist_repository.dart';
 import 'fakes/fake_config_repository.dart';
 import 'fakes/fake_indexer_repository.dart';
 import 'fakes/fake_playback_repository.dart';
@@ -26,6 +28,7 @@ Widget createTestApp({
   FakeTrackRepository? fakeTrackRepo,
   FakePlaybackRepository? fakePlaybackRepo,
   FakeAlbumRepository? fakeAlbumRepo,
+  FakeArtistRepository? fakeArtistRepo,
   FakePlaylistRepository? fakePlaylistRepo,
   FakeSettingsRepository? fakeSettingsRepo,
   FakeConfigRepository? fakeConfigRepo,
@@ -35,6 +38,7 @@ Widget createTestApp({
     trackRepositoryProvider.overrideWithValue(fakeTrackRepo ?? FakeTrackRepository()),
     playbackRepositoryProvider.overrideWithValue(fakePlaybackRepo ?? FakePlaybackRepository()),
     albumRepositoryProvider.overrideWithValue(fakeAlbumRepo ?? FakeAlbumRepository()),
+    artistRepositoryProvider.overrideWithValue(fakeArtistRepo ?? FakeArtistRepository()),
     playlistRepositoryProvider.overrideWithValue(fakePlaylistRepo ?? FakePlaylistRepository()),
     settingsRepositoryProvider.overrideWithValue(fakeSettingsRepo ?? FakeSettingsRepository()),
     configRepositoryProvider.overrideWithValue(fakeConfigRepo ?? FakeConfigRepository()),
@@ -47,9 +51,7 @@ Widget createTestApp({
     child: MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: theme ?? AppTheme.getTheme('nord', null),
-      home: Scaffold(
-        body: child,
-      ),
+      home: Scaffold(body: child),
     ),
   );
 }
@@ -64,6 +66,7 @@ Future<void> pumpTestApp(
   FakeTrackRepository? fakeTrackRepo,
   FakePlaybackRepository? fakePlaybackRepo,
   FakeAlbumRepository? fakeAlbumRepo,
+  FakeArtistRepository? fakeArtistRepo,
   FakePlaylistRepository? fakePlaylistRepo,
   FakeSettingsRepository? fakeSettingsRepo,
   FakeConfigRepository? fakeConfigRepo,
@@ -84,6 +87,7 @@ Future<void> pumpTestApp(
       fakeTrackRepo: fakeTrackRepo,
       fakePlaybackRepo: fakePlaybackRepo,
       fakeAlbumRepo: fakeAlbumRepo,
+      fakeArtistRepo: fakeArtistRepo,
       fakePlaylistRepo: fakePlaylistRepo,
       fakeSettingsRepo: fakeSettingsRepo,
       fakeConfigRepo: fakeConfigRepo,

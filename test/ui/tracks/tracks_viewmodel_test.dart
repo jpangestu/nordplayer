@@ -2,61 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/track_repository.dart';
+import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/track.dart';
-import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/ui/tracks/tracks_viewmodel.dart';
 
-class FakePlaybackRepositoryForTracks extends Fake implements PlaybackRepository {
-  List<TrackWithArtists> lastTracks = [];
-  int lastInitialIndex = -1;
-  String lastContextType = '';
-  int? lastContextId;
-
-  @override
-  TrackWithArtists? get currentTrack => null;
-
-  @override
-  bool get isPlaying => false;
-
-  @override
-  String get playbackContextType => '';
-
-  @override
-  int get currentIndex => 0;
-
-  @override
-  List<TrackWithArtists> get currentQueue => const [];
-
-  @override
-  Stream<TrackWithArtists?> watchCurrentTrack() => const Stream.empty();
-
-  @override
-  Stream<bool> watchIsPlaying() => const Stream.empty();
-
-  @override
-  Stream<List<TrackWithArtists>> watchQueue() => const Stream.empty();
-
-  @override
-  Future<void> setPlaylist({
-    required List<TrackWithArtists> tracksToPlay,
-    required int initialIndex,
-    required String playbackContextType,
-    int? playbackContextId,
-    bool forceReload = false,
-    bool autoplay = true,
-  }) async {
-    lastTracks = List.from(tracksToPlay);
-    lastInitialIndex = initialIndex;
-    lastContextType = playbackContextType;
-    lastContextId = playbackContextId;
-  }
-}
-
-class FakeTrackRepositoryForTracks extends Fake implements TrackRepository {
-  @override
-  Stream<List<TrackWithArtists>> watchAllTracks() => const Stream.empty();
-}
+import '../../../testing/fakes/fake_playback_repository.dart';
+import '../../../testing/fakes/fake_track_repository.dart';
 
 TrackWithArtists _createTrack(int id, String title, String path) {
   return TrackWithArtists(
@@ -83,13 +35,13 @@ TrackWithArtists _createTrack(int id, String title, String path) {
 
 void main() {
   group('TracksViewModel', () {
-    late FakePlaybackRepositoryForTracks fakePlaybackRepo;
-    late FakeTrackRepositoryForTracks fakeTrackRepo;
+    late FakePlaybackRepository fakePlaybackRepo;
+    late FakeTrackRepository fakeTrackRepo;
     late ProviderContainer container;
 
     setUp(() {
-      fakePlaybackRepo = FakePlaybackRepositoryForTracks();
-      fakeTrackRepo = FakeTrackRepositoryForTracks();
+      fakePlaybackRepo = FakePlaybackRepository();
+      fakeTrackRepo = FakeTrackRepository();
       container = ProviderContainer(
         overrides: [
           playbackRepositoryProvider.overrideWithValue(fakePlaybackRepo),
@@ -100,14 +52,13 @@ void main() {
 
     tearDown(() {
       container.dispose();
+      fakePlaybackRepo.dispose();
+      fakeTrackRepo.dispose();
     });
 
     test('playTrack sets playlist with context all_tracks', () {
       final vm = container.read(tracksViewModelProvider.notifier);
-      final tracks = [
-        _createTrack(1, 'Track 1', '/music/1.mp3'),
-        _createTrack(2, 'Track 2', '/music/2.mp3'),
-      ];
+      final tracks = [_createTrack(1, 'Track 1', '/music/1.mp3'), _createTrack(2, 'Track 2', '/music/2.mp3')];
 
       vm.playTrack(tracks, 1);
 

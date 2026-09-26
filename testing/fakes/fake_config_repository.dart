@@ -4,12 +4,9 @@ import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 
 /// In-memory test double for [ConfigRepository].
-class FakeConfigRepository({
-  AppConfig? initialConfig,
-}) implements ConfigRepository {
+class FakeConfigRepository([AppConfig? initialConfig]) implements ConfigRepository {
   AppConfig _state = initialConfig ?? AppConfig();
-  final StreamController<AppConfig> _controller =
-      StreamController<AppConfig>.broadcast();
+  final StreamController<AppConfig> _controller = StreamController<AppConfig>.broadcast();
 
   final List<AppConfig> updatedConfigs = [];
   bool flushCalled = false;
@@ -18,9 +15,7 @@ class FakeConfigRepository({
   AppConfig get currentConfig => _state;
 
   @override
-  Stream<AppConfig> watchConfig() {
-    return Stream.value(_state).concatWith([_controller.stream]);
-  }
+  Stream<AppConfig> watchConfig() => _controller.stream;
 
   @override
   void updateConfig(AppConfig newConfig) {
@@ -36,16 +31,5 @@ class FakeConfigRepository({
 
   void dispose() {
     _controller.close();
-  }
-}
-
-extension on Stream<dynamic> {
-  Stream<T> concatWith<T>(Iterable<Stream<T>> others) async* {
-    if (this is Stream<T>) {
-      yield* this as Stream<T>;
-    }
-    for (final other in others) {
-      yield* other;
-    }
   }
 }
