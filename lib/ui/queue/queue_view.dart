@@ -190,6 +190,7 @@ class _QueueViewState extends ConsumerState<QueueView> {
                     selectedTracks: selectedTracks,
                     playbackContextType: 'queue',
                     playbackContextId: null,
+                    isInQueue: true,
                   );
                 },
               );

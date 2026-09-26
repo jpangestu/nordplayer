@@ -4,7 +4,7 @@ import 'package:audiotags/audiotags.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/data/database/app_database.dart';
-import 'package:nordplayer/data/services/audio/player_service.dart';
+import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/services/indexer/chromaprint_service.dart';
 import 'package:nordplayer/data/services/system/background_task_service.dart';
 import 'package:nordplayer/utils/audio_metadata_hasher.dart';
@@ -159,9 +159,9 @@ class LibraryIndexer(final Ref _ref, final AppDatabase _db) with LoggerMixin {
 
     // Also remove from player queue if currently loaded
     try {
-      await _ref.read(playerServiceProvider).removeTrackByPath(path);
+      await _ref.read(playbackRepositoryProvider).removeTrackByPath(path);
     } catch (e) {
-      log.e("Failed to remove track from player service queue: $e");
+      log.e("Failed to remove track from playback repository queue: $e");
     }
   }
 
@@ -187,12 +187,9 @@ class LibraryIndexer(final Ref _ref, final AppDatabase _db) with LoggerMixin {
 
     // Also remove them from the player queue
     try {
-      final playerService = _ref.read(playerServiceProvider);
-      for (final path in trackPaths) {
-        await playerService.removeTrackByPath(path);
-      }
+      await _ref.read(playbackRepositoryProvider).removeTracksByPaths(trackPaths.toSet());
     } catch (e) {
-      log.e("Failed to remove tracks from player service queue: $e");
+      log.e("Failed to remove tracks from playback repository queue: $e");
     }
   }
 

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/data/services/audio/player_service.dart';
+import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/ui/shared/shortcuts.dart';
 import 'package:nordplayer/ui/shared/ui/frosted_glass.dart';
 import 'package:nordplayer/ui/shared/ui/music_tile.dart';
@@ -73,7 +73,7 @@ class SearchResultsDropdown extends ConsumerWidget {
                       artists: trackWithArtists.artists.map<String>((artist) => artist.name).toList(),
                       onTap: () {
                         ref
-                            .read(playerServiceProvider)
+                            .read(playbackRepositoryProvider)
                             .setPlaylist(tracksToPlay: tracks, initialIndex: index, playbackContextType: 'search');
 
                         ref.read(searchFocusNodeProvider).unfocus();

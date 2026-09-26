@@ -3,13 +3,8 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart' hide Track;
-import 'package:nordplayer/data/repositories/queue_repository.dart';
 import 'package:nordplayer/data/services/audio/player_service.dart';
-import 'package:nordplayer/data/services/audio/player_state.dart';
 import 'package:nordplayer/data/services/system/preference_service.dart';
-import 'package:nordplayer/domain/models/album.dart';
-import 'package:nordplayer/domain/models/composite_models.dart';
-import 'package:nordplayer/domain/models/track.dart';
 import 'package:nordplayer/ui/queue/queue_scroll_behavior.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
@@ -164,77 +159,20 @@ class FakePlayer extends Fake implements Player {
   }
 }
 
-class FakeQueueRepository extends Fake implements QueueRepository {
-  List<dynamic> savedOriginalQueue = [];
-  String? savedCurrentlyPlayedPath;
-  Duration savedResumePosition = Duration.zero;
-  String savedContextType = '';
-  int? savedContextId;
-
-  @override
-  Future<void> saveQueue(
-    List<dynamic> originalQueue,
-    String? currentlyPlayedTrackPath,
-    Duration resumePositionMs,
-    String playbackContextType,
-    int? playbackContextId,
-  ) async {
-    savedOriginalQueue = List.from(originalQueue);
-    savedCurrentlyPlayedPath = currentlyPlayedTrackPath;
-    savedResumePosition = resumePositionMs;
-    savedContextType = playbackContextType;
-    savedContextId = playbackContextId;
-  }
-
-  @override
-  Future<void> updateCurrentPosition(int positionInMs) async {
-    savedResumePosition = Duration(milliseconds: positionInMs);
-  }
-}
-
-TrackWithArtists createTrack(int id) {
-  return TrackWithArtists(
-    track: Track(
-      id: id,
-      title: 'Track $id',
-      trackNumber: 1,
-      trackTotal: 10,
-      discNumber: 1,
-      discTotal: 1,
-      durationMs: 180000,
-      fileHash: 'hash_$id',
-      isMissing: false,
-      filePath: '/music/track_$id.mp3',
-      fileSize: 1024,
-      artistId: 1,
-      albumId: 1,
-      dateAdded: DateTime.now(),
-    ),
-    album: const Album(id: 1, title: 'Album 1', albumArtPath: '/art.jpg', year: 2024),
-    artists: const [],
-  );
-}
-
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late ProviderContainer container;
   late FakePlayer fakePlayer;
-  late FakeQueueRepository fakeQueueRepo;
 
   setUp(() async {
     SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
     final prefs = await SharedPreferencesWithCache.create(cacheOptions: const SharedPreferencesWithCacheOptions());
 
     fakePlayer = FakePlayer();
-    fakeQueueRepo = FakeQueueRepository();
 
     container = ProviderContainer(
-      overrides: [
-        sharedPrefsProvider.overrideWithValue(prefs),
-        queueRepositoryProvider.overrideWithValue(fakeQueueRepo),
-        audioPlayerProvider.overrideWithValue(fakePlayer),
-      ],
+      overrides: [sharedPrefsProvider.overrideWithValue(prefs), audioPlayerProvider.overrideWithValue(fakePlayer)],
     );
   });
 
@@ -336,18 +274,9 @@ void main() {
       expect(fakePlayer.previousCallCount, equals(1));
       expect(container.read(queueScrollBehaviorProvider), equals(QueueScrollBehavior.animate));
     });
-
-    test('clearQueue stops playback and wipes repository queue', () async {
-      final service = container.read(playerServiceProvider);
-
-      await service.clearQueue();
-      expect(fakePlayer.state.playlist.medias, isEmpty);
-      expect(fakeQueueRepo.savedOriginalQueue, isEmpty);
-      expect(container.read(playbackContextProvider)?.type, isEmpty);
-    });
   });
 
-  group('PlayerService Queue Management & Shuffle', () {
+  group('PlayerService Shuffle Tests', () {
     test('toggleShuffle toggles preferences when queue is empty', () async {
       final service = container.read(playerServiceProvider);
       expect(container.read(preferenceServiceProvider).shuffleMode, isFalse);
@@ -357,78 +286,6 @@ void main() {
 
       await service.toggleShuffle();
       expect(container.read(preferenceServiceProvider).shuffleMode, isFalse);
-    });
-
-    test('setPlaylist initializes engine playlist and updates context', () async {
-      final service = container.read(playerServiceProvider);
-      final tracks = [createTrack(1), createTrack(2), createTrack(3)];
-
-      await service.setPlaylist(
-        tracksToPlay: tracks,
-        initialIndex: 0,
-        playbackContextType: 'album',
-        playbackContextId: 1,
-      );
-
-      expect(fakePlayer.state.playlist.medias.length, equals(3));
-      expect(container.read(playbackContextProvider)?.type, equals('album'));
-      expect(container.read(playbackContextProvider)?.id, equals(1));
-    });
-
-    test('addToQueue appends tracks to active engine playlist', () async {
-      final service = container.read(playerServiceProvider);
-      final initialTracks = [createTrack(1), createTrack(2)];
-
-      await service.setPlaylist(
-        tracksToPlay: initialTracks,
-        initialIndex: 0,
-        playbackContextType: 'playlist',
-        playbackContextId: 5,
-      );
-      expect(fakePlayer.state.playlist.medias.length, equals(2));
-
-      await service.addToQueue([createTrack(3), createTrack(4)], 'playlist', 5);
-      expect(fakePlayer.state.playlist.medias.length, equals(4));
-    });
-
-    test('playNext inserts tracks after the active engine index', () async {
-      final service = container.read(playerServiceProvider);
-      final initialTracks = [createTrack(1), createTrack(2)];
-
-      await service.setPlaylist(
-        tracksToPlay: initialTracks,
-        initialIndex: 0,
-        playbackContextType: 'album',
-        playbackContextId: 10,
-      );
-
-      await service.playNext([createTrack(99)], 'album', 10);
-      expect(fakePlayer.state.playlist.medias.length, equals(3));
-      expect(fakePlayer.state.playlist.medias[1].uri, equals(Media('/music/track_99.mp3').uri));
-    });
-
-    test('removeTrack removes media at specified index', () async {
-      final service = container.read(playerServiceProvider);
-      final initialTracks = [createTrack(1), createTrack(2), createTrack(3)];
-
-      await service.setPlaylist(tracksToPlay: initialTracks, initialIndex: 0, playbackContextType: 'all_tracks');
-
-      await service.removeTrack(1);
-      expect(fakePlayer.state.playlist.medias.length, equals(2));
-      expect(fakePlayer.state.playlist.medias[0].uri, equals(Media('/music/track_1.mp3').uri));
-      expect(fakePlayer.state.playlist.medias[1].uri, equals(Media('/music/track_3.mp3').uri));
-    });
-
-    test('removeTracks removes multiple indices correctly', () async {
-      final service = container.read(playerServiceProvider);
-      final initialTracks = [createTrack(1), createTrack(2), createTrack(3), createTrack(4)];
-
-      await service.setPlaylist(tracksToPlay: initialTracks, initialIndex: 0, playbackContextType: 'all_tracks');
-
-      await service.removeTracks([1, 2]);
-      expect(fakePlayer.state.playlist.medias.length, equals(2));
-      expect(fakePlayer.state.playlist.medias[0].uri, equals(Media('/music/track_1.mp3').uri));
-      expect(fakePlayer.state.playlist.medias[1].uri, equals(Media('/music/track_4.mp3').uri));
     });
   });
 }

@@ -2,9 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/playlist_repository.dart';
-import 'package:nordplayer/data/services/audio/player_service.dart';
-import 'package:nordplayer/data/services/audio/player_state.dart';
 import 'package:nordplayer/data/services/system/platform_service.dart' show showInFolder;
 import 'package:nordplayer/data/services/system/preference_service.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
@@ -30,6 +29,7 @@ class TrackContextMenu {
     required List<TrackWithArtists> selectedTracks,
     required String playbackContextType,
     int? playbackContextId,
+    bool isInQueue = false,
   }) {
     final appIconSet = ref.read(appIconProvider);
 
@@ -44,7 +44,7 @@ class TrackContextMenu {
           onTap: () {
             if (selectedTracks.length == 1) {
               ref
-                  .read(playerServiceProvider)
+                  .read(playbackRepositoryProvider)
                   .setPlaylist(
                     playbackContextType: playbackContextType,
                     playbackContextId: playbackContextId,
@@ -62,7 +62,7 @@ class TrackContextMenu {
 
               // Pass the sorted list, but tell the player to start at the clicked track
               ref
-                  .read(playerServiceProvider)
+                  .read(playbackRepositoryProvider)
                   .setPlaylist(
                     playbackContextType: 'play_as_playlist',
                     playbackContextId: null,
@@ -72,17 +72,13 @@ class TrackContextMenu {
             }
           },
         ),
-        // TODO: maybe make one context menu for each pages? currently this is also used in queue page
         // Only show "Play Next" if we aren't already looking at the queue
-        if (playbackContextType != 'queue')
+        if (!isInQueue)
           ContextMenuActions(
             icon: appIconSet.playNext,
             label: 'Play Next',
             onTap: () {
-              final playbackContext = ref.read(playbackContextProvider);
-              ref
-                  .read(playerServiceProvider)
-                  .playNext(selectedTracks, playbackContext?.type ?? 'all_tracks', playbackContext?.id);
+              ref.read(playbackRepositoryProvider).playNext(selectedTracks);
 
               final showQueue = ref.read(preferenceServiceProvider).showQueue;
 
@@ -100,15 +96,12 @@ class TrackContextMenu {
           ),
 
         // Only show "Add to queue" if we aren't already looking at the queue
-        if (playbackContextType != 'queue')
+        if (!isInQueue)
           ContextMenuActions(
             icon: appIconSet.addToQueue,
             label: 'Add to queue',
             onTap: () {
-              final playbackContext = ref.read(playbackContextProvider);
-              ref
-                  .read(playerServiceProvider)
-                  .addToQueue(selectedTracks, playbackContext?.type ?? 'all_tracks', playbackContext?.id);
+              ref.read(playbackRepositoryProvider).addToQueue(selectedTracks);
 
               final showQueue = ref.read(preferenceServiceProvider).showQueue;
 
@@ -126,7 +119,7 @@ class TrackContextMenu {
           ),
 
         // Show "Remove from queue" if we ARE looking at the queue
-        if (playbackContextType == 'queue')
+        if (isInQueue)
           ContextMenuActions(
             icon: appIconSet.removeFromQueue,
             label: 'Remove from queue',
@@ -145,13 +138,6 @@ class TrackContextMenu {
           children: [ContextMenuCustomWidget(child: SearchablePlaylistContextSubMenu(tracksToAdd: selectedTracks))],
         ),
         ContextMenuDivider(),
-        // ContextMenuActions(
-        //   icon: appIconSet.showMetadata,
-        //   label: 'Show Metadata',
-        //   onTap: () {
-        //     unimplemented(context);
-        //   }, // TODO: Add Metadata context menu
-        // ),
         if (clickedIndex >= 0 && clickedIndex < tracks.length)
           ContextMenuActions(
             icon: appIconSet.showInfolder,
@@ -178,6 +164,7 @@ class SearchTracksContextMenu {
     required int indexToPlay,
     required String playbackContextType,
     int? playbackContextId,
+    bool isInQueue = false,
   }) {
     final appIconSet = ref.read(appIconProvider);
 
@@ -191,7 +178,7 @@ class SearchTracksContextMenu {
           label: 'Play',
           onTap: () {
             ref
-                .read(playerServiceProvider)
+                .read(playbackRepositoryProvider)
                 .setPlaylist(
                   playbackContextType: playbackContextType,
                   playbackContextId: playbackContextId,
@@ -201,47 +188,49 @@ class SearchTracksContextMenu {
           },
         ),
 
-        ContextMenuActions(
-          icon: LucideIcons.listStart,
-          label: 'Play Next',
-          onTap: () {
-            ref.read(playerServiceProvider).playNext([tracks[indexToPlay]], playbackContextType, playbackContextId);
+        if (!isInQueue)
+          ContextMenuActions(
+            icon: LucideIcons.listStart,
+            label: 'Play Next',
+            onTap: () {
+              ref.read(playbackRepositoryProvider).playNext([tracks[indexToPlay]]);
 
-            final showQueue = ref.read(preferenceServiceProvider).showQueue;
+              final showQueue = ref.read(preferenceServiceProvider).showQueue;
 
-            showQueue
-                ? showNordSnackBar(message: 'Added 1 track to queue', type: .general)
-                : showNordSnackBar(
-                    message: 'Added 1 track to queue',
-                    type: .general,
-                    actionLabel: 'View Queue',
-                    onAction: (snackBarContext) {
-                      ref.read(preferenceServiceProvider.notifier).setShowQueue(true);
-                    },
-                  );
-          },
-        ),
+              showQueue
+                  ? showNordSnackBar(message: 'Added 1 track to queue', type: .general)
+                  : showNordSnackBar(
+                      message: 'Added 1 track to queue',
+                      type: .general,
+                      actionLabel: 'View Queue',
+                      onAction: (snackBarContext) {
+                        ref.read(preferenceServiceProvider.notifier).setShowQueue(true);
+                      },
+                    );
+            },
+          ),
 
-        ContextMenuActions(
-          icon: appIconSet.addToQueue,
-          label: 'Add to queue',
-          onTap: () {
-            ref.read(playerServiceProvider).addToQueue([tracks[indexToPlay]], playbackContextType, playbackContextId);
+        if (!isInQueue)
+          ContextMenuActions(
+            icon: appIconSet.addToQueue,
+            label: 'Add to queue',
+            onTap: () {
+              ref.read(playbackRepositoryProvider).addToQueue([tracks[indexToPlay]]);
 
-            final showQueue = ref.read(preferenceServiceProvider).showQueue;
+              final showQueue = ref.read(preferenceServiceProvider).showQueue;
 
-            showQueue
-                ? showNordSnackBar(message: 'Added 1 track to queue', type: .general)
-                : showNordSnackBar(
-                    message: 'Added 1 track to queue',
-                    type: .general,
-                    actionLabel: 'View Queue',
-                    onAction: (snackBarContext) {
-                      ref.read(preferenceServiceProvider.notifier).setShowQueue(true);
-                    },
-                  );
-          },
-        ),
+              showQueue
+                  ? showNordSnackBar(message: 'Added 1 track to queue', type: .general)
+                  : showNordSnackBar(
+                      message: 'Added 1 track to queue',
+                      type: .general,
+                      actionLabel: 'View Queue',
+                      onAction: (snackBarContext) {
+                        ref.read(preferenceServiceProvider.notifier).setShowQueue(true);
+                      },
+                    );
+            },
+          ),
 
         ContextSubMenuAction(
           icon: appIconSet.add,
