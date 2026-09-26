@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/ui/shared/ui/table_column_config.dart';
 
-
 /* Widget Architecture:
 This widget is a desktop-class data table optimized for Flutter's scrollable Sliver ecosystem. It manages the entire
 lifecycle of a resizable grid—from data mapping to cascading math—within a high-performance, monolithic structure.

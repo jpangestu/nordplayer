@@ -17,8 +17,7 @@ class FakeAlbumRepository({
   List<Artist> trackArtistsToReturn = const [];
 
   final StreamController<List<Album>> _albumsController = StreamController<List<Album>>.broadcast();
-  final StreamController<AlbumWithTracks?> _albumWithTracksController =
-      StreamController<AlbumWithTracks?>.broadcast();
+  final StreamController<AlbumWithTracks?> _albumWithTracksController = StreamController<AlbumWithTracks?>.broadcast();
 
   void emitAlbums(List<Album> newAlbums) {
     albums = newAlbums;

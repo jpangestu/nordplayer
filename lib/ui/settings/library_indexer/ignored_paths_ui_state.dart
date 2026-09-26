@@ -13,8 +13,7 @@ class const IgnoredPathsUiState({
   final double adaptiveBgThemeOverlay = 0.5,
 }) {
   /// Filtered ignored paths excluding manually restored items.
-  List<IgnoredPath> get filteredPaths =>
-      paths.where((p) => !manuallyRestoredPaths.contains(p.filePath)).toList();
+  List<IgnoredPath> get filteredPaths => paths.where((p) => !manuallyRestoredPaths.contains(p.filePath)).toList();
 
   bool get showRestoreAll => filteredPaths.isNotEmpty;
   bool get showEmptyMessage => filteredPaths.isEmpty;
@@ -59,15 +58,15 @@ class const IgnoredPathsUiState({
 
   @override
   int get hashCode => Object.hash(
-        Object.hashAll(paths),
-        Object.hashAll(manuallyRestoredPaths),
-        isLoading,
-        isProcessing,
-        errorMessage,
-        adaptiveBg,
-        adaptiveBgPanelBlur,
-        adaptiveBgThemeOverlay,
-      );
+    Object.hashAll(paths),
+    Object.hashAll(manuallyRestoredPaths),
+    isLoading,
+    isProcessing,
+    errorMessage,
+    adaptiveBg,
+    adaptiveBgPanelBlur,
+    adaptiveBgThemeOverlay,
+  );
 
   @override
   String toString() =>

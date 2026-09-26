@@ -27,11 +27,7 @@ void main() {
       expect(state.isMuted, isFalse);
       expect(state.volume, 80.0);
 
-      final updated = state.copyWith(
-        isMuted: true,
-        volume: 50.0,
-        timeLabelType: TimeLabelType.remainingTime,
-      );
+      final updated = state.copyWith(isMuted: true, volume: 50.0, timeLabelType: TimeLabelType.remainingTime);
 
       expect(updated.isMuted, isTrue);
       expect(updated.volume, 50.0);
@@ -53,18 +49,12 @@ void main() {
       });
 
       prefs = await SharedPreferencesWithCache.create(
-        cacheOptions: const SharedPreferencesWithCacheOptions(
-          allowList: PrefConstants.allowList,
-        ),
+        cacheOptions: const SharedPreferencesWithCacheOptions(allowList: PrefConstants.allowList),
       );
     });
 
     test('loads preferences synchronously from cache on build', () {
-      final container = ProviderContainer(
-        overrides: [
-          sharedPrefsProvider.overrideWithValue(prefs),
-        ],
-      );
+      final container = ProviderContainer(overrides: [sharedPrefsProvider.overrideWithValue(prefs)]);
       addTearDown(container.dispose);
 
       final state = container.read(preferenceServiceProvider);
@@ -79,11 +69,7 @@ void main() {
     });
 
     test('mutating preferences updates state and cache immediately', () {
-      final container = ProviderContainer(
-        overrides: [
-          sharedPrefsProvider.overrideWithValue(prefs),
-        ],
-      );
+      final container = ProviderContainer(overrides: [sharedPrefsProvider.overrideWithValue(prefs)]);
       addTearDown(container.dispose);
 
       final notifier = container.read(preferenceServiceProvider.notifier);
@@ -122,11 +108,7 @@ void main() {
     });
 
     test('volume update updates state immediately and debounces disk persistence', () async {
-      final container = ProviderContainer(
-        overrides: [
-          sharedPrefsProvider.overrideWithValue(prefs),
-        ],
-      );
+      final container = ProviderContainer(overrides: [sharedPrefsProvider.overrideWithValue(prefs)]);
       addTearDown(container.dispose);
 
       final notifier = container.read(preferenceServiceProvider.notifier);
@@ -140,11 +122,7 @@ void main() {
     });
 
     test('resetToDefaults clears all preferences and resets state', () async {
-      final container = ProviderContainer(
-        overrides: [
-          sharedPrefsProvider.overrideWithValue(prefs),
-        ],
-      );
+      final container = ProviderContainer(overrides: [sharedPrefsProvider.overrideWithValue(prefs)]);
       addTearDown(container.dispose);
 
       final notifier = container.read(preferenceServiceProvider.notifier);

@@ -12,7 +12,6 @@ class const NordSemanticTheme({
   final Color? general,
   final Color? onGeneral,
 }) extends ThemeExtension<NordSemanticTheme> {
-
   @override
   NordSemanticTheme copyWith({
     Color? error,

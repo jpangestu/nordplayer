@@ -19,11 +19,7 @@ void main() {
       ),
     );
 
-    container = ProviderContainer(
-      overrides: [
-        appDatabaseProvider.overrideWithValue(db),
-      ],
-    );
+    container = ProviderContainer(overrides: [appDatabaseProvider.overrideWithValue(db)]);
 
     artistRepository = container.read(artistRepositoryProvider);
 
@@ -35,15 +31,12 @@ void main() {
     await db.into(db.artists).insert(ArtistsCompanion.insert(id: const Value(5), name: 'Missing Track Artist'));
 
     // Seed test album
-    await db.into(db.albums).insert(
-          AlbumsCompanion.insert(
-            id: const Value(1),
-            title: 'Test Album',
-          ),
-        );
+    await db.into(db.albums).insert(AlbumsCompanion.insert(id: const Value(1), title: 'Test Album'));
 
     // Tracks
-    await db.into(db.tracks).insert(
+    await db
+        .into(db.tracks)
+        .insert(
           TracksCompanion.insert(
             id: const Value(1),
             title: 'Track 1',
@@ -54,7 +47,9 @@ void main() {
             isMissing: const Value(false),
           ),
         );
-    await db.into(db.tracks).insert(
+    await db
+        .into(db.tracks)
+        .insert(
           TracksCompanion.insert(
             id: const Value(2),
             title: 'Track 2',
@@ -65,7 +60,9 @@ void main() {
             isMissing: const Value(false),
           ),
         );
-    await db.into(db.tracks).insert(
+    await db
+        .into(db.tracks)
+        .insert(
           TracksCompanion.insert(
             id: const Value(3),
             title: 'Track 3',
@@ -76,7 +73,9 @@ void main() {
             isMissing: const Value(false),
           ),
         );
-    await db.into(db.tracks).insert(
+    await db
+        .into(db.tracks)
+        .insert(
           TracksCompanion.insert(
             id: const Value(4),
             title: 'Missing Track',

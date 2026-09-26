@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/ui/shared/ui/selection_state.dart';
-import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/data/repositories/playback_repository.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/ui/shared/ui/selection_state.dart';
 
 /// Checks if any text field in the app currently has focus.
 /// Used to prevent global shortcuts (like Spacebar) from stealing keystrokes while typing.
@@ -209,7 +209,6 @@ class PlaySelectedAction({
   final int? playbackContextId,
   required final List<TrackWithArtists> Function() getTracks,
 }) extends Action<PlaySelectedIntent> {
-
   @override
   bool isEnabled(covariant PlaySelectedIntent intent) {
     if (_isAnyTextFieldFocused()) return false;

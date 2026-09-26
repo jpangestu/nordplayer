@@ -1,10 +1,10 @@
-import 'package:nordplayer/config/app_config.dart';
 import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/data/services/system/config_service.dart';
+import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/services/indexer/library_indexer.dart';
+import 'package:nordplayer/data/services/system/config_service.dart';
 import 'package:nordplayer/utils/logger.dart';
 import 'package:path/path.dart' as p;
 import 'package:watcher/watcher.dart';
@@ -23,7 +23,6 @@ final libraryWatcherProvider = Provider<LibraryWatcher>((ref) {
 });
 
 class LibraryWatcher(final LibraryIndexer _libraryIndexer) with LoggerMixin {
-
   final Map<String, StreamSubscription<WatchEvent>> _subscriptions = {};
 
   // A map to keep track of pending files to prevent premature parsing

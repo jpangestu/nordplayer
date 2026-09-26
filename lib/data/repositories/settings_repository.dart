@@ -1,11 +1,11 @@
-import 'package:nordplayer/domain/models/time_label_type.dart';
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:nordplayer/utils/logger.dart';
-import 'package:nordplayer/data/services/system/preference_service.dart';
 import 'package:nordplayer/data/services/storage/shared_preferences_service.dart';
+import 'package:nordplayer/data/services/system/preference_service.dart';
+import 'package:nordplayer/domain/models/time_label_type.dart';
+import 'package:nordplayer/utils/logger.dart';
 
 /// Repository interface abstracting user preferences and settings.
 abstract interface class SettingsRepository {
@@ -44,10 +44,9 @@ abstract interface class SettingsRepository {
 }
 
 /// Default implementation of [SettingsRepository] backed by [SharedPreferencesService].
-class DefaultSettingsRepository(
-  final SharedPreferencesService _prefsService, {
-  final Future<void> Function()? onReset,
-}) with LoggerMixin implements SettingsRepository {
+class DefaultSettingsRepository(final SharedPreferencesService _prefsService, {final Future<void> Function()? onReset})
+    with LoggerMixin
+    implements SettingsRepository {
   final StreamController<PreferencesState> _controller = StreamController<PreferencesState>.broadcast();
   late PreferencesState _state;
   Timer? _volumeDebounce;
@@ -78,10 +77,7 @@ class DefaultSettingsRepository(
 
   PlaylistMode _getLoopModeOrDefault() {
     final raw = _prefsService.getString(PrefConstants.loopMode);
-    return PlaylistMode.values.firstWhere(
-      (e) => e.toString() == raw,
-      orElse: () => PrefConstants.defaultLoopMode,
-    );
+    return PlaylistMode.values.firstWhere((e) => e.toString() == raw, orElse: () => PrefConstants.defaultLoopMode);
   }
 
   TimeLabelType _getTimeLabelTypeOrDefault() {

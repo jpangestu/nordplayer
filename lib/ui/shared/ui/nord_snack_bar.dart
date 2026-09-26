@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/routing/router.dart';
 import 'package:nordplayer/data/services/system/config_service.dart';
+import 'package:nordplayer/routing/router.dart';
 import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
 import 'package:nordplayer/ui/shared/themes/theme_extension/nord_snackbar_theme.dart';
 import 'package:nordplayer/ui/shared/ui/app_icon.dart';

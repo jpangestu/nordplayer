@@ -4,17 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/data/services/system/background_task_service.dart';
-import 'package:nordplayer/utils/performance_tracker.dart';
 import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
-import 'package:nordplayer/ui/shell/shell_viewmodel.dart';
+import 'package:nordplayer/ui/shared/ui/base_button.dart';
 import 'package:nordplayer/ui/shared/ui/frosted_glass.dart';
 import 'package:nordplayer/ui/shared/ui/popover_panel.dart';
+import 'package:nordplayer/ui/shell/shell_viewmodel.dart';
 import 'package:nordplayer/ui/shell/widgets/title_bar/background_task_panel.dart';
-import 'package:nordplayer/ui/shared/ui/base_button.dart';
 import 'package:nordplayer/ui/shell/widgets/title_bar/keyboard_shortcuts_panel.dart';
 import 'package:nordplayer/ui/shell/widgets/title_bar/performance_panel.dart';
 import 'package:nordplayer/ui/shell/widgets/title_bar/window_control/breeze.dart';
 import 'package:nordplayer/ui/shell/widgets/title_bar/window_control/windows11.dart';
+import 'package:nordplayer/utils/performance_tracker.dart';
 import 'package:window_manager/window_manager.dart';
 
 class NordTitleBar extends ConsumerStatefulWidget {

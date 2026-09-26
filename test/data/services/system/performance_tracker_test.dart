@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nordplayer/utils/performance_tracker.dart';
 import 'package:nordplayer/data/services/system/preference_service.dart';
+import 'package:nordplayer/utils/performance_tracker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -36,11 +36,7 @@ void main() {
     });
 
     test('idle state returns 0 for calculated FPS', () {
-      const state = PerformanceState(
-        isIdle: true,
-        currentFrameTime: 16.67,
-        averageFrameTime: 16.67,
-      );
+      const state = PerformanceState(isIdle: true, currentFrameTime: 16.67, averageFrameTime: 16.67);
 
       expect(state.potentialFps, 0);
       expect(state.averagePotentialFps, 0);
@@ -71,18 +67,12 @@ void main() {
       });
 
       prefs = await SharedPreferencesWithCache.create(
-        cacheOptions: const SharedPreferencesWithCacheOptions(
-          allowList: PerformanceTracker.prefKeys,
-        ),
+        cacheOptions: const SharedPreferencesWithCacheOptions(allowList: PerformanceTracker.prefKeys),
       );
     });
 
     test('loads visibility preferences synchronously on initialization', () {
-      final container = ProviderContainer(
-        overrides: [
-          sharedPrefsProvider.overrideWithValue(prefs),
-        ],
-      );
+      final container = ProviderContainer(overrides: [sharedPrefsProvider.overrideWithValue(prefs)]);
       addTearDown(container.dispose);
 
       final state = container.read(performanceTrackerProvider);
@@ -92,11 +82,7 @@ void main() {
     });
 
     test('toggleVisibility flips setting, updates state, and persists to cache', () {
-      final container = ProviderContainer(
-        overrides: [
-          sharedPrefsProvider.overrideWithValue(prefs),
-        ],
-      );
+      final container = ProviderContainer(overrides: [sharedPrefsProvider.overrideWithValue(prefs)]);
       addTearDown(container.dispose);
 
       final notifier = container.read(performanceTrackerProvider.notifier);
@@ -115,11 +101,7 @@ void main() {
     });
 
     test('resetStats clears min, max, and average frame times', () {
-      final container = ProviderContainer(
-        overrides: [
-          sharedPrefsProvider.overrideWithValue(prefs),
-        ],
-      );
+      final container = ProviderContainer(overrides: [sharedPrefsProvider.overrideWithValue(prefs)]);
       addTearDown(container.dispose);
 
       final notifier = container.read(performanceTrackerProvider.notifier);

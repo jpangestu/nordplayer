@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/utils/performance_tracker.dart';
 import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
 import 'package:nordplayer/ui/shared/ui/popover_panel.dart';
+import 'package:nordplayer/utils/performance_tracker.dart';
 
 class PerformancePanel extends ConsumerWidget {
   const PerformancePanel({super.key});
@@ -150,11 +150,7 @@ class PerformancePanel extends ConsumerWidget {
             prefKey: 'cpuUsage',
           ),
           const SizedBox(height: 8),
-          _PerformanceConfigRow(
-            label: 'RAM Usage',
-            value: tracker.formatRam(tracker.ramBytes),
-            prefKey: 'ramUsage',
-          ),
+          _PerformanceConfigRow(label: 'RAM Usage', value: tracker.formatRam(tracker.ramBytes), prefKey: 'ramUsage'),
           const Divider(height: 24),
           SizedBox(
             width: double.infinity,

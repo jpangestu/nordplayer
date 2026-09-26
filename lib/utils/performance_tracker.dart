@@ -38,7 +38,6 @@ class const PerformanceState({
     'ramUsage': false,
   },
 }) {
-
   bool isVisible(String key) => visibility[key] ?? false;
 
   String formatRam(int bytes) {
@@ -193,11 +192,7 @@ class PerformanceTracker extends Notifier<PerformanceState> {
     _minFrameTime = 0.0;
     _maxFrameTime = 0.0;
     _recentFrameTimes.clear();
-    state = state.copyWith(
-      minFrameTime: 0.0,
-      maxFrameTime: 0.0,
-      averageFrameTime: 0.0,
-    );
+    state = state.copyWith(minFrameTime: 0.0, maxFrameTime: 0.0, averageFrameTime: 0.0);
   }
 
   void _start() {
@@ -295,22 +290,20 @@ class PerformanceTracker extends Notifier<PerformanceState> {
 typedef GetCurrentProcessNative = IntPtr Function();
 typedef GetCurrentProcessDart = int Function();
 
-typedef GetProcessTimesNative =
-    Int32 Function(
-      IntPtr hProcess,
-      Pointer<Uint64> lpCreationTime,
-      Pointer<Uint64> lpExitTime,
-      Pointer<Uint64> lpKernelTime,
-      Pointer<Uint64> lpUserTime,
-    );
-typedef GetProcessTimesDart =
-    int Function(
-      int hProcess,
-      Pointer<Uint64> lpCreationTime,
-      Pointer<Uint64> lpExitTime,
-      Pointer<Uint64> lpKernelTime,
-      Pointer<Uint64> lpUserTime,
-    );
+typedef GetProcessTimesNative = Int32 Function(
+  IntPtr hProcess,
+  Pointer<Uint64> lpCreationTime,
+  Pointer<Uint64> lpExitTime,
+  Pointer<Uint64> lpKernelTime,
+  Pointer<Uint64> lpUserTime,
+);
+typedef GetProcessTimesDart = int Function(
+  int hProcess,
+  Pointer<Uint64> lpCreationTime,
+  Pointer<Uint64> lpExitTime,
+  Pointer<Uint64> lpKernelTime,
+  Pointer<Uint64> lpUserTime,
+);
 
 typedef LocalAllocNative = Pointer<Uint64> Function(Uint32 uFlags, IntPtr uBytes);
 typedef LocalAllocDart = Pointer<Uint64> Function(int uFlags, int uBytes);

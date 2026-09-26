@@ -34,11 +34,6 @@ class const ShellUiState({
           adaptiveBgThemeOverlay == other.adaptiveBgThemeOverlay;
 
   @override
-  int get hashCode => Object.hash(
-        isSidebarExtended,
-        showQueue,
-        isAdaptiveBg,
-        adaptiveBgPanelBlur,
-        adaptiveBgThemeOverlay,
-      );
+  int get hashCode =>
+      Object.hash(isSidebarExtended, showQueue, isAdaptiveBg, adaptiveBgPanelBlur, adaptiveBgThemeOverlay);
 }

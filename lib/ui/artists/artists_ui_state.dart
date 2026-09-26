@@ -45,11 +45,11 @@ class const ArtistsUiState({
 
   @override
   int get hashCode => Object.hash(
-        Object.hashAll(artists),
-        isLoading,
-        errorMessage,
-        isAdaptiveBg,
-        adaptiveBgPanelBlur,
-        adaptiveBgThemeOverlay,
-      );
+    Object.hashAll(artists),
+    isLoading,
+    errorMessage,
+    isAdaptiveBg,
+    adaptiveBgPanelBlur,
+    adaptiveBgThemeOverlay,
+  );
 }

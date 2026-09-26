@@ -71,18 +71,18 @@ class const PlayerBarUiState({
 
   @override
   int get hashCode => Object.hash(
-        currentTrack,
-        isPlaying,
-        position,
-        duration,
-        volume,
-        isMuted,
-        isShuffle,
-        loopMode,
-        showQueue,
-        timeLabelType,
-        isAdaptiveBgOn,
-        adaptiveBgPanelBlur,
-        adaptiveBgThemeOverlay,
-      );
+    currentTrack,
+    isPlaying,
+    position,
+    duration,
+    volume,
+    isMuted,
+    isShuffle,
+    loopMode,
+    showQueue,
+    timeLabelType,
+    isAdaptiveBgOn,
+    adaptiveBgPanelBlur,
+    adaptiveBgThemeOverlay,
+  );
 }

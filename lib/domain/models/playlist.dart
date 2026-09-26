@@ -2,21 +2,9 @@ import 'package:flutter/foundation.dart';
 
 /// Pure domain entity representing a music playlist, independent of database schema.
 @immutable
-class const Playlist({
-  required final int id,
-  required final String name,
-  final String? coverPath,
-}) {
-  Playlist copyWith({
-    int? id,
-    String? name,
-    String? coverPath,
-  }) {
-    return Playlist(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      coverPath: coverPath ?? this.coverPath,
-    );
+class const Playlist({required final int id, required final String name, final String? coverPath}) {
+  Playlist copyWith({int? id, String? name, String? coverPath}) {
+    return Playlist(id: id ?? this.id, name: name ?? this.name, coverPath: coverPath ?? this.coverPath);
   }
 
   @override

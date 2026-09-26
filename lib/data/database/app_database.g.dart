@@ -6757,7 +6757,7 @@ class $$ArtistsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$ArtistsTable, Artist>(table),
                   $$ArtistsTableReferences(db, table, e),
                 ),
               )
@@ -7571,8 +7571,10 @@ class $$AlbumsTableTableManager
               ),
           withReferenceMapper: (p0) => p0
               .map(
-                (e) =>
-                    (e.readTable(table), $$AlbumsTableReferences(db, table, e)),
+                (e) => (
+                  e.readTable<$AlbumsTable, Album>(table),
+                  $$AlbumsTableReferences(db, table, e),
+                ),
               )
               .toList(),
           prefetchHooksCallback:
@@ -8770,8 +8772,10 @@ class $$TracksTableTableManager
               ),
           withReferenceMapper: (p0) => p0
               .map(
-                (e) =>
-                    (e.readTable(table), $$TracksTableReferences(db, table, e)),
+                (e) => (
+                  e.readTable<$TracksTable, Track>(table),
+                  $$TracksTableReferences(db, table, e),
+                ),
               )
               .toList(),
           prefetchHooksCallback:
@@ -9281,7 +9285,7 @@ class $$PlaylistsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$PlaylistsTable, PlaylistData>(table),
                   $$PlaylistsTableReferences(db, table, e),
                 ),
               )
@@ -9630,7 +9634,7 @@ class $$TrackArtistTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$TrackArtistTable, TrackArtistData>(table),
                   $$TrackArtistTableReferences(db, table, e),
                 ),
               )
@@ -9996,7 +10000,7 @@ class $$PlaylistTrackTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$PlaylistTrackTable, PlaylistTrackData>(table),
                   $$PlaylistTrackTableReferences(db, table, e),
                 ),
               )
@@ -10345,7 +10349,7 @@ class $$QueueEntriesTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$QueueEntriesTable, QueueEntry>(table),
                   $$QueueEntriesTableReferences(db, table, e),
                 ),
               )
@@ -10698,7 +10702,7 @@ class $$PlayHistoryTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$PlayHistoryTable, PlayHistoryData>(table),
                   $$PlayHistoryTableReferences(db, table, e),
                 ),
               )
@@ -10887,7 +10891,16 @@ class $$SourcePrioritiesTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$SourcePrioritiesTable, SourcePriority>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $SourcePrioritiesTable,
+                    SourcePriority
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -11251,7 +11264,7 @@ class $$ArtistMetadataTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$ArtistMetadataTable, ArtistMetadataData>(table),
                   $$ArtistMetadataTableReferences(db, table, e),
                 ),
               )
@@ -11630,7 +11643,7 @@ class $$AlbumMetadataTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$AlbumMetadataTable, AlbumMetadataData>(table),
                   $$AlbumMetadataTableReferences(db, table, e),
                 ),
               )
@@ -12089,7 +12102,7 @@ class $$UserFavoritesTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$UserFavoritesTable, UserFavorite>(table),
                   $$UserFavoritesTableReferences(db, table, e),
                 ),
               )
@@ -12572,7 +12585,7 @@ class $$UserBlacklistTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$UserBlacklistTable, UserBlacklistData>(table),
                   $$UserBlacklistTableReferences(db, table, e),
                 ),
               )
@@ -13145,7 +13158,7 @@ class $$UserPinsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$UserPinsTable, UserPin>(table),
                   $$UserPinsTableReferences(db, table, e),
                 ),
               )
@@ -13370,7 +13383,16 @@ class $$IgnoredPathsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$IgnoredPathsTable, IgnoredPath>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $IgnoredPathsTable,
+                    IgnoredPath
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),

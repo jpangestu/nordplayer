@@ -18,16 +18,8 @@ class const TrackWithArtists({
 
   bool get isNotEmpty => !isEmpty;
 
-  TrackWithArtists copyWith({
-    Track? track,
-    Album? album,
-    List<Artist>? artists,
-  }) {
-    return TrackWithArtists(
-      track: track ?? this.track,
-      album: album ?? this.album,
-      artists: artists ?? this.artists,
-    );
+  TrackWithArtists copyWith({Track? track, Album? album, List<Artist>? artists}) {
+    return TrackWithArtists(track: track ?? this.track, album: album ?? this.album, artists: artists ?? this.artists);
   }
 
   @override
@@ -55,11 +47,7 @@ class const AlbumWithTracks({
   required final List<TrackWithArtists> tracks,
   required final int tracksLengthMs,
 }) {
-  AlbumWithTracks copyWith({
-    Album? album,
-    List<TrackWithArtists>? tracks,
-    int? tracksLengthMs,
-  }) {
+  AlbumWithTracks copyWith({Album? album, List<TrackWithArtists>? tracks, int? tracksLengthMs}) {
     return AlbumWithTracks(
       album: album ?? this.album,
       tracks: tracks ?? this.tracks,
@@ -92,11 +80,7 @@ class const PlaylistWithDetails({
   required final int trackCount,
   required final List<String> imageUrls,
 }) {
-  PlaylistWithDetails copyWith({
-    Playlist? playlist,
-    int? trackCount,
-    List<String>? imageUrls,
-  }) {
+  PlaylistWithDetails copyWith({Playlist? playlist, int? trackCount, List<String>? imageUrls}) {
     return PlaylistWithDetails(
       playlist: playlist ?? this.playlist,
       trackCount: trackCount ?? this.trackCount,
@@ -123,21 +107,12 @@ class const PlaylistWithDetails({
 
 /// Composite domain entity representing a playlist and its fully-resolved ordered track list.
 @immutable
-class const PlaylistWithTracks({
-  required final Playlist playlist,
-  required final List<TrackWithArtists> tracks,
-}) {
+class const PlaylistWithTracks({required final Playlist playlist, required final List<TrackWithArtists> tracks}) {
   bool get isEmpty => tracks.isEmpty;
   bool get isNotEmpty => !isEmpty;
 
-  PlaylistWithTracks copyWith({
-    Playlist? playlist,
-    List<TrackWithArtists>? tracks,
-  }) {
-    return PlaylistWithTracks(
-      playlist: playlist ?? this.playlist,
-      tracks: tracks ?? this.tracks,
-    );
+  PlaylistWithTracks copyWith({Playlist? playlist, List<TrackWithArtists>? tracks}) {
+    return PlaylistWithTracks(playlist: playlist ?? this.playlist, tracks: tracks ?? this.tracks);
   }
 
   @override

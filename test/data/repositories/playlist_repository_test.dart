@@ -19,26 +19,20 @@ void main() {
       ),
     );
 
-    container = ProviderContainer(
-      overrides: [
-        appDatabaseProvider.overrideWithValue(db),
-      ],
-    );
+    container = ProviderContainer(overrides: [appDatabaseProvider.overrideWithValue(db)]);
 
     playlistRepository = container.read(playlistRepositoryProvider);
 
     // Seed test data
     await db.into(db.artists).insert(ArtistsCompanion.insert(id: const Value(1), name: 'Artist X'));
 
-    await db.into(db.albums).insert(
-          AlbumsCompanion.insert(
-            id: const Value(1),
-            title: 'Album X',
-            albumArtPath: const Value('/art/x.jpg'),
-          ),
-        );
+    await db
+        .into(db.albums)
+        .insert(AlbumsCompanion.insert(id: const Value(1), title: 'Album X', albumArtPath: const Value('/art/x.jpg')));
 
-    await db.into(db.tracks).insert(
+    await db
+        .into(db.tracks)
+        .insert(
           TracksCompanion.insert(
             id: const Value(10),
             title: 'Track 10',
@@ -50,7 +44,9 @@ void main() {
             fileSize: const Value(3000000),
           ),
         );
-    await db.into(db.tracks).insert(
+    await db
+        .into(db.tracks)
+        .insert(
           TracksCompanion.insert(
             id: const Value(20),
             title: 'Track 20',
@@ -74,10 +70,7 @@ void main() {
 
   group('PlaylistRepository Tests', () {
     test('createPlaylist creates playlist and adds initial tracks atomically', () async {
-      final playlistId = await playlistRepository.createPlaylist(
-        'My Favorites',
-        trackIds: [10, 20],
-      );
+      final playlistId = await playlistRepository.createPlaylist('My Favorites', trackIds: [10, 20]);
 
       expect(playlistId, greaterThan(0));
 

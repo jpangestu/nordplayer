@@ -1,4 +1,3 @@
-import 'package:nordplayer/config/app_config.dart';
 import 'dart:io';
 import 'dart:isolate';
 
@@ -7,11 +6,12 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/database/app_database.dart';
 import 'package:nordplayer/data/services/system/background_task_service.dart';
 import 'package:nordplayer/data/services/system/config_service.dart';
-import 'package:nordplayer/utils/logger.dart';
 import 'package:nordplayer/utils/audio_metadata_hasher.dart';
+import 'package:nordplayer/utils/logger.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 

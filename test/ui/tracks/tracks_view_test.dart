@@ -54,12 +54,7 @@ void main() {
     testWidgets('renders track details in table when tracks are populated', (tester) async {
       final sampleTracks = [
         createSampleTrack(id: 1, title: 'Comfortably Numb', artistName: 'Pink Floyd', albumTitle: 'The Wall'),
-        createSampleTrack(
-          id: 2,
-          title: 'Time',
-          artistName: 'Pink Floyd',
-          albumTitle: 'The Dark Side of the Moon',
-        ),
+        createSampleTrack(id: 2, title: 'Time', artistName: 'Pink Floyd', albumTitle: 'The Dark Side of the Moon'),
       ];
 
       final fakeTrackRepo = FakeTrackRepository(initialTracks: sampleTracks);
@@ -74,9 +69,7 @@ void main() {
     });
 
     testWidgets('tracks page header reflects total track count', (tester) async {
-      final sampleTracks = [
-        createSampleTrack(id: 1, title: 'Track A', artistName: 'Artist A', albumTitle: 'Album A'),
-      ];
+      final sampleTracks = [createSampleTrack(id: 1, title: 'Track A', artistName: 'Artist A', albumTitle: 'Album A')];
 
       final fakeTrackRepo = FakeTrackRepository(initialTracks: sampleTracks);
 

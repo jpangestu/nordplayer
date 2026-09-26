@@ -5,10 +5,7 @@ import 'package:nordplayer/data/services/audio/player_service.dart' show audioPl
 /// Stateless service wrapper around [media_kit.Player].
 ///
 /// Encapsulates native audio playback operations and exposes clean Dart streams.
-class AudioPlayerService(
-  final Player _player,
-) {
-
+class AudioPlayerService(final Player _player) {
   /// Access to the underlying [Player] instance for native platform handlers.
   Player get rawPlayer => _player;
 

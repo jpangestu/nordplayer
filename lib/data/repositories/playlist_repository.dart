@@ -46,32 +46,25 @@ class DriftPlaylistRepository implements PlaylistRepository {
     final trackCount = _db.playlistTrack.trackId.count();
     final coverPaths = _db.albums.albumArtPath.groupConcat(separator: '||');
 
-    final query = _db.select(_db.playlists).join([
-      leftOuterJoin(
-        _db.playlistTrack,
-        _db.playlistTrack.playlistId.equalsExp(_db.playlists.id),
-      ),
-      leftOuterJoin(
-        _db.tracks,
-        _db.tracks.id.equalsExp(_db.playlistTrack.trackId) & _db.tracks.isMissing.equals(false),
-      ),
-      leftOuterJoin(_db.albums, _db.albums.id.equalsExp(_db.tracks.albumId)),
-    ])
-      ..addColumns([trackCount, coverPaths])
-      ..groupBy([_db.playlists.id])
-      ..orderBy([OrderingTerm.asc(_db.playlists.name.lower())]);
+    final query =
+        _db.select(_db.playlists).join([
+            leftOuterJoin(_db.playlistTrack, _db.playlistTrack.playlistId.equalsExp(_db.playlists.id)),
+            leftOuterJoin(
+              _db.tracks,
+              _db.tracks.id.equalsExp(_db.playlistTrack.trackId) & _db.tracks.isMissing.equals(false),
+            ),
+            leftOuterJoin(_db.albums, _db.albums.id.equalsExp(_db.tracks.albumId)),
+          ])
+          ..addColumns([trackCount, coverPaths])
+          ..groupBy([_db.playlists.id])
+          ..orderBy([OrderingTerm.asc(_db.playlists.name.lower())]);
 
     return query.watch().map((rows) {
       return rows.map((row) {
         final pathsString = row.read(coverPaths);
         List<String> covers = [];
         if (pathsString != null && pathsString.isNotEmpty) {
-          covers = pathsString
-              .split('||')
-              .where((path) => path.trim().isNotEmpty)
-              .toSet()
-              .take(5)
-              .toList();
+          covers = pathsString.split('||').where((path) => path.trim().isNotEmpty).toSet().take(5).toList();
         }
 
         return PlaylistWithDetails(
@@ -85,21 +78,20 @@ class DriftPlaylistRepository implements PlaylistRepository {
 
   @override
   Stream<Playlist> watchPlaylist(int playlistId) {
-    return (_db.select(_db.playlists)..where((p) => p.id.equals(playlistId)))
-        .watchSingle()
-        .map((p) => p.toDomain());
+    return (_db.select(_db.playlists)..where((p) => p.id.equals(playlistId))).watchSingle().map((p) => p.toDomain());
   }
 
   @override
   Future<List<TrackWithArtists>> getPlaylistTracks(int playlistId) async {
-    final query = _db.select(_db.tracks).join([
-      innerJoin(_db.playlistTrack, _db.playlistTrack.trackId.equalsExp(_db.tracks.id)),
-      leftOuterJoin(_db.albums, _db.albums.id.equalsExp(_db.tracks.albumId)),
-      leftOuterJoin(_db.trackArtist, _db.trackArtist.trackId.equalsExp(_db.tracks.id)),
-      leftOuterJoin(_db.artists, _db.artists.id.equalsExp(_db.trackArtist.artistId)),
-    ])
-      ..where(_db.playlistTrack.playlistId.equals(playlistId) & _db.tracks.isMissing.equals(false))
-      ..orderBy([OrderingTerm.asc(_db.playlistTrack.dateAdded)]);
+    final query =
+        _db.select(_db.tracks).join([
+            innerJoin(_db.playlistTrack, _db.playlistTrack.trackId.equalsExp(_db.tracks.id)),
+            leftOuterJoin(_db.albums, _db.albums.id.equalsExp(_db.tracks.albumId)),
+            leftOuterJoin(_db.trackArtist, _db.trackArtist.trackId.equalsExp(_db.tracks.id)),
+            leftOuterJoin(_db.artists, _db.artists.id.equalsExp(_db.trackArtist.artistId)),
+          ])
+          ..where(_db.playlistTrack.playlistId.equals(playlistId) & _db.tracks.isMissing.equals(false))
+          ..orderBy([OrderingTerm.asc(_db.playlistTrack.dateAdded)]);
 
     final rows = await query.get();
     return _groupPlaylistTrackRows(rows);
@@ -107,14 +99,15 @@ class DriftPlaylistRepository implements PlaylistRepository {
 
   @override
   Stream<List<TrackWithArtists>> watchPlaylistTracks(int playlistId) {
-    final query = _db.select(_db.tracks).join([
-      innerJoin(_db.playlistTrack, _db.playlistTrack.trackId.equalsExp(_db.tracks.id)),
-      leftOuterJoin(_db.albums, _db.albums.id.equalsExp(_db.tracks.albumId)),
-      leftOuterJoin(_db.trackArtist, _db.trackArtist.trackId.equalsExp(_db.tracks.id)),
-      leftOuterJoin(_db.artists, _db.artists.id.equalsExp(_db.trackArtist.artistId)),
-    ])
-      ..where(_db.playlistTrack.playlistId.equals(playlistId) & _db.tracks.isMissing.equals(false))
-      ..orderBy([OrderingTerm.asc(_db.playlistTrack.dateAdded)]);
+    final query =
+        _db.select(_db.tracks).join([
+            innerJoin(_db.playlistTrack, _db.playlistTrack.trackId.equalsExp(_db.tracks.id)),
+            leftOuterJoin(_db.albums, _db.albums.id.equalsExp(_db.tracks.albumId)),
+            leftOuterJoin(_db.trackArtist, _db.trackArtist.trackId.equalsExp(_db.tracks.id)),
+            leftOuterJoin(_db.artists, _db.artists.id.equalsExp(_db.trackArtist.artistId)),
+          ])
+          ..where(_db.playlistTrack.playlistId.equals(playlistId) & _db.tracks.isMissing.equals(false))
+          ..orderBy([OrderingTerm.asc(_db.playlistTrack.dateAdded)]);
 
     return query.watch().map(_groupPlaylistTrackRows);
   }
@@ -140,9 +133,9 @@ class DriftPlaylistRepository implements PlaylistRepository {
 
   @override
   Future<void> renamePlaylist(int playlistId, String newName) async {
-    await (_db.update(_db.playlists)..where((p) => p.id.equals(playlistId))).write(
-      PlaylistsCompanion(name: Value(newName)),
-    );
+    await (_db.update(
+      _db.playlists,
+    )..where((p) => p.id.equals(playlistId))).write(PlaylistsCompanion(name: Value(newName)));
   }
 
   @override
@@ -164,9 +157,9 @@ class DriftPlaylistRepository implements PlaylistRepository {
 
   @override
   Future<void> removeTrackFromPlaylist(int playlistId, int trackId) async {
-    await (_db.delete(_db.playlistTrack)
-          ..where((pt) => pt.playlistId.equals(playlistId) & pt.trackId.equals(trackId)))
-        .go();
+    await (_db.delete(
+      _db.playlistTrack,
+    )..where((pt) => pt.playlistId.equals(playlistId) & pt.trackId.equals(trackId))).go();
   }
 
   /// Groups flattened playlist track join rows into composite [TrackWithArtists] domain entities.
@@ -222,8 +215,9 @@ final playlistWithTracksProvider = Provider.autoDispose.family<AsyncValue<Playli
   return switch ((playlistAsync, tracksAsync)) {
     (AsyncError(:final error, :final stackTrace), _) => AsyncError(error, stackTrace),
     (_, AsyncError(:final error, :final stackTrace)) => AsyncError(error, stackTrace),
-    (AsyncData(value: final playlist), AsyncData(value: final tracks)) =>
-      AsyncData(PlaylistWithTracks(playlist: playlist, tracks: tracks)),
+    (AsyncData(value: final playlist), AsyncData(value: final tracks)) => AsyncData(
+      PlaylistWithTracks(playlist: playlist, tracks: tracks),
+    ),
     _ => const AsyncLoading(),
   };
 });

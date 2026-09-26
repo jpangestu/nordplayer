@@ -76,9 +76,7 @@ void main() {
 
       expect(container.read(albumsViewModelProvider).isAdaptiveBg, isFalse);
 
-      fakeConfigRepo.updateConfig(
-        AppConfig(adaptiveBg: true, adaptiveBgPanelBlur: 15.0, adaptiveBgThemeOverlay: 0.8),
-      );
+      fakeConfigRepo.updateConfig(AppConfig(adaptiveBg: true, adaptiveBgPanelBlur: 15.0, adaptiveBgThemeOverlay: 0.8));
       await pumpEventQueue();
 
       final state = container.read(albumsViewModelProvider);

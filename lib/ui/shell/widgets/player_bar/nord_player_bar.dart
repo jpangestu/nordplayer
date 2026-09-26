@@ -1,14 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
-import 'package:nordplayer/ui/shell/player_bar_viewmodel.dart';
-import 'package:nordplayer/ui/shell/widgets/player_bar/playback.dart';
-import 'package:nordplayer/ui/shell/widgets/player_bar/progress_bar.dart';
-import 'package:nordplayer/ui/shell/widgets/player_bar/volume_slider.dart';
 import 'package:nordplayer/ui/shared/ui/app_icon.dart';
 import 'package:nordplayer/ui/shared/ui/frosted_glass.dart';
 import 'package:nordplayer/ui/shared/ui/music_tile.dart';
 import 'package:nordplayer/ui/shared/ui/unimplemented.dart';
+import 'package:nordplayer/ui/shell/player_bar_viewmodel.dart';
+import 'package:nordplayer/ui/shell/widgets/player_bar/playback.dart';
+import 'package:nordplayer/ui/shell/widgets/player_bar/progress_bar.dart';
+import 'package:nordplayer/ui/shell/widgets/player_bar/volume_slider.dart';
 
 /// Top-level player bar component pinned to the bottom of the window.
 class NordPlayerBar extends ConsumerWidget {

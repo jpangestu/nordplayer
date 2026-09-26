@@ -7,8 +7,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/data/database/app_database.dart';
-import 'package:nordplayer/data/services/system/background_task_service.dart';
 import 'package:nordplayer/data/services/indexer/chromaprint_service.dart';
+import 'package:nordplayer/data/services/system/background_task_service.dart';
 import 'package:nordplayer/utils/logger.dart';
 
 class AudioFingerprintIndexer(final Ref _ref, final AppDatabase _db) with LoggerMixin {
@@ -43,9 +43,7 @@ class AudioFingerprintIndexer(final Ref _ref, final AppDatabase _db) with Logger
         return;
       }
 
-      final tracksLackingFingerprint = rows
-          .map((r) => (r.read(_db.tracks.id)!, r.read(_db.tracks.filePath)!))
-          .toList();
+      final tracksLackingFingerprint = rows.map((r) => (r.read(_db.tracks.id)!, r.read(_db.tracks.filePath)!)).toList();
 
       final total = tracksLackingFingerprint.length;
       int processed = 0;
@@ -161,9 +159,9 @@ Future<void> _fingerprintChunkIsolate(_FingerprintChunkRequest request) async {
   if (generatedFingerprints.isNotEmpty) {
     await db.transaction(() async {
       for (final (trackId, bytes) in generatedFingerprints) {
-        await (db.update(db.tracks)..where((t) => t.id.equals(trackId))).write(
-          TracksCompanion(audioFingerprint: Value(bytes)),
-        );
+        await (db.update(
+          db.tracks,
+        )..where((t) => t.id.equals(trackId))).write(TracksCompanion(audioFingerprint: Value(bytes)));
       }
     });
   }

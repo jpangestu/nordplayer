@@ -1,22 +1,22 @@
-import 'package:nordplayer/data/services/audio/player_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/ui/shared/ui/selection_state.dart';
+import 'package:nordplayer/data/repositories/playlist_repository.dart';
+import 'package:nordplayer/data/services/audio/player_service.dart';
+import 'package:nordplayer/data/services/audio/player_state.dart';
 import 'package:nordplayer/data/services/system/platform_service.dart' show showInFolder;
 import 'package:nordplayer/data/services/system/preference_service.dart';
-import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
-import 'package:nordplayer/data/repositories/playlist_repository.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/routing/router.dart';
 import 'package:nordplayer/ui/playlists/playlists_viewmodel.dart';
 import 'package:nordplayer/ui/playlists/widgets/playlist_dialogs.dart';
 import 'package:nordplayer/ui/queue/queue_viewmodel.dart';
-import 'package:nordplayer/routing/router.dart';
-import 'package:nordplayer/data/services/audio/player_service.dart';
+import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
 import 'package:nordplayer/ui/shared/ui/app_icon.dart';
 import 'package:nordplayer/ui/shared/ui/context_menu.dart';
 import 'package:nordplayer/ui/shared/ui/nord_snack_bar.dart';
+import 'package:nordplayer/ui/shared/ui/selection_state.dart';
 
 class TrackContextMenu {
   /// Shows the standard right-click menu for music tracks.

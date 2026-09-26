@@ -5,10 +5,10 @@ import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/data/database/app_database.dart';
+import 'package:nordplayer/data/database/db_mappers.dart';
 import 'package:nordplayer/data/services/indexer/chromaprint_service.dart';
 import 'package:nordplayer/data/services/indexer/duplicate_detector.dart';
 import 'package:nordplayer/utils/string_extension.dart';
-import 'package:nordplayer/data/database/db_mappers.dart';
 
 void main() {
   late AppDatabase db;

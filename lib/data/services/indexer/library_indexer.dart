@@ -4,11 +4,11 @@ import 'package:audiotags/audiotags.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/data/database/app_database.dart';
-import 'package:nordplayer/data/services/system/background_task_service.dart';
-import 'package:nordplayer/data/services/indexer/chromaprint_service.dart';
-import 'package:nordplayer/utils/logger.dart';
 import 'package:nordplayer/data/services/audio/player_service.dart';
+import 'package:nordplayer/data/services/indexer/chromaprint_service.dart';
+import 'package:nordplayer/data/services/system/background_task_service.dart';
 import 'package:nordplayer/utils/audio_metadata_hasher.dart';
+import 'package:nordplayer/utils/logger.dart';
 import 'package:nordplayer/utils/string_extension.dart';
 import 'package:path/path.dart' as p;
 
@@ -46,11 +46,12 @@ class LibraryIndexer(final Ref _ref, final AppDatabase _db) with LoggerMixin {
     final trackHash = AudioMetadataHasher.calculateHash(file);
 
     // Check if the file was moved/renamed (hash matches an existing track)
-    final existingTrackByHash = await (_db.selectOnly(_db.tracks)
-          ..addColumns([_db.tracks.id, _db.tracks.filePath])
-          ..where(_db.tracks.fileHash.equals(trackHash))
-          ..limit(1))
-        .getSingleOrNull();
+    final existingTrackByHash =
+        await (_db.selectOnly(_db.tracks)
+              ..addColumns([_db.tracks.id, _db.tracks.filePath])
+              ..where(_db.tracks.fileHash.equals(trackHash))
+              ..limit(1))
+            .getSingleOrNull();
 
     final normalizedPath = file.path.normalizePath().toLowerCase();
 
@@ -70,11 +71,12 @@ class LibraryIndexer(final Ref _ref, final AppDatabase _db) with LoggerMixin {
     }
 
     // Check if the file already exists in the database by path
-    final existingTrackByPath = await (_db.selectOnly(_db.tracks)
-          ..addColumns([_db.tracks.id, _db.tracks.audioFingerprint, _db.tracks.durationMs])
-          ..where(_db.tracks.filePath.lower().equals(normalizedPath))
-          ..limit(1))
-        .getSingleOrNull();
+    final existingTrackByPath =
+        await (_db.selectOnly(_db.tracks)
+              ..addColumns([_db.tracks.id, _db.tracks.audioFingerprint, _db.tracks.durationMs])
+              ..where(_db.tracks.filePath.lower().equals(normalizedPath))
+              ..limit(1))
+            .getSingleOrNull();
 
     if (existingTrackByPath != null) {
       final trackId = existingTrackByPath.read(_db.tracks.id)!;
@@ -179,9 +181,9 @@ class LibraryIndexer(final Ref _ref, final AppDatabase _db) with LoggerMixin {
     final trackIds = tracksInDir.map((r) => r.read(_db.tracks.id)!).toList();
     final trackPaths = tracksInDir.map((r) => r.read(_db.tracks.filePath)!).toList();
 
-    await (_db.update(_db.tracks)..where((track) => track.id.isIn(trackIds))).write(
-      const TracksCompanion(isMissing: Value(true)),
-    );
+    await (_db.update(
+      _db.tracks,
+    )..where((track) => track.id.isIn(trackIds))).write(const TracksCompanion(isMissing: Value(true)));
 
     // Also remove them from the player queue
     try {

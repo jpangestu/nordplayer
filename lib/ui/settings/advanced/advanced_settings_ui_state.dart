@@ -1,12 +1,6 @@
 /// Immutable UI state representing advanced settings and data maintenance operations.
-class const AdvancedSettingsUiState({
-  final bool isProcessing = false,
-  final bool adaptiveBg = false,
-}) {
-  AdvancedSettingsUiState copyWith({
-    bool? isProcessing,
-    bool? adaptiveBg,
-  }) {
+class const AdvancedSettingsUiState({final bool isProcessing = false, final bool adaptiveBg = false}) {
+  AdvancedSettingsUiState copyWith({bool? isProcessing, bool? adaptiveBg}) {
     return AdvancedSettingsUiState(
       isProcessing: isProcessing ?? this.isProcessing,
       adaptiveBg: adaptiveBg ?? this.adaptiveBg,
@@ -25,6 +19,5 @@ class const AdvancedSettingsUiState({
   int get hashCode => Object.hash(isProcessing, adaptiveBg);
 
   @override
-  String toString() =>
-      'AdvancedSettingsUiState(isProcessing: $isProcessing, adaptiveBg: $adaptiveBg)';
+  String toString() => 'AdvancedSettingsUiState(isProcessing: $isProcessing, adaptiveBg: $adaptiveBg)';
 }

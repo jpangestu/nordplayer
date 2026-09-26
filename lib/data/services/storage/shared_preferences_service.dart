@@ -8,10 +8,7 @@ final sharedPreferencesInstanceProvider = Provider<SharedPreferencesWithCache>((
 });
 
 /// Stateless service wrapper around [SharedPreferencesWithCache].
-class const SharedPreferencesService(
-  final SharedPreferencesWithCache _prefs,
-) {
-
+class const SharedPreferencesService(final SharedPreferencesWithCache _prefs) {
   String? getString(String key) => _prefs.getString(key);
   Future<void> setString(String key, String value) => _prefs.setString(key, value);
 

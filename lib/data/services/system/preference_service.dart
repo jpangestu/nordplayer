@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart' show immutable;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:nordplayer/domain/models/time_label_type.dart';
 import 'package:nordplayer/utils/logger.dart';
@@ -123,18 +123,19 @@ class PreferencesState {
 
   @override
   int get hashCode => Object.hash(
-        cachedAlbumArtPath,
-        isMuted,
-        loopMode,
-        showQueue,
-        shuffleMode,
-        sidebarExtended,
-        timeLabelType,
-        volume,
-      );
+    cachedAlbumArtPath,
+    isMuted,
+    loopMode,
+    showQueue,
+    shuffleMode,
+    sidebarExtended,
+    timeLabelType,
+    volume,
+  );
 
   @override
-  String toString() => 'PreferencesState('
+  String toString() =>
+      'PreferencesState('
       'isMuted: $isMuted, '
       'volume: $volume, '
       'loopMode: $loopMode, '
@@ -144,7 +145,6 @@ class PreferencesState {
       'timeLabelType: $timeLabelType, '
       'cachedAlbumArtPath: $cachedAlbumArtPath)';
 }
-
 
 final preferenceServiceProvider = NotifierProvider<PreferenceService, PreferencesState>(() {
   return PreferenceService();

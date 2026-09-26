@@ -6,8 +6,7 @@ import 'package:nordplayer/domain/models/composite_models.dart';
 
 /// Bridges [Player] playback events to the host operating system
 /// (Windows System Media Transport Controls / Linux MPRIS / Android notification).
-class MediaKitAudioHandler extends BaseAudioHandler
-    with QueueHandler, SeekHandler {
+class MediaKitAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   final Player _player;
   final List<StreamSubscription<dynamic>> _subscriptions = [];
   int _lastSyncedQueueLength = -1;
@@ -20,20 +19,15 @@ class MediaKitAudioHandler extends BaseAudioHandler
 
   void _listenToPlayerStreams() {
     // Sync playing state and buffering immediately
-    _subscriptions.add(
-      _player.stream.playing.listen((_) => _broadcastState()),
-    );
-    _subscriptions.add(
-      _player.stream.buffering.listen((_) => _broadcastState()),
-    );
+    _subscriptions.add(_player.stream.playing.listen((_) => _broadcastState()));
+    _subscriptions.add(_player.stream.buffering.listen((_) => _broadcastState()));
 
     // Throttle periodic position broadcasts to once every second.
     // The OS automatically interpolates playback position between updates.
     _subscriptions.add(
       _player.stream.position.listen((_) {
         final now = DateTime.now();
-        if (_lastPositionBroadcast == null ||
-            now.difference(_lastPositionBroadcast!) >= const Duration(seconds: 1)) {
+        if (_lastPositionBroadcast == null || now.difference(_lastPositionBroadcast!) >= const Duration(seconds: 1)) {
           _lastPositionBroadcast = now;
           _broadcastState();
         }
@@ -43,9 +37,7 @@ class MediaKitAudioHandler extends BaseAudioHandler
     // Sync active track and queue
     _subscriptions.add(
       _player.stream.playlist.listen((playlist) {
-        if (playlist.medias.isEmpty ||
-            playlist.index < 0 ||
-            playlist.index >= playlist.medias.length) {
+        if (playlist.medias.isEmpty || playlist.index < 0 || playlist.index >= playlist.medias.length) {
           mediaItem.add(null);
           return;
         }
@@ -54,9 +46,7 @@ class MediaKitAudioHandler extends BaseAudioHandler
         final data = media.extras?['data'] as TrackWithArtists?;
         if (data != null) {
           final artPath = data.album.albumArtPath;
-          final artUri = (artPath != null && artPath.isNotEmpty)
-              ? Uri.file(artPath)
-              : null;
+          final artUri = (artPath != null && artPath.isNotEmpty) ? Uri.file(artPath) : null;
 
           mediaItem.add(
             MediaItem(
@@ -75,8 +65,7 @@ class MediaKitAudioHandler extends BaseAudioHandler
             ? ''
             : '${playlist.medias.length}:${playlist.medias.first.uri}:${playlist.medias.last.uri}';
 
-        if (playlist.medias.length != _lastSyncedQueueLength ||
-            signature != _lastSyncedQueueSignature) {
+        if (playlist.medias.length != _lastSyncedQueueLength || signature != _lastSyncedQueueSignature) {
           _lastSyncedQueueLength = playlist.medias.length;
           _lastSyncedQueueSignature = signature;
 
@@ -106,15 +95,9 @@ class MediaKitAudioHandler extends BaseAudioHandler
           MediaControl.skipToNext,
           MediaControl.stop,
         ],
-        systemActions: const {
-          MediaAction.seek,
-          MediaAction.skipToPrevious,
-          MediaAction.skipToNext,
-        },
+        systemActions: const {MediaAction.seek, MediaAction.skipToPrevious, MediaAction.skipToNext},
         androidCompactActionIndices: const [0, 1, 2],
-        processingState: _player.state.buffering
-            ? AudioProcessingState.buffering
-            : AudioProcessingState.ready,
+        processingState: _player.state.buffering ? AudioProcessingState.buffering : AudioProcessingState.ready,
         playing: _player.state.playing,
         updatePosition: _player.state.position,
         bufferedPosition: _player.state.buffer,
@@ -134,12 +117,7 @@ class MediaKitAudioHandler extends BaseAudioHandler
   @override
   Future<void> stop() async {
     await _player.stop();
-    playbackState.add(
-      playbackState.value.copyWith(
-        processingState: AudioProcessingState.idle,
-        playing: false,
-      ),
-    );
+    playbackState.add(playbackState.value.copyWith(processingState: AudioProcessingState.idle, playing: false));
     await super.stop();
   }
 

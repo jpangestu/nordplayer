@@ -19,11 +19,7 @@ void main() {
       ),
     );
 
-    container = ProviderContainer(
-      overrides: [
-        appDatabaseProvider.overrideWithValue(db),
-      ],
-    );
+    container = ProviderContainer(overrides: [appDatabaseProvider.overrideWithValue(db)]);
 
     trackRepository = container.read(trackRepositoryProvider);
 
@@ -33,16 +29,16 @@ void main() {
     await db.into(db.artists).insert(ArtistsCompanion.insert(id: const Value(2), name: 'Artist B'));
 
     // 2. Create Album
-    await db.into(db.albums).insert(
-          AlbumsCompanion.insert(
-            id: const Value(1),
-            title: 'Album One',
-            albumArtPath: const Value('/art/album1.jpg'),
-          ),
+    await db
+        .into(db.albums)
+        .insert(
+          AlbumsCompanion.insert(id: const Value(1), title: 'Album One', albumArtPath: const Value('/art/album1.jpg')),
         );
 
     // 3. Create Tracks
-    await db.into(db.tracks).insert(
+    await db
+        .into(db.tracks)
+        .insert(
           TracksCompanion.insert(
             id: const Value(1),
             title: 'Zeta Track',
@@ -57,7 +53,9 @@ void main() {
           ),
         );
 
-    await db.into(db.tracks).insert(
+    await db
+        .into(db.tracks)
+        .insert(
           TracksCompanion.insert(
             id: const Value(2),
             title: 'Alpha Track',
@@ -73,7 +71,9 @@ void main() {
         );
 
     // Missing track
-    await db.into(db.tracks).insert(
+    await db
+        .into(db.tracks)
+        .insert(
           TracksCompanion.insert(
             id: const Value(3),
             title: 'Missing Track',

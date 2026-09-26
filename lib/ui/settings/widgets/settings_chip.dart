@@ -7,12 +7,7 @@ class SettingsChip extends StatelessWidget {
   final VoidCallback? onDelete;
   final bool isAdaptive;
 
-  const SettingsChip({
-    super.key,
-    required this.label,
-    this.onDelete,
-    this.isAdaptive = false,
-  });
+  const SettingsChip({super.key, required this.label, this.onDelete, this.isAdaptive = false});
 
   @override
   Widget build(BuildContext context) {

@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/data/database/app_database.dart' show IgnoredPath;
-import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
 import 'package:nordplayer/ui/settings/library_indexer/ignored_paths_viewmodel.dart';
+import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
 import 'package:nordplayer/ui/shared/ui/app_icon.dart';
 import 'package:nordplayer/ui/shared/ui/frosted_glass.dart';
 import 'package:nordplayer/ui/shared/ui/nord_alert_dialog.dart';

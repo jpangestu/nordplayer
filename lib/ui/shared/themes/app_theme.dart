@@ -26,8 +26,7 @@ class AppTheme {
     'system': 'System Default',
   };
 
-  static final List<String> _fontFallbacks =
-      availableFonts.keys.where((k) => k != 'system').toList(growable: false);
+  static final List<String> _fontFallbacks = availableFonts.keys.where((k) => k != 'system').toList(growable: false);
 
   static final AppColorScheme _nordScheme = NordColorScheme();
   static final AppColorScheme _nordLightScheme = NordLightColorScheme();
@@ -53,10 +52,6 @@ class AppTheme {
       schemeToUse = _nordScheme;
     }
 
-    return buildTheme(
-      fontFamily: actualFontFamily,
-      fontFamilyFallback: fallbacks,
-      appColorScheme: schemeToUse,
-    );
+    return buildTheme(fontFamily: actualFontFamily, fontFamilyFallback: fallbacks, appColorScheme: schemeToUse);
   }
 }

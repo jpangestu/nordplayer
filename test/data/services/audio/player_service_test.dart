@@ -1,16 +1,16 @@
-import 'package:nordplayer/data/services/audio/player_state.dart';
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart' hide Track;
-import 'package:nordplayer/domain/models/composite_models.dart';
-import 'package:nordplayer/domain/models/track.dart';
-import 'package:nordplayer/domain/models/album.dart';
-import 'package:nordplayer/ui/queue/queue_scroll_behavior.dart';
-import 'package:nordplayer/data/services/system/preference_service.dart';
 import 'package:nordplayer/data/repositories/queue_repository.dart';
 import 'package:nordplayer/data/services/audio/player_service.dart';
+import 'package:nordplayer/data/services/audio/player_state.dart';
+import 'package:nordplayer/data/services/system/preference_service.dart';
+import 'package:nordplayer/domain/models/album.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/track.dart';
+import 'package:nordplayer/ui/queue/queue_scroll_behavior.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -223,11 +223,8 @@ void main() {
   late FakeQueueRepository fakeQueueRepo;
 
   setUp(() async {
-    SharedPreferencesAsyncPlatform.instance =
-        InMemorySharedPreferencesAsync.empty();
-    final prefs = await SharedPreferencesWithCache.create(
-      cacheOptions: const SharedPreferencesWithCacheOptions(),
-    );
+    SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
+    final prefs = await SharedPreferencesWithCache.create(cacheOptions: const SharedPreferencesWithCacheOptions());
 
     fakePlayer = FakePlayer();
     fakeQueueRepo = FakeQueueRepository();
@@ -414,11 +411,7 @@ void main() {
       final service = container.read(playerServiceProvider);
       final initialTracks = [createTrack(1), createTrack(2), createTrack(3)];
 
-      await service.setPlaylist(
-        tracksToPlay: initialTracks,
-        initialIndex: 0,
-        playbackContextType: 'all_tracks',
-      );
+      await service.setPlaylist(tracksToPlay: initialTracks, initialIndex: 0, playbackContextType: 'all_tracks');
 
       await service.removeTrack(1);
       expect(fakePlayer.state.playlist.medias.length, equals(2));
@@ -430,11 +423,7 @@ void main() {
       final service = container.read(playerServiceProvider);
       final initialTracks = [createTrack(1), createTrack(2), createTrack(3), createTrack(4)];
 
-      await service.setPlaylist(
-        tracksToPlay: initialTracks,
-        initialIndex: 0,
-        playbackContextType: 'all_tracks',
-      );
+      await service.setPlaylist(tracksToPlay: initialTracks, initialIndex: 0, playbackContextType: 'all_tracks');
 
       await service.removeTracks([1, 2]);
       expect(fakePlayer.state.playlist.medias.length, equals(2));

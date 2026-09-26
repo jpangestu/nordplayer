@@ -1,9 +1,9 @@
-import 'package:nordplayer/data/database/db_mappers.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/data/database/app_database.dart' hide Track;
-import 'package:nordplayer/utils/string_extension.dart';
+import 'package:nordplayer/data/database/db_mappers.dart';
 import 'package:nordplayer/domain/models/track.dart';
+import 'package:nordplayer/utils/string_extension.dart';
 
 /// Repository interface abstracting ignored track paths and restoration operations.
 abstract interface class IgnoredPathsRepository {
@@ -51,9 +51,7 @@ class DriftIgnoredPathsRepository implements IgnoredPathsRepository {
     if (filePaths.isEmpty) return;
     await _db.transaction(() async {
       for (final path in filePaths) {
-        await _db.into(_db.ignoredPaths).insertOnConflictUpdate(
-              IgnoredPathsCompanion(filePath: Value(path)),
-            );
+        await _db.into(_db.ignoredPaths).insertOnConflictUpdate(IgnoredPathsCompanion(filePath: Value(path)));
       }
     });
   }
@@ -62,20 +60,14 @@ class DriftIgnoredPathsRepository implements IgnoredPathsRepository {
   Future<void> restoreTracks(List<Track> tracks) async {
     if (tracks.isEmpty) return;
     await _db.transaction(() async {
-      final filePaths = tracks
-          .expand((t) => [t.filePath, t.filePath.normalizePath().toLowerCase()])
-          .toSet()
-          .toList();
+      final filePaths = tracks.expand((t) => [t.filePath, t.filePath.normalizePath().toLowerCase()]).toSet().toList();
       await (_db.delete(_db.ignoredPaths)..where((t) => t.filePath.isIn(filePaths))).go();
 
       for (final track in tracks) {
         await _db.into(_db.tracks).insertOnConflictUpdate(track.toCompanion());
-        await _db.into(_db.trackArtist).insertOnConflictUpdate(
-              TrackArtistCompanion(
-                trackId: Value(track.id),
-                artistId: Value(track.artistId),
-              ),
-            );
+        await _db
+            .into(_db.trackArtist)
+            .insertOnConflictUpdate(TrackArtistCompanion(trackId: Value(track.id), artistId: Value(track.artistId)));
       }
     });
   }

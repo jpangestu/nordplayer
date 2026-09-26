@@ -2,8 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
-import 'package:nordplayer/ui/shell/player_bar_viewmodel.dart';
 import 'package:nordplayer/ui/shared/ui/app_icon.dart';
+import 'package:nordplayer/ui/shell/player_bar_viewmodel.dart';
 
 /// Presentation widget for playback controls (shuffle, previous, play/pause, next, loop).
 class Playback extends ConsumerWidget {
@@ -27,22 +27,14 @@ class Playback extends ConsumerWidget {
           iconSize: 24,
           onPressed: viewModel.toggleShuffle,
         ),
-        IconButton(
-          icon: AppIcon(appIconSet.previous),
-          iconSize: 24,
-          onPressed: viewModel.previous,
-        ),
+        IconButton(icon: AppIcon(appIconSet.previous), iconSize: 24, onPressed: viewModel.previous),
         IconButton(
           isSelected: true,
           icon: AppIcon(isPlaying ? appIconSet.pause : appIconSet.play),
           iconSize: 36,
           onPressed: viewModel.playOrPause,
         ),
-        IconButton(
-          icon: AppIcon(appIconSet.next),
-          iconSize: 24,
-          onPressed: viewModel.next,
-        ),
+        IconButton(icon: AppIcon(appIconSet.next), iconSize: 24, onPressed: viewModel.next),
         IconButton(
           icon: AppIcon(switch (loopMode) {
             PlaylistMode.none => appIconSet.repeat,

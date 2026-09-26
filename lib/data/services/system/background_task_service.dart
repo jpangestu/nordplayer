@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final backgroundTaskServiceProvider = NotifierProvider<BackgroundTaskService, List<BackgroundTask>>(() {
@@ -20,9 +21,8 @@ class BackgroundTask({
 }) {
   final DateTime timestamp = timestamp ?? DateTime.now();
 
-  double? get progress => (total > 0 && status == BackgroundTaskStatus.running)
-      ? (processed / total).clamp(0.0, 1.0)
-      : null;
+  double? get progress =>
+      (total > 0 && status == BackgroundTaskStatus.running) ? (processed / total).clamp(0.0, 1.0) : null;
 
   BackgroundTask copyWith({
     String? name,
@@ -62,17 +62,7 @@ class BackgroundTask({
           timestamp == other.timestamp;
 
   @override
-  int get hashCode => Object.hash(
-        id,
-        name,
-        processed,
-        total,
-        message,
-        isIndeterminate,
-        status,
-        error,
-        timestamp,
-      );
+  int get hashCode => Object.hash(id, name, processed, total, message, isIndeterminate, status, error, timestamp);
 
   @override
   String toString() {

@@ -45,8 +45,7 @@ class FakeTrackRepository({List<TrackWithArtists>? initialTracks, LibraryStats? 
   @override
   Stream<List<TrackWithArtists>> watchRecentlyAddedTracks({int limitAmount = 10}) {
     final recent = tracks.take(limitAmount).toList();
-    return Stream.value(recent)
-        .concatWith([_tracksController.stream.map((list) => list.take(limitAmount).toList())]);
+    return Stream.value(recent).concatWith([_tracksController.stream.map((list) => list.take(limitAmount).toList())]);
   }
 
   @override

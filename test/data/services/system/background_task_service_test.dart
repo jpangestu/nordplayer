@@ -5,39 +5,17 @@ import 'package:nordplayer/data/services/system/background_task_service.dart';
 void main() {
   group('BackgroundTask Tests', () {
     test('progress clamps between 0.0 and 1.0', () {
-      final taskNormal = BackgroundTask(
-        id: '1',
-        name: 'test',
-        processed: 5,
-        total: 10,
-      );
+      final taskNormal = BackgroundTask(id: '1', name: 'test', processed: 5, total: 10);
       expect(taskNormal.progress, 0.5);
 
-      final taskOverflow = BackgroundTask(
-        id: '2',
-        name: 'overflow',
-        processed: 15,
-        total: 10,
-      );
+      final taskOverflow = BackgroundTask(id: '2', name: 'overflow', processed: 15, total: 10);
       expect(taskOverflow.progress, 1.0);
     });
 
     test('value equality works as expected', () {
       final timestamp = DateTime(2026, 1, 1);
-      final taskA = BackgroundTask(
-        id: '1',
-        name: 'test',
-        processed: 5,
-        total: 10,
-        timestamp: timestamp,
-      );
-      final taskB = BackgroundTask(
-        id: '1',
-        name: 'test',
-        processed: 5,
-        total: 10,
-        timestamp: timestamp,
-      );
+      final taskA = BackgroundTask(id: '1', name: 'test', processed: 5, total: 10, timestamp: timestamp);
+      final taskB = BackgroundTask(id: '1', name: 'test', processed: 5, total: 10, timestamp: timestamp);
 
       expect(taskA, equals(taskB));
       expect(taskA.hashCode, equals(taskB.hashCode));

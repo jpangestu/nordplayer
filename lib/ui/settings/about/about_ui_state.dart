@@ -39,13 +39,7 @@ class const AboutUiState({
           adaptiveBgThemeOverlay == other.adaptiveBgThemeOverlay;
 
   @override
-  int get hashCode => Object.hash(
-        packageInfo,
-        isLoading,
-        adaptiveBg,
-        adaptiveBgPanelBlur,
-        adaptiveBgThemeOverlay,
-      );
+  int get hashCode => Object.hash(packageInfo, isLoading, adaptiveBg, adaptiveBgPanelBlur, adaptiveBgThemeOverlay);
 
   @override
   String toString() => 'AboutUiState(appName: $appName, version: $version, isLoading: $isLoading)';

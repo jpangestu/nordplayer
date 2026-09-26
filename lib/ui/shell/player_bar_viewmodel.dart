@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/domain/models/time_label_type.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/settings_repository.dart';
+import 'package:nordplayer/domain/models/time_label_type.dart';
 import 'package:nordplayer/ui/shell/player_bar_ui_state.dart';
 
 /// ViewModel managing the player bar and playback controls.

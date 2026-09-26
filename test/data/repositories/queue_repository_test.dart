@@ -24,25 +24,21 @@ void main() {
       ),
     );
 
-    container = ProviderContainer(
-      overrides: [
-        appDatabaseProvider.overrideWithValue(db),
-      ],
-    );
+    container = ProviderContainer(overrides: [appDatabaseProvider.overrideWithValue(db)]);
 
     queueRepository = container.read(queueRepositoryProvider);
 
     // Seed test data
     await db.into(db.artists).insert(ArtistsCompanion.insert(id: const Value(1), name: 'Artist'));
-    await db.into(db.albums).insert(
-          AlbumsCompanion.insert(
-            id: const Value(1),
-            title: 'Album',
-            albumArtPath: const Value('/art/cover.jpg'),
-          ),
+    await db
+        .into(db.albums)
+        .insert(
+          AlbumsCompanion.insert(id: const Value(1), title: 'Album', albumArtPath: const Value('/art/cover.jpg')),
         );
 
-    final track1 = await db.into(db.tracks).insertReturning(
+    final track1 = await db
+        .into(db.tracks)
+        .insertReturning(
           TracksCompanion.insert(
             id: const Value(1),
             title: 'Track A',
@@ -54,7 +50,9 @@ void main() {
             fileSize: const Value(4000000),
           ),
         );
-    final track2 = await db.into(db.tracks).insertReturning(
+    final track2 = await db
+        .into(db.tracks)
+        .insertReturning(
           TracksCompanion.insert(
             id: const Value(2),
             title: 'Track B',
@@ -81,13 +79,7 @@ void main() {
 
   group('QueueRepository Tests', () {
     test('saveQueue and loadQueue round-trip restores queue and position', () async {
-      await queueRepository.saveQueue(
-        [trackA, trackB],
-        '/music/track_b.mp3',
-        const Duration(seconds: 45),
-        'album',
-        1,
-      );
+      await queueRepository.saveQueue([trackA, trackB], '/music/track_b.mp3', const Duration(seconds: 45), 'album', 1);
 
       final (queue, lastIndex, position, contextType, contextId) = await queueRepository.loadQueue();
 

@@ -116,10 +116,7 @@ class AppConfig({
     );
   }
 
-  factory AppConfig.fromJson(
-    Map<String, dynamic> json, {
-    void Function(String message)? onWarning,
-  }) {
+  factory AppConfig.fromJson(Map<String, dynamic> json, {void Function(String message)? onWarning}) {
     return AppConfig(
       trackDirectories: _parsetrackDirectories(json['trackDirectories'], onWarning: onWarning),
       watchTrackDirectories: _parseWatchTrackDirectories(json['watchTrackDirectories'], onWarning: onWarning),
@@ -354,22 +351,22 @@ class AppConfig({
 
   @override
   int get hashCode => Object.hash(
-        Object.hashAll(trackDirectories),
-        watchTrackDirectories,
-        Object.hashAll(artistDelimiters),
-        Object.hashAll(artistExclusions),
-        theme,
-        themeBrightness,
-        iconSet,
-        adaptiveBg,
-        adaptiveBgAlbumFit,
-        adaptiveBgAlbumBlur,
-        adaptiveBgPanelBlur,
-        adaptiveBgThemeOverlay,
-        fontFamily,
-        textScale,
-        Object.hashAll(librarySections),
-      );
+    Object.hashAll(trackDirectories),
+    watchTrackDirectories,
+    Object.hashAll(artistDelimiters),
+    Object.hashAll(artistExclusions),
+    theme,
+    themeBrightness,
+    iconSet,
+    adaptiveBg,
+    adaptiveBgAlbumFit,
+    adaptiveBgAlbumBlur,
+    adaptiveBgPanelBlur,
+    adaptiveBgThemeOverlay,
+    fontFamily,
+    textScale,
+    Object.hashAll(librarySections),
+  );
 
   @override
   String toString() {
@@ -409,4 +406,3 @@ class const LibrarySectionConfig({required final String id, required final bool 
     return 'LibrarySectionConfig{id: $id, visible: $isVisible}';
   }
 }
-

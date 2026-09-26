@@ -3,12 +3,10 @@ import 'dart:io' show File;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
-import 'package:nordplayer/utils/int_extension.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/ui/albums/album_detail_ui_state.dart';
 import 'package:nordplayer/ui/albums/album_detail_viewmodel.dart';
-import 'package:nordplayer/ui/tracks/widgets/track_context_menu.dart';
+import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
 import 'package:nordplayer/ui/shared/ui/animated_equalizer_icon.dart';
 import 'package:nordplayer/ui/shared/ui/app_icon.dart';
 import 'package:nordplayer/ui/shared/ui/base_button.dart';
@@ -18,6 +16,8 @@ import 'package:nordplayer/ui/shared/ui/frosted_glass.dart';
 import 'package:nordplayer/ui/shared/ui/select_popover.dart';
 import 'package:nordplayer/ui/shared/ui/sliver_resizable_table.dart';
 import 'package:nordplayer/ui/shared/ui/unimplemented.dart';
+import 'package:nordplayer/ui/tracks/widgets/track_context_menu.dart';
+import 'package:nordplayer/utils/int_extension.dart';
 
 /// Pure presentation View for the Album Detail screen, observing [AlbumDetailUiState].
 class AlbumDetailView extends ConsumerWidget {

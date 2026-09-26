@@ -72,9 +72,7 @@ void main() {
 
       expect(container.read(artistsViewModelProvider).isAdaptiveBg, isFalse);
 
-      fakeConfigRepo.updateConfig(
-        AppConfig(adaptiveBg: true, adaptiveBgPanelBlur: 15.0, adaptiveBgThemeOverlay: 0.8),
-      );
+      fakeConfigRepo.updateConfig(AppConfig(adaptiveBg: true, adaptiveBgPanelBlur: 15.0, adaptiveBgThemeOverlay: 0.8));
       await pumpEventQueue();
 
       final state = container.read(artistsViewModelProvider);
@@ -84,11 +82,7 @@ void main() {
     });
 
     test('ArtistsUiState copyWith and equality work correctly', () {
-      const state1 = ArtistsUiState(
-        artists: [Artist(id: 1, name: 'A')],
-        isLoading: false,
-        isAdaptiveBg: true,
-      );
+      const state1 = ArtistsUiState(artists: [Artist(id: 1, name: 'A')], isLoading: false, isAdaptiveBg: true);
       final state2 = state1.copyWith(isAdaptiveBg: false);
 
       expect(state1 == state2, isFalse);

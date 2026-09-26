@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/utils/logger.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/ui/settings/appearance/appearance_ui_state.dart';
+import 'package:nordplayer/utils/logger.dart';
 
 /// ViewModel managing state and operations for the Appearance settings screen.
 class AppearanceViewModel extends Notifier<AppearanceUiState> with LoggerMixin {
@@ -93,5 +93,4 @@ class AppearanceViewModel extends Notifier<AppearanceUiState> with LoggerMixin {
 }
 
 /// Riverpod provider exposing [AppearanceViewModel] and [AppearanceUiState].
-final appearanceViewModelProvider =
-    NotifierProvider<AppearanceViewModel, AppearanceUiState>(AppearanceViewModel.new);
+final appearanceViewModelProvider = NotifierProvider<AppearanceViewModel, AppearanceUiState>(AppearanceViewModel.new);

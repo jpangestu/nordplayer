@@ -1,14 +1,14 @@
 import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/ignored_paths_repository.dart';
 import 'package:nordplayer/data/repositories/indexer_repository.dart';
 import 'package:nordplayer/data/services/system/background_task_service.dart';
-import 'package:nordplayer/domain/models/track.dart';
 import 'package:nordplayer/domain/models/duplicate_group.dart';
+import 'package:nordplayer/domain/models/track.dart';
 import 'package:nordplayer/ui/settings/library_indexer/duplicates_ui_state.dart';
 import 'package:nordplayer/utils/logger.dart';
-
 
 /// ViewModel managing state and operations for Duplicate Tracks detection and resolution.
 class DuplicatesViewModel extends Notifier<DuplicatesUiState> with LoggerMixin {
@@ -28,7 +28,8 @@ class DuplicatesViewModel extends Notifier<DuplicatesUiState> with LoggerMixin {
     });
 
     ref.listen<List<BackgroundTask>>(backgroundTaskServiceProvider, (previous, next) {
-      final wasScanning = previous?.any(
+      final wasScanning =
+          previous?.any(
             (t) =>
                 (t.id == 'library-scan' || t.id == 'metadata-reindex' || t.id == 'fingerprint-generation') &&
                 t.status == BackgroundTaskStatus.running,
@@ -77,11 +78,7 @@ class DuplicatesViewModel extends Notifier<DuplicatesUiState> with LoggerMixin {
       );
     } catch (e, s) {
       log.e("Failed to load duplicates", error: e, stackTrace: s);
-      state = state.copyWith(
-        isLoading: false,
-        isScanningTriggered: false,
-        errorMessage: () => e.toString(),
-      );
+      state = state.copyWith(isLoading: false, isScanningTriggered: false, errorMessage: () => e.toString());
     }
   }
 
@@ -105,13 +102,9 @@ class DuplicatesViewModel extends Notifier<DuplicatesUiState> with LoggerMixin {
     final tracksToIgnore = group.tracks.where((t) => t.id != group.preferredTrack.id).toList();
     if (tracksToIgnore.isEmpty) return const [];
 
-    final optimisticIds = Set<int>.from(state.manuallyIgnoredTrackIds)
-      ..addAll(tracksToIgnore.map((t) => t.id));
+    final optimisticIds = Set<int>.from(state.manuallyIgnoredTrackIds)..addAll(tracksToIgnore.map((t) => t.id));
 
-    state = state.copyWith(
-      manuallyIgnoredTrackIds: optimisticIds,
-      isProcessing: true,
-    );
+    state = state.copyWith(manuallyIgnoredTrackIds: optimisticIds, isProcessing: true);
 
     try {
       await _indexerRepo.ignoreTracks(tracksToIgnore);
@@ -119,8 +112,7 @@ class DuplicatesViewModel extends Notifier<DuplicatesUiState> with LoggerMixin {
       return tracksToIgnore;
     } catch (e, s) {
       log.e("Failed to keep best copy for '${group.title}'", error: e, stackTrace: s);
-      final revertedIds = Set<int>.from(state.manuallyIgnoredTrackIds)
-        ..removeAll(tracksToIgnore.map((t) => t.id));
+      final revertedIds = Set<int>.from(state.manuallyIgnoredTrackIds)..removeAll(tracksToIgnore.map((t) => t.id));
       state = state.copyWith(manuallyIgnoredTrackIds: revertedIds);
       rethrow;
     } finally {
@@ -141,13 +133,9 @@ class DuplicatesViewModel extends Notifier<DuplicatesUiState> with LoggerMixin {
 
     if (tracksToIgnore.isEmpty) return const [];
 
-    final optimisticIds = Set<int>.from(state.manuallyIgnoredTrackIds)
-      ..addAll(tracksToIgnore.map((t) => t.id));
+    final optimisticIds = Set<int>.from(state.manuallyIgnoredTrackIds)..addAll(tracksToIgnore.map((t) => t.id));
 
-    state = state.copyWith(
-      manuallyIgnoredTrackIds: optimisticIds,
-      isProcessing: true,
-    );
+    state = state.copyWith(manuallyIgnoredTrackIds: optimisticIds, isProcessing: true);
 
     try {
       await _indexerRepo.ignoreTracks(tracksToIgnore);
@@ -155,8 +143,7 @@ class DuplicatesViewModel extends Notifier<DuplicatesUiState> with LoggerMixin {
       return tracksToIgnore;
     } catch (e, s) {
       log.e("Failed to keep all best copies", error: e, stackTrace: s);
-      final revertedIds = Set<int>.from(state.manuallyIgnoredTrackIds)
-        ..removeAll(tracksToIgnore.map((t) => t.id));
+      final revertedIds = Set<int>.from(state.manuallyIgnoredTrackIds)..removeAll(tracksToIgnore.map((t) => t.id));
       state = state.copyWith(manuallyIgnoredTrackIds: revertedIds);
       rethrow;
     } finally {
@@ -168,10 +155,7 @@ class DuplicatesViewModel extends Notifier<DuplicatesUiState> with LoggerMixin {
   Future<void> ignoreTrack(Track track) async {
     final optimisticIds = Set<int>.from(state.manuallyIgnoredTrackIds)..add(track.id);
 
-    state = state.copyWith(
-      manuallyIgnoredTrackIds: optimisticIds,
-      isProcessing: true,
-    );
+    state = state.copyWith(manuallyIgnoredTrackIds: optimisticIds, isProcessing: true);
 
     try {
       await _indexerRepo.ignoreTrack(track);
@@ -190,8 +174,7 @@ class DuplicatesViewModel extends Notifier<DuplicatesUiState> with LoggerMixin {
   Future<void> restoreTracks(List<Track> tracks) async {
     if (tracks.isEmpty) return;
 
-    final optimisticIds = Set<int>.from(state.manuallyIgnoredTrackIds)
-      ..removeAll(tracks.map((t) => t.id));
+    final optimisticIds = Set<int>.from(state.manuallyIgnoredTrackIds)..removeAll(tracks.map((t) => t.id));
     state = state.copyWith(manuallyIgnoredTrackIds: optimisticIds);
 
     try {
@@ -206,5 +189,6 @@ class DuplicatesViewModel extends Notifier<DuplicatesUiState> with LoggerMixin {
 }
 
 /// Riverpod provider exposing [DuplicatesViewModel] and [DuplicatesUiState].
-final duplicatesViewModelProvider =
-    NotifierProvider.autoDispose<DuplicatesViewModel, DuplicatesUiState>(DuplicatesViewModel.new);
+final duplicatesViewModelProvider = NotifierProvider.autoDispose<DuplicatesViewModel, DuplicatesUiState>(
+  DuplicatesViewModel.new,
+);

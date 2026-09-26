@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/utils/logger.dart';
 import 'package:nordplayer/data/repositories/album_repository.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/domain/models/artist.dart';
 import 'package:nordplayer/ui/albums/albums_ui_state.dart';
+import 'package:nordplayer/utils/logger.dart';
 
 /// ViewModel orchestrating state, repository subscriptions, and actions for the Albums overview screen.
 class AlbumsViewModel extends Notifier<AlbumsUiState> with LoggerMixin {

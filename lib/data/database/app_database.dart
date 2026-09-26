@@ -124,4 +124,3 @@ final appDatabaseProvider = Provider<AppDatabase>((ref) {
   ref.onDispose(() => database.close());
   return database;
 });
-

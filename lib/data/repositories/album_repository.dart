@@ -2,9 +2,9 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/data/database/app_database.dart' hide Album, Artist, Track;
 import 'package:nordplayer/data/database/db_mappers.dart';
-import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/artist.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
 
 /// Repository interface abstracting album queries and track associations.
 abstract interface class AlbumRepository {
@@ -29,14 +29,12 @@ class DriftAlbumRepository implements AlbumRepository {
 
   @override
   Stream<List<Album>> watchAlbums() {
-    final query = _db.select(_db.albums).join([
-      innerJoin(
-        _db.tracks,
-        _db.tracks.albumId.equalsExp(_db.albums.id) & _db.tracks.isMissing.equals(false),
-      ),
-    ])
-      ..groupBy([_db.albums.id])
-      ..orderBy([OrderingTerm.asc(_db.albums.title.lower())]);
+    final query =
+        _db.select(_db.albums).join([
+            innerJoin(_db.tracks, _db.tracks.albumId.equalsExp(_db.albums.id) & _db.tracks.isMissing.equals(false)),
+          ])
+          ..groupBy([_db.albums.id])
+          ..orderBy([OrderingTerm.asc(_db.albums.title.lower())]);
 
     return query.watch().map((rows) {
       return rows.map((row) => row.readTable(_db.albums).toDomain()).toList();
@@ -46,10 +44,7 @@ class DriftAlbumRepository implements AlbumRepository {
   @override
   Stream<AlbumWithTracks?> watchAlbumWithTracks(int albumId) {
     final query = _db.select(_db.albums).join([
-      leftOuterJoin(
-        _db.tracks,
-        _db.tracks.albumId.equalsExp(_db.albums.id) & _db.tracks.isMissing.equals(false),
-      ),
+      leftOuterJoin(_db.tracks, _db.tracks.albumId.equalsExp(_db.albums.id) & _db.tracks.isMissing.equals(false)),
       leftOuterJoin(_db.trackArtist, _db.trackArtist.trackId.equalsExp(_db.tracks.id)),
       leftOuterJoin(_db.artists, _db.artists.id.equalsExp(_db.trackArtist.artistId)),
     ])..where(_db.albums.id.equals(albumId));
@@ -82,38 +77,33 @@ class DriftAlbumRepository implements AlbumRepository {
         }
       }
 
-      return AlbumWithTracks(
-        album: album,
-        tracks: groupedTracks.values.toList(),
-        tracksLengthMs: tracksLengthMs,
-      );
+      return AlbumWithTracks(album: album, tracks: groupedTracks.values.toList(), tracksLengthMs: tracksLengthMs);
     });
   }
 
   @override
   Future<List<Artist>> getTrackArtists({required int albumId}) {
-    final query = _db.select(_db.artists, distinct: true).join([
-      innerJoin(_db.trackArtist, _db.trackArtist.artistId.equalsExp(_db.artists.id)),
-      innerJoin(_db.tracks, _db.tracks.id.equalsExp(_db.trackArtist.trackId)),
-    ])
-      ..where(_db.tracks.albumId.equals(albumId) & _db.tracks.isMissing.equals(false))
-      ..groupBy([_db.artists.id])
-      ..orderBy([OrderingTerm.asc(_db.artists.name.lower())]);
+    final query =
+        _db.select(_db.artists, distinct: true).join([
+            innerJoin(_db.trackArtist, _db.trackArtist.artistId.equalsExp(_db.artists.id)),
+            innerJoin(_db.tracks, _db.tracks.id.equalsExp(_db.trackArtist.trackId)),
+          ])
+          ..where(_db.tracks.albumId.equals(albumId) & _db.tracks.isMissing.equals(false))
+          ..groupBy([_db.artists.id])
+          ..orderBy([OrderingTerm.asc(_db.artists.name.lower())]);
 
     return query.get().then((rows) => rows.map((row) => row.readTable(_db.artists).toDomain()).toList());
   }
 
   @override
   Future<List<Album>> getRandomAlbums({int limitAmount = 10}) {
-    final query = _db.select(_db.albums).join([
-      innerJoin(
-        _db.tracks,
-        _db.tracks.albumId.equalsExp(_db.albums.id) & _db.tracks.isMissing.equals(false),
-      ),
-    ])
-      ..groupBy([_db.albums.id])
-      ..orderBy([OrderingTerm(expression: const CustomExpression('RANDOM()'))])
-      ..limit(limitAmount);
+    final query =
+        _db.select(_db.albums).join([
+            innerJoin(_db.tracks, _db.tracks.albumId.equalsExp(_db.albums.id) & _db.tracks.isMissing.equals(false)),
+          ])
+          ..groupBy([_db.albums.id])
+          ..orderBy([OrderingTerm(expression: const CustomExpression('RANDOM()'))])
+          ..limit(limitAmount);
 
     return query.get().then((rows) => rows.map((row) => row.readTable(_db.albums).toDomain()).toList());
   }

@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/utils/logger.dart';
 import 'package:nordplayer/data/repositories/artist_repository.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/ui/artists/artists_ui_state.dart';
+import 'package:nordplayer/utils/logger.dart';
 
 /// ViewModel orchestrating state, repository subscriptions, and actions for the Artists overview screen.
 class ArtistsViewModel extends Notifier<ArtistsUiState> with LoggerMixin {

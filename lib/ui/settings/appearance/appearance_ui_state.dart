@@ -57,17 +57,17 @@ class const AppearanceUiState({
 
   @override
   int get hashCode => Object.hash(
-        theme,
-        themeBrightness,
-        iconSet,
-        adaptiveBg,
-        adaptiveBgAlbumFit,
-        adaptiveBgAlbumBlur,
-        adaptiveBgPanelBlur,
-        adaptiveBgThemeOverlay,
-        fontFamily,
-        textScale,
-      );
+    theme,
+    themeBrightness,
+    iconSet,
+    adaptiveBg,
+    adaptiveBgAlbumFit,
+    adaptiveBgAlbumBlur,
+    adaptiveBgPanelBlur,
+    adaptiveBgThemeOverlay,
+    fontFamily,
+    textScale,
+  );
 
   @override
   String toString() =>

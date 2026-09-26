@@ -1,9 +1,9 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/data/database/app_database.dart' hide Track, Album, Artist;
-import 'package:nordplayer/utils/string_extension.dart';
 import 'package:nordplayer/data/database/db_mappers.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/utils/string_extension.dart';
 
 /// Repository interface abstracting player queue persistence, restoration,
 /// and active playback position tracking.
@@ -50,7 +50,8 @@ class DriftQueueRepository implements QueueRepository {
       final companions = <QueueEntriesCompanion>[];
 
       for (var i = 0; i < originalQueue.length; i++) {
-        final isPlaying = currentlyPlayedTrackPath != null &&
+        final isPlaying =
+            currentlyPlayedTrackPath != null &&
             originalQueue[i].track.filePath.normalizePath().toLowerCase() ==
                 currentlyPlayedTrackPath.normalizePath().toLowerCase();
 
@@ -75,10 +76,7 @@ class DriftQueueRepository implements QueueRepository {
   @override
   Future<(List<TrackWithArtists>, int, Duration, String, int?)> loadQueue() async {
     final query = _db.select(_db.queueEntries).join([
-      innerJoin(
-        _db.tracks,
-        _db.tracks.id.equalsExp(_db.queueEntries.trackId) & _db.tracks.isMissing.equals(false),
-      ),
+      innerJoin(_db.tracks, _db.tracks.id.equalsExp(_db.queueEntries.trackId) & _db.tracks.isMissing.equals(false)),
       leftOuterJoin(_db.albums, _db.albums.id.equalsExp(_db.tracks.albumId)),
       leftOuterJoin(_db.trackArtist, _db.trackArtist.trackId.equalsExp(_db.tracks.id)),
       leftOuterJoin(_db.artists, _db.artists.id.equalsExp(_db.trackArtist.artistId)),
@@ -110,11 +108,7 @@ class DriftQueueRepository implements QueueRepository {
       final key = entry.originalQueueIndex;
       if (!groupedQueue.containsKey(key)) {
         groupedQueue[key] = (
-          TrackWithArtists(
-            track: track.toDomain(),
-            album: album.toDomain(),
-            artists: [],
-          ),
+          TrackWithArtists(track: track.toDomain(), album: album.toDomain(), artists: []),
           entry.isCurrentlyPlaying,
           entry.resumePositionMs,
         );

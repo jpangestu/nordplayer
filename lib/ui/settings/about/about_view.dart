@@ -2,11 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/utils/string_extension.dart';
-import 'package:nordplayer/ui/settings/about/about_viewmodel.dart';
 import 'package:nordplayer/routing/router.dart';
+import 'package:nordplayer/ui/settings/about/about_viewmodel.dart';
 import 'package:nordplayer/ui/shared/ui/sections/section_container.dart';
 import 'package:nordplayer/ui/shared/ui/sections/section_divider.dart';
+import 'package:nordplayer/utils/string_extension.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AboutView extends ConsumerWidget {

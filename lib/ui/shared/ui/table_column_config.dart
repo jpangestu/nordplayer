@@ -36,11 +36,7 @@ class TableColumnConfig {
          'A TableColumnConfig must provide exactly one of either width or flex.',
        );
 
-  TableColumnConfig copyWith({
-    bool? isVisible,
-    double? width,
-    double? flex,
-  }) {
+  TableColumnConfig copyWith({bool? isVisible, double? width, double? flex}) {
     return TableColumnConfig(
       id: id,
       label: label,

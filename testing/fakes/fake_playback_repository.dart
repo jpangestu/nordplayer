@@ -58,8 +58,7 @@ class FakePlaybackRepository({
   int? get setPlaylistContextId => lastContextId;
   bool get clearedQueue => cleared;
 
-  final StreamController<TrackWithArtists?> _currentTrackController =
-      StreamController<TrackWithArtists?>.broadcast();
+  final StreamController<TrackWithArtists?> _currentTrackController = StreamController<TrackWithArtists?>.broadcast();
   final StreamController<int> _currentIndexController = StreamController<int>.broadcast();
   final StreamController<List<TrackWithArtists>> _queueController =
       StreamController<List<TrackWithArtists>>.broadcast();

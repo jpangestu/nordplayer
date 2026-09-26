@@ -130,10 +130,7 @@ void main() {
       expect(updated.isLoading, isFalse);
       expect(updated.albumWithTracks, isNotNull);
       // Default: sort by trackNumber ascending -> Apple (1), Zebra (2), Mango (3)
-      expect(
-        updated.albumWithTracks?.tracks.map((t) => t.track.title).toList(),
-        equals(['Apple', 'Zebra', 'Mango']),
-      );
+      expect(updated.albumWithTracks?.tracks.map((t) => t.track.title).toList(), equals(['Apple', 'Zebra', 'Mango']));
       expect(updated.trackCount, equals(3));
       expect(updated.totalDurationMs, equals(420000));
       expect(updated.isEmpty, isFalse);
@@ -143,9 +140,7 @@ void main() {
       final sub = container.listen(albumDetailViewModelProvider(albumId), (_, _) {});
       addTearDown(sub.close);
 
-      fakeAlbumRepo.emitAlbum(
-        AlbumWithTracks(album: album, tracks: [trackA, trackB, trackC], tracksLengthMs: 420000),
-      );
+      fakeAlbumRepo.emitAlbum(AlbumWithTracks(album: album, tracks: [trackA, trackB, trackC], tracksLengthMs: 420000));
       await pumpEventQueue();
 
       final vm = container.read(albumDetailViewModelProvider(albumId).notifier);
@@ -154,29 +149,20 @@ void main() {
       vm.setOrder(SortOrder.descending);
       var state = container.read(albumDetailViewModelProvider(albumId));
       expect(state.sortOrder, equals(SortOrder.descending));
-      expect(
-        state.albumWithTracks?.tracks.map((t) => t.track.title).toList(),
-        equals(['Mango', 'Zebra', 'Apple']),
-      );
+      expect(state.albumWithTracks?.tracks.map((t) => t.track.title).toList(), equals(['Mango', 'Zebra', 'Apple']));
 
       // Sort by title, ascending -> Apple, Mango, Zebra
       vm.setOrder(SortOrder.ascending);
       vm.setSort(AlbumTrackSort.title);
       state = container.read(albumDetailViewModelProvider(albumId));
       expect(state.sortCriteria, equals(AlbumTrackSort.title));
-      expect(
-        state.albumWithTracks?.tracks.map((t) => t.track.title).toList(),
-        equals(['Apple', 'Mango', 'Zebra']),
-      );
+      expect(state.albumWithTracks?.tracks.map((t) => t.track.title).toList(), equals(['Apple', 'Mango', 'Zebra']));
 
       // Sort by duration, ascending -> Mango (60s), Zebra (120s), Apple (240s)
       vm.setSort(AlbumTrackSort.duration);
       state = container.read(albumDetailViewModelProvider(albumId));
       expect(state.sortCriteria, equals(AlbumTrackSort.duration));
-      expect(
-        state.albumWithTracks?.tracks.map((t) => t.track.title).toList(),
-        equals(['Mango', 'Zebra', 'Apple']),
-      );
+      expect(state.albumWithTracks?.tracks.map((t) => t.track.title).toList(), equals(['Mango', 'Zebra', 'Apple']));
     });
 
     test('toggles favorites-only filter', () async {
@@ -225,9 +211,7 @@ void main() {
       final sub = container.listen(albumDetailViewModelProvider(albumId), (_, _) {});
       addTearDown(sub.close);
 
-      fakeAlbumRepo.emitAlbum(
-        AlbumWithTracks(album: album, tracks: [trackA, trackB, trackC], tracksLengthMs: 420000),
-      );
+      fakeAlbumRepo.emitAlbum(AlbumWithTracks(album: album, tracks: [trackA, trackB, trackC], tracksLengthMs: 420000));
       await pumpEventQueue();
 
       final vm = container.read(albumDetailViewModelProvider(albumId).notifier);
@@ -245,9 +229,7 @@ void main() {
 
       expect(container.read(sortedAlbumWithTracksProvider(albumId)).isLoading, isTrue);
 
-      fakeAlbumRepo.emitAlbum(
-        AlbumWithTracks(album: album, tracks: [trackA, trackB], tracksLengthMs: 360000),
-      );
+      fakeAlbumRepo.emitAlbum(AlbumWithTracks(album: album, tracks: [trackA, trackB], tracksLengthMs: 360000));
       await pumpEventQueue();
 
       final result = container.read(sortedAlbumWithTracksProvider(albumId));

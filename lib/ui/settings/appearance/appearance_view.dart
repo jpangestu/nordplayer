@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/ui/shared/themes/app_theme.dart';
 import 'package:nordplayer/ui/settings/appearance/appearance_viewmodel.dart';
 import 'package:nordplayer/ui/settings/widgets/choice_tile.dart';
 import 'package:nordplayer/ui/settings/widgets/slider_tile.dart';
+import 'package:nordplayer/ui/shared/themes/app_theme.dart';
 import 'package:nordplayer/ui/shared/ui/sections/section_container.dart';
 import 'package:nordplayer/ui/shared/ui/sections/section_divider.dart';
 import 'package:nordplayer/ui/shared/ui/sections/section_header.dart';
@@ -274,12 +274,7 @@ class AppearanceView extends ConsumerWidget {
                     return DropdownMenuEntry(
                       value: entry.key,
                       label: entry.value,
-                      style: MenuItemButton.styleFrom(
-                        textStyle: TextStyle(
-                          fontFamily: entry.key,
-                          fontSize: 16,
-                        ),
-                      ),
+                      style: MenuItemButton.styleFrom(textStyle: TextStyle(fontFamily: entry.key, fontSize: 16)),
                     );
                   }).toList(),
                   onSelected: (selectedFont) {

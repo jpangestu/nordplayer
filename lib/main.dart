@@ -1,20 +1,20 @@
-import 'package:nordplayer/data/services/audio/audio_handler.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:nordplayer/ui/shared/shortcuts.dart';
-import 'package:nordplayer/data/services/system/config_service.dart';
-import 'package:nordplayer/data/services/system/preference_service.dart';
-import 'package:nordplayer/utils/directory_helper.dart';
-import 'package:nordplayer/ui/shared/themes/active_theme_provider.dart';
-import 'package:nordplayer/routing/router.dart';
+import 'package:nordplayer/data/services/audio/audio_handler.dart';
 import 'package:nordplayer/data/services/audio/player_service.dart';
 import 'package:nordplayer/data/services/indexer/library_indexer.dart';
 import 'package:nordplayer/data/services/indexer/library_watcher.dart';
+import 'package:nordplayer/data/services/system/config_service.dart';
+import 'package:nordplayer/data/services/system/preference_service.dart';
+import 'package:nordplayer/routing/router.dart';
+import 'package:nordplayer/ui/shared/shortcuts.dart';
+import 'package:nordplayer/ui/shared/themes/active_theme_provider.dart';
 import 'package:nordplayer/ui/shared/ui/adaptive_scaffold.dart';
+import 'package:nordplayer/utils/directory_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -127,9 +127,7 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp> with WindowListen
       routerConfig: router,
       title: 'Nordplayer',
       theme: themeData,
-      localizationsDelegates: [
-        GlobalMaterialLocalizations.delegate,
-      ],
+      localizationsDelegates: [GlobalMaterialLocalizations.delegate],
       supportedLocales: const [Locale('en', 'US')],
       localeResolutionCallback: (locale, supportedLocales) {
         if (locale != null) {

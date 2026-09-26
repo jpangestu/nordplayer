@@ -20,11 +20,7 @@ void main() {
       ),
     );
 
-    container = ProviderContainer(
-      overrides: [
-        appDatabaseProvider.overrideWithValue(db),
-      ],
-    );
+    container = ProviderContainer(overrides: [appDatabaseProvider.overrideWithValue(db)]);
 
     repository = container.read(ignoredPathsRepositoryProvider);
   });

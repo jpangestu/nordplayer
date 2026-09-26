@@ -67,15 +67,15 @@ class const LibraryIndexerUiState({
 
   @override
   int get hashCode => Object.hash(
-        Object.hashAll(trackDirectories),
-        watchTrackDirectories,
-        Object.hashAll(artistDelimiters),
-        Object.hashAll(artistExclusions),
-        isScanning,
-        isReindexing,
-        isFingerprinting,
-        adaptiveBg,
-      );
+    Object.hashAll(trackDirectories),
+    watchTrackDirectories,
+    Object.hashAll(artistDelimiters),
+    Object.hashAll(artistExclusions),
+    isScanning,
+    isReindexing,
+    isFingerprinting,
+    adaptiveBg,
+  );
 
   @override
   String toString() =>

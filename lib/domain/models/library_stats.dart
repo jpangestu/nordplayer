@@ -12,15 +12,15 @@ class const LibraryStats({
   required final int totalPlaytimeMs,
 }) {
   const new empty()
-      : this(
-          trackCount: 0,
-          albumCount: 0,
-          artistCount: 0,
-          playlistCount: 0,
-          genreCount: 0,
-          totalSizeBytes: 0,
-          totalPlaytimeMs: 0,
-        );
+    : this(
+        trackCount: 0,
+        albumCount: 0,
+        artistCount: 0,
+        playlistCount: 0,
+        genreCount: 0,
+        totalSizeBytes: 0,
+        totalPlaytimeMs: 0,
+      );
 
   LibraryStats copyWith({
     int? trackCount,
@@ -56,15 +56,8 @@ class const LibraryStats({
           totalPlaytimeMs == other.totalPlaytimeMs;
 
   @override
-  int get hashCode => Object.hash(
-        trackCount,
-        albumCount,
-        artistCount,
-        playlistCount,
-        genreCount,
-        totalSizeBytes,
-        totalPlaytimeMs,
-      );
+  int get hashCode =>
+      Object.hash(trackCount, albumCount, artistCount, playlistCount, genreCount, totalSizeBytes, totalPlaytimeMs);
 
   @override
   String toString() {

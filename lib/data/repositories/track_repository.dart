@@ -5,7 +5,6 @@ import 'package:nordplayer/data/database/db_mappers.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/library_stats.dart';
 
-
 /// Repository interface abstracting audio track queries, library statistics,
 /// search, and maintenance operations.
 abstract interface class TrackRepository {
@@ -45,7 +44,6 @@ abstract interface class TrackRepository {
 
 /// Drift/SQLite implementation of [TrackRepository].
 class const DriftTrackRepository(final AppDatabase _db) implements TrackRepository {
-
   @override
   Stream<List<TrackWithArtists>> watchAllTracks() {
     final query = (_db.select(_db.tracks)..where((t) => t.isMissing.equals(false))).join([
@@ -97,10 +95,9 @@ class const DriftTrackRepository(final AppDatabase _db) implements TrackReposito
         (SELECT SUM(duration_ms) FROM tracks WHERE is_missing = 0) AS totalDuration
     ''';
 
-    return _db.customSelect(
-      query,
-      readsFrom: {_db.tracks, _db.albums, _db.artists, _db.playlists},
-    ).watchSingle().map((row) {
+    return _db.customSelect(query, readsFrom: {_db.tracks, _db.albums, _db.artists, _db.playlists}).watchSingle().map((
+      row,
+    ) {
       return LibraryStats(
         trackCount: row.read<int>('trackCount'),
         albumCount: row.read<int>('albumCount'),
@@ -117,16 +114,15 @@ class const DriftTrackRepository(final AppDatabase _db) implements TrackReposito
   Stream<List<TrackWithArtists>> searchTracks(String queryStr) {
     final searchTerm = '%$queryStr%';
 
-    final query = _db.select(_db.tracks).join([
-      leftOuterJoin(_db.albums, _db.albums.id.equalsExp(_db.tracks.albumId)),
-      leftOuterJoin(_db.trackArtist, _db.trackArtist.trackId.equalsExp(_db.tracks.id)),
-      leftOuterJoin(_db.artists, _db.artists.id.equalsExp(_db.trackArtist.artistId)),
-    ])..where(
-      (_db.tracks.title.like(searchTerm) |
-              _db.albums.title.like(searchTerm) |
-              _db.artists.name.like(searchTerm)) &
-          _db.tracks.isMissing.equals(false),
-    );
+    final query =
+        _db.select(_db.tracks).join([
+          leftOuterJoin(_db.albums, _db.albums.id.equalsExp(_db.tracks.albumId)),
+          leftOuterJoin(_db.trackArtist, _db.trackArtist.trackId.equalsExp(_db.tracks.id)),
+          leftOuterJoin(_db.artists, _db.artists.id.equalsExp(_db.trackArtist.artistId)),
+        ])..where(
+          (_db.tracks.title.like(searchTerm) | _db.albums.title.like(searchTerm) | _db.artists.name.like(searchTerm)) &
+              _db.tracks.isMissing.equals(false),
+        );
 
     query.orderBy([OrderingTerm.asc(_db.tracks.title.lower())]);
 
@@ -178,21 +174,22 @@ class const DriftTrackRepository(final AppDatabase _db) implements TrackReposito
     for (var i = 0; i < trackIds.length; i += batchSize) {
       final end = (i + batchSize < trackIds.length) ? i + batchSize : trackIds.length;
       final batch = trackIds.sublist(i, end);
-      await (_db.update(_db.tracks)..where((t) => t.id.isIn(batch)))
-          .write(const TracksCompanion(isMissing: Value(true)));
+      await (_db.update(
+        _db.tracks,
+      )..where((t) => t.id.isIn(batch))).write(const TracksCompanion(isMissing: Value(true)));
     }
   }
 
   @override
   Future<void> updateTrackFilePath(int trackId, String newFilePath) async {
-    await (_db.update(_db.tracks)..where((t) => t.id.equals(trackId)))
-        .write(TracksCompanion(filePath: Value(newFilePath), isMissing: const Value(false)));
+    await (_db.update(_db.tracks)..where((t) => t.id.equals(trackId))).write(
+      TracksCompanion(filePath: Value(newFilePath), isMissing: const Value(false)),
+    );
   }
 
   @override
   Future<void> updateTrackHash(int trackId, String newHash) async {
-    await (_db.update(_db.tracks)..where((t) => t.id.equals(trackId)))
-        .write(TracksCompanion(fileHash: Value(newHash)));
+    await (_db.update(_db.tracks)..where((t) => t.id.equals(trackId))).write(TracksCompanion(fileHash: Value(newHash)));
   }
 
   @override
@@ -210,11 +207,7 @@ class const DriftTrackRepository(final AppDatabase _db) implements TrackReposito
       final artist = row.readTableOrNull(_db.artists);
 
       if (!groupedTracks.containsKey(track.id)) {
-        groupedTracks[track.id] = TrackWithArtists(
-          track: track.toDomain(),
-          album: album.toDomain(),
-          artists: [],
-        );
+        groupedTracks[track.id] = TrackWithArtists(track: track.toDomain(), album: album.toDomain(), artists: []);
       }
 
       if (artist != null && artist.id != 0) {

@@ -5,15 +5,15 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/ui/settings/library_indexer/library_indexer_viewmodel.dart';
 import 'package:nordplayer/routing/router.dart';
+import 'package:nordplayer/ui/settings/library_indexer/library_indexer_viewmodel.dart';
+import 'package:nordplayer/ui/settings/widgets/section_navigation.dart';
+import 'package:nordplayer/ui/settings/widgets/settings_chip.dart';
 import 'package:nordplayer/ui/shared/ui/app_icon.dart';
 import 'package:nordplayer/ui/shared/ui/nord_snack_bar.dart';
 import 'package:nordplayer/ui/shared/ui/sections/section_container.dart';
 import 'package:nordplayer/ui/shared/ui/sections/section_divider.dart';
 import 'package:nordplayer/ui/shared/ui/sections/section_header.dart';
-import 'package:nordplayer/ui/settings/widgets/section_navigation.dart';
-import 'package:nordplayer/ui/settings/widgets/settings_chip.dart';
 
 class LibraryIndexerView extends ConsumerStatefulWidget {
   const LibraryIndexerView({super.key});

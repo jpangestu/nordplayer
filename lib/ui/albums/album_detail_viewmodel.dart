@@ -3,15 +3,15 @@ import 'dart:math' show Random;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/ui/shared/ui/selection_state.dart';
-import 'package:nordplayer/ui/shared/ui/table_column_config.dart';
-import 'package:nordplayer/utils/logger.dart';
 import 'package:nordplayer/data/repositories/album_repository.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/settings_repository.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/ui/albums/album_detail_ui_state.dart';
+import 'package:nordplayer/ui/shared/ui/selection_state.dart';
+import 'package:nordplayer/ui/shared/ui/table_column_config.dart';
+import 'package:nordplayer/utils/logger.dart';
 
 /// ViewModel orchestrating Album Detail state, sorting, filtering, columns, selection, and playback.
 class AlbumDetailViewModel(final int albumId) extends Notifier<AlbumDetailUiState> with LoggerMixin {

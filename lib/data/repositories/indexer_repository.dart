@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/domain/models/track.dart';
-import 'package:nordplayer/domain/models/duplicate_group.dart';
 import 'package:nordplayer/data/services/indexer/duplicate_detector.dart';
 import 'package:nordplayer/data/services/indexer/library_indexer.dart';
 import 'package:nordplayer/data/services/indexer/library_watcher.dart';
+import 'package:nordplayer/domain/models/duplicate_group.dart';
+import 'package:nordplayer/domain/models/track.dart';
 
 /// Repository interface abstracting library indexing operations, directory watching,
 /// and duplicate track detection.
@@ -16,7 +16,6 @@ abstract interface class IndexerRepository {
 
   /// Generates Chromaprint audio fingerprints for tracks lacking them.
   void generateMissingFingerprints();
-
 
   /// Marks all tracks residing within [directoryPath] as missing in the database.
   Future<void> markTracksInDirectoryAsMissing(String directoryPath);
@@ -41,11 +40,7 @@ class DefaultIndexerRepository implements IndexerRepository {
   final LibraryWatcher _watcher;
   final DuplicateDetector _duplicateDetector;
 
-  const DefaultIndexerRepository(
-    this._indexer,
-    this._watcher,
-    this._duplicateDetector,
-  );
+  const DefaultIndexerRepository(this._indexer, this._watcher, this._duplicateDetector);
 
   @override
   void scanLibrary() => _indexer.scanLibrary();
@@ -55,7 +50,6 @@ class DefaultIndexerRepository implements IndexerRepository {
 
   @override
   void generateMissingFingerprints() => _indexer.generateMissingFingerprints();
-
 
   @override
   Future<void> markTracksInDirectoryAsMissing(String directoryPath) {

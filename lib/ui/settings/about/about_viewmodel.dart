@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/utils/logger.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/ui/settings/about/about_ui_state.dart';
+import 'package:nordplayer/utils/logger.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 /// Provider for async PackageInfo platform retrieval.
@@ -38,8 +38,7 @@ class AboutViewModel extends Notifier<AboutUiState> with LoggerMixin {
 }
 
 /// Riverpod provider for [AboutViewModel] and [AboutUiState].
-final aboutViewModelProvider =
-    NotifierProvider<AboutViewModel, AboutUiState>(AboutViewModel.new);
+final aboutViewModelProvider = NotifierProvider<AboutViewModel, AboutUiState>(AboutViewModel.new);
 
 /// Provider loading licenses registered in the application.
 final packageLicensesProvider = FutureProvider<Map<String, List<LicenseEntry>>>((ref) async {

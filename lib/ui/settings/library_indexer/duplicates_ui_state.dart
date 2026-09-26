@@ -87,17 +87,17 @@ class const DuplicatesUiState({
 
   @override
   int get hashCode => Object.hash(
-        Object.hashAll(duplicateGroups),
-        Object.hashAll(manuallyIgnoredTrackIds),
-        isLoading,
-        isProcessing,
-        isScanning,
-        isScanningTriggered,
-        errorMessage,
-        adaptiveBg,
-        adaptiveBgPanelBlur,
-        adaptiveBgThemeOverlay,
-      );
+    Object.hashAll(duplicateGroups),
+    Object.hashAll(manuallyIgnoredTrackIds),
+    isLoading,
+    isProcessing,
+    isScanning,
+    isScanningTriggered,
+    errorMessage,
+    adaptiveBg,
+    adaptiveBgPanelBlur,
+    adaptiveBgThemeOverlay,
+  );
 
   @override
   String toString() =>

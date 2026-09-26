@@ -65,13 +65,7 @@ void main() {
       final t1 = _createDummyTrack(1, 'Song A', '/music/a.flac');
       final t2 = _createDummyTrack(2, 'Song A', '/music/a.mp3');
       fakeIndexerRepo.duplicateGroupsToReturn = [
-        DuplicateGroup(
-          title: 'Song A',
-          artist: 'Artist A',
-          album: 'Album A',
-          tracks: [t1, t2],
-          preferredTrack: t1,
-        ),
+        DuplicateGroup(title: 'Song A', artist: 'Artist A', album: 'Album A', tracks: [t1, t2], preferredTrack: t1),
       ];
 
       final vm = container.read(duplicatesViewModelProvider.notifier);

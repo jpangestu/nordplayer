@@ -2,10 +2,10 @@ import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/ui/shell/shell_viewmodel.dart';
 import 'package:nordplayer/routing/navigation_history.dart';
 import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
 import 'package:nordplayer/ui/shared/ui/app_icon.dart';
+import 'package:nordplayer/ui/shell/shell_viewmodel.dart';
 import 'package:nordplayer/ui/shell/widgets/nord_search_bar.dart';
 
 class NordAppBar extends ConsumerStatefulWidget implements PreferredSizeWidget {
@@ -44,9 +44,8 @@ class _NordplayerAppBarState extends ConsumerState<NordAppBar> {
                   tileMode: TileMode.mirror,
                 ),
                 child: Container(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.surfaceContainer.withValues(alpha: shellState.adaptiveBgThemeOverlay),
+                  color: Theme.of(context).colorScheme.surfaceContainer
+                      .withValues(alpha: shellState.adaptiveBgThemeOverlay),
                 ),
               ),
             )

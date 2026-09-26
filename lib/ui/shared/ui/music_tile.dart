@@ -3,10 +3,10 @@ import 'dart:io';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/utils/logger.dart';
 import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
 import 'package:nordplayer/ui/shared/ui/app_icon.dart';
 import 'package:nordplayer/ui/shared/ui/scrolling_text.dart';
+import 'package:nordplayer/utils/logger.dart';
 
 class MusicTile extends ConsumerStatefulWidget {
   const MusicTile({

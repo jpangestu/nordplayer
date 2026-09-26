@@ -10,14 +10,7 @@ class const Album({
   final String? albumArtPath,
   final int? albumArtistId,
 }) {
-  Album copyWith({
-    int? id,
-    String? title,
-    int? year,
-    String? albumArtist,
-    String? albumArtPath,
-    int? albumArtistId,
-  }) {
+  Album copyWith({int? id, String? title, int? year, String? albumArtist, String? albumArtPath, int? albumArtistId}) {
     return Album(
       id: id ?? this.id,
       title: title ?? this.title,

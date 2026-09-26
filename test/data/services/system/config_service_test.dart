@@ -1,4 +1,3 @@
-import 'package:nordplayer/config/app_config.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -6,6 +5,7 @@ import 'package:flutter/painting.dart' show BoxFit;
 import 'package:flutter/services.dart' show Brightness;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/services/system/config_service.dart';
 
 void main() {
@@ -86,9 +86,12 @@ void main() {
         'trackDirectories': 42, // integer instead of list
       };
 
-      final config = AppConfig.fromJson(corruptedJson, onWarning: (msg) {
-        warnings.add(msg);
-      });
+      final config = AppConfig.fromJson(
+        corruptedJson,
+        onWarning: (msg) {
+          warnings.add(msg);
+        },
+      );
 
       expect(config.theme, 'nord'); // default
       expect(config.themeBrightness, Brightness.dark); // default
@@ -122,10 +125,7 @@ void main() {
       expect(configFile.existsSync(), isTrue);
 
       // Verify a backup file was created
-      final backups = tempDir
-          .listSync()
-          .where((e) => e.path.contains('invalid_config.'))
-          .toList();
+      final backups = tempDir.listSync().where((e) => e.path.contains('invalid_config.')).toList();
       expect(backups.isNotEmpty, isTrue);
     });
   });

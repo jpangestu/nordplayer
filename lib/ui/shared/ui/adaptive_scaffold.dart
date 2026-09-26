@@ -1,9 +1,9 @@
-import 'package:nordplayer/data/services/audio/player_state.dart';
 import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:nordplayer/data/services/audio/player_state.dart';
 import 'package:nordplayer/data/services/system/config_service.dart';
 import 'package:nordplayer/data/services/system/preference_service.dart';
 
@@ -15,14 +15,11 @@ class AdaptiveScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Clear global image cache when adaptive background is turned off to release memory
-    ref.listen<bool>(
-      configServiceProvider.select((v) => v.adaptiveBg),
-      (previous, next) {
-        if (previous == true && next == false) {
-          PaintingBinding.instance.imageCache.clear();
-        }
-      },
-    );
+    ref.listen<bool>(configServiceProvider.select((v) => v.adaptiveBg), (previous, next) {
+      if (previous == true && next == false) {
+        PaintingBinding.instance.imageCache.clear();
+      }
+    });
 
     final adaptiveBg = ref.watch(configServiceProvider.select((v) => v.adaptiveBg));
     final blur = ref.watch(configServiceProvider.select((v) => v.adaptiveBgAlbumBlur));

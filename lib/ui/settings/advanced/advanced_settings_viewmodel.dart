@@ -31,9 +31,7 @@ class AdvancedSettingsViewModel extends Notifier<AdvancedSettingsUiState> with L
 
     ref.onDispose(configSub.cancel);
 
-    return AdvancedSettingsUiState(
-      adaptiveBg: configRepo.currentConfig.adaptiveBg,
-    );
+    return AdvancedSettingsUiState(adaptiveBg: configRepo.currentConfig.adaptiveBg);
   }
 
   /// Resets app preferences and JSON configuration back to initial defaults,
@@ -112,5 +110,6 @@ class AdvancedSettingsViewModel extends Notifier<AdvancedSettingsUiState> with L
 }
 
 /// Riverpod provider for [AdvancedSettingsViewModel] and [AdvancedSettingsUiState].
-final advancedSettingsViewModelProvider =
-    NotifierProvider<AdvancedSettingsViewModel, AdvancedSettingsUiState>(AdvancedSettingsViewModel.new);
+final advancedSettingsViewModelProvider = NotifierProvider<AdvancedSettingsViewModel, AdvancedSettingsUiState>(
+  AdvancedSettingsViewModel.new,
+);

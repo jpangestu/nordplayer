@@ -48,10 +48,7 @@ void main() {
     });
 
     testWidgets('renders library header and recently added tracks when data exists', (tester) async {
-      final tracks = [
-        createTrack(1, 'Recent Song 1', 'Artist One'),
-        createTrack(2, 'Recent Song 2', 'Artist Two'),
-      ];
+      final tracks = [createTrack(1, 'Recent Song 1', 'Artist One'), createTrack(2, 'Recent Song 2', 'Artist Two')];
       const stats = LibraryStats(
         trackCount: 2,
         artistCount: 2,

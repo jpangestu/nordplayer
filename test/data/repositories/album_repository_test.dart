@@ -19,11 +19,7 @@ void main() {
       ),
     );
 
-    container = ProviderContainer(
-      overrides: [
-        appDatabaseProvider.overrideWithValue(db),
-      ],
-    );
+    container = ProviderContainer(overrides: [appDatabaseProvider.overrideWithValue(db)]);
 
     albumRepository = container.read(albumRepositoryProvider);
 
@@ -31,23 +27,25 @@ void main() {
     await db.into(db.artists).insert(ArtistsCompanion.insert(id: const Value(1), name: 'Artist One'));
     await db.into(db.artists).insert(ArtistsCompanion.insert(id: const Value(2), name: 'Artist Two'));
 
-    await db.into(db.albums).insert(
+    await db
+        .into(db.albums)
+        .insert(
           AlbumsCompanion.insert(
             id: const Value(1),
             title: 'Beatles Album',
             albumArtPath: const Value('/art/beatles.jpg'),
           ),
         );
-    await db.into(db.albums).insert(
-          AlbumsCompanion.insert(
-            id: const Value(2),
-            title: 'Empty Album',
-            albumArtPath: const Value('/art/empty.jpg'),
-          ),
+    await db
+        .into(db.albums)
+        .insert(
+          AlbumsCompanion.insert(id: const Value(2), title: 'Empty Album', albumArtPath: const Value('/art/empty.jpg')),
         );
 
     // Tracks for Album 1
-    await db.into(db.tracks).insert(
+    await db
+        .into(db.tracks)
+        .insert(
           TracksCompanion.insert(
             id: const Value(1),
             title: 'Song A',
@@ -60,7 +58,9 @@ void main() {
             fileSize: const Value(4000000),
           ),
         );
-    await db.into(db.tracks).insert(
+    await db
+        .into(db.tracks)
+        .insert(
           TracksCompanion.insert(
             id: const Value(2),
             title: 'Song B',

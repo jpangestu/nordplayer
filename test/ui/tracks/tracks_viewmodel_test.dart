@@ -84,10 +84,7 @@ void main() {
 
     test('playAsPlaylist delegates to playTrack when only one track selected', () {
       final vm = container.read(tracksViewModelProvider.notifier);
-      final allTracks = [
-        _createTrack(1, 'Track 1', '/music/1.mp3'),
-        _createTrack(2, 'Track 2', '/music/2.mp3'),
-      ];
+      final allTracks = [_createTrack(1, 'Track 1', '/music/1.mp3'), _createTrack(2, 'Track 2', '/music/2.mp3')];
 
       vm.playAsPlaylist([allTracks[0]], clickedIndex: 0, allTracks: allTracks);
 

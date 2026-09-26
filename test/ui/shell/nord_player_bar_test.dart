@@ -49,11 +49,7 @@ void main() {
 
     testWidgets('renders current track title and artist when playing', (tester) async {
       final sampleTrack = createTrack(1, 'Bohemian Rhapsody', 'Queen');
-      final fakePlaybackRepo = FakePlaybackRepository(
-        initialQueue: [sampleTrack],
-        initialIndex: 0,
-        isPlaying: true,
-      );
+      final fakePlaybackRepo = FakePlaybackRepository(initialQueue: [sampleTrack], initialIndex: 0, isPlaying: true);
 
       await pumpTestApp(tester, child: const NordPlayerBar(), fakePlaybackRepo: fakePlaybackRepo);
 
@@ -63,21 +59,14 @@ void main() {
 
     testWidgets('tapping play/pause toggles playback state on repository', (tester) async {
       final sampleTrack = createTrack(1, 'Hotel California', 'Eagles');
-      final fakePlaybackRepo = FakePlaybackRepository(
-        initialQueue: [sampleTrack],
-        initialIndex: 0,
-        isPlaying: false,
-      );
+      final fakePlaybackRepo = FakePlaybackRepository(initialQueue: [sampleTrack], initialIndex: 0, isPlaying: false);
 
       await pumpTestApp(tester, child: const NordPlayerBar(), fakePlaybackRepo: fakePlaybackRepo);
 
       expect(fakePlaybackRepo.isPlaying, isFalse);
 
       // Tap play button inside Playback controls
-      final playButtonFinder = find.descendant(
-        of: find.byType(Playback),
-        matching: find.byType(GestureDetector),
-      );
+      final playButtonFinder = find.descendant(of: find.byType(Playback), matching: find.byType(GestureDetector));
       if (playButtonFinder.evaluate().isNotEmpty) {
         await tester.tap(playButtonFinder.first);
         await tester.pumpAndSettle();

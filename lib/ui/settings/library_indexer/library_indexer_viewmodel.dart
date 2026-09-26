@@ -33,9 +33,7 @@ class LibraryIndexerViewModel extends Notifier<LibraryIndexerUiState> with Logge
 
     ref.onDispose(configSub.cancel);
 
-    final isScanning = initialTasks.any(
-      (t) => t.id == 'library-scan' && t.status == BackgroundTaskStatus.running,
-    );
+    final isScanning = initialTasks.any((t) => t.id == 'library-scan' && t.status == BackgroundTaskStatus.running);
     final isReindexing = initialTasks.any(
       (t) => t.id == 'metadata-reindex' && t.status == BackgroundTaskStatus.running,
     );
@@ -56,12 +54,8 @@ class LibraryIndexerViewModel extends Notifier<LibraryIndexerUiState> with Logge
   }
 
   void _updateTaskStatuses(List<BackgroundTask> tasks) {
-    final isScanning = tasks.any(
-      (t) => t.id == 'library-scan' && t.status == BackgroundTaskStatus.running,
-    );
-    final isReindexing = tasks.any(
-      (t) => t.id == 'metadata-reindex' && t.status == BackgroundTaskStatus.running,
-    );
+    final isScanning = tasks.any((t) => t.id == 'library-scan' && t.status == BackgroundTaskStatus.running);
+    final isReindexing = tasks.any((t) => t.id == 'metadata-reindex' && t.status == BackgroundTaskStatus.running);
     final isFingerprinting = tasks.any(
       (t) => t.id == 'fingerprint-generation' && t.status == BackgroundTaskStatus.running,
     );
@@ -69,11 +63,7 @@ class LibraryIndexerViewModel extends Notifier<LibraryIndexerUiState> with Logge
     if (state.isScanning != isScanning ||
         state.isReindexing != isReindexing ||
         state.isFingerprinting != isFingerprinting) {
-      state = state.copyWith(
-        isScanning: isScanning,
-        isReindexing: isReindexing,
-        isFingerprinting: isFingerprinting,
-      );
+      state = state.copyWith(isScanning: isScanning, isReindexing: isReindexing, isFingerprinting: isFingerprinting);
     }
   }
 
@@ -131,9 +121,7 @@ class LibraryIndexerViewModel extends Notifier<LibraryIndexerUiState> with Logge
 
   /// Resets artist delimiters to defaults.
   void resetDelimitersToDefault() {
-    _configRepo.updateConfig(
-      _configRepo.currentConfig.copyWith(artistDelimiters: AppConfig.defaultArtistDelimiters),
-    );
+    _configRepo.updateConfig(_configRepo.currentConfig.copyWith(artistDelimiters: AppConfig.defaultArtistDelimiters));
   }
 
   /// Adds an artist exclusion if not already present (case-insensitive).
@@ -158,9 +146,7 @@ class LibraryIndexerViewModel extends Notifier<LibraryIndexerUiState> with Logge
 
   /// Resets artist exclusions to defaults.
   void resetExclusionsToDefault() {
-    _configRepo.updateConfig(
-      _configRepo.currentConfig.copyWith(artistExclusions: AppConfig.defaultArtistExclusions),
-    );
+    _configRepo.updateConfig(_configRepo.currentConfig.copyWith(artistExclusions: AppConfig.defaultArtistExclusions));
   }
 
   /// Toggles directory watching on or off.
@@ -200,5 +186,6 @@ class LibraryIndexerViewModel extends Notifier<LibraryIndexerUiState> with Logge
 }
 
 /// Riverpod provider for [LibraryIndexerViewModel] and [LibraryIndexerUiState].
-final libraryIndexerViewModelProvider =
-    NotifierProvider<LibraryIndexerViewModel, LibraryIndexerUiState>(LibraryIndexerViewModel.new);
+final libraryIndexerViewModelProvider = NotifierProvider<LibraryIndexerViewModel, LibraryIndexerUiState>(
+  LibraryIndexerViewModel.new,
+);

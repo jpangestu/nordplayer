@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:nordplayer/ui/shared/ui/table_column_config.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/ui/shared/ui/table_column_config.dart';
 
 /// Available sorting criteria for album tracks.
 enum AlbumTrackSort {

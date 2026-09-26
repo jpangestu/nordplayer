@@ -17,9 +17,7 @@ class SearchQueryNotifier extends Notifier<String> {
 }
 
 /// Provider for the active search query string.
-final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(
-  SearchQueryNotifier.new,
-);
+final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(SearchQueryNotifier.new);
 
 /// Reactive stream provider returning search results matching the active query.
 final searchResultsProvider = StreamProvider.autoDispose<List<TrackWithArtists>>((ref) {

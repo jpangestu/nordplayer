@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:nordplayer/ui/shared/ui/table_column_config.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/ui/shared/ui/table_column_config.dart';
 
 /// Immutable UI State snapshot for the Tracks screen.
 class const TracksUiState({
@@ -72,16 +72,16 @@ class const TracksUiState({
 
   @override
   int get hashCode => Object.hash(
-        Object.hashAll(tracks),
-        Object.hashAll(selectedIndices),
-        Object.hashAll(columns),
-        Object.hashAll(albumArtCovers),
-        isLoading,
-        activeTrackPath,
-        isAudioPlaying,
-        errorMessage,
-        isAdaptiveBg,
-        adaptiveBgPanelBlur,
-        adaptiveBgThemeOverlay,
-      );
+    Object.hashAll(tracks),
+    Object.hashAll(selectedIndices),
+    Object.hashAll(columns),
+    Object.hashAll(albumArtCovers),
+    isLoading,
+    activeTrackPath,
+    isAudioPlaying,
+    errorMessage,
+    isAdaptiveBg,
+    adaptiveBgPanelBlur,
+    adaptiveBgThemeOverlay,
+  );
 }

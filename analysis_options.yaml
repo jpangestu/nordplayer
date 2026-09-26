@@ -22,7 +22,7 @@ linter:
   # producing the lint.
   rules:
     - prefer_const_constructors
-    
+    - directives_ordering
 
 formatter:
   page_width: 120

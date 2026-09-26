@@ -1,9 +1,9 @@
-import 'package:nordplayer/config/app_config.dart';
 import 'dart:io';
 
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/database/app_database.dart';
 import 'package:nordplayer/data/services/indexer/library_indexer.dart';
 import 'package:nordplayer/data/services/indexer/library_watcher.dart';
@@ -17,11 +17,7 @@ void main() {
 
   setUp(() {
     db = AppDatabase(NativeDatabase.memory());
-    container = ProviderContainer(
-      overrides: [
-        appDatabaseProvider.overrideWithValue(db),
-      ],
-    );
+    container = ProviderContainer(overrides: [appDatabaseProvider.overrideWithValue(db)]);
     libraryIndexer = container.read(libraryIndexerProvider);
     tempDir1 = Directory.systemTemp.createTempSync('nordplayer_test_dir1_');
     tempDir2 = Directory.systemTemp.createTempSync('nordplayer_test_dir2_');
@@ -41,24 +37,15 @@ void main() {
       final watcher = LibraryWatcher(libraryIndexer);
 
       // Initially enable watching with tempDir1
-      final configWithDir1 = AppConfig(
-        trackDirectories: [tempDir1.path],
-        watchTrackDirectories: true,
-      );
+      final configWithDir1 = AppConfig(trackDirectories: [tempDir1.path], watchTrackDirectories: true);
       watcher.updateConfig(configWithDir1);
 
       // Now update config adding tempDir2 and removing tempDir1
-      final configWithDir2 = AppConfig(
-        trackDirectories: [tempDir2.path],
-        watchTrackDirectories: true,
-      );
+      final configWithDir2 = AppConfig(trackDirectories: [tempDir2.path], watchTrackDirectories: true);
       watcher.updateConfig(configWithDir2);
 
       // Now disable watching altogether
-      final configDisabled = AppConfig(
-        trackDirectories: [tempDir2.path],
-        watchTrackDirectories: false,
-      );
+      final configDisabled = AppConfig(trackDirectories: [tempDir2.path], watchTrackDirectories: false);
       watcher.updateConfig(configDisabled);
 
       watcher.dispose();

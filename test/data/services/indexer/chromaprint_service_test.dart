@@ -9,10 +9,7 @@ void main() {
   group('ChromaprintService & AudioFingerprintResult Tests', () {
     test('AudioFingerprintResult calculates fingerprintBytes accurately', () {
       final raw = [0x12345678, 0x9ABCDEF0];
-      final result = AudioFingerprintResult(
-        rawAudioFingerprint: raw,
-        durationMs: 3000,
-      );
+      final result = AudioFingerprintResult(rawAudioFingerprint: raw, durationMs: 3000);
 
       expect(result.durationMs, 3000);
       expect(result.rawAudioFingerprint, raw);

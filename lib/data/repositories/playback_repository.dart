@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart' hide Track;
-import 'package:nordplayer/ui/queue/queue_scroll_behavior.dart';
-import 'package:nordplayer/utils/logger.dart';
-import 'package:nordplayer/utils/debouncer.dart';
 import 'package:nordplayer/data/repositories/queue_repository.dart';
 import 'package:nordplayer/data/repositories/settings_repository.dart';
-import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/data/services/audio/audio_player_service.dart';
+import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/ui/queue/queue_scroll_behavior.dart';
+import 'package:nordplayer/utils/debouncer.dart';
+import 'package:nordplayer/utils/logger.dart';
 
 /// Repository interface abstracting active playback session, queue sequencing,
 /// shuffle/loop state, and persistent queue synchronization.

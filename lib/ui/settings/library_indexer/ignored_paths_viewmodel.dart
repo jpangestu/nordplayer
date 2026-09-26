@@ -1,11 +1,11 @@
 import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/data/database/app_database.dart' show IgnoredPath;
-import 'package:nordplayer/utils/logger.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/ignored_paths_repository.dart';
 import 'package:nordplayer/ui/settings/library_indexer/ignored_paths_ui_state.dart';
-
+import 'package:nordplayer/utils/logger.dart';
 
 /// ViewModel managing state and operations for Ignored File Paths.
 class IgnoredPathsViewModel extends Notifier<IgnoredPathsUiState> with LoggerMixin {
@@ -42,11 +42,7 @@ class IgnoredPathsViewModel extends Notifier<IgnoredPathsUiState> with LoggerMix
       final allPathSet = paths.map((p) => p.filePath).toSet();
       final retainedRestored = state.manuallyRestoredPaths.intersection(allPathSet);
 
-      state = state.copyWith(
-        paths: paths,
-        manuallyRestoredPaths: retainedRestored,
-        isLoading: false,
-      );
+      state = state.copyWith(paths: paths, manuallyRestoredPaths: retainedRestored, isLoading: false);
     } catch (e, s) {
       log.e("Failed to load ignored paths", error: e, stackTrace: s);
       state = state.copyWith(isLoading: false, errorMessage: () => e.toString());
@@ -107,5 +103,6 @@ class IgnoredPathsViewModel extends Notifier<IgnoredPathsUiState> with LoggerMix
 }
 
 /// Riverpod provider exposing [IgnoredPathsViewModel] and [IgnoredPathsUiState].
-final ignoredPathsViewModelProvider =
-    NotifierProvider.autoDispose<IgnoredPathsViewModel, IgnoredPathsUiState>(IgnoredPathsViewModel.new);
+final ignoredPathsViewModelProvider = NotifierProvider.autoDispose<IgnoredPathsViewModel, IgnoredPathsUiState>(
+  IgnoredPathsViewModel.new,
+);

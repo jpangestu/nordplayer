@@ -11,7 +11,6 @@ class const NordSidebarTheme({
   /// The dynamic text/icon color of the individual items
   final WidgetStateProperty<Color?>? itemForegroundColor,
 }) extends ThemeExtension<NordSidebarTheme> {
-
   @override
   NordSidebarTheme copyWith({
     Color? backgroundColor,

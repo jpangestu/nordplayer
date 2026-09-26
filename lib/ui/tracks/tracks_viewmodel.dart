@@ -1,14 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/ui/shared/ui/selection_state.dart';
-import 'package:nordplayer/ui/shared/ui/table_column_config.dart';
-import 'package:nordplayer/utils/logger.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/track_repository.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/ui/shared/ui/selection_state.dart';
+import 'package:nordplayer/ui/shared/ui/table_column_config.dart';
 import 'package:nordplayer/ui/tracks/tracks_ui_state.dart';
+import 'package:nordplayer/utils/logger.dart';
 
 /// Manages table column configurations (widths, ordering, visibility) for the all-tracks table.
 class TracksPageColumnsNotifier extends Notifier<List<TableColumnConfig>> {

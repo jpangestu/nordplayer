@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/utils/string_extension.dart';
 import 'package:nordplayer/ui/settings/about/about_viewmodel.dart';
 import 'package:nordplayer/ui/shared/ui/frosted_glass.dart';
+import 'package:nordplayer/utils/string_extension.dart';
 
 class LicensesView extends ConsumerWidget {
   const LicensesView({super.key});

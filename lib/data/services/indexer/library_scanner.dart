@@ -1,18 +1,18 @@
-import 'package:nordplayer/config/app_config.dart';
 import 'dart:io';
 import 'dart:isolate';
 
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/database/app_database.dart';
-import 'package:nordplayer/data/services/system/background_task_service.dart';
-import 'package:nordplayer/data/services/system/config_service.dart';
-import 'package:nordplayer/data/services/indexer/track_indexer.dart';
-import 'package:nordplayer/utils/logger.dart';
 import 'package:nordplayer/data/repositories/track_repository.dart';
 import 'package:nordplayer/data/services/audio/player_service.dart';
+import 'package:nordplayer/data/services/indexer/track_indexer.dart';
+import 'package:nordplayer/data/services/system/background_task_service.dart';
+import 'package:nordplayer/data/services/system/config_service.dart';
 import 'package:nordplayer/utils/audio_metadata_hasher.dart';
+import 'package:nordplayer/utils/logger.dart';
 import 'package:nordplayer/utils/string_extension.dart';
 
 class LibraryScanner(
@@ -181,9 +181,7 @@ class LibraryScanner(
               "Detected file moved/renamed: '${oldTrack.filePath}' -> '$newTrackPath'. Reconnecting database entry...",
             );
 
-            await _ref
-                .read(trackRepositoryProvider)
-                .updateTrackFilePath(oldTrack.id, newTrackPath);
+            await _ref.read(trackRepositoryProvider).updateTrackFilePath(oldTrack.id, newTrackPath);
 
             missingTracksMap.remove(oldTrack.id);
           } else {
@@ -245,9 +243,7 @@ class LibraryScanner(
 
         if (previouslyMissingIds.isNotEmpty) {
           for (var i = 0; i < previouslyMissingIds.length; i += batchSize) {
-            final end = (i + batchSize < previouslyMissingIds.length)
-                ? i + batchSize
-                : previouslyMissingIds.length;
+            final end = (i + batchSize < previouslyMissingIds.length) ? i + batchSize : previouslyMissingIds.length;
             final batch = previouslyMissingIds.sublist(i, end);
             await (_db.update(
               _db.tracks,

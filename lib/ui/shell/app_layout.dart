@@ -1,15 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
 import 'package:nordplayer/ui/queue/queue_view.dart';
+import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
+import 'package:nordplayer/ui/shared/ui/app_icon.dart';
 import 'package:nordplayer/ui/shell/shell_viewmodel.dart';
 import 'package:nordplayer/ui/shell/widgets/nord_app_bar.dart';
 import 'package:nordplayer/ui/shell/widgets/nord_sidebar.dart';
 import 'package:nordplayer/ui/shell/widgets/player_bar/nord_player_bar.dart';
 import 'package:nordplayer/ui/shell/widgets/search_result_panel.dart';
 import 'package:nordplayer/ui/shell/widgets/title_bar/nord_title_bar.dart';
-import 'package:nordplayer/ui/shared/ui/app_icon.dart';
 
 /// Top-level layout coordinating title bar, responsive sidebar, main route viewport,
 /// slide-out queue panel, and player bar.
@@ -26,31 +26,12 @@ class AppLayout extends ConsumerWidget {
 
     // IMPORTANT: Orders matters! Must align with routes/router.dart branches
     final destinations = <SidebarDestination>[
-      SidebarDestination(
-        icon: AppIcon(appIconSet.library),
-        label: const Text('Library'),
-      ),
-      SidebarDestination(
-        icon: AppIcon(appIconSet.tracks),
-        label: const Text('Tracks'),
-      ),
-      SidebarDestination(
-        icon: AppIcon(appIconSet.playlist),
-        label: const Text('Playlists'),
-      ),
-      SidebarDestination(
-        icon: AppIcon(appIconSet.albums),
-        label: const Text('Albums'),
-      ),
-      SidebarDestination(
-        icon: AppIcon(appIconSet.artists),
-        label: const Text('Artists'),
-      ),
-      SidebarDestination(
-        icon: AppIcon(appIconSet.settings),
-        label: const Text('Settings'),
-        alignToBottom: true,
-      ),
+      SidebarDestination(icon: AppIcon(appIconSet.library), label: const Text('Library')),
+      SidebarDestination(icon: AppIcon(appIconSet.tracks), label: const Text('Tracks')),
+      SidebarDestination(icon: AppIcon(appIconSet.playlist), label: const Text('Playlists')),
+      SidebarDestination(icon: AppIcon(appIconSet.albums), label: const Text('Albums')),
+      SidebarDestination(icon: AppIcon(appIconSet.artists), label: const Text('Artists')),
+      SidebarDestination(icon: AppIcon(appIconSet.settings), label: const Text('Settings'), alignToBottom: true),
     ];
 
     return LayoutBuilder(
@@ -69,8 +50,7 @@ class AppLayout extends ConsumerWidget {
                     Sidebar(
                       isExtended: shellState.isSidebarExtended,
                       destinations: destinations,
-                      onDestinationSelected: (index) =>
-                          navigationShell.goBranch(index, initialLocation: true),
+                      onDestinationSelected: (index) => navigationShell.goBranch(index, initialLocation: true),
                       selectedIndex: navigationShell.currentIndex,
                       leading: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -81,9 +61,7 @@ class AppLayout extends ConsumerWidget {
                           icon: shellState.isSidebarExtended
                               ? AppIcon(appIconSet.sidebarClose)
                               : AppIcon(appIconSet.sidebarOpen),
-                          style: IconButton.styleFrom(
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
+                          style: IconButton.styleFrom(tapTargetSize: MaterialTapTargetSize.shrinkWrap),
                         ),
                       ),
                       extendedWidth: 200,
@@ -103,26 +81,15 @@ class AppLayout extends ConsumerWidget {
                           children: [
                             navigationShell,
                             if (shellState.showQueue && !isWideScreen)
-                              const Positioned(
-                                top: 0,
-                                bottom: 0,
-                                right: 0,
-                                child: QueueView(),
-                              ),
+                              const Positioned(top: 0, bottom: 0, right: 0, child: QueueView()),
 
                             // Aligns perfectly under the AppBar's centerTitle
-                            const Align(
-                              alignment: Alignment.topCenter,
-                              child: SearchResultsDropdown(),
-                            ),
+                            const Align(alignment: Alignment.topCenter, child: SearchResultsDropdown()),
                           ],
                         ),
                       ),
                     ),
-                    if (shellState.showQueue && isWideScreen) ...[
-                      const AdaptiveVerticalDivider(),
-                      const QueueView(),
-                    ],
+                    if (shellState.showQueue && isWideScreen) ...[const AdaptiveVerticalDivider(), const QueueView()],
                   ],
                 ),
               ),
@@ -153,9 +120,7 @@ class AdaptiveDivider extends ConsumerWidget {
     return Divider(
       height: 2,
       thickness: 2,
-      color: overlay != 1.0
-          ? Colors.transparent
-          : Theme.of(context).colorScheme.outlineVariant,
+      color: overlay != 1.0 ? Colors.transparent : Theme.of(context).colorScheme.outlineVariant,
     );
   }
 }
@@ -170,19 +135,13 @@ class AdaptiveVerticalDivider extends ConsumerWidget {
     final overlay = ref.watch(shellViewModelProvider.select((s) => s.adaptiveBgThemeOverlay));
 
     if (!isAdaptiveBg) {
-      return VerticalDivider(
-        width: 2,
-        thickness: 2,
-        color: Theme.of(context).colorScheme.outlineVariant,
-      );
+      return VerticalDivider(width: 2, thickness: 2, color: Theme.of(context).colorScheme.outlineVariant);
     }
 
     return VerticalDivider(
       width: 2,
       thickness: 2,
-      color: overlay != 1.0
-          ? Colors.transparent
-          : Theme.of(context).colorScheme.outlineVariant,
+      color: overlay != 1.0 ? Colors.transparent : Theme.of(context).colorScheme.outlineVariant,
     );
   }
 }
