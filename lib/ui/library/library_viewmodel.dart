@@ -1,18 +1,18 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/data/services/system/config_service.dart';
-import 'package:nordplayer/utils/logger.dart';
+import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/repositories/album_repository.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/track_repository.dart';
 import 'package:nordplayer/domain/models/models.dart';
 import 'package:nordplayer/ui/library/library_ui_state.dart';
+import 'package:nordplayer/utils/logger.dart';
 
 /// ViewModel coordinating Library overview screen state, sections order, and playback.
 class LibraryViewModel extends Notifier<LibraryUiState> with LoggerMixin {
   PlaybackRepository get _playbackRepository => ref.read(playbackRepositoryProvider);
-  ConfigService get _configService => ref.read(configServiceProvider.notifier);
+  ConfigRepository get _configRepo => ref.read(configRepositoryProvider);
 
   @override
   LibraryUiState build() {
@@ -89,18 +89,13 @@ class LibraryViewModel extends Notifier<LibraryUiState> with LoggerMixin {
     final currentSections = List<LibrarySectionConfig>.from(state.sections);
     if (oldIndex < 0 || oldIndex >= currentSections.length) return;
 
-    var targetIndex = newIndex;
-    if (oldIndex < targetIndex) {
-      targetIndex -= 1;
-    }
-    targetIndex = targetIndex.clamp(0, currentSections.length - 1);
-
     final item = currentSections.removeAt(oldIndex);
+    final targetIndex = newIndex.clamp(0, currentSections.length);
     currentSections.insert(targetIndex, item);
 
-    log.i('Reordered library section "${item.id}" from $oldIndex to $newIndex');
+    log.i('Reordered library section "${item.id}" from $oldIndex to $targetIndex');
     state = state.copyWith(sections: currentSections);
-    _configService.updateConfig(librarySections: currentSections);
+    _configRepo.updateConfig(_configRepo.currentConfig.copyWith(librarySections: currentSections));
   }
 
   /// Toggles visibility for the section with [sectionId] and persists configuration.
@@ -115,7 +110,7 @@ class LibraryViewModel extends Notifier<LibraryUiState> with LoggerMixin {
 
     log.i('Toggled visibility for library section "$sectionId": ${updated.isVisible}');
     state = state.copyWith(sections: currentSections);
-    _configService.updateConfig(librarySections: currentSections);
+    _configRepo.updateConfig(_configRepo.currentConfig.copyWith(librarySections: currentSections));
   }
 
   /// Toggles expansion of the Recently Added section (show 6 vs all).

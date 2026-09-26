@@ -2,45 +2,35 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/services/system/background_task_service.dart';
-import 'package:nordplayer/data/services/system/config_service.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
+import 'package:nordplayer/data/repositories/indexer_repository.dart';
 import 'package:nordplayer/ui/settings/library_indexer/library_indexer_viewmodel.dart';
-import 'package:nordplayer/data/services/indexer/library_indexer.dart';
-import 'package:nordplayer/data/services/indexer/library_watcher.dart';
 
-class FakeLibraryIndexer extends Fake implements LibraryIndexer {
+class FakeIndexerRepository extends Fake implements IndexerRepository {
   bool scanCalled = false;
   bool reindexCalled = false;
   bool fingerprintCalled = false;
   String? lastMarkedMissingPath;
+  String? lastStoppedPath;
 
   @override
-  Future<void> scanLibrary({void Function(int processed, int total)? onProgress}) async {
-    scanCalled = true;
-  }
+  void scanLibrary() => scanCalled = true;
 
   @override
-  Future<void> reindexTracks({void Function(int processed, int total)? onProgress}) async {
-    reindexCalled = true;
-  }
+  void reindexTracks() => reindexCalled = true;
 
   @override
-  Future<void> generateMissingFingerprints({void Function(int processed, int total)? onProgress}) async {
-    fingerprintCalled = true;
-  }
+  void generateMissingFingerprints() => fingerprintCalled = true;
 
   @override
   Future<void> markTracksInDirectoryAsMissing(String path) async {
     lastMarkedMissingPath = path;
   }
-}
-
-class FakeLibraryWatcher extends Fake implements LibraryWatcher {
-  String? lastStoppedPath;
 
   @override
-  void stopWatchingTrackDirectory(String path) {
+  void stopWatchingDirectory(String path) {
     lastStoppedPath = path;
   }
 }
@@ -73,14 +63,12 @@ class FakeConfigRepository implements ConfigRepository {
 
 void main() {
   group('LibraryIndexerViewModel', () {
-    late FakeLibraryIndexer fakeIndexer;
-    late FakeLibraryWatcher fakeWatcher;
+    late FakeIndexerRepository fakeIndexerRepo;
     late FakeConfigRepository fakeConfigRepo;
     late ProviderContainer container;
 
     setUp(() {
-      fakeIndexer = FakeLibraryIndexer();
-      fakeWatcher = FakeLibraryWatcher();
+      fakeIndexerRepo = FakeIndexerRepository();
       fakeConfigRepo = FakeConfigRepository(
         AppConfig(
           trackDirectories: ['/music/folder1'],
@@ -94,8 +82,7 @@ void main() {
       container = ProviderContainer(
         overrides: [
           configRepositoryProvider.overrideWithValue(fakeConfigRepo),
-          libraryIndexerProvider.overrideWithValue(fakeIndexer),
-          libraryWatcherProvider.overrideWithValue(fakeWatcher),
+          indexerRepositoryProvider.overrideWithValue(fakeIndexerRepo),
         ],
       );
     });
@@ -123,7 +110,7 @@ void main() {
       final changed = await vm.addFolders(['/music/folder2', '/music/folder1']);
 
       expect(changed, isTrue);
-      expect(fakeIndexer.scanCalled, isTrue);
+      expect(fakeIndexerRepo.scanCalled, isTrue);
 
       await Future<void>.delayed(Duration.zero);
       final state = container.read(libraryIndexerViewModelProvider);
@@ -135,7 +122,7 @@ void main() {
       final changed = await vm.addFolders(['/music/folder1']);
 
       expect(changed, isFalse);
-      expect(fakeIndexer.scanCalled, isFalse);
+      expect(fakeIndexerRepo.scanCalled, isFalse);
     });
 
     test('removeFolder updates config, stops watcher, and marks tracks missing', () async {
@@ -145,8 +132,8 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       final state = container.read(libraryIndexerViewModelProvider);
       expect(state.trackDirectories, isEmpty);
-      expect(fakeWatcher.lastStoppedPath, equals('/music/folder1'));
-      expect(fakeIndexer.lastMarkedMissingPath, equals('/music/folder1'));
+      expect(fakeIndexerRepo.lastStoppedPath, equals('/music/folder1'));
+      expect(fakeIndexerRepo.lastMarkedMissingPath, equals('/music/folder1'));
     });
 
     test('addDelimiter adds unique delimiter and rejects duplicate or empty', () async {
@@ -217,13 +204,13 @@ void main() {
       final vm = container.read(libraryIndexerViewModelProvider.notifier);
 
       expect(vm.triggerScan(), isTrue);
-      expect(fakeIndexer.scanCalled, isTrue);
+      expect(fakeIndexerRepo.scanCalled, isTrue);
 
       expect(vm.triggerReindex(), isTrue);
-      expect(fakeIndexer.reindexCalled, isTrue);
+      expect(fakeIndexerRepo.reindexCalled, isTrue);
 
       expect(vm.triggerFingerprint(), isTrue);
-      expect(fakeIndexer.fingerprintCalled, isTrue);
+      expect(fakeIndexerRepo.fingerprintCalled, isTrue);
     });
 
     test('state reflects active background tasks and blocks triggers', () {
@@ -238,9 +225,9 @@ void main() {
       expect(scanningState.isAnyTaskRunning, isTrue);
 
       // Triggers should be rejected when a task is running
-      fakeIndexer.scanCalled = false;
+      fakeIndexerRepo.scanCalled = false;
       expect(vm.triggerScan(), isFalse);
-      expect(fakeIndexer.scanCalled, isFalse);
+      expect(fakeIndexerRepo.scanCalled, isFalse);
 
       bgService.completeTask('library-scan');
       final completedState = container.read(libraryIndexerViewModelProvider);

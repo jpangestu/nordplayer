@@ -6,7 +6,6 @@ import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/playlist_repository.dart';
 import 'package:nordplayer/domain/models/models.dart';
 import 'package:nordplayer/ui/playlists/playlists_ui_state.dart';
-import 'package:nordplayer/data/services/audio/player_state.dart';
 
 /// ViewModel orchestrating playlists overview state, mutations, and playback dispatch.
 class PlaylistsViewModel extends Notifier<PlaylistsUiState> with LoggerMixin {
@@ -21,7 +20,7 @@ class PlaylistsViewModel extends Notifier<PlaylistsUiState> with LoggerMixin {
 
     final initialConfig = configRepo.currentConfig;
     final initialActiveId = playbackRepo.playbackContextType == 'playlist' ? playbackRepo.playbackContextId : null;
-    final initialAlbumArt = ref.read(current5TracksAlbumArtInQueueProvider);
+    final initialAlbumArt = playbackRepo.currentQueueCoverArt;
 
     final playlistsSub = playlistRepo.watchAllPlaylists().listen(
       (playlists) {
@@ -54,7 +53,7 @@ class PlaylistsViewModel extends Notifier<PlaylistsUiState> with LoggerMixin {
       );
     });
 
-    ref.listen(current5TracksAlbumArtInQueueProvider, (_, next) {
+    final queueArtSub = playbackRepo.watchQueueCoverArt().listen((next) {
       if (!listEquals(state.activePlaylistAlbumArt, next)) {
         state = state.copyWith(activePlaylistAlbumArt: next);
       }
@@ -65,6 +64,7 @@ class PlaylistsViewModel extends Notifier<PlaylistsUiState> with LoggerMixin {
       playingSub.cancel();
       currentTrackSub.cancel();
       configSub.cancel();
+      queueArtSub.cancel();
     });
 
     return PlaylistsUiState(

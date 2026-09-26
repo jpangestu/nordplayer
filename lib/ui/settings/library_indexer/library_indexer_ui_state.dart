@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:nordplayer/data/services/system/config_service.dart';
+import 'package:nordplayer/config/app_config.dart';
 
 /// Immutable UI state representing the Library Indexer and multi-artist parsing configuration.
 class const LibraryIndexerUiState({

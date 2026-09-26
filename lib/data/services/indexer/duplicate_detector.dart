@@ -9,6 +9,7 @@ import 'package:nordplayer/utils/string_extension.dart';
 import 'package:nordplayer/data/database/db_mappers.dart';
 import 'package:nordplayer/domain/models/models.dart';
 import 'package:nordplayer/data/services/indexer/chromaprint_service.dart';
+export 'package:nordplayer/domain/models/duplicate_group.dart';
 
 final duplicateDetectorProvider = Provider<DuplicateDetector>((ref) {
   final db = ref.watch(appDatabaseProvider);
@@ -19,14 +20,6 @@ class DuplicateCandidate({
   required final Track track,
   required final String artistName,
   required final String albumTitle,
-});
-
-class DuplicateGroup({
-  required final String title,
-  required final String artist,
-  required final String album,
-  required final List<Track> tracks,
-  required final Track preferredTrack,
 });
 
 class DuplicateDetector(final AppDatabase _db) with LoggerMixin {

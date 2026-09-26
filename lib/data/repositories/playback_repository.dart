@@ -34,6 +34,8 @@ abstract interface class PlaybackRepository {
   Stream<Duration> watchPosition();
   Stream<Duration> watchDuration();
   Stream<double> watchVolume();
+  List<String> get currentQueueCoverArt;
+  Stream<List<String>> watchQueueCoverArt();
 
   Future<void> setPlaylist({
     required List<TrackWithArtists> tracksToPlay,
@@ -91,6 +93,7 @@ class DefaultPlaybackRepository(
   final StreamController<List<TrackWithArtists>> _queueController =
       StreamController<List<TrackWithArtists>>.broadcast();
   final StreamController<int> _currentIndexController = StreamController<int>.broadcast();
+  final StreamController<List<String>> _queueCoverArtController = StreamController<List<String>>.broadcast();
 
   this {
     _init();
@@ -104,6 +107,7 @@ class DefaultPlaybackRepository(
         _currentTrackController.add(current);
         _queueController.add(currentQueue);
         _currentIndexController.add(playlist.index);
+        _queueCoverArtController.add(_calculateCoverArt(playlist));
 
         if (_isRestoringQueue || playlist.medias.isEmpty) return;
         _queueSaveDebouncer(() => _saveQueueState(newIndex: playlist.index));
@@ -142,6 +146,38 @@ class DefaultPlaybackRepository(
 
   @override
   int get currentIndex => _playerService.playlist.index;
+
+  @override
+  List<String> get currentQueueCoverArt => _calculateCoverArt(_playerService.playlist);
+
+  @override
+  Stream<List<String>> watchQueueCoverArt() => _queueCoverArtController.stream;
+
+  List<String> _calculateCoverArt(Playlist playlist) {
+    if (playlist.medias.isEmpty || playlist.index < 0) return const [];
+
+    final int currIndex = playlist.index;
+    final List<Media> allMedia = playlist.medias;
+    final List<String> stackCovers = [];
+    final loop = loopMode;
+
+    for (int count = 0; count < allMedia.length && stackCovers.length < 5; count++) {
+      int targetIndex = currIndex + count;
+      if (targetIndex >= allMedia.length) {
+        if (loop == PlaylistMode.loop) {
+          targetIndex = targetIndex % allMedia.length;
+        } else {
+          break;
+        }
+      }
+      final track = allMedia[targetIndex].extras?['data'] as TrackWithArtists?;
+      if (track != null) {
+        final artPath = (track.album.albumArtPath?.isNotEmpty ?? false) ? track.album.albumArtPath! : '';
+        stackCovers.add(artPath);
+      }
+    }
+    return stackCovers;
+  }
 
   @override
   bool get isPlaying => _playerService.isPlaying;
@@ -437,6 +473,7 @@ class DefaultPlaybackRepository(
     _currentTrackController.close();
     _currentIndexController.close();
     _queueController.close();
+    _queueCoverArtController.close();
   }
 }
 

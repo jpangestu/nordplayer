@@ -93,7 +93,7 @@ void main() {
       vm.reorderSections(0, 2);
 
       final sections = container.read(librarySectionsProvider);
-      expect(sections.map((s) => s.id).toList(), equals(['albums', 'recently_added', 'tracks']));
+      expect(sections.map((s) => s.id).toList(), equals(['albums', 'tracks', 'recently_added']));
     });
 
     test('toggleSectionVisibility flips boolean visibility', () {

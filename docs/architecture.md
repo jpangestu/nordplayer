@@ -1,54 +1,68 @@
 # Architecture
 
-NordPlayer follows a **Feature-Sliced MVVM** pattern with **Domain Services**, using **Riverpod** for state management and **Drift (SQLite)** for persistence.
+NordPlayer follows the [Flutter architecture guidelines](https://docs.flutter.dev/app-architecture), implementing a **Layered Architecture** (UI, Domain, Data) with **feature-sliced MVVM**.
 
 ```mermaid
-graph LR
-    View[Views / Widgets] -->|User Events| VM[ViewModels]
-    VM -->|Data Operations| Repo[Repositories]
-    VM -->|Playback / Scan| Services[Services]
-    Repo -->|CRUD| DB[(SQLite / Drift)]
-    Repo -.->|Streams| VM
-    VM -.->|State| View
+graph TD
+    subgraph UI Layer
+        View[Views] <-->|User Events / UIState| VM[ViewModels]
+    end
+
+    subgraph Domain Layer
+        UC["Use Cases (Optional)"]
+    end
+
+    subgraph Data Layer
+        Repo[Repositories]
+        DB[(Drift SQLite)]
+        Services[Audio Engine / Services]
+    end
+
+    VM <-->|Commands & Queries / Domain Streams| Repo
+    VM -.->|Complex Logic| UC
+    UC -.->|Coordinate| Repo
+    Repo -->|CRUD| DB
+    Repo -->|Audio & System APIs| Services
 ```
 
-### Core Layers
+## Core Layers
 
-- **View**: Flutter UI widgets. Observes state and forwards user gestures to ViewModels. Contains zero business logic and makes no direct database queries.
-- **ViewModel**: Pure presentation state and user action orchestrator. UI-agnostic (no `BuildContext` or Flutter widgets). Calls Repositories and Services.
-- **Repository**: Single source of truth for persistent data access. Co-locates abstract interfaces with Drift SQLite implementations in the same file.
-- **Services**: Autonomous, long-running engines that execute independently of UI screen lifecycles (such as audio playback and background library indexing).
-- **Core**: Shared, cross-cutting infrastructure including the local database setup, domain entities, low-level system services, design tokens, and utility helpers.
-- **Routes**: Declarative routing configuration and navigation history.
+- **UI (`lib/ui/`)**: Feature-sliced presentation. Views render `UIState` and forward user actions to ViewModels (MVVM). Shared widgets, themes, and shortcuts live in `ui/shared/`.
+- **Domain (`lib/domain/`)**: Pure Dart entities (`models/`) and business rules (`use_cases/`) with zero Flutter, database, or external dependencies.
+- **Data (`lib/data/`)**: Single source of truth. Repositories coordinate domain data, `database/` manages Drift SQLite persistence, and `services/` drive platform APIs and background engines.
 
 ---
 
-## Folder Structure
+## Directory Layout
 
 ```
-lib/
-├── core/                  # App-wide foundational infrastructure
-│   ├── database/          # SQLite database schema, connections, and migrations
-│   ├── models/            # Shared domain entities and data models
-│   ├── shortcuts/         # Keyboard shortcuts and input bindings
-│   ├── system/            # System-level services (config, preferences, logging, platform)
-│   ├── theme/             # Design system, palettes, typography, and icon sets
-│   └── utils/             # Pure helper functions and extension methods
-├── data/
-│   └── repositories/      # Persistent data access interfaces and SQLite implementations
-├── features/              # Feature-sliced presentation layer
-│   └── <feature>/         # Feature views, viewmodels, and feature-specific widgets
-├── routes/                # Navigation setup, route definitions, and history tracking
-├── services/              # Autonomous, long-running domain engines
-│   ├── audio/             # Playback engine, audio output, and hardware media session
-│   └── indexer/           # Filesystem scanning, metadata parsing, and directory watching
-└── widgets/               # Reusable, application-wide UI components
+nordplayer/
+├── lib/
+│   ├── config/              # App configuration & config.json schema
+│   ├── data/                # Persistence, repositories, and platform services
+│   │   ├── database/        # Drift SQLite schema, db instance, and mappers
+│   │   ├── repositories/    # Repository interfaces & implementations
+│   │   └── services/        # Audio engine, indexer, storage, system services
+│   ├── domain/              # Pure domain entities and use cases
+│   │   ├── models/          # Pure entities (Track, Album, Playlist, etc.)
+│   │   └── use_cases/       # Cross-repository interactors
+│   ├── routing/             # GoRouter setup & navigation history
+│   ├── ui/                  # Presentation layer
+│   │   ├── <feature>/       # Views, viewmodels, UI states, child widgets
+│   │   └── shared/          # Reusable widgets, themes, shortcuts
+│   ├── utils/               # Extensions, logger, Result monad
+│   └── main.dart            # App entry point
+├── testing/fakes/           # Reusable in-memory test doubles
+└── test/                    # Mirrored test suite (ui/, data/, domain/, etc.)
 ```
 
 ---
 
 ## Key Invariants
 
-1. **Unidirectional Flow**: `View` $\rightarrow$ `ViewModel` $\rightarrow$ `Repository` / `Service` $\rightarrow$ `Database`. Lower layers never import upper layers.
-2. **Pure ViewModels**: Zero Flutter widgets or `BuildContext` inside ViewModels.
-3. **Direct Imports**: No internal barrel files (`repositories.dart`, `services.dart`). Import concrete files directly.
+1. **Unidirectional Data Flow**: User actions flow down (`View` $\rightarrow$ `ViewModel` $\rightarrow$ `Repository` / `UseCase`); State flows up via immutable `UIState` and domain streams.
+2. **Pure ViewModels**: Zero `BuildContext` or Flutter widget imports inside ViewModels.
+3. **Pure Domain**: `lib/domain/` has zero framework, database, or Flutter dependencies — strictly pure Dart.
+4. **Domain Isolation**: Drift database records never leak past `lib/data/`; repositories always return pure domain models.
+5. **Single Immutable UIState**: Each view observes a single immutable state class updated via `copyWith`.
+6. **Mirrored Testing**: `test/` mirrors `lib/` 1:1; reusable doubles live in `testing/fakes/`.

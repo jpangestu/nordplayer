@@ -1,21 +1,19 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/data/services/system/background_task_service.dart';
-import 'package:nordplayer/utils/logger.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/ignored_paths_repository.dart';
+import 'package:nordplayer/data/repositories/indexer_repository.dart';
+import 'package:nordplayer/data/services/system/background_task_service.dart';
 import 'package:nordplayer/domain/models/models.dart';
 import 'package:nordplayer/ui/settings/library_indexer/duplicates_ui_state.dart';
-import 'package:nordplayer/data/services/indexer/duplicate_detector.dart';
-import 'package:nordplayer/data/services/indexer/library_indexer.dart';
+import 'package:nordplayer/utils/logger.dart';
 
-export 'package:nordplayer/data/services/indexer/duplicate_detector.dart' show DuplicateGroup;
+export 'package:nordplayer/domain/models/duplicate_group.dart' show DuplicateGroup;
 
 /// ViewModel managing state and operations for Duplicate Tracks detection and resolution.
 class DuplicatesViewModel extends Notifier<DuplicatesUiState> with LoggerMixin {
-  DuplicateDetector get _detector => ref.read(duplicateDetectorProvider);
   IgnoredPathsRepository get _ignoredRepo => ref.read(ignoredPathsRepositoryProvider);
-  LibraryIndexer get _libraryIndexer => ref.read(libraryIndexerProvider);
+  IndexerRepository get _indexerRepo => ref.read(indexerRepositoryProvider);
 
   @override
   DuplicatesUiState build() {
@@ -66,7 +64,7 @@ class DuplicatesViewModel extends Notifier<DuplicatesUiState> with LoggerMixin {
   Future<void> loadDuplicates() async {
     state = state.copyWith(isLoading: true, errorMessage: () => null);
     try {
-      final groups = await _detector.findDuplicates();
+      final groups = await _indexerRepo.findDuplicates();
       // Clean up manuallyIgnoredTrackIds for IDs no longer in duplicate groups
       final allTrackIds = groups.expand((g) => g.tracks).map((t) => t.id).toSet();
       final retainedIgnoredIds = state.manuallyIgnoredTrackIds.intersection(allTrackIds);
@@ -92,14 +90,14 @@ class DuplicatesViewModel extends Notifier<DuplicatesUiState> with LoggerMixin {
     final tasks = ref.read(backgroundTaskServiceProvider);
     final isAnyRunning = tasks.any((t) => t.status == BackgroundTaskStatus.running);
     if (!isAnyRunning) {
-      _libraryIndexer.generateMissingFingerprints();
+      _indexerRepo.generateMissingFingerprints();
     }
   }
 
   /// Triggers a library scan to discover new duplicates.
   void triggerRescan() {
     state = state.copyWith(isScanningTriggered: true);
-    _libraryIndexer.scanLibrary();
+    _indexerRepo.scanLibrary();
   }
 
   /// Keeps the best copy of a duplicate group and ignores the rest.
@@ -116,7 +114,7 @@ class DuplicatesViewModel extends Notifier<DuplicatesUiState> with LoggerMixin {
     );
 
     try {
-      await _detector.ignorePaths(tracksToIgnore);
+      await _indexerRepo.ignoreTracks(tracksToIgnore);
       ref.invalidate(ignoredPathsProvider);
       return tracksToIgnore;
     } catch (e, s) {
@@ -152,7 +150,7 @@ class DuplicatesViewModel extends Notifier<DuplicatesUiState> with LoggerMixin {
     );
 
     try {
-      await _detector.ignorePaths(tracksToIgnore);
+      await _indexerRepo.ignoreTracks(tracksToIgnore);
       ref.invalidate(ignoredPathsProvider);
       return tracksToIgnore;
     } catch (e, s) {
@@ -176,7 +174,7 @@ class DuplicatesViewModel extends Notifier<DuplicatesUiState> with LoggerMixin {
     );
 
     try {
-      await _detector.ignorePath(track);
+      await _indexerRepo.ignoreTrack(track);
       ref.invalidate(ignoredPathsProvider);
     } catch (e, s) {
       log.e("Failed to ignore track '${track.title}'", error: e, stackTrace: s);

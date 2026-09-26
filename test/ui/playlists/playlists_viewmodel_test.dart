@@ -88,6 +88,12 @@ class FakePlaybackRepositoryForPlaylists extends Fake implements PlaybackReposit
   Stream<List<TrackWithArtists>> watchQueue() => Stream.value(const []);
 
   @override
+  List<String> get currentQueueCoverArt => const [];
+
+  @override
+  Stream<List<String>> watchQueueCoverArt() => Stream.value(const []);
+
+  @override
   Future<void> setPlaylist({
     required List<TrackWithArtists> tracksToPlay,
     required int initialIndex,

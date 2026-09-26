@@ -1,17 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/data/services/system/background_task_service.dart';
-import 'package:nordplayer/data/services/system/config_service.dart';
-import 'package:nordplayer/utils/logger.dart';
+import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
+import 'package:nordplayer/data/repositories/indexer_repository.dart';
+import 'package:nordplayer/data/services/system/background_task_service.dart';
 import 'package:nordplayer/ui/settings/library_indexer/library_indexer_ui_state.dart';
-import 'package:nordplayer/data/services/indexer/library_indexer.dart';
-import 'package:nordplayer/data/services/indexer/library_watcher.dart';
+import 'package:nordplayer/utils/logger.dart';
 
 /// ViewModel managing state and operations for the Library Indexer settings screen.
 class LibraryIndexerViewModel extends Notifier<LibraryIndexerUiState> with LoggerMixin {
   ConfigRepository get _configRepo => ref.read(configRepositoryProvider);
-  LibraryWatcher get _libraryWatcher => ref.read(libraryWatcherProvider);
-  LibraryIndexer get _libraryIndexer => ref.read(libraryIndexerProvider);
+  IndexerRepository get _indexerRepo => ref.read(indexerRepositoryProvider);
 
   @override
   LibraryIndexerUiState build() {
@@ -108,8 +106,8 @@ class LibraryIndexerViewModel extends Notifier<LibraryIndexerUiState> with Logge
     final updatedPaths = List<String>.from(currentPaths)..remove(path);
     _configRepo.updateConfig(_configRepo.currentConfig.copyWith(trackDirectories: updatedPaths));
 
-    _libraryWatcher.stopWatchingTrackDirectory(path);
-    await _libraryIndexer.markTracksInDirectoryAsMissing(path);
+    _indexerRepo.stopWatchingDirectory(path);
+    await _indexerRepo.markTracksInDirectoryAsMissing(path);
   }
 
   /// Adds a new artist delimiter if not already present.
@@ -176,7 +174,7 @@ class LibraryIndexerViewModel extends Notifier<LibraryIndexerUiState> with Logge
       log.w("Cannot trigger scan: background task already running.");
       return false;
     }
-    _libraryIndexer.scanLibrary();
+    _indexerRepo.scanLibrary();
     return true;
   }
 
@@ -186,7 +184,7 @@ class LibraryIndexerViewModel extends Notifier<LibraryIndexerUiState> with Logge
       log.w("Cannot trigger reindex: background task already running.");
       return false;
     }
-    _libraryIndexer.reindexTracks();
+    _indexerRepo.reindexTracks();
     return true;
   }
 
@@ -196,7 +194,7 @@ class LibraryIndexerViewModel extends Notifier<LibraryIndexerUiState> with Logge
       log.w("Cannot trigger fingerprint generation: background task already running.");
       return false;
     }
-    _libraryIndexer.generateMissingFingerprints();
+    _indexerRepo.generateMissingFingerprints();
     return true;
   }
 }

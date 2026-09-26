@@ -4,18 +4,19 @@ import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/data/database/app_database.dart';
+import 'package:nordplayer/data/repositories/config_repository.dart';
+import 'package:nordplayer/data/repositories/indexer_repository.dart';
+import 'package:nordplayer/data/repositories/playback_repository.dart';
+import 'package:nordplayer/data/repositories/settings_repository.dart';
 import 'package:nordplayer/data/services/system/config_service.dart';
 import 'package:nordplayer/data/services/system/preference_service.dart';
 import 'package:nordplayer/ui/settings/advanced/advanced_settings_viewmodel.dart';
-import 'package:nordplayer/data/services/indexer/library_indexer.dart';
-import 'package:nordplayer/data/services/indexer/library_watcher.dart';
-import 'package:nordplayer/data/services/audio/player_service.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
-class FakePlayerService extends Fake implements PlayerService {
+class FakePlaybackRepositoryForAdvancedSettings extends Fake implements PlaybackRepository {
   bool clearedQueue = false;
 
   @override
@@ -24,9 +25,10 @@ class FakePlayerService extends Fake implements PlayerService {
   }
 }
 
-class FakeLibraryIndexer extends Fake implements LibraryIndexer {
+class FakeIndexerRepositoryForAdvancedSettings extends Fake implements IndexerRepository {
   bool scanCalled = false;
   final List<String> missingDirectories = [];
+  final List<String> stoppedDirectories = [];
 
   @override
   Future<void> scanLibrary({void Function(int processed, int total)? onProgress}) async {
@@ -37,13 +39,9 @@ class FakeLibraryIndexer extends Fake implements LibraryIndexer {
   Future<void> markTracksInDirectoryAsMissing(String path) async {
     missingDirectories.add(path);
   }
-}
-
-class FakeLibraryWatcher extends Fake implements LibraryWatcher {
-  final List<String> stoppedDirectories = [];
 
   @override
-  void stopWatchingTrackDirectory(String path) {
+  void stopWatchingDirectory(String path) {
     stoppedDirectories.add(path);
   }
 }
@@ -53,9 +51,8 @@ void main() {
 
   group('AdvancedSettingsViewModel', () {
     late AppDatabase db;
-    late FakePlayerService fakePlayer;
-    late FakeLibraryIndexer fakeIndexer;
-    late FakeLibraryWatcher fakeWatcher;
+    late FakePlaybackRepositoryForAdvancedSettings fakePlaybackRepo;
+    late FakeIndexerRepositoryForAdvancedSettings fakeIndexerRepo;
     late Directory tempDir;
     late ProviderContainer container;
 
@@ -72,17 +69,15 @@ void main() {
       );
 
       db = AppDatabase(NativeDatabase.memory());
-      fakePlayer = FakePlayerService();
-      fakeIndexer = FakeLibraryIndexer();
-      fakeWatcher = FakeLibraryWatcher();
+      fakePlaybackRepo = FakePlaybackRepositoryForAdvancedSettings();
+      fakeIndexerRepo = FakeIndexerRepositoryForAdvancedSettings();
       tempDir = await Directory.systemTemp.createTemp('nordplayer_test_cache_');
 
       container = ProviderContainer(
         overrides: [
           appDatabaseProvider.overrideWithValue(db),
-          playerServiceProvider.overrideWithValue(fakePlayer),
-          libraryIndexerProvider.overrideWithValue(fakeIndexer),
-          libraryWatcherProvider.overrideWithValue(fakeWatcher),
+          playbackRepositoryProvider.overrideWithValue(fakePlaybackRepo),
+          indexerRepositoryProvider.overrideWithValue(fakeIndexerRepo),
           sharedPrefsProvider.overrideWithValue(prefs),
           initialAppConfigProvider.overrideWithValue(
             AppConfig(
@@ -115,19 +110,19 @@ void main() {
       await vm.resetSettingsToDefault();
 
       expect(container.read(advancedSettingsViewModelProvider).isProcessing, isFalse);
-      expect(fakePlayer.clearedQueue, isTrue);
-      expect(fakeWatcher.stoppedDirectories, containsAll(['/music/dir1', '/music/dir2']));
-      expect(fakeIndexer.missingDirectories, containsAll(['/music/dir1', '/music/dir2']));
+      expect(fakePlaybackRepo.clearedQueue, isTrue);
+      expect(fakeIndexerRepo.stoppedDirectories, containsAll(['/music/dir1', '/music/dir2']));
+      expect(fakeIndexerRepo.missingDirectories, containsAll(['/music/dir1', '/music/dir2']));
 
       // Config should be reset to default
-      final config = container.read(configServiceProvider);
+      final config = container.read(configRepositoryProvider).currentConfig;
       expect(config.trackDirectories, isEmpty);
       expect(config.theme, equals('nord'));
 
       // Preferences should be reset to default
-      final prefs = container.read(preferenceServiceProvider);
-      expect(prefs.isMuted, isFalse);
-      expect(prefs.volume, equals(100.0));
+      final settings = container.read(settingsRepositoryProvider).currentSettings;
+      expect(settings.isMuted, isFalse);
+      expect(settings.volume, equals(100.0));
 
       // Orphaned artists should be cleaned up
       final remainingArtists = await db.select(db.artists).get();
@@ -146,9 +141,9 @@ void main() {
       await vm.wipeAllLibraryData(getCacheDir: () async => tempDir);
 
       expect(container.read(advancedSettingsViewModelProvider).isProcessing, isFalse);
-      expect(fakePlayer.clearedQueue, isTrue);
+      expect(fakePlaybackRepo.clearedQueue, isTrue);
       expect(await artDir.exists(), isFalse);
-      expect(fakeIndexer.scanCalled, isTrue);
+      expect(fakeIndexerRepo.scanCalled, isTrue);
     });
   });
 }

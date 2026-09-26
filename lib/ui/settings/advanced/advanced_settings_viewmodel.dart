@@ -1,16 +1,15 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/data/services/system/config_service.dart';
-import 'package:nordplayer/utils/logger.dart';
+import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/repositories/album_repository.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
+import 'package:nordplayer/data/repositories/indexer_repository.dart';
+import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/settings_repository.dart';
 import 'package:nordplayer/data/repositories/track_repository.dart';
 import 'package:nordplayer/ui/settings/advanced/advanced_settings_ui_state.dart';
-import 'package:nordplayer/data/services/audio/player_service.dart';
-import 'package:nordplayer/data/services/indexer/library_indexer.dart';
-import 'package:nordplayer/data/services/indexer/library_watcher.dart';
+import 'package:nordplayer/utils/logger.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -18,9 +17,8 @@ import 'package:path_provider/path_provider.dart';
 class AdvancedSettingsViewModel extends Notifier<AdvancedSettingsUiState> with LoggerMixin {
   ConfigRepository get _configRepo => ref.read(configRepositoryProvider);
   SettingsRepository get _settingsRepo => ref.read(settingsRepositoryProvider);
-  PlayerService get _playerService => ref.read(playerServiceProvider);
-  LibraryWatcher get _libraryWatcher => ref.read(libraryWatcherProvider);
-  LibraryIndexer get _libraryIndexer => ref.read(libraryIndexerProvider);
+  PlaybackRepository get _playbackRepo => ref.read(playbackRepositoryProvider);
+  IndexerRepository get _indexerRepo => ref.read(indexerRepositoryProvider);
   TrackRepository get _trackRepo => ref.read(trackRepositoryProvider);
 
   @override
@@ -48,7 +46,7 @@ class AdvancedSettingsViewModel extends Notifier<AdvancedSettingsUiState> with L
       final oldPaths = _configRepo.currentConfig.trackDirectories;
 
       // Stop playback and clear the active queue
-      await _playerService.clearQueue();
+      await _playbackRepo.clearQueue();
 
       // Reset JSON configs and SharedPreferences
       _configRepo.updateConfig(AppConfig());
@@ -56,8 +54,8 @@ class AdvancedSettingsViewModel extends Notifier<AdvancedSettingsUiState> with L
 
       // Stop watching old directories and mark their tracks as missing
       for (final path in oldPaths) {
-        _libraryWatcher.stopWatchingTrackDirectory(path);
-        await _libraryIndexer.markTracksInDirectoryAsMissing(path);
+        _indexerRepo.stopWatchingDirectory(path);
+        await _indexerRepo.markTracksInDirectoryAsMissing(path);
       }
 
       // Clean up orphaned artists and albums
@@ -76,7 +74,7 @@ class AdvancedSettingsViewModel extends Notifier<AdvancedSettingsUiState> with L
 
     try {
       // Stop playback and clear the queue
-      await _playerService.clearQueue();
+      await _playbackRepo.clearQueue();
 
       // Clear all database tables
       await _trackRepo.clearAllData();
@@ -96,13 +94,13 @@ class AdvancedSettingsViewModel extends Notifier<AdvancedSettingsUiState> with L
 
       // Invalidate cached repository data
       ref.invalidate(randomAlbumsProvider);
-      ref.invalidate(libraryIndexerProvider);
+      ref.invalidate(indexerRepositoryProvider);
 
       // Rescan if directories are configured
       final currentPaths = _configRepo.currentConfig.trackDirectories;
       if (currentPaths.isNotEmpty) {
         log.i("Existing track directories found. Triggering library rescan...");
-        _libraryIndexer.scanLibrary();
+        _indexerRepo.scanLibrary();
       }
     } catch (e, s) {
       log.e("Error during full data wipe", error: e, stackTrace: s);
