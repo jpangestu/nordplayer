@@ -341,5 +341,63 @@ void main() {
         expect(manager.activeIndex, equals(0)); // Clamped to valid range
       });
     });
+
+    group('caching & performance', () {
+      test('displayQueue is cached across multiple reads and invalidated upon mutation', () {
+        manager.setQueue(tracks, initialIndex: 0);
+        final firstRead = manager.displayQueue;
+        final secondRead = manager.displayQueue;
+
+        expect(identical(firstRead, secondRead), isTrue);
+
+        // Mutating queue via playNext should invalidate cache
+        manager.playNext([_makeTrack(5, 'Echo')]);
+        final afterPlayNext = manager.displayQueue;
+        expect(identical(firstRead, afterPlayNext), isFalse);
+        expect(identical(afterPlayNext, manager.displayQueue), isTrue);
+
+        // Reordering invalidates cache
+        manager.reorder(0, 1);
+        final afterReorder = manager.displayQueue;
+        expect(identical(afterPlayNext, afterReorder), isFalse);
+        expect(identical(afterReorder, manager.displayQueue), isTrue);
+
+        // Toggling shuffle invalidates cache
+        manager.toggleShuffle();
+        final afterShuffle = manager.displayQueue;
+        expect(identical(afterReorder, afterShuffle), isFalse);
+        expect(identical(afterShuffle, manager.displayQueue), isTrue);
+
+        // Sorting invalidates cache
+        manager.sortBy(QueueSortCriteria.title);
+        final afterSort = manager.displayQueue;
+        expect(identical(afterShuffle, afterSort), isFalse);
+        expect(identical(afterSort, manager.displayQueue), isTrue);
+
+        // Removing item invalidates cache
+        manager.removeAt(0);
+        final afterRemove = manager.displayQueue;
+        expect(identical(afterSort, afterRemove), isFalse);
+        expect(identical(afterRemove, manager.displayQueue), isTrue);
+
+        // Clear invalidates cache
+        manager.clear();
+        final afterClear = manager.displayQueue;
+        expect(identical(afterRemove, afterClear), isFalse);
+        expect(identical(afterClear, manager.displayQueue), isTrue);
+      });
+
+      test('upcomingCoverArts reads correctly from cached queue', () {
+        final customTracks = [
+          _makeTrack(1, 'Track 1', albumArt: 'art1.jpg'),
+          _makeTrack(2, 'Track 2', albumArt: 'art2.jpg'),
+          _makeTrack(3, 'Track 3', albumArt: 'art3.jpg'),
+        ];
+        manager.setQueue(customTracks, initialIndex: 0);
+
+        final arts = manager.upcomingCoverArts;
+        expect(arts, equals(['art1.jpg', 'art2.jpg', 'art3.jpg']));
+      });
+    });
   });
 }

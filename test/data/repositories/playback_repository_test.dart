@@ -505,5 +505,62 @@ void main() {
       final emittedQueue = await repo.watchQueue().first;
       expect(emittedQueue.length, equals(2));
     });
+
+    test('watchQueueState emits latest QueueState and derived streams deduplicate redundant events', () async {
+      final stateEvents = <QueueState>[];
+      final trackEvents = <TrackWithArtists?>[];
+      final indexEvents = <int>[];
+      final queueEvents = <List<TrackWithArtists>>[];
+
+      final stateSub = repo.watchQueueState().listen(stateEvents.add);
+      final trackSub = repo.watchCurrentTrack().listen(trackEvents.add);
+      final indexSub = repo.watchCurrentIndex().listen(indexEvents.add);
+      final queueSub = repo.watchQueue().listen(queueEvents.add);
+
+      // Initial empty state emitted on subscription
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(stateEvents.length, equals(1));
+      expect(trackEvents.length, equals(1));
+      expect(indexEvents.length, equals(1));
+      expect(queueEvents.length, equals(1));
+
+      // 1. setPlaylist emits new state to all streams
+      await repo.setPlaylist(
+        tracksToPlay: [track1, track2],
+        initialIndex: 0,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      expect(stateEvents.length, equals(2));
+      expect(trackEvents.length, equals(2));
+      expect(indexEvents.length, equals(2)); // from -1 to 0
+      expect(queueEvents.length, equals(2)); // from [] to [track1, track2]
+      expect(trackEvents.last?.track.id, equals(track1.track.id));
+
+      // 2. addToQueue modifies queue, but active track and active index do NOT change.
+      // watchCurrentTrack and watchCurrentIndex must NOT emit redundant duplicate events!
+      await repo.addToQueue([track3]);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      expect(stateEvents.length, equals(3));
+      expect(queueEvents.length, equals(3)); // Queue changed from 2 to 3 items
+      expect(trackEvents.length, equals(2)); // Deduplicated! Still track1
+      expect(indexEvents.length, equals(2)); // Deduplicated! Still index 0
+
+      // 3. Advancing to next track changes active track and index, but queue list does NOT change!
+      // watchQueue must NOT emit redundant duplicate list event!
+      await repo.next();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      expect(stateEvents.length, equals(4));
+      expect(trackEvents.length, equals(3)); // Emits track2
+      expect(indexEvents.length, equals(3)); // Emits index 1
+      expect(queueEvents.length, equals(3)); // Deduplicated! Queue content is still [track1, track2, track3]
+
+      await stateSub.cancel();
+      await trackSub.cancel();
+      await indexSub.cancel();
+      await queueSub.cancel();
+    });
   });
 }

@@ -219,17 +219,24 @@ class FakePlaybackRepository({
   void emitQueue(List<TrackWithArtists> queue) {
     _currentQueue = List.from(queue);
     _queueController.add(_currentQueue);
+    _queueStateController.add(queueState);
   }
 
   void emitCurrentTrack(TrackWithArtists? track) {
     _overrideCurrentTrack = track;
     _hasOverrideCurrentTrack = true;
     _currentTrackController.add(track);
+    _queueStateController.add(queueState);
   }
 
   void emitCurrentIndex(int index) {
     _currentIndex = index;
     _currentIndexController.add(index);
+    _queueStateController.add(queueState);
+  }
+
+  void emitQueueState(QueueState state) {
+    _queueStateController.add(state);
   }
 
   void emitIsPlaying(bool playing) {
@@ -279,6 +286,7 @@ class FakePlaybackRepository({
     _isPlayingController.add(_isPlaying);
     _queueCoverArtController.add(currentQueueCoverArt);
     _playbackContextController.add(_playbackContext);
+    _queueStateController.add(queueState);
   }
 
   @override

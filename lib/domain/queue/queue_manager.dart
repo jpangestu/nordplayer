@@ -16,6 +16,11 @@ class QueueManager({Random? random}) {
   bool _isShuffle = false;
   LoopMode _loopMode = LoopMode.off;
   PlaybackContext _context = const ManualPlaybackContext();
+  List<QueueItem>? _cachedDisplayQueue;
+
+  void _invalidateCache() {
+    _cachedDisplayQueue = null;
+  }
 
   // ========================================== Getters ==========================================
 
@@ -24,11 +29,12 @@ class QueueManager({Random? random}) {
   /// Returns items in natural sequence when [isShuffle] is false, or mapped
   /// through [_shuffleIndices] when [isShuffle] is true.
   List<QueueItem> get displayQueue {
-    if (!_isShuffle) return List.unmodifiable(_items);
-    return List.unmodifiable([
-      for (final idx in _shuffleIndices)
-        if (idx >= 0 && idx < _items.length) _items[idx],
-    ]);
+    return _cachedDisplayQueue ??= _isShuffle
+        ? List.unmodifiable([
+            for (final idx in _shuffleIndices)
+              if (idx >= 0 && idx < _items.length) _items[idx],
+          ])
+        : List.unmodifiable(_items);
   }
 
   /// The raw, un-shuffled queue items.
@@ -41,8 +47,10 @@ class QueueManager({Random? random}) {
   int get currentIndex => _activeIndex;
 
   /// The currently active [QueueItem], if one is selected.
-  QueueItem? get currentItem =>
-      (_activeIndex >= 0 && _activeIndex < displayQueue.length) ? displayQueue[_activeIndex] : null;
+  QueueItem? get currentItem {
+    final queue = displayQueue;
+    return (_activeIndex >= 0 && _activeIndex < queue.length) ? queue[_activeIndex] : null;
+  }
 
   /// The currently active [TrackWithArtists], if one is selected.
   TrackWithArtists? get currentTrack => currentItem?.track;
@@ -54,14 +62,15 @@ class QueueManager({Random? random}) {
   ///
   /// Takes [loopMode] into account for gapless pre-buffering.
   QueueItem? get nextItem {
-    if (displayQueue.isEmpty) return null;
+    final queue = displayQueue;
+    if (queue.isEmpty) return null;
     if (_loopMode == LoopMode.single) return currentItem;
 
-    if (_activeIndex + 1 < displayQueue.length) {
-      return displayQueue[_activeIndex + 1];
+    if (_activeIndex + 1 < queue.length) {
+      return queue[_activeIndex + 1];
     }
     if (_loopMode == LoopMode.all) {
-      return displayQueue.first;
+      return queue.first;
     }
     return null;
   }
@@ -99,18 +108,19 @@ class QueueManager({Random? random}) {
 
   /// Calculates upcoming album art paths (up to 5 items) for stacked player bar covers.
   List<String> get upcomingCoverArts {
-    if (displayQueue.isEmpty || _activeIndex < 0) return const [];
+    final queue = displayQueue;
+    if (queue.isEmpty || _activeIndex < 0) return const [];
     final covers = <String>[];
-    for (int i = 0; i < displayQueue.length && covers.length < 5; i++) {
+    for (int i = 0; i < queue.length && covers.length < 5; i++) {
       int targetIdx = _activeIndex + i;
-      if (targetIdx >= displayQueue.length) {
+      if (targetIdx >= queue.length) {
         if (_loopMode == LoopMode.all) {
-          targetIdx = targetIdx % displayQueue.length;
+          targetIdx = targetIdx % queue.length;
         } else {
           break;
         }
       }
-      final art = displayQueue[targetIdx].track.album.albumArtPath ?? '';
+      final art = queue[targetIdx].track.album.albumArtPath ?? '';
       covers.add(art);
     }
     return covers;
@@ -120,6 +130,7 @@ class QueueManager({Random? random}) {
 
   /// Restores complete queue state from a persisted snapshot.
   void restoreFromState(QueueState state) {
+    _invalidateCache();
     _items = List.of(state.items);
     _isShuffle = state.isShuffle;
     _loopMode = state.loopMode;
@@ -153,6 +164,7 @@ class QueueManager({Random? random}) {
     PlaybackContext context = const ManualPlaybackContext(),
     bool shuffle = false,
   }) {
+    _invalidateCache();
     _context = context;
     _isShuffle = shuffle;
 
@@ -193,6 +205,7 @@ class QueueManager({Random? random}) {
       return;
     }
 
+    _invalidateCache();
     final insertDisplayPos = _activeIndex + 1;
     final newItems = [
       for (int i = 0; i < tracks.length; i++)
@@ -221,6 +234,7 @@ class QueueManager({Random? random}) {
       return;
     }
 
+    _invalidateCache();
     final newItems = [
       for (int i = 0; i < tracks.length; i++)
         QueueItem.create(track: tracks[i], originalOrder: _items.length + i, source: QueueSource.userQueue),
@@ -255,6 +269,8 @@ class QueueManager({Random? random}) {
       _items.removeAt(displayIndex);
       _shuffleIndices = List.generate(_items.length, (i) => i);
     }
+
+    _invalidateCache();
 
     // Adjust active index
     if (_items.isEmpty) {
@@ -313,6 +329,8 @@ class QueueManager({Random? random}) {
       _shuffleIndices = List.generate(_items.length, (i) => i);
     }
 
+    _invalidateCache();
+
     // Adjust active index
     if (oldDisplayIndex == _activeIndex) {
       _activeIndex = clampedNew;
@@ -334,6 +352,7 @@ class QueueManager({Random? random}) {
   /// Toggles shuffle mode non-destructively, preserving the currently playing track.
   void toggleShuffle() {
     final activeItem = currentItem;
+    _invalidateCache();
     _isShuffle = !_isShuffle;
     if (_items.isEmpty) {
       _shuffleIndices = [];
@@ -389,6 +408,7 @@ class QueueManager({Random? random}) {
 
     _isShuffle = false;
     _shuffleIndices = List.generate(_items.length, (i) => i);
+    _invalidateCache();
 
     if (activeItem != null) {
       _activeIndex = _items.indexOf(activeItem);
@@ -454,6 +474,7 @@ class QueueManager({Random? random}) {
 
   /// Resets the queue manager to empty.
   void clear() {
+    _invalidateCache();
     _items = [];
     _shuffleIndices = [];
     _activeIndex = -1;
@@ -468,6 +489,7 @@ class QueueManager({Random? random}) {
     required PlaybackContext context,
     List<int>? shuffleIndices,
   }) {
+    _invalidateCache();
     _items = List.from(items);
     _isShuffle = isShuffle;
     _loopMode = loopMode;

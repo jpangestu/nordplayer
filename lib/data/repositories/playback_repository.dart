@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart' hide Track;
 import 'package:nordplayer/data/repositories/queue_repository.dart';
@@ -121,15 +122,7 @@ class DefaultPlaybackRepository(
   final Debouncer _queueSaveDebouncer = Debouncer(const Duration(seconds: 1));
   final List<StreamSubscription<dynamic>> _subscriptions = [];
 
-  final StreamController<TrackWithArtists?> _currentTrackController = StreamController<TrackWithArtists?>.broadcast();
-  final StreamController<List<TrackWithArtists>> _queueController =
-      StreamController<List<TrackWithArtists>>.broadcast();
-  final StreamController<int> _currentIndexController = StreamController<int>.broadcast();
-  final StreamController<List<String>> _queueCoverArtController = StreamController<List<String>>.broadcast();
   final StreamController<QueueState> _queueStateController = StreamController<QueueState>.broadcast();
-  final StreamController<List<QueueItem>> _queueItemsController = StreamController<List<QueueItem>>.broadcast();
-  final StreamController<PlaybackContext> _playbackContextController =
-      StreamController<PlaybackContext>.broadcast();
 
   this {
     _init();
@@ -218,13 +211,7 @@ class DefaultPlaybackRepository(
   }
 
   void _emitQueueState() {
-    _currentTrackController.add(currentTrack);
-    _queueController.add(currentQueue);
-    _currentIndexController.add(currentIndex);
-    _queueCoverArtController.add(currentQueueCoverArt);
     _queueStateController.add(queueState);
-    _queueItemsController.add(currentQueueItems);
-    _playbackContextController.add(playbackContext);
   }
 
   PlaybackContext _resolvePlaybackContext(String type, int? id, {String? title}) {
@@ -290,45 +277,39 @@ class DefaultPlaybackRepository(
   int? get playbackContextId => _playbackContextId;
 
   @override
-  Stream<TrackWithArtists?> watchCurrentTrack() async* {
-    yield currentTrack;
-    yield* _currentTrackController.stream;
-  }
-
-  @override
-  Stream<int> watchCurrentIndex() async* {
-    yield currentIndex;
-    yield* _currentIndexController.stream;
-  }
-
-  @override
-  Stream<List<TrackWithArtists>> watchQueue() async* {
-    yield currentQueue;
-    yield* _queueController.stream;
-  }
-
-  @override
-  Stream<List<String>> watchQueueCoverArt() async* {
-    yield currentQueueCoverArt;
-    yield* _queueCoverArtController.stream;
-  }
-
-  @override
   Stream<QueueState> watchQueueState() async* {
     yield queueState;
     yield* _queueStateController.stream;
   }
 
   @override
-  Stream<List<QueueItem>> watchQueueItems() async* {
-    yield currentQueueItems;
-    yield* _queueItemsController.stream;
+  Stream<TrackWithArtists?> watchCurrentTrack() {
+    return watchQueueState().map((s) => s.currentItem?.track).distinct();
   }
 
   @override
-  Stream<PlaybackContext> watchPlaybackContext() async* {
-    yield playbackContext;
-    yield* _playbackContextController.stream;
+  Stream<int> watchCurrentIndex() {
+    return watchQueueState().map((s) => s.activeIndex).distinct();
+  }
+
+  @override
+  Stream<List<TrackWithArtists>> watchQueue() {
+    return watchQueueState().map((s) => s.tracks).distinct(listEquals);
+  }
+
+  @override
+  Stream<List<String>> watchQueueCoverArt() {
+    return watchQueueState().map((s) => s.upcomingCoverArts).distinct(listEquals);
+  }
+
+  @override
+  Stream<List<QueueItem>> watchQueueItems() {
+    return watchQueueState().map((s) => s.displayQueue).distinct(listEquals);
+  }
+
+  @override
+  Stream<PlaybackContext> watchPlaybackContext() {
+    return watchQueueState().map((s) => s.context).distinct();
   }
 
   @override
@@ -387,13 +368,7 @@ class DefaultPlaybackRepository(
     _queueManager.setLoopMode(loopMode.toLoopMode());
 
     _emitQueueState();
-
-    final current = _queueManager.currentTrack;
-    if (current != null) {
-      await _playerEngine.open(current.track.filePath, autoplay: autoplay);
-      await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
-    }
-
+    await _playCurrentAndPreBufferNext(autoplay: autoplay, updatePersistence: false);
     _queueSaveDebouncer(() => _saveQueueState());
   }
 
@@ -411,14 +386,14 @@ class DefaultPlaybackRepository(
     final nextItem = _queueManager.advanceNext();
     _emitQueueState();
     if (nextItem != null) {
-      await _playerEngine.open(nextItem.track.track.filePath, autoplay: true);
-      await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
+      await _playCurrentAndPreBufferNext();
+    } else {
+      _queueRepository.updateActiveTrack(
+        currentIndex,
+        currentTrack?.track.filePath,
+        activeTrackId: currentTrack?.track.id,
+      );
     }
-    _queueRepository.updateActiveTrack(
-      currentIndex,
-      currentTrack?.track.filePath,
-      activeTrackId: currentTrack?.track.id,
-    );
   }
 
   @override
@@ -426,14 +401,14 @@ class DefaultPlaybackRepository(
     final prevItem = _queueManager.stepPrevious(currentPosition: position);
     _emitQueueState();
     if (prevItem != null) {
-      await _playerEngine.open(prevItem.track.track.filePath, autoplay: true);
-      await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
+      await _playCurrentAndPreBufferNext();
+    } else {
+      _queueRepository.updateActiveTrack(
+        currentIndex,
+        currentTrack?.track.filePath,
+        activeTrackId: currentTrack?.track.id,
+      );
     }
-    _queueRepository.updateActiveTrack(
-      currentIndex,
-      currentTrack?.track.filePath,
-      activeTrackId: currentTrack?.track.id,
-    );
   }
 
   @override
@@ -441,16 +416,7 @@ class DefaultPlaybackRepository(
     if (index >= 0 && index < _queueManager.displayQueue.length) {
       _queueManager.jumpTo(index);
       _emitQueueState();
-      final current = _queueManager.currentTrack;
-      if (current != null) {
-        await _playerEngine.open(current.track.filePath, autoplay: true);
-        await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
-      }
-      _queueRepository.updateActiveTrack(
-        currentIndex,
-        currentTrack?.track.filePath,
-        activeTrackId: currentTrack?.track.id,
-      );
+      await _playCurrentAndPreBufferNext();
     }
   }
 
@@ -524,18 +490,14 @@ class DefaultPlaybackRepository(
   Future<void> addToQueue(List<TrackWithArtists> tracks) async {
     if (tracks.isEmpty) return;
     _queueManager.addToQueue(tracks);
-    await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
-    _emitQueueState();
-    _queueSaveDebouncer(() => _saveQueueState());
+    await _notifyQueueModified();
   }
 
   @override
   Future<void> playNext(List<TrackWithArtists> tracks) async {
     if (tracks.isEmpty) return;
     _queueManager.playNext(tracks);
-    await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
-    _emitQueueState();
-    _queueSaveDebouncer(() => _saveQueueState());
+    await _notifyQueueModified();
   }
 
   @override
@@ -570,25 +532,19 @@ class DefaultPlaybackRepository(
   @override
   Future<void> reorderQueue(int oldIndex, int newIndex) async {
     _queueManager.reorder(oldIndex, newIndex);
-    await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
-    _emitQueueState();
-    _queueSaveDebouncer(() => _saveQueueState());
+    await _notifyQueueModified();
   }
 
   @override
   Future<void> sortBy(QueueSortCriteria criteria, {bool ascending = true}) async {
     _queueManager.sortBy(criteria, ascending: ascending);
-    await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
-    _emitQueueState();
-    _queueSaveDebouncer(() => _saveQueueState());
+    await _notifyQueueModified();
   }
 
   @override
   Future<void> revertSort() async {
     _queueManager.revertSort();
-    await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
-    _emitQueueState();
-    _queueSaveDebouncer(() => _saveQueueState());
+    await _notifyQueueModified();
   }
 
   @override
@@ -612,11 +568,11 @@ class DefaultPlaybackRepository(
         _queueManager.restoreFromState(restored.state);
         _emitQueueState();
 
-        final current = _queueManager.currentTrack;
-        if (current != null) {
-          await _playerEngine.open(current.track.filePath, startPosition: restored.resumePosition, autoplay: false);
-          await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
-        }
+        await _playCurrentAndPreBufferNext(
+          autoplay: false,
+          startPosition: restored.resumePosition,
+          updatePersistence: false,
+        );
       }
     } finally {
       _isRestoringQueue = false;
@@ -632,8 +588,35 @@ class DefaultPlaybackRepository(
       if (current != null && current.track.filePath != previousActivePath) {
         await _playerEngine.open(current.track.filePath, autoplay: _playerEngine.isPlaying);
       }
+      await _notifyQueueModified();
+    }
+  }
+
+  Future<void> _playCurrentAndPreBufferNext({
+    bool autoplay = true,
+    Duration? startPosition,
+    bool updatePersistence = true,
+  }) async {
+    final current = _queueManager.currentTrack;
+    if (current != null) {
+      await _playerEngine.open(
+        current.track.filePath,
+        autoplay: autoplay,
+        startPosition: startPosition,
+      );
       await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
     }
+    if (updatePersistence) {
+      _queueRepository.updateActiveTrack(
+        currentIndex,
+        currentTrack?.track.filePath,
+        activeTrackId: currentTrack?.track.id,
+      );
+    }
+  }
+
+  Future<void> _notifyQueueModified() async {
+    await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
     _emitQueueState();
     _queueSaveDebouncer(() => _saveQueueState());
   }
@@ -649,13 +632,7 @@ class DefaultPlaybackRepository(
     }
     _queueSaveDebouncer.flush();
     _queueSaveDebouncer.dispose();
-    _currentTrackController.close();
-    _currentIndexController.close();
-    _queueController.close();
-    _queueCoverArtController.close();
     _queueStateController.close();
-    _queueItemsController.close();
-    _playbackContextController.close();
   }
 }
 
