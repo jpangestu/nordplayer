@@ -60,6 +60,10 @@ class AppDatabase extends _$AppDatabase {
           await migrator.createTable(playbackSessions);
         }
       },
+      beforeOpen: (details) async {
+        await customStatement('CREATE INDEX IF NOT EXISTS idx_queue_entries_sort_order ON queue_entries (sort_order);');
+        await customStatement('CREATE INDEX IF NOT EXISTS idx_queue_entries_track_id ON queue_entries (track_id);');
+      },
     );
   }
 

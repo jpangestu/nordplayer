@@ -122,6 +122,8 @@ class PlaybackSessions extends Table {
 }
 
 /// Normalized queue entries table storing current sequence, original sequence, and item source tier.
+@TableIndex(name: 'idx_queue_entries_sort_order', columns: {#sortOrder})
+@TableIndex(name: 'idx_queue_entries_track_id', columns: {#trackId})
 class QueueEntries extends Table {
   /// Unique identifier (UUID string) corresponding to QueueItem.id.
   TextColumn get id => text()();

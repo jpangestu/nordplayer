@@ -6733,6 +6733,14 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $UserBlacklistTable userBlacklist = $UserBlacklistTable(this);
   late final $UserPinsTable userPins = $UserPinsTable(this);
   late final $IgnoredPathsTable ignoredPaths = $IgnoredPathsTable(this);
+  late final Index idxQueueEntriesSortOrder = Index(
+    'idx_queue_entries_sort_order',
+    'CREATE INDEX idx_queue_entries_sort_order ON queue_entries (sort_order)',
+  );
+  late final Index idxQueueEntriesTrackId = Index(
+    'idx_queue_entries_track_id',
+    'CREATE INDEX idx_queue_entries_track_id ON queue_entries (track_id)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -6754,6 +6762,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     userBlacklist,
     userPins,
     ignoredPaths,
+    idxQueueEntriesSortOrder,
+    idxQueueEntriesTrackId,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([

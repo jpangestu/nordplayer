@@ -316,20 +316,26 @@ class const DriftQueueRepository(final AppDatabase _db) implements QueueReposito
         ? session.activeIndex
         : 0;
 
+    int foundRawIndex = -1;
     if (session.activeTrackPath != null && session.activeTrackPath!.isNotEmpty) {
       final normalizedSaved = session.activeTrackPath!.normalizePath().toLowerCase();
-      final foundRawIndex = items.indexWhere(
+      foundRawIndex = items.indexWhere(
         (item) => item.track.track.filePath.normalizePath().toLowerCase() == normalizedSaved,
       );
-      if (foundRawIndex != -1) {
-        if (session.isShuffle && shuffleIndices.isNotEmpty) {
-          final posInShuffle = shuffleIndices.indexOf(foundRawIndex);
-          if (posInShuffle != -1) {
-            activeIndex = posInShuffle;
-          }
-        } else {
-          activeIndex = foundRawIndex;
+    }
+    if (foundRawIndex == -1 && session.activeTrackId != null) {
+      foundRawIndex = items.indexWhere(
+        (item) => item.track.track.id == session.activeTrackId,
+      );
+    }
+    if (foundRawIndex != -1) {
+      if (session.isShuffle && shuffleIndices.isNotEmpty) {
+        final posInShuffle = shuffleIndices.indexOf(foundRawIndex);
+        if (posInShuffle != -1) {
+          activeIndex = posInShuffle;
         }
+      } else {
+        activeIndex = foundRawIndex;
       }
     }
 

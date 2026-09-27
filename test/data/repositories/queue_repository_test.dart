@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/data/database/app_database.dart' hide Track, Album, Artist;
 import 'package:nordplayer/data/database/db_mappers.dart';
 import 'package:nordplayer/data/repositories/queue_repository.dart';
+import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/playback_context.dart';
 import 'package:nordplayer/domain/queue/queue_models.dart';
@@ -123,13 +124,7 @@ void main() {
     test('verifies PlaybackSessions and QueueEntries schema v3 structures', () async {
       expect(db.schemaVersion, 3);
 
-      await queueRepository.saveQueue(
-        [trackA, trackB],
-        '/music/track_b.mp3',
-        const Duration(seconds: 45),
-        'album',
-        1,
-      );
+      await queueRepository.saveQueue([trackA, trackB], '/music/track_b.mp3', const Duration(seconds: 45), 'album', 1);
 
       // Verify PlaybackSessions table record
       final sessions = await db.select(db.playbackSessions).get();
@@ -315,6 +310,63 @@ void main() {
 
       final entries = await db.select(db.queueEntries).get();
       expect(entries.length, 2);
+    });
+
+    test('verifies indexes on queue_entries table exist in SQLite schema', () async {
+      final indexRows = await db
+          .customSelect("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'queue_entries';")
+          .get();
+      final indexNames = indexRows.map((r) => r.read<String>('name')).toSet();
+      expect(indexNames.contains('idx_queue_entries_sort_order'), isTrue);
+      expect(indexNames.contains('idx_queue_entries_track_id'), isTrue);
+    });
+
+    test('restoreQueueState anchors activeIndex by activeTrackId when activeTrackPath does not match', () async {
+      await queueRepository.saveQueue([trackA, trackB], '/music/track_a.mp3', Duration.zero, 'album', 1);
+
+      // Simulate path change or move where activeTrackPath no longer matches, but activeTrackId is preserved
+      await (db.update(db.playbackSessions)..where((s) => s.id.equals(1))).write(
+        const PlaybackSessionsCompanion(
+          activeTrackPath: Value('/moved/unknown_path.mp3'),
+          activeTrackId: Value(2), // points to trackB
+          activeIndex: Value(0),
+        ),
+      );
+
+      final restored = await queueRepository.restoreQueueState();
+      expect(restored, isNotNull);
+      expect(restored!.state.activeIndex, 1);
+      expect(restored.state.currentItem?.track.track.id, 2);
+    });
+
+    test('restoreQueueState handles missing album gracefully via Unknown Album fallback', () async {
+      await db.customStatement('PRAGMA foreign_keys = OFF;');
+      final orphanRow = await db
+          .into(db.tracks)
+          .insertReturning(
+            TracksCompanion.insert(
+              id: const Value(99),
+              title: 'Orphan Track',
+              filePath: '/music/orphan.mp3',
+              fileHash: 'orphan_hash',
+              artistId: 1,
+              albumId: 9999, // non-existent album
+            ),
+          );
+      await db.customStatement('PRAGMA foreign_keys = ON;');
+
+      final orphanTrack = TrackWithArtists(
+        track: orphanRow.toDomain(),
+        album: const Album(id: 9999, title: 'Non Existent'),
+        artists: [],
+      );
+
+      await queueRepository.saveQueue([orphanTrack], '/music/orphan.mp3', Duration.zero, 'direct', null);
+
+      final restored = await queueRepository.restoreQueueState();
+      expect(restored, isNotNull);
+      expect(restored!.state.items.length, 1);
+      expect(restored.state.items.first.track.album.title, 'Unknown Album');
     });
   });
 }
