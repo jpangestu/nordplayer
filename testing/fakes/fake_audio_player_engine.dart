@@ -119,15 +119,18 @@ class FakeAudioPlayerEngine extends Fake implements AudioPlayerEngine {
     _volumeController.add(_volume);
   }
 
-  /// Test helper: simulate natural or gapless track completion.
+  /// Test helper: simulate natural track completion (playback stops at end of media).
   void simulateTrackCompleted() {
+    _isPlaying = false;
+    _playingController.add(false);
     _completedController.add(null);
   }
 
-  /// Test helper: simulate native gapless transition to pre-buffered track.
+  /// Test helper: simulate native gapless transition to pre-buffered track (playback continues seamlessly).
   Future<void> simulateGaplessTransition() async {
     _currentUri = _nextUri;
     _nextUri = null;
+    _isPlaying = true;
     _completedController.add(null);
   }
 

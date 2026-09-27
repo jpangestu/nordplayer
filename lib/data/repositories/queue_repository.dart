@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/data/database/app_database.dart' hide Track, Album, Artist;
 import 'package:nordplayer/data/database/db_mappers.dart';
+import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/playback_context.dart';
 import 'package:nordplayer/domain/queue/queue_models.dart';
@@ -183,7 +184,7 @@ class const DriftQueueRepository(final AppDatabase _db) implements QueueReposito
     for (final row in rows) {
       final entry = row.readTable(_db.queueEntries);
       final track = row.readTable(_db.tracks);
-      final album = row.readTable(_db.albums);
+      final album = row.readTableOrNull(_db.albums);
       final artist = row.readTableOrNull(_db.artists);
 
       if (!groupedRows.containsKey(entry.id)) {
@@ -191,7 +192,7 @@ class const DriftQueueRepository(final AppDatabase _db) implements QueueReposito
           entry,
           TrackWithArtists(
             track: track.toDomain(),
-            album: album.toDomain(),
+            album: album?.toDomain() ?? const Album(id: 0, title: 'Unknown Album'),
             artists: [],
           ),
         );
@@ -235,6 +236,15 @@ class const DriftQueueRepository(final AppDatabase _db) implements QueueReposito
       } catch (_) {}
     }
 
+    if (shuffleIndices.isNotEmpty) {
+      final valid = shuffleIndices.where((idx) => idx >= 0 && idx < items.length).toList();
+      if (valid.length == items.length && valid.toSet().length == items.length) {
+        shuffleIndices = valid;
+      } else {
+        shuffleIndices = List.generate(items.length, (i) => i);
+      }
+    }
+
     final loopMode = LoopMode.values.firstWhere(
       (m) => m.name == session.loopMode,
       orElse: () => LoopMode.off,
@@ -258,9 +268,26 @@ class const DriftQueueRepository(final AppDatabase _db) implements QueueReposito
       );
     }
 
-    final activeIndex = (session.activeIndex >= 0 && session.activeIndex < items.length)
+    int activeIndex = (session.activeIndex >= 0 && session.activeIndex < items.length)
         ? session.activeIndex
         : 0;
+
+    if (session.activeTrackPath != null && session.activeTrackPath!.isNotEmpty) {
+      final normalizedSaved = session.activeTrackPath!.normalizePath().toLowerCase();
+      final foundRawIndex = items.indexWhere(
+        (item) => item.track.track.filePath.normalizePath().toLowerCase() == normalizedSaved,
+      );
+      if (foundRawIndex != -1) {
+        if (session.isShuffle && shuffleIndices.isNotEmpty) {
+          final posInShuffle = shuffleIndices.indexOf(foundRawIndex);
+          if (posInShuffle != -1) {
+            activeIndex = posInShuffle;
+          }
+        } else {
+          activeIndex = foundRawIndex;
+        }
+      }
+    }
 
     final state = QueueState(
       items: items,

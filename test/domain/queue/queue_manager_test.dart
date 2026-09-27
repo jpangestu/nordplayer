@@ -294,5 +294,52 @@ void main() {
       expect(covers[2], equals('/art/3.jpg'));
       expect(covers[3], equals('/art/4.jpg'));
     });
+
+    group('Critical Bug Regressions', () {
+      test('displayQueue does not throw RangeError on stale or out-of-bounds shuffleIndices', () {
+        manager.setQueue(tracks, initialIndex: 0);
+        manager.restoreRawState(
+          items: tracks.map((t) => QueueItem.create(track: t, originalOrder: 0)).toList(),
+          shuffleIndices: [0, 999, 1, -5, 2],
+          activeIndex: 0,
+          isShuffle: true,
+          loopMode: LoopMode.off,
+          context: const ManualPlaybackContext(),
+        );
+
+        // Accessing displayQueue should safely discard out-of-bounds indices and not throw RangeError.
+        // restoreRawState heals invalid indices by regenerating a valid permutation for the items.
+        expect(() => manager.displayQueue, returnsNormally);
+        expect(manager.displayQueue.length, equals(4));
+      });
+
+      test('toggling or setting shuffle on empty queue preserves shuffle preference', () {
+        expect(manager.isEmpty, isTrue);
+        expect(manager.isShuffle, isFalse);
+
+        manager.setShuffle(true);
+        expect(manager.isShuffle, isTrue);
+
+        manager.toggleShuffle();
+        expect(manager.isShuffle, isFalse);
+      });
+
+      test('restoreFromState repairs corrupted shuffleIndices when restoring', () {
+        final corruptedState = QueueState(
+          items: tracks.map((t) => QueueItem.create(track: t, originalOrder: 0)).toList(),
+          shuffleIndices: [0, 10], // Length doesn't match items.length
+          activeIndex: 5, // Out of bounds
+          isShuffle: true,
+          loopMode: LoopMode.off,
+          context: const ManualPlaybackContext(),
+        );
+
+        manager.restoreFromState(corruptedState);
+
+        expect(manager.isShuffle, isTrue);
+        expect(manager.displayQueue.length, equals(tracks.length));
+        expect(manager.activeIndex, equals(0)); // Clamped to valid range
+      });
+    });
   });
 }

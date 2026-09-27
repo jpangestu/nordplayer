@@ -25,7 +25,10 @@ class QueueManager({Random? random}) {
   /// through [_shuffleIndices] when [isShuffle] is true.
   List<QueueItem> get displayQueue {
     if (!_isShuffle) return List.unmodifiable(_items);
-    return List.unmodifiable([for (final idx in _shuffleIndices) _items[idx]]);
+    return List.unmodifiable([
+      for (final idx in _shuffleIndices)
+        if (idx >= 0 && idx < _items.length) _items[idx],
+    ]);
   }
 
   /// The raw, un-shuffled queue items.
@@ -118,15 +121,29 @@ class QueueManager({Random? random}) {
   /// Restores complete queue state from a persisted snapshot.
   void restoreFromState(QueueState state) {
     _items = List.of(state.items);
-    _shuffleIndices = state.shuffleIndices.isNotEmpty
-        ? List.of(state.shuffleIndices)
-        : List.generate(_items.length, (i) => i);
     _isShuffle = state.isShuffle;
     _loopMode = state.loopMode;
     _context = state.context;
+
+    if (_items.isEmpty) {
+      clear();
+      return;
+    }
+
+    final validIndices = state.shuffleIndices
+        .where((idx) => idx >= 0 && idx < _items.length)
+        .toList();
+    if (_isShuffle && validIndices.length == _items.length && validIndices.toSet().length == _items.length) {
+      _shuffleIndices = validIndices;
+    } else if (_isShuffle) {
+      _shuffleIndices = _generatePermutation(_items.length);
+    } else {
+      _shuffleIndices = List.generate(_items.length, (i) => i);
+    }
+
     _activeIndex = (state.activeIndex >= 0 && state.activeIndex < displayQueue.length)
         ? state.activeIndex
-        : (_items.isNotEmpty ? 0 : -1);
+        : 0;
   }
 
   /// Initializes or replaces the queue with a list of tracks.
@@ -308,12 +325,20 @@ class QueueManager({Random? random}) {
 
   // ========================================== Sequencing & Shuffle ==========================================
 
+  /// Sets shuffle mode directly.
+  void setShuffle(bool enable) {
+    if (_isShuffle == enable) return;
+    toggleShuffle();
+  }
+
   /// Toggles shuffle mode non-destructively, preserving the currently playing track.
   void toggleShuffle() {
-    if (_items.isEmpty) return;
-
     final activeItem = currentItem;
     _isShuffle = !_isShuffle;
+    if (_items.isEmpty) {
+      _shuffleIndices = [];
+      return;
+    }
 
     if (_isShuffle) {
       _shuffleIndices = _generatePermutation(_items.length);
@@ -441,6 +466,7 @@ class QueueManager({Random? random}) {
     required bool isShuffle,
     required LoopMode loopMode,
     required PlaybackContext context,
+    List<int>? shuffleIndices,
   }) {
     _items = List.from(items);
     _isShuffle = isShuffle;
@@ -452,8 +478,20 @@ class QueueManager({Random? random}) {
       return;
     }
 
-    _shuffleIndices = List.generate(_items.length, (i) => i);
-    _activeIndex = activeIndex.clamp(0, _items.length - 1);
+    final validIndices = (shuffleIndices ?? const [])
+        .where((idx) => idx >= 0 && idx < _items.length)
+        .toList();
+    if (_isShuffle && validIndices.length == _items.length && validIndices.toSet().length == _items.length) {
+      _shuffleIndices = validIndices;
+    } else if (_isShuffle) {
+      _shuffleIndices = _generatePermutation(_items.length);
+    } else {
+      _shuffleIndices = List.generate(_items.length, (i) => i);
+    }
+
+    _activeIndex = (activeIndex >= 0 && activeIndex < displayQueue.length)
+        ? activeIndex
+        : 0;
   }
 
   // ========================================== Helpers ==========================================

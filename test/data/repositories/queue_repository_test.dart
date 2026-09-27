@@ -243,5 +243,44 @@ void main() {
       final entries = await db.select(db.queueEntries).get();
       expect(entries.length, 2);
     });
+
+    test('restoreQueueState anchors activeIndex by activeTrackPath when entries are altered', () async {
+      final item1 = QueueItem(
+        id: 'uuid-1',
+        track: trackA,
+        source: QueueSource.context,
+        originalOrder: 0,
+        addedAt: DateTime(2026, 1, 1),
+      );
+      final item2 = QueueItem(
+        id: 'uuid-2',
+        track: trackB,
+        source: QueueSource.context,
+        originalOrder: 1,
+        addedAt: DateTime(2026, 1, 1),
+      );
+
+      final state = QueueState(
+        items: [item1, item2],
+        shuffleIndices: [0, 1],
+        activeIndex: 1,
+        isShuffle: false,
+        loopMode: LoopMode.off,
+        context: const AlbumPlaybackContext(id: 1, title: 'Album 1'),
+      );
+
+      await queueRepository.saveQueueState(state, const Duration(seconds: 10));
+
+      // Remove entry for trackA from queueEntries table directly (simulating stale or purged entry)
+      await (db.delete(db.queueEntries)..where((e) => e.id.equals('uuid-1'))).go();
+
+      final restored = await queueRepository.restoreQueueState();
+      expect(restored, isNotNull);
+      expect(restored!.state.items.length, 1);
+      expect(restored.state.items[0].track.track.filePath, '/music/track_b.mp3');
+      // activeIndex was 1 in PlaybackSessions, but since only trackB remains and matches activeTrackPath,
+      // activeIndex is anchored to 0!
+      expect(restored.state.activeIndex, 0);
+    });
   });
 }

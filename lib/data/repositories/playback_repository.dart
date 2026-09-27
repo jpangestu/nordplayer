@@ -139,7 +139,7 @@ class DefaultPlaybackRepository(
     // 1. Initial settings sync
     final initialSettings = _settingsRepository.currentSettings;
     if (initialSettings.shuffleMode) {
-      _queueManager.toggleShuffle();
+      _queueManager.setShuffle(true);
     }
     _queueManager.setLoopMode(initialSettings.loopMode.toLoopMode());
 
@@ -156,11 +156,13 @@ class DefaultPlaybackRepository(
         }
 
         final targetFilePath = nextItem.track.track.filePath;
-        if (currentEngineUri == targetFilePath) {
+        final isSeamless = currentEngineUri == targetFilePath && _playerEngine.isPlaying;
+
+        if (isSeamless) {
           // Seamless gapless transition occurred via rolling window; pre-buffer upcoming track
           await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
         } else {
-          // Non-seamless (e.g. wrapped around or restarted)
+          // Non-seamless (e.g. wrapped around, natural completion in loop single, or restarted)
           await _playerEngine.open(targetFilePath, autoplay: true);
           await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
         }

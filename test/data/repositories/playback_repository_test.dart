@@ -222,6 +222,27 @@ void main() {
       expect(engine.nextUri, track3.track.filePath);
     });
 
+    test('completedStream in LoopMode.single naturally loops and re-opens current track', () async {
+      await repo.setPlaylist(
+        tracksToPlay: [track1, track2],
+        initialIndex: 0,
+        playbackContextType: 'album',
+      );
+      await repo.toggleLoop(); // Changes to PlaylistMode.single (LoopMode.single)
+
+      expect(repo.loopMode, PlaylistMode.single);
+      expect(engine.nextUri, track1.track.filePath);
+
+      // Simulate natural EOF completion (isPlaying becomes false)
+      engine.simulateTrackCompleted();
+      await pumpEventQueue();
+
+      expect(repo.currentIndex, 0);
+      expect(repo.currentTrack?.track.title, 'Song Alpha');
+      expect(engine.currentUri, track1.track.filePath);
+      expect(engine.isPlaying, isTrue);
+    });
+
     test('playNext inserts tracks immediately after active track as userNext', () async {
       await repo.setPlaylist(tracksToPlay: [track1, track3], initialIndex: 0, playbackContextType: 'album');
 

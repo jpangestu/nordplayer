@@ -83,6 +83,7 @@ class MediaKitAudioPlayerEngine(final Player _player) implements AudioPlayerEngi
   String? _nextUri;
   final StreamController<void> _completedController = StreamController<void>.broadcast();
   final List<StreamSubscription<dynamic>> _subscriptions = [];
+  bool _isTransitioning = false;
 
   this {
     _initEngineListeners();
@@ -92,15 +93,20 @@ class MediaKitAudioPlayerEngine(final Player _player) implements AudioPlayerEngi
     // 1. Detect gapless transition when media_kit advances to index 1 of the 2-track window
     _subscriptions.add(
       _player.stream.playlist.listen((playlist) async {
-        if (playlist.medias.length >= 2 && playlist.index == 1) {
-          // Native gapless transition to track 1 occurred
-          _currentUri = _nextUri;
-          _nextUri = null;
-          _completedController.add(null);
-          // Drop old track 0 to maintain 2-track rolling window
+        if (playlist.medias.length >= 2 && playlist.index == 1 && !_isTransitioning) {
+          _isTransitioning = true;
           try {
-            await _player.remove(0);
-          } catch (_) {}
+            // Native gapless transition to track 1 occurred
+            _currentUri = _nextUri;
+            _nextUri = null;
+            // Drop old track 0 to maintain 2-track rolling window BEFORE emitting completion
+            try {
+              await _player.remove(0);
+            } catch (_) {}
+            _completedController.add(null);
+          } finally {
+            _isTransitioning = false;
+          }
         }
       }),
     );
@@ -137,6 +143,12 @@ class MediaKitAudioPlayerEngine(final Player _player) implements AudioPlayerEngi
   @override
   Future<void> setNextMedia(String? uri) async {
     if (_nextUri == uri) return;
+
+    // Await active transition so index 0 removal does not collide with index 1 modification
+    while (_isTransitioning) {
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+    }
+
     _nextUri = uri;
 
     final playlist = _player.state.playlist;
