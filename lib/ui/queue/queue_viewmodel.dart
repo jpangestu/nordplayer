@@ -27,6 +27,9 @@ class QueueViewModel extends Notifier<QueueUiState> with LoggerMixin {
     final initialScrollBehavior = ref.read(queueScrollBehaviorProvider);
 
     final queueSub = playbackRepo.watchQueue().listen((tracks) {
+      if (state.tracks != tracks) {
+        ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.jump);
+      }
       state = state.copyWith(tracks: tracks);
     });
 
@@ -35,7 +38,13 @@ class QueueViewModel extends Notifier<QueueUiState> with LoggerMixin {
     });
 
     final currentIndexSub = playbackRepo.watchCurrentIndex().listen((index) {
-      state = state.copyWith(currentIndex: index);
+      if (state.currentIndex != index) {
+        final currentIntent = ref.read(queueScrollBehaviorProvider);
+        if (currentIntent == QueueScrollBehavior.none) {
+          ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.animate);
+        }
+        state = state.copyWith(currentIndex: index);
+      }
     });
 
     final configSub = configRepo.watchConfig().listen((config) {
@@ -126,7 +135,7 @@ class QueueViewModel extends Notifier<QueueUiState> with LoggerMixin {
 
   /// Jumps playback directly to the track at [index], suppressing auto-scroll since the user triggered it.
   void jumpToTrack(int index) {
-    _playbackRepo.suppressNextScroll();
+    ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.none);
     _playbackRepo.jumpToIndex(index);
   }
 

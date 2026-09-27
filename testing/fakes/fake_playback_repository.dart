@@ -40,7 +40,6 @@ class FakePlaybackRepository({
       (playbackContextType.isNotEmpty
           ? PlaybackContext(type: playbackContextType, id: playbackContextId)
           : const PlaybackContext.manual());
-  bool _suppressNextScroll = false;
 
   TrackWithArtists? _overrideCurrentTrack;
   bool _hasOverrideCurrentTrack = false;
@@ -52,7 +51,6 @@ class FakePlaybackRepository({
   List<int> batchRemoved = [];
   bool cleared = false;
   int jumpedIndex = -1;
-  bool suppressedScroll = false;
   final List<TrackWithArtists> addedToQueueTracks = [];
 
   List<TrackWithArtists> lastTracks = [];
@@ -461,19 +459,6 @@ class FakePlaybackRepository({
 
   @override
   Future<void> restoreQueue() async {}
-
-  @override
-  void suppressNextScroll() {
-    suppressedScroll = true;
-    _suppressNextScroll = true;
-  }
-
-  @override
-  bool consumeSuppressNextScroll() {
-    final val = _suppressNextScroll;
-    _suppressNextScroll = false;
-    return val;
-  }
 
   @override
   Future<void> removeTrackByPath(String filePath) async {

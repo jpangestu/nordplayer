@@ -168,7 +168,7 @@ void main() {
       final vm = container.read(queueViewModelProvider.notifier);
       vm.jumpToTrack(4);
 
-      expect(fakePlaybackRepo.suppressedScroll, isTrue);
+      expect(container.read(queueScrollBehaviorProvider), equals(QueueScrollBehavior.none));
       expect(fakePlaybackRepo.jumpedIndex, equals(4));
     });
 

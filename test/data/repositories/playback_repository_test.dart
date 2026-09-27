@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart' hide Track;
 import 'package:nordplayer/data/repositories/playback_repository.dart';
@@ -139,8 +138,6 @@ void main() {
     late FakeAudioPlayerEngine engine;
     late _FakeQueueRepository queueRepo;
     late FakeSettingsRepository settingsRepo;
-    late ProviderContainer container;
-    late Ref testRef;
     late DefaultPlaybackRepository repo;
 
     final track1 = _makeTrack(1, 'Song Alpha', path: '/music/alpha.mp3', art: '/covers/alpha.jpg');
@@ -151,16 +148,13 @@ void main() {
       engine = FakeAudioPlayerEngine();
       queueRepo = _FakeQueueRepository();
       settingsRepo = FakeSettingsRepository();
-      container = ProviderContainer();
-      testRef = container.read(Provider((ref) => ref));
 
-      repo = DefaultPlaybackRepository(engine, queueRepo, settingsRepo, testRef);
+      repo = DefaultPlaybackRepository(engine, queueRepo, settingsRepo);
     });
 
     tearDown(() async {
       repo.dispose();
       await engine.dispose();
-      container.dispose();
     });
 
     test('initial state when uninitialized', () {
@@ -447,13 +441,6 @@ void main() {
       await repo.toggleMute();
       expect(repo.isMuted, isFalse);
       expect(engine.volume, 65.0);
-    });
-
-    test('scroll suppression toggles and is consumed', () {
-      expect(repo.consumeSuppressNextScroll(), isFalse);
-      repo.suppressNextScroll();
-      expect(repo.consumeSuppressNextScroll(), isTrue);
-      expect(repo.consumeSuppressNextScroll(), isFalse);
     });
 
     test('dispose immediately flushes any pending debounced queue state save', () async {

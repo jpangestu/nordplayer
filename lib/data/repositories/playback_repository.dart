@@ -10,7 +10,6 @@ import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/playback_context.dart';
 import 'package:nordplayer/domain/queue/queue_manager.dart';
 import 'package:nordplayer/domain/queue/queue_models.dart';
-import 'package:nordplayer/ui/queue/queue_scroll_behavior.dart';
 import 'package:nordplayer/utils/debouncer.dart';
 import 'package:nordplayer/utils/logger.dart';
 
@@ -103,8 +102,6 @@ abstract interface class PlaybackRepository {
   Future<void> revertSort();
   Future<void> clearQueue();
   Future<void> restoreQueue();
-  void suppressNextScroll();
-  bool consumeSuppressNextScroll();
 }
 
 /// Default implementation of [PlaybackRepository] coordinating [QueueManager] and [AudioPlayerEngine]
@@ -112,15 +109,13 @@ abstract interface class PlaybackRepository {
 class DefaultPlaybackRepository(
   final AudioPlayerEngine _playerEngine,
   final QueueRepository _queueRepository,
-  final SettingsRepository _settingsRepository,
-  final Ref _ref, {
+  final SettingsRepository _settingsRepository, {
   QueueManager? queueManager,
 }) with LoggerMixin implements PlaybackRepository {
   final QueueManager _queueManager = queueManager ?? QueueManager();
   String _playbackContextType = '';
   int? _playbackContextId;
   bool _isRestoringQueue = false;
-  bool _shouldSuppressNextScroll = false;
   DateTime? _lastPositionSaveTime;
 
   final Debouncer _queueSaveDebouncer = Debouncer(const Duration(seconds: 1));
@@ -388,9 +383,6 @@ class DefaultPlaybackRepository(
     _playbackContextType = resolvedContext.type;
     _playbackContextId = resolvedContext.id;
 
-    _shouldSuppressNextScroll = false;
-    _ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.jump);
-
     _queueManager.setQueue(tracksToPlay, initialIndex: initialIndex, context: resolvedContext, shuffle: isShuffle);
     _queueManager.setLoopMode(loopMode.toLoopMode());
 
@@ -651,20 +643,6 @@ class DefaultPlaybackRepository(
     _queueRepository.saveQueueState(queueState, position);
   }
 
-  @override
-  void suppressNextScroll() {
-    _shouldSuppressNextScroll = true;
-  }
-
-  @override
-  bool consumeSuppressNextScroll() {
-    if (_shouldSuppressNextScroll) {
-      _shouldSuppressNextScroll = false;
-      return true;
-    }
-    return false;
-  }
-
   void dispose() {
     for (final sub in _subscriptions) {
       sub.cancel();
@@ -687,7 +665,7 @@ final playbackRepositoryProvider = Provider<PlaybackRepository>((ref) {
   final queueRepo = ref.watch(queueRepositoryProvider);
   final settingsRepo = ref.watch(settingsRepositoryProvider);
 
-  final repo = DefaultPlaybackRepository(playerEngine, queueRepo, settingsRepo, ref);
+  final repo = DefaultPlaybackRepository(playerEngine, queueRepo, settingsRepo);
   final audioHandler = ref.watch(audioHandlerProvider);
   if (audioHandler != null) {
     audioHandler.attachRepository(repo);
