@@ -117,5 +117,56 @@ void main() {
       (queue, _, _, _, _) = await queueRepository.loadQueue();
       expect(queue, isEmpty);
     });
+
+    test('verifies PlaybackSessions and QueueEntries schema v3 structures', () async {
+      expect(db.schemaVersion, 3);
+
+      await queueRepository.saveQueue(
+        [trackA, trackB],
+        '/music/track_b.mp3',
+        const Duration(seconds: 45),
+        'album',
+        1,
+      );
+
+      // Verify PlaybackSessions table record
+      final sessions = await db.select(db.playbackSessions).get();
+      expect(sessions.length, 1);
+      final session = sessions.first;
+      expect(session.id, 1);
+      expect(session.activeTrackPath, '/music/track_b.mp3');
+      expect(session.activeTrackId, 2);
+      expect(session.activeIndex, 1);
+      expect(session.positionMs, 45000);
+      expect(session.playbackContextType, 'album');
+      expect(session.playbackContextId, 1);
+
+      // Verify QueueEntries table records
+      final entries = await (db.select(db.queueEntries)..orderBy([(t) => OrderingTerm.asc(t.sortOrder)])).get();
+      expect(entries.length, 2);
+      expect(entries[0].trackId, 1);
+      expect(entries[0].sortOrder, 0);
+      expect(entries[0].originalOrder, 0);
+      expect(entries[0].source, 'context');
+      expect(entries[0].id, isNotEmpty);
+
+      expect(entries[1].trackId, 2);
+      expect(entries[1].sortOrder, 1);
+      expect(entries[1].originalOrder, 1);
+      expect(entries[1].source, 'context');
+      expect(entries[1].id, isNotEmpty);
+      expect(entries[0].id, isNot(equals(entries[1].id)));
+    });
+
+    test('clearAllData wipes playback_sessions and queue_entries', () async {
+      await queueRepository.saveQueue([trackA, trackB], '/music/track_a.mp3', Duration.zero, 'manual', null);
+      expect(await db.select(db.playbackSessions).get(), isNotEmpty);
+      expect(await db.select(db.queueEntries).get(), isNotEmpty);
+
+      await db.clearAllData();
+
+      expect(await db.select(db.playbackSessions).get(), isEmpty);
+      expect(await db.select(db.queueEntries).get(), isEmpty);
+    });
   });
 }

@@ -14,6 +14,7 @@ part 'app_database.g.dart';
     TrackArtist,
     PlaylistTrack,
     QueueEntries,
+    PlaybackSessions,
     PlayHistory,
     SourcePriorities,
     ArtistMetadata,
@@ -28,7 +29,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration {
@@ -52,6 +53,11 @@ class AppDatabase extends _$AppDatabase {
           await migrator.createTable(userBlacklist);
           await migrator.createTable(userPins);
           await migrator.createTable(ignoredPaths);
+        }
+        if (from < 3) {
+          await customStatement('DROP TABLE IF EXISTS queue_entries;');
+          await migrator.createTable(queueEntries);
+          await migrator.createTable(playbackSessions);
         }
       },
     );
@@ -82,6 +88,7 @@ class AppDatabase extends _$AppDatabase {
     try {
       await transaction(() async {
         await customStatement('DELETE FROM queue_entries;');
+        await customStatement('DELETE FROM playback_sessions;');
         await customStatement('DELETE FROM playlist_track;');
         await customStatement('DELETE FROM track_artist;');
 

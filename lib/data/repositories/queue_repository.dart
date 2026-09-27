@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/data/database/app_database.dart' hide Track, Album, Artist;
 import 'package:nordplayer/data/database/db_mappers.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/queue/queue_models.dart';
 import 'package:nordplayer/utils/string_extension.dart';
 
 /// Repository interface abstracting player queue persistence, restoration,
@@ -32,11 +33,7 @@ abstract interface class QueueRepository {
 }
 
 /// Drift/SQLite implementation of [QueueRepository].
-class DriftQueueRepository implements QueueRepository {
-  final AppDatabase _db;
-
-  const DriftQueueRepository(this._db);
-
+class const DriftQueueRepository(final AppDatabase _db) implements QueueRepository {
   @override
   Future<void> saveQueue(
     List<TrackWithArtists> originalQueue,
@@ -46,23 +43,47 @@ class DriftQueueRepository implements QueueRepository {
     int? playbackContextId,
   ) async {
     await _db.transaction(() async {
+      await _db.delete(_db.playbackSessions).go();
       await _db.delete(_db.queueEntries).go();
+
+      if (originalQueue.isEmpty) return;
+
+      int activeIndex = 0;
+      int? activeTrackId;
+      if (currentlyPlayedTrackPath != null) {
+        final normalizedCurrent = currentlyPlayedTrackPath.normalizePath().toLowerCase();
+        for (var i = 0; i < originalQueue.length; i++) {
+          if (originalQueue[i].track.filePath.normalizePath().toLowerCase() == normalizedCurrent) {
+            activeIndex = i;
+            activeTrackId = originalQueue[i].track.id;
+            break;
+          }
+        }
+      }
+
+      await _db.into(_db.playbackSessions).insert(
+        PlaybackSessionsCompanion.insert(
+          id: const Value(1),
+          activeTrackId: Value(activeTrackId),
+          activeTrackPath: Value(currentlyPlayedTrackPath),
+          activeIndex: Value(activeIndex),
+          positionMs: Value(resumePositionMs.inMilliseconds),
+          playbackContextType: Value(playbackContextType),
+          playbackContextId: Value(playbackContextId),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+
       final companions = <QueueEntriesCompanion>[];
-
       for (var i = 0; i < originalQueue.length; i++) {
-        final isPlaying =
-            currentlyPlayedTrackPath != null &&
-            originalQueue[i].track.filePath.normalizePath().toLowerCase() ==
-                currentlyPlayedTrackPath.normalizePath().toLowerCase();
-
         companions.add(
           QueueEntriesCompanion.insert(
-            originalQueueIndex: Value(i),
+            id: generateQueueItemId(),
             trackId: originalQueue[i].track.id,
-            isCurrentlyPlaying: Value(isPlaying),
-            resumePositionMs: Value(isPlaying ? resumePositionMs.inMilliseconds : 0),
-            playbackContextType: playbackContextType,
-            playbackContextId: Value(playbackContextId),
+            sortOrder: i,
+            originalOrder: i,
+            source: const Value('context'),
+            addedAt: Value(DateTime.now()),
           ),
         );
       }
@@ -75,73 +96,60 @@ class DriftQueueRepository implements QueueRepository {
 
   @override
   Future<(List<TrackWithArtists>, int, Duration, String, int?)> loadQueue() async {
+    final session = await (_db.select(_db.playbackSessions)..where((s) => s.id.equals(1))).getSingleOrNull();
+
     final query = _db.select(_db.queueEntries).join([
       innerJoin(_db.tracks, _db.tracks.id.equalsExp(_db.queueEntries.trackId) & _db.tracks.isMissing.equals(false)),
       leftOuterJoin(_db.albums, _db.albums.id.equalsExp(_db.tracks.albumId)),
       leftOuterJoin(_db.trackArtist, _db.trackArtist.trackId.equalsExp(_db.tracks.id)),
       leftOuterJoin(_db.artists, _db.artists.id.equalsExp(_db.trackArtist.artistId)),
-    ])..orderBy([OrderingTerm.asc(_db.queueEntries.originalQueueIndex)]);
+    ])..orderBy([OrderingTerm.asc(_db.queueEntries.sortOrder)]);
 
     final rows = await query.get();
     if (rows.isEmpty) {
       return (const <TrackWithArtists>[], 0, Duration.zero, '', null);
     }
 
-    // Map keyed by originalQueueIndex to preserve original queue order
-    final Map<int, (TrackWithArtists, bool, int)> groupedQueue = {};
-    String playbackContextType = '';
-    int? playbackContextId;
-
+    // Map keyed by entry.id to preserve order and deduplicate joined artists
+    final Map<String, TrackWithArtists> groupedQueue = {};
     for (final row in rows) {
       final entry = row.readTable(_db.queueEntries);
       final track = row.readTable(_db.tracks);
       final album = row.readTable(_db.albums);
       final artist = row.readTableOrNull(_db.artists);
 
-      if (playbackContextType.isEmpty) {
-        playbackContextType = entry.playbackContextType;
-      }
-      if (playbackContextId == null && entry.playbackContextId != null) {
-        playbackContextId = entry.playbackContextId;
-      }
-
-      final key = entry.originalQueueIndex;
-      if (!groupedQueue.containsKey(key)) {
-        groupedQueue[key] = (
-          TrackWithArtists(track: track.toDomain(), album: album.toDomain(), artists: []),
-          entry.isCurrentlyPlaying,
-          entry.resumePositionMs,
+      if (!groupedQueue.containsKey(entry.id)) {
+        groupedQueue[entry.id] = TrackWithArtists(
+          track: track.toDomain(),
+          album: album.toDomain(),
+          artists: [],
         );
       }
 
       if (artist != null && artist.id != 0) {
-        final currentArtists = groupedQueue[key]!.$1.artists;
+        final currentArtists = groupedQueue[entry.id]!.artists;
         if (!currentArtists.any((a) => a.id == artist.id)) {
           currentArtists.add(artist.toDomain());
         }
       }
     }
 
-    final originalQueue = <TrackWithArtists>[];
-    int lastPlayedIndex = 0;
-    Duration lastPosition = Duration.zero;
+    final originalQueue = groupedQueue.values.toList();
+    final activeIndex = session?.activeIndex ?? 0;
+    final position = Duration(milliseconds: session?.positionMs ?? 0);
+    final contextType = session?.playbackContextType ?? '';
+    final contextId = session?.playbackContextId;
 
-    for (final record in groupedQueue.values) {
-      final (trackWithArtists, isPlaying, resumeMs) = record;
-      originalQueue.add(trackWithArtists);
-      if (isPlaying) {
-        lastPlayedIndex = originalQueue.length - 1;
-        lastPosition = Duration(milliseconds: resumeMs);
-      }
-    }
-
-    return (originalQueue, lastPlayedIndex, lastPosition, playbackContextType, playbackContextId);
+    return (originalQueue, activeIndex, position, contextType, contextId);
   }
 
   @override
   Future<void> updateCurrentPosition(int positionInMs) async {
-    await (_db.update(_db.queueEntries)..where((t) => t.isCurrentlyPlaying.equals(true))).write(
-      QueueEntriesCompanion(resumePositionMs: Value(positionInMs)),
+    await (_db.update(_db.playbackSessions)..where((s) => s.id.equals(1))).write(
+      PlaybackSessionsCompanion(
+        positionMs: Value(positionInMs),
+        updatedAt: Value(DateTime.now()),
+      ),
     );
   }
 }

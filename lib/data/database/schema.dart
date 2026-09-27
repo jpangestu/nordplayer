@@ -80,30 +80,69 @@ class PlayHistory extends Table {
   IntColumn get playbackContextId => integer().nullable()();
 }
 
-/// This table is used to save the current queue state so it never gets removed when closing the app.
-class QueueEntries extends Table {
-  /// The pure, unshuffled position of the track in the original list.
-  /// Fall back to this when the user clicks "Unshuffle".
-  IntColumn get originalQueueIndex => integer()();
+/// Single-row table persisting active player session, playback position, and context.
+class PlaybackSessions extends Table {
+  IntColumn get id => integer().withDefault(const Constant(1))();
 
-  /// Foreign key linking to the `Tracks` metadata table.
-  IntColumn get trackId => integer().references(Tracks, #id)();
+  /// Foreign key linking to the active Track in the Tracks table.
+  IntColumn get activeTrackId => integer().nullable().references(Tracks, #id, onDelete: KeyAction.setNull)();
 
-  /// Flags the single track that was actively playing when the app was last closed.
-  BoolColumn get isCurrentlyPlaying => boolean().withDefault(const Constant(false))();
+  /// Active track absolute file path (cached for fast engine open).
+  TextColumn get activeTrackPath => text().nullable()();
 
-  /// The exact timestamp (in milliseconds) to resume playback from on the active track.
-  IntColumn get resumePositionMs => integer().withDefault(const Constant(0))();
+  /// Active queue index.
+  IntColumn get activeIndex => integer().withDefault(const Constant(0))();
 
-  /// The origin of the queue (i.e. 'album', 'playlist', 'all_tracks').
-  TextColumn get playbackContextType => text()();
+  /// Playback position in milliseconds.
+  IntColumn get positionMs => integer().withDefault(const Constant(0))();
 
-  /// The specific database ID of the origin (i.e. Playlist ID 5, Album ID 77).
-  /// Nullable because all_tracks don't have id
+  /// Context type identifier ('album', 'playlist', 'all_tracks', 'search', 'manual').
+  TextColumn get playbackContextType => text().withDefault(const Constant('manual'))();
+
+  /// Associated collection database ID (e.g. Playlist ID or Album ID).
   IntColumn get playbackContextId => integer().nullable()();
 
+  /// Associated collection title or search query for UI header display.
+  TextColumn get playbackContextTitle => text().nullable()();
+
+  /// Whether shuffle is active.
+  BoolColumn get isShuffle => boolean().withDefault(const Constant(false))();
+
+  /// Permutation map serialized as JSON (e.g. "[0, 3, 1, 2]") when shuffle is active.
+  TextColumn get shuffleIndicesJson => text().nullable()();
+
+  /// Active loop mode ('off', 'all', 'single').
+  TextColumn get loopMode => text().withDefault(const Constant('off'))();
+
+  /// Last updated timestamp.
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
   @override
-  Set<Column> get primaryKey => {originalQueueIndex};
+  Set<Column> get primaryKey => {id};
+}
+
+/// Normalized queue entries table storing current sequence, original sequence, and item source tier.
+class QueueEntries extends Table {
+  /// Unique identifier (UUID string) corresponding to QueueItem.id.
+  TextColumn get id => text()();
+
+  /// Foreign key linking to the Tracks metadata table.
+  IntColumn get trackId => integer().references(Tracks, #id, onDelete: KeyAction.cascade)();
+
+  /// Active sequence index in the queue.
+  IntColumn get sortOrder => integer()();
+
+  /// The original unshuffled/context index for reverting or un-shuffling.
+  IntColumn get originalOrder => integer()();
+
+  /// Origin tier ('context', 'userNext', 'userQueue').
+  TextColumn get source => text().withDefault(const Constant('context'))();
+
+  /// Timestamp when this item was added to the queue.
+  DateTimeColumn get addedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
 }
 
 // ================================= Metadata Extension ===========================================
