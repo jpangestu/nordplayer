@@ -14,6 +14,9 @@ sealed class PlaybackContext {
   /// Associated collection database ID, if applicable.
   int? get id => null;
 
+  /// Underlying collection title or query string, if applicable.
+  String? get title => null;
+
   /// Human-readable title for UI presentation (e.g., "Playing from Album: Abbey Road").
   String get displayTitle;
 
@@ -41,7 +44,8 @@ sealed class PlaybackContext {
 }
 
 /// Generic playback context used for legacy string-based callers and tests.
-class const RawPlaybackContext({@override required final String type, @override final int? id, final String? title})
+class const RawPlaybackContext(
+    {@override required final String type, @override final int? id, @override final String? title})
     extends PlaybackContext {
   this : super._();
 
@@ -68,7 +72,7 @@ class const RawPlaybackContext({@override required final String type, @override 
 }
 
 /// Playback context originating from a specific [Album].
-class const AlbumPlaybackContext({@override required final int id, required final String title})
+class const AlbumPlaybackContext({@override required final int id, @override required final String title})
     extends PlaybackContext {
   this : super._();
 
@@ -100,7 +104,7 @@ class const AlbumPlaybackContext({@override required final int id, required fina
 }
 
 /// Playback context originating from a user [Playlist].
-class const PlaylistPlaybackContext({@override required final int id, required final String title})
+class const PlaylistPlaybackContext({@override required final int id, @override required final String title})
     extends PlaybackContext {
   this : super._();
 
@@ -168,6 +172,9 @@ class const SearchPlaybackContext({required final String query}) extends Playbac
 
   @override
   String get type => 'search';
+
+  @override
+  String? get title => query;
 
   @override
   String get displayTitle => query.isEmpty ? 'Search Results' : 'Search: "$query"';

@@ -115,6 +115,20 @@ class QueueManager({Random? random}) {
 
   // ========================================== Queue Mutations ==========================================
 
+  /// Restores complete queue state from a persisted snapshot.
+  void restoreFromState(QueueState state) {
+    _items = List.of(state.items);
+    _shuffleIndices = state.shuffleIndices.isNotEmpty
+        ? List.of(state.shuffleIndices)
+        : List.generate(_items.length, (i) => i);
+    _isShuffle = state.isShuffle;
+    _loopMode = state.loopMode;
+    _context = state.context;
+    _activeIndex = (state.activeIndex >= 0 && state.activeIndex < displayQueue.length)
+        ? state.activeIndex
+        : (_items.isNotEmpty ? 0 : -1);
+  }
+
   /// Initializes or replaces the queue with a list of tracks.
   void setQueue(
     List<TrackWithArtists> tracks, {

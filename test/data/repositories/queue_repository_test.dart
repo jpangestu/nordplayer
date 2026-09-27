@@ -6,6 +6,8 @@ import 'package:nordplayer/data/database/app_database.dart' hide Track, Album, A
 import 'package:nordplayer/data/database/db_mappers.dart';
 import 'package:nordplayer/data/repositories/queue_repository.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/playback_context.dart';
+import 'package:nordplayer/domain/queue/queue_models.dart';
 
 void main() {
   late AppDatabase db;
@@ -167,6 +169,79 @@ void main() {
 
       expect(await db.select(db.playbackSessions).get(), isEmpty);
       expect(await db.select(db.queueEntries).get(), isEmpty);
+    });
+
+    test('saveQueueState and restoreQueueState preserve full fidelity state and items', () async {
+      final item1 = QueueItem(
+        id: 'uuid-1',
+        track: trackA,
+        source: QueueSource.context,
+        originalOrder: 0,
+        addedAt: DateTime(2026, 1, 1),
+      );
+      final item2 = QueueItem(
+        id: 'uuid-2',
+        track: trackB,
+        source: QueueSource.userNext,
+        originalOrder: 1,
+        addedAt: DateTime(2026, 1, 2),
+      );
+
+      final state = QueueState(
+        items: [item1, item2],
+        shuffleIndices: [1, 0],
+        activeIndex: 1,
+        isShuffle: true,
+        loopMode: LoopMode.single,
+        context: const PlaybackContext.playlist(id: 42, title: 'Favorites'),
+      );
+
+      await queueRepository.saveQueueState(state, const Duration(seconds: 88));
+
+      final restored = await queueRepository.restoreQueueState();
+      expect(restored, isNotNull);
+      expect(restored!.resumePosition, const Duration(seconds: 88));
+
+      final restoredState = restored.state;
+      expect(restoredState.items.length, 2);
+      expect(restoredState.items[0].id, 'uuid-1');
+      expect(restoredState.items[0].source, QueueSource.context);
+      expect(restoredState.items[0].originalOrder, 0);
+      expect(restoredState.items[0].track.track.title, 'Track A');
+
+      expect(restoredState.items[1].id, 'uuid-2');
+      expect(restoredState.items[1].source, QueueSource.userNext);
+      expect(restoredState.items[1].originalOrder, 1);
+      expect(restoredState.items[1].track.track.title, 'Track B');
+
+      expect(restoredState.isShuffle, isTrue);
+      expect(restoredState.shuffleIndices, [1, 0]);
+      expect(restoredState.activeIndex, 1);
+      expect(restoredState.loopMode, LoopMode.single);
+      expect(restoredState.context, isA<PlaylistPlaybackContext>());
+      expect((restoredState.context as PlaylistPlaybackContext).id, 42);
+      expect((restoredState.context as PlaylistPlaybackContext).title, 'Favorites');
+    });
+
+    test('updateActiveTrack performs high-speed single-row update on PlaybackSessions', () async {
+      await queueRepository.saveQueue([trackA, trackB], '/music/track_a.mp3', Duration.zero, 'album', 1);
+
+      // Verify initial session
+      var session = await (db.select(db.playbackSessions)..where((s) => s.id.equals(1))).getSingle();
+      expect(session.activeIndex, 0);
+      expect(session.activeTrackPath, '/music/track_a.mp3');
+
+      // Update active track via delta
+      await queueRepository.updateActiveTrack(1, '/music/track_b.mp3', activeTrackId: 2);
+
+      session = await (db.select(db.playbackSessions)..where((s) => s.id.equals(1))).getSingle();
+      expect(session.activeIndex, 1);
+      expect(session.activeTrackPath, '/music/track_b.mp3');
+      expect(session.activeTrackId, 2);
+
+      // Queue entries should remain untouched
+      final entries = await db.select(db.queueEntries).get();
+      expect(entries.length, 2);
     });
   });
 }

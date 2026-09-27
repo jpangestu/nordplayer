@@ -6,6 +6,7 @@ import 'package:nordplayer/data/repositories/queue_repository.dart';
 import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/artist.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/playback_context.dart';
 import 'package:nordplayer/domain/models/track.dart';
 import 'package:nordplayer/domain/queue/queue_models.dart';
 
@@ -19,6 +20,10 @@ class _FakeQueueRepository implements QueueRepository {
   String savedContextType = '';
   int? savedContextId;
   int? updatedPositionMs;
+  QueueState? savedQueueState;
+  int? updatedActiveIndex;
+  String? updatedActiveTrackPath;
+  int? updatedActiveTrackId;
 
   @override
   Future<void> saveQueue(
@@ -33,6 +38,48 @@ class _FakeQueueRepository implements QueueRepository {
     savedPosition = resumePositionMs;
     savedContextType = playbackContextType;
     savedContextId = playbackContextId;
+  }
+
+  @override
+  Future<void> saveQueueState(QueueState state, Duration resumePosition) async {
+    savedQueueState = state;
+    savedQueue = state.tracks;
+    savedCurrentTrackPath = state.currentItem?.track.track.filePath;
+    savedPosition = resumePosition;
+    savedContextType = state.context.type;
+    savedContextId = state.context.id;
+  }
+
+  @override
+  Future<void> updateActiveTrack(int activeIndex, String? activeTrackPath, {int? activeTrackId}) async {
+    updatedActiveIndex = activeIndex;
+    updatedActiveTrackPath = activeTrackPath;
+    updatedActiveTrackId = activeTrackId;
+  }
+
+  @override
+  Future<RestoredQueueState?> restoreQueueState() async {
+    if (savedQueueState != null) {
+      return RestoredQueueState(state: savedQueueState!, resumePosition: savedPosition);
+    }
+    if (savedQueue.isNotEmpty) {
+      final items = [
+        for (var i = 0; i < savedQueue.length; i++)
+          QueueItem.create(track: savedQueue[i], originalOrder: i),
+      ];
+      return RestoredQueueState(
+        state: QueueState(
+          items: items,
+          shuffleIndices: List.generate(items.length, (i) => i),
+          activeIndex: 0,
+          isShuffle: false,
+          loopMode: LoopMode.off,
+          context: PlaybackContext(type: savedContextType, id: savedContextId),
+        ),
+        resumePosition: savedPosition,
+      );
+    }
+    return null;
   }
 
   @override

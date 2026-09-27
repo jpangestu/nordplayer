@@ -165,6 +165,11 @@ class DefaultPlaybackRepository(
           await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
         }
 
+        _queueRepository.updateActiveTrack(
+          currentIndex,
+          currentTrack?.track.filePath,
+          activeTrackId: currentTrack?.track.id,
+        );
         _queueSaveDebouncer(() => _saveQueueState());
       }),
     );
@@ -356,6 +361,11 @@ class DefaultPlaybackRepository(
       await _playerEngine.open(nextItem.track.track.filePath, autoplay: true);
       await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
     }
+    _queueRepository.updateActiveTrack(
+      currentIndex,
+      currentTrack?.track.filePath,
+      activeTrackId: currentTrack?.track.id,
+    );
     _queueSaveDebouncer(() => _saveQueueState());
   }
 
@@ -367,6 +377,11 @@ class DefaultPlaybackRepository(
       await _playerEngine.open(prevItem.track.track.filePath, autoplay: true);
       await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
     }
+    _queueRepository.updateActiveTrack(
+      currentIndex,
+      currentTrack?.track.filePath,
+      activeTrackId: currentTrack?.track.id,
+    );
     _queueSaveDebouncer(() => _saveQueueState());
   }
 
@@ -380,6 +395,11 @@ class DefaultPlaybackRepository(
         await _playerEngine.open(current.track.filePath, autoplay: true);
         await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
       }
+      _queueRepository.updateActiveTrack(
+        currentIndex,
+        currentTrack?.track.filePath,
+        activeTrackId: currentTrack?.track.id,
+      );
       _queueSaveDebouncer(() => _saveQueueState());
     }
   }
@@ -524,6 +544,22 @@ class DefaultPlaybackRepository(
   Future<void> restoreQueue() async {
     _isRestoringQueue = true;
     try {
+      final restored = await _queueRepository.restoreQueueState();
+      if (restored != null && restored.state.items.isNotEmpty) {
+        _playbackContextType = restored.state.context.type;
+        _playbackContextId = restored.state.context.id;
+
+        _queueManager.restoreFromState(restored.state);
+        _emitQueueState();
+
+        final current = _queueManager.currentTrack;
+        if (current != null) {
+          await _playerEngine.open(current.track.filePath, startPosition: restored.resumePosition, autoplay: false);
+          await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
+        }
+        return;
+      }
+
       final (restoredQueue, lastIndex, lastPos, contextType, contextId) = await _queueRepository.loadQueue();
 
       if (restoredQueue.isEmpty) return;
@@ -569,15 +605,7 @@ class DefaultPlaybackRepository(
 
   void _saveQueueState() {
     if (_isRestoringQueue) return;
-    final current = currentTrack;
-
-    _queueRepository.saveQueue(
-      originalQueue,
-      current?.track.filePath,
-      position,
-      _playbackContextType,
-      _playbackContextId,
-    );
+    _queueRepository.saveQueueState(queueState, position);
   }
 
   @override
