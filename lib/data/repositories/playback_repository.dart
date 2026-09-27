@@ -65,12 +65,15 @@ abstract interface class PlaybackRepository {
 
   Stream<QueueState> watchQueueState();
   Stream<List<QueueItem>> watchQueueItems();
+  Stream<PlaybackContext> watchPlaybackContext();
 
   Future<void> setPlaylist({
     required List<TrackWithArtists> tracksToPlay,
     required int initialIndex,
-    required String playbackContextType,
+    PlaybackContext? context,
+    String? playbackContextType,
     int? playbackContextId,
+    String? playbackContextTitle,
     bool forceReload = false,
     bool autoplay = true,
   });
@@ -130,6 +133,8 @@ class DefaultPlaybackRepository(
   final StreamController<List<String>> _queueCoverArtController = StreamController<List<String>>.broadcast();
   final StreamController<QueueState> _queueStateController = StreamController<QueueState>.broadcast();
   final StreamController<List<QueueItem>> _queueItemsController = StreamController<List<QueueItem>>.broadcast();
+  final StreamController<PlaybackContext> _playbackContextController =
+      StreamController<PlaybackContext>.broadcast();
 
   this {
     _init();
@@ -224,14 +229,17 @@ class DefaultPlaybackRepository(
     _queueCoverArtController.add(currentQueueCoverArt);
     _queueStateController.add(queueState);
     _queueItemsController.add(currentQueueItems);
+    _playbackContextController.add(playbackContext);
   }
 
-  PlaybackContext _resolvePlaybackContext(String type, int? id) {
+  PlaybackContext _resolvePlaybackContext(String type, int? id, {String? title}) {
     return switch (type.toLowerCase()) {
-      'album' => PlaybackContext.album(id: id ?? 0, title: ''),
-      'playlist' => PlaybackContext.playlist(id: id ?? 0, title: ''),
-      'all' || 'tracks' || 'library' => const PlaybackContext.allTracks(),
-      _ => PlaybackContext(type: type, id: id),
+      'album' => PlaybackContext.album(id: id ?? 0, title: title ?? ''),
+      'playlist' => PlaybackContext.playlist(id: id ?? 0, title: title ?? ''),
+      'all' || 'tracks' || 'library' || 'all_tracks' => const PlaybackContext.allTracks(),
+      'search' => PlaybackContext.search(query: title ?? ''),
+      'manual' => const PlaybackContext.manual(),
+      _ => PlaybackContext(type: type, id: id, title: title),
     };
   }
 
@@ -287,34 +295,70 @@ class DefaultPlaybackRepository(
   int? get playbackContextId => _playbackContextId;
 
   @override
-  Stream<TrackWithArtists?> watchCurrentTrack() => _currentTrackController.stream;
+  Stream<TrackWithArtists?> watchCurrentTrack() async* {
+    yield currentTrack;
+    yield* _currentTrackController.stream;
+  }
 
   @override
-  Stream<int> watchCurrentIndex() => _currentIndexController.stream;
+  Stream<int> watchCurrentIndex() async* {
+    yield currentIndex;
+    yield* _currentIndexController.stream;
+  }
 
   @override
-  Stream<List<TrackWithArtists>> watchQueue() => _queueController.stream;
+  Stream<List<TrackWithArtists>> watchQueue() async* {
+    yield currentQueue;
+    yield* _queueController.stream;
+  }
 
   @override
-  Stream<List<String>> watchQueueCoverArt() => _queueCoverArtController.stream;
+  Stream<List<String>> watchQueueCoverArt() async* {
+    yield currentQueueCoverArt;
+    yield* _queueCoverArtController.stream;
+  }
 
   @override
-  Stream<QueueState> watchQueueState() => _queueStateController.stream;
+  Stream<QueueState> watchQueueState() async* {
+    yield queueState;
+    yield* _queueStateController.stream;
+  }
 
   @override
-  Stream<List<QueueItem>> watchQueueItems() => _queueItemsController.stream;
+  Stream<List<QueueItem>> watchQueueItems() async* {
+    yield currentQueueItems;
+    yield* _queueItemsController.stream;
+  }
 
   @override
-  Stream<bool> watchIsPlaying() => _playerEngine.isPlayingStream;
+  Stream<PlaybackContext> watchPlaybackContext() async* {
+    yield playbackContext;
+    yield* _playbackContextController.stream;
+  }
 
   @override
-  Stream<Duration> watchPosition() => _playerEngine.positionStream;
+  Stream<bool> watchIsPlaying() async* {
+    yield isPlaying;
+    yield* _playerEngine.isPlayingStream;
+  }
 
   @override
-  Stream<Duration> watchDuration() => _playerEngine.durationStream;
+  Stream<Duration> watchPosition() async* {
+    yield position;
+    yield* _playerEngine.positionStream;
+  }
 
   @override
-  Stream<double> watchVolume() => _playerEngine.volumeStream;
+  Stream<Duration> watchDuration() async* {
+    yield duration;
+    yield* _playerEngine.durationStream;
+  }
+
+  @override
+  Stream<double> watchVolume() async* {
+    yield volume;
+    yield* _playerEngine.volumeStream;
+  }
 
   @override
   Future<void> playTrack(List<TrackWithArtists> tracks, int index) async {
@@ -325,21 +369,29 @@ class DefaultPlaybackRepository(
   Future<void> setPlaylist({
     required List<TrackWithArtists> tracksToPlay,
     required int initialIndex,
-    required String playbackContextType,
+    PlaybackContext? context,
+    String? playbackContextType,
     int? playbackContextId,
+    String? playbackContextTitle,
     bool forceReload = false,
     bool autoplay = true,
   }) async {
     if (tracksToPlay.isEmpty) return;
 
-    _playbackContextType = playbackContextType;
-    _playbackContextId = playbackContextId;
-    final context = _resolvePlaybackContext(playbackContextType, playbackContextId);
+    final resolvedContext = context ??
+        _resolvePlaybackContext(
+          playbackContextType ?? 'manual',
+          playbackContextId,
+          title: playbackContextTitle,
+        );
+
+    _playbackContextType = resolvedContext.type;
+    _playbackContextId = resolvedContext.id;
 
     _shouldSuppressNextScroll = false;
     _ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.jump);
 
-    _queueManager.setQueue(tracksToPlay, initialIndex: initialIndex, context: context, shuffle: isShuffle);
+    _queueManager.setQueue(tracksToPlay, initialIndex: initialIndex, context: resolvedContext, shuffle: isShuffle);
     _queueManager.setLoopMode(loopMode.toLoopMode());
 
     _emitQueueState();
@@ -625,6 +677,7 @@ class DefaultPlaybackRepository(
     _queueCoverArtController.close();
     _queueStateController.close();
     _queueItemsController.close();
+    _playbackContextController.close();
   }
 }
 

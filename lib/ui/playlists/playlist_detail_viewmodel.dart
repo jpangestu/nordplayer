@@ -5,6 +5,7 @@ import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/playlist_repository.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/playback_context.dart';
 import 'package:nordplayer/ui/playlists/playlist_detail_ui_state.dart';
 import 'package:nordplayer/ui/shared/ui/selection_state.dart';
 import 'package:nordplayer/ui/shared/ui/table_column_config.dart';
@@ -143,11 +144,14 @@ class PlaylistDetailViewModel(final int playlistId) extends Notifier<PlaylistDet
   /// Starts playback of the playlist beginning at track [index].
   void playTrack(int index) {
     if (index < 0 || index >= state.tracks.length) return;
+    final playlistTitle = state.playlist?.name ?? '';
     _playbackRepository.setPlaylist(
       tracksToPlay: state.tracks,
       initialIndex: index,
+      context: PlaybackContext.playlist(id: playlistId, title: playlistTitle),
       playbackContextType: 'playlist',
       playbackContextId: playlistId,
+      playbackContextTitle: playlistTitle,
     );
   }
 

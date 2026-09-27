@@ -7,6 +7,7 @@ import 'package:nordplayer/data/repositories/playlist_repository.dart';
 import 'package:nordplayer/data/services/system/platform_service.dart' show showInFolder;
 import 'package:nordplayer/data/services/system/preference_service.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/playback_context.dart';
 import 'package:nordplayer/routing/router.dart';
 import 'package:nordplayer/ui/playlists/playlists_viewmodel.dart';
 import 'package:nordplayer/ui/playlists/widgets/playlist_dialogs.dart';
@@ -29,6 +30,8 @@ class TrackContextMenu {
     required List<TrackWithArtists> selectedTracks,
     required String playbackContextType,
     int? playbackContextId,
+    String? playbackContextTitle,
+    PlaybackContext? playbackContext,
     bool isInQueue = false,
   }) {
     final appIconSet = ref.read(appIconProvider);
@@ -46,8 +49,10 @@ class TrackContextMenu {
               ref
                   .read(playbackRepositoryProvider)
                   .setPlaylist(
+                    context: playbackContext,
                     playbackContextType: playbackContextType,
                     playbackContextId: playbackContextId,
+                    playbackContextTitle: playbackContextTitle,
                     tracksToPlay: tracks,
                     initialIndex: clickedIndex,
                   );
@@ -164,6 +169,8 @@ class SearchTracksContextMenu {
     required int indexToPlay,
     required String playbackContextType,
     int? playbackContextId,
+    String? playbackContextTitle,
+    PlaybackContext? playbackContext,
     bool isInQueue = false,
   }) {
     final appIconSet = ref.read(appIconProvider);
@@ -180,8 +187,10 @@ class SearchTracksContextMenu {
             ref
                 .read(playbackRepositoryProvider)
                 .setPlaylist(
+                  context: playbackContext,
                   playbackContextType: playbackContextType,
                   playbackContextId: playbackContextId,
+                  playbackContextTitle: playbackContextTitle,
                   tracksToPlay: tracks,
                   initialIndex: indexToPlay,
                 );

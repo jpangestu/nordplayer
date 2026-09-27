@@ -288,4 +288,24 @@ void main() {
       expect(container.read(preferenceServiceProvider).shuffleMode, isFalse);
     });
   });
+
+  group('PlayerService Disposal', () {
+    test('dispose does not dispose Player when disposePlayer is false', () async {
+      final ref = container.read(Provider<Ref>((ref) => ref));
+      final unownedPlayer = FakePlayer();
+      final nonOwningService = PlayerService(ref, unownedPlayer, disposePlayer: false);
+
+      await nonOwningService.dispose();
+      expect(unownedPlayer.isDisposed, isFalse);
+    });
+
+    test('dispose disposes Player when disposePlayer is true', () async {
+      final ref = container.read(Provider<Ref>((ref) => ref));
+      final ownedPlayer = FakePlayer();
+      final owningService = PlayerService(ref, ownedPlayer, disposePlayer: true);
+
+      await owningService.dispose();
+      expect(ownedPlayer.isDisposed, isTrue);
+    });
+  });
 }

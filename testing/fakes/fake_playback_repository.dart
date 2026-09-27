@@ -22,6 +22,7 @@ class FakePlaybackRepository({
   PlaylistMode loopMode = PlaylistMode.none,
   String playbackContextType = '',
   int? playbackContextId,
+  PlaybackContext? playbackContext,
 }) implements PlaybackRepository {
   List<TrackWithArtists> _currentQueue = initialQueue ?? [];
   List<TrackWithArtists> _originalQueue = initialQueue != null ? List.from(initialQueue) : [];
@@ -35,6 +36,10 @@ class FakePlaybackRepository({
   PlaylistMode _loopMode = loopMode;
   String _playbackContextType = playbackContextType;
   int? _playbackContextId = playbackContextId;
+  PlaybackContext _playbackContext = playbackContext ??
+      (playbackContextType.isNotEmpty
+          ? PlaybackContext(type: playbackContextType, id: playbackContextId)
+          : const PlaybackContext.manual());
   bool _suppressNextScroll = false;
 
   TrackWithArtists? _overrideCurrentTrack;
@@ -54,11 +59,15 @@ class FakePlaybackRepository({
   int lastInitialIndex = -1;
   String lastContextType = '';
   int? lastContextId;
+  String? lastContextTitle;
+  PlaybackContext? lastContext;
 
   List<TrackWithArtists> get setPlaylistTracks => lastTracks;
   int get setPlaylistIndex => lastInitialIndex;
   String get setPlaylistContextType => lastContextType;
   int? get setPlaylistContextId => lastContextId;
+  String? get setPlaylistContextTitle => lastContextTitle;
+  PlaybackContext? get setPlaylistContext => lastContext;
   bool get clearedQueue => cleared;
 
   final StreamController<TrackWithArtists?> _currentTrackController = StreamController<TrackWithArtists?>.broadcast();
@@ -72,6 +81,8 @@ class FakePlaybackRepository({
   final StreamController<List<String>> _queueCoverArtController = StreamController<List<String>>.broadcast();
   final StreamController<QueueState> _queueStateController = StreamController<QueueState>.broadcast();
   final StreamController<List<QueueItem>> _queueItemsController = StreamController<List<QueueItem>>.broadcast();
+  final StreamController<PlaybackContext> _playbackContextController =
+      StreamController<PlaybackContext>.broadcast();
 
   @override
   List<TrackWithArtists> get originalQueue => List.unmodifiable(_originalQueue);
@@ -116,7 +127,7 @@ class FakePlaybackRepository({
   int? get playbackContextId => _playbackContextId;
 
   @override
-  PlaybackContext get playbackContext => const ManualPlaybackContext();
+  PlaybackContext get playbackContext => _playbackContext;
 
   @override
   QueueState get queueState {
@@ -142,34 +153,70 @@ class FakePlaybackRepository({
       _currentQueue.map((t) => t.album.albumArtPath).whereType<String>().take(5).toList();
 
   @override
-  Stream<TrackWithArtists?> watchCurrentTrack() => _currentTrackController.stream;
+  Stream<TrackWithArtists?> watchCurrentTrack() async* {
+    yield currentTrack;
+    yield* _currentTrackController.stream;
+  }
 
   @override
-  Stream<int> watchCurrentIndex() => _currentIndexController.stream;
+  Stream<int> watchCurrentIndex() async* {
+    yield currentIndex;
+    yield* _currentIndexController.stream;
+  }
 
   @override
-  Stream<List<TrackWithArtists>> watchQueue() => _queueController.stream;
+  Stream<List<TrackWithArtists>> watchQueue() async* {
+    yield currentQueue;
+    yield* _queueController.stream;
+  }
 
   @override
-  Stream<QueueState> watchQueueState() => _queueStateController.stream;
+  Stream<QueueState> watchQueueState() async* {
+    yield queueState;
+    yield* _queueStateController.stream;
+  }
 
   @override
-  Stream<List<QueueItem>> watchQueueItems() => _queueItemsController.stream;
+  Stream<List<QueueItem>> watchQueueItems() async* {
+    yield currentQueueItems;
+    yield* _queueItemsController.stream;
+  }
 
   @override
-  Stream<bool> watchIsPlaying() => _isPlayingController.stream;
+  Stream<PlaybackContext> watchPlaybackContext() async* {
+    yield playbackContext;
+    yield* _playbackContextController.stream;
+  }
 
   @override
-  Stream<Duration> watchPosition() => _positionController.stream;
+  Stream<bool> watchIsPlaying() async* {
+    yield isPlaying;
+    yield* _isPlayingController.stream;
+  }
 
   @override
-  Stream<Duration> watchDuration() => _durationController.stream;
+  Stream<Duration> watchPosition() async* {
+    yield position;
+    yield* _positionController.stream;
+  }
 
   @override
-  Stream<double> watchVolume() => _volumeController.stream;
+  Stream<Duration> watchDuration() async* {
+    yield duration;
+    yield* _durationController.stream;
+  }
 
   @override
-  Stream<List<String>> watchQueueCoverArt() => _queueCoverArtController.stream;
+  Stream<double> watchVolume() async* {
+    yield volume;
+    yield* _volumeController.stream;
+  }
+
+  @override
+  Stream<List<String>> watchQueueCoverArt() async* {
+    yield currentQueueCoverArt;
+    yield* _queueCoverArtController.stream;
+  }
 
   void emitQueue(List<TrackWithArtists> queue) {
     _currentQueue = List.from(queue);
@@ -196,21 +243,36 @@ class FakePlaybackRepository({
   Future<void> setPlaylist({
     required List<TrackWithArtists> tracksToPlay,
     required int initialIndex,
-    required String playbackContextType,
+    PlaybackContext? context,
+    String? playbackContextType,
     int? playbackContextId,
+    String? playbackContextTitle,
     bool forceReload = false,
     bool autoplay = true,
   }) async {
+    final resolvedContext = context ??
+        switch ((playbackContextType ?? 'manual').toLowerCase()) {
+          'album' => PlaybackContext.album(id: playbackContextId ?? 0, title: playbackContextTitle ?? ''),
+          'playlist' => PlaybackContext.playlist(id: playbackContextId ?? 0, title: playbackContextTitle ?? ''),
+          'all' || 'tracks' || 'library' || 'all_tracks' => const PlaybackContext.allTracks(),
+          'search' => PlaybackContext.search(query: playbackContextTitle ?? ''),
+          'manual' => const PlaybackContext.manual(),
+          _ => PlaybackContext(type: playbackContextType ?? 'manual', id: playbackContextId, title: playbackContextTitle),
+        };
+
     lastTracks = List.from(tracksToPlay);
     lastInitialIndex = initialIndex;
-    lastContextType = playbackContextType;
-    lastContextId = playbackContextId;
+    lastContextType = resolvedContext.type;
+    lastContextId = resolvedContext.id;
+    lastContextTitle = resolvedContext.title;
+    lastContext = resolvedContext;
 
     _currentQueue = List.from(tracksToPlay);
     _originalQueue = List.from(tracksToPlay);
     _currentIndex = initialIndex;
-    _playbackContextType = playbackContextType;
-    _playbackContextId = playbackContextId;
+    _playbackContextType = resolvedContext.type;
+    _playbackContextId = resolvedContext.id;
+    _playbackContext = resolvedContext;
     if (autoplay) _isPlaying = true;
 
     _queueController.add(_currentQueue);
@@ -218,6 +280,7 @@ class FakePlaybackRepository({
     _currentTrackController.add(currentTrack);
     _isPlayingController.add(_isPlaying);
     _queueCoverArtController.add(currentQueueCoverArt);
+    _playbackContextController.add(_playbackContext);
   }
 
   @override

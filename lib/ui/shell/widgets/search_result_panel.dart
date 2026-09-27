@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/data/repositories/playback_repository.dart';
+import 'package:nordplayer/domain/models/playback_context.dart';
 import 'package:nordplayer/ui/shared/shortcuts.dart';
 import 'package:nordplayer/ui/shared/ui/frosted_glass.dart';
 import 'package:nordplayer/ui/shared/ui/music_tile.dart';
@@ -72,14 +73,20 @@ class SearchResultsDropdown extends ConsumerWidget {
                       title: trackWithArtists.track.title,
                       artists: trackWithArtists.artists.map<String>((artist) => artist.name).toList(),
                       onTap: () {
-                        ref
-                            .read(playbackRepositoryProvider)
-                            .setPlaylist(tracksToPlay: tracks, initialIndex: index, playbackContextType: 'search');
+                        final query = ref.read(searchQueryProvider);
+                        ref.read(playbackRepositoryProvider).setPlaylist(
+                              tracksToPlay: tracks,
+                              initialIndex: index,
+                              context: PlaybackContext.search(query: query),
+                              playbackContextType: 'search',
+                              playbackContextTitle: query,
+                            );
 
                         ref.read(searchFocusNodeProvider).unfocus();
                         ref.read(searchQueryProvider.notifier).clear();
                       },
                       onRightClick: (globalPosition) {
+                        final query = ref.read(searchQueryProvider);
                         SearchTracksContextMenu.show(
                           context: context,
                           ref: ref,
@@ -87,7 +94,9 @@ class SearchResultsDropdown extends ConsumerWidget {
                           globalPosition: globalPosition,
                           tracks: tracks,
                           indexToPlay: index,
+                          playbackContext: PlaybackContext.search(query: query),
                           playbackContextType: 'search_dropdown',
+                          playbackContextTitle: query,
                         );
                       },
                     ),

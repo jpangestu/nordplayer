@@ -4,6 +4,7 @@ import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/playlist_repository.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/playback_context.dart';
 import 'package:nordplayer/ui/playlists/playlists_ui_state.dart';
 import 'package:nordplayer/utils/logger.dart';
 
@@ -121,15 +122,21 @@ class PlaylistsViewModel extends Notifier<PlaylistsUiState> with LoggerMixin {
   void playPlaylist({
     required List<TrackWithArtists> tracks,
     required int playlistId,
+    String? playlistTitle,
     int initialIndex = 0,
     bool forceReload = false,
   }) {
     if (tracks.isEmpty) return;
+    final title = playlistTitle ??
+        state.playlists.where((p) => p.playlist.id == playlistId).firstOrNull?.playlist.name ??
+        '';
     _playbackRepository.setPlaylist(
       tracksToPlay: tracks,
       initialIndex: initialIndex,
+      context: PlaybackContext.playlist(id: playlistId, title: title),
       playbackContextType: 'playlist',
       playbackContextId: playlistId,
+      playbackContextTitle: title,
       forceReload: forceReload,
     );
   }
@@ -139,11 +146,15 @@ class PlaylistsViewModel extends Notifier<PlaylistsUiState> with LoggerMixin {
     final tracks = await _repository.getPlaylistTracks(playlistId);
     if (tracks.isEmpty) return false;
 
+    final title = state.playlists.where((p) => p.playlist.id == playlistId).firstOrNull?.playlist.name ?? '';
+
     await _playbackRepository.setPlaylist(
-      playbackContextType: 'playlist',
-      playbackContextId: playlistId,
       tracksToPlay: tracks,
       initialIndex: 0,
+      context: PlaybackContext.playlist(id: playlistId, title: title),
+      playbackContextType: 'playlist',
+      playbackContextId: playlistId,
+      playbackContextTitle: title,
     );
     return true;
   }

@@ -78,7 +78,11 @@ abstract interface class AudioPlayerEngine {
 
 /// [media_kit.Player] implementation of [AudioPlayerEngine] featuring a rolling 2-track window
 /// for gapless transitions without excessive native memory allocation.
-class MediaKitAudioPlayerEngine(final Player _player) implements AudioPlayerEngine {
+class MediaKitAudioPlayerEngine(
+  final Player _player, {
+  final bool disposePlayer = true,
+}) implements AudioPlayerEngine {
+  final bool _disposePlayer = disposePlayer;
   String? _currentUri;
   String? _nextUri;
   final StreamController<void> _completedController = StreamController<void>.broadcast();
@@ -229,14 +233,16 @@ class MediaKitAudioPlayerEngine(final Player _player) implements AudioPlayerEngi
     }
     _subscriptions.clear();
     await _completedController.close();
-    await _player.dispose();
+    if (_disposePlayer) {
+      await _player.dispose();
+    }
   }
 }
 
 /// Riverpod provider for [AudioPlayerEngine].
 final audioPlayerEngineProvider = Provider<AudioPlayerEngine>((ref) {
   final player = ref.watch(audioPlayerProvider);
-  final engine = MediaKitAudioPlayerEngine(player);
+  final engine = MediaKitAudioPlayerEngine(player, disposePlayer: false);
   ref.onDispose(() => engine.dispose());
   return engine;
 });

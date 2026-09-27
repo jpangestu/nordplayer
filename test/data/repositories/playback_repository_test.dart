@@ -467,5 +467,56 @@ void main() {
       expect(queueRepo.savedQueueState, isNotNull);
       expect(queueRepo.savedQueueState?.items.length, 3);
     });
+
+    test('setPlaylist with typed PlaybackContext preserves type, id, and title', () async {
+      const context = PlaybackContext.album(id: 42, title: 'Abbey Road');
+      await repo.setPlaylist(
+        tracksToPlay: [track1, track2],
+        initialIndex: 0,
+        context: context,
+      );
+
+      expect(repo.playbackContext, equals(context));
+      expect(repo.playbackContext.type, 'album');
+      expect(repo.playbackContext.id, 42);
+      expect(repo.playbackContext.title, 'Abbey Road');
+      expect(repo.playbackContextType, 'album');
+      expect(repo.playbackContextId, 42);
+    });
+
+    test('setPlaylist with backward-compatible primitives resolves and preserves title', () async {
+      await repo.setPlaylist(
+        tracksToPlay: [track1, track2],
+        initialIndex: 0,
+        playbackContextType: 'playlist',
+        playbackContextId: 99,
+        playbackContextTitle: 'Favorites',
+      );
+
+      expect(repo.playbackContext.type, 'playlist');
+      expect(repo.playbackContext.id, 99);
+      expect(repo.playbackContext.title, 'Favorites');
+    });
+
+    test('watchPlaybackContext and watchCurrentTrack immediately emit current state on subscription', () async {
+      const context = PlaybackContext.album(id: 12, title: 'Dark Side');
+      await repo.setPlaylist(
+        tracksToPlay: [track1, track2],
+        initialIndex: 1,
+        context: context,
+      );
+
+      final emittedContext = await repo.watchPlaybackContext().first;
+      expect(emittedContext, equals(context));
+
+      final emittedTrack = await repo.watchCurrentTrack().first;
+      expect(emittedTrack?.track.id, equals(track2.track.id));
+
+      final emittedIndex = await repo.watchCurrentIndex().first;
+      expect(emittedIndex, equals(1));
+
+      final emittedQueue = await repo.watchQueue().first;
+      expect(emittedQueue.length, equals(2));
+    });
   });
 }

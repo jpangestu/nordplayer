@@ -272,6 +272,22 @@ void main() {
       await engine.setVolume(75.0);
       expect(player.state.volume, 75.0);
     });
+
+    test('dispose does not dispose Player when disposePlayer is false', () async {
+      final unownedPlayer = _TestPlayer();
+      final nonOwningEngine = MediaKitAudioPlayerEngine(unownedPlayer, disposePlayer: false);
+
+      await nonOwningEngine.dispose();
+      expect(unownedPlayer.isDisposed, isFalse);
+    });
+
+    test('dispose disposes Player when disposePlayer is true', () async {
+      final ownedPlayer = _TestPlayer();
+      final owningEngine = MediaKitAudioPlayerEngine(ownedPlayer, disposePlayer: true);
+
+      await owningEngine.dispose();
+      expect(ownedPlayer.isDisposed, isTrue);
+    });
   });
 
   group('FakeAudioPlayerEngine', () {

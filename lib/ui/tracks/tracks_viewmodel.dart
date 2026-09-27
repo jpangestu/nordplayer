@@ -5,6 +5,7 @@ import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/track_repository.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/playback_context.dart';
 import 'package:nordplayer/ui/shared/ui/selection_state.dart';
 import 'package:nordplayer/ui/shared/ui/table_column_config.dart';
 import 'package:nordplayer/ui/tracks/tracks_ui_state.dart';
@@ -159,6 +160,7 @@ class TracksViewModel extends Notifier<TracksUiState> with LoggerMixin {
   void playTrack(List<TrackWithArtists> tracks, int index) {
     if (tracks.isEmpty || index < 0 || index >= tracks.length) return;
     _playbackRepository.setPlaylist(
+      context: const PlaybackContext.allTracks(),
       playbackContextType: 'all_tracks',
       playbackContextId: null,
       tracksToPlay: tracks,

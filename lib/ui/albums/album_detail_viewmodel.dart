@@ -8,6 +8,7 @@ import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/settings_repository.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
+import 'package:nordplayer/domain/models/playback_context.dart';
 import 'package:nordplayer/ui/albums/album_detail_ui_state.dart';
 import 'package:nordplayer/ui/shared/ui/selection_state.dart';
 import 'package:nordplayer/ui/shared/ui/table_column_config.dart';
@@ -171,11 +172,15 @@ class AlbumDetailViewModel(final int albumId) extends Notifier<AlbumDetailUiStat
 
     _settingsRepository.setShuffleMode(shuffle);
 
+    final albumTitle = state.albumWithTracks?.album.title ?? '';
+
     _playbackRepository.setPlaylist(
       tracksToPlay: tracksToPlay,
       initialIndex: startIndex,
+      context: PlaybackContext.album(id: albumId, title: albumTitle),
       playbackContextType: 'album',
       playbackContextId: albumId,
+      playbackContextTitle: albumTitle,
       forceReload: forceReload,
     );
   }
