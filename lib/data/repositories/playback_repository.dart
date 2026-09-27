@@ -7,6 +7,7 @@ import 'package:nordplayer/data/repositories/queue_repository.dart';
 import 'package:nordplayer/data/repositories/settings_repository.dart';
 import 'package:nordplayer/data/services/audio/audio_handler.dart';
 import 'package:nordplayer/data/services/audio/audio_player_engine.dart';
+import 'package:nordplayer/data/services/audio/volume_controller.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/playback_context.dart';
 import 'package:nordplayer/domain/queue/queue_manager.dart';
@@ -112,8 +113,10 @@ class DefaultPlaybackRepository(
   final QueueRepository _queueRepository,
   final SettingsRepository _settingsRepository, {
   QueueManager? queueManager,
+  VolumeController? volumeController,
 }) with LoggerMixin implements PlaybackRepository {
   final QueueManager _queueManager = queueManager ?? QueueManager();
+  final VolumeController _volumeController = volumeController ?? VolumeController(_playerEngine, _settingsRepository);
   String _playbackContextType = '';
   int? _playbackContextId;
   bool _isRestoringQueue = false;
@@ -259,10 +262,10 @@ class DefaultPlaybackRepository(
   Duration get duration => _playerEngine.duration;
 
   @override
-  double get volume => _playerEngine.volume;
+  double get volume => _volumeController.volume;
 
   @override
-  bool get isMuted => _settingsRepository.currentSettings.isMuted;
+  bool get isMuted => _volumeController.isMuted;
 
   @override
   bool get isShuffle => _queueManager.isShuffle;
@@ -331,10 +334,7 @@ class DefaultPlaybackRepository(
   }
 
   @override
-  Stream<double> watchVolume() async* {
-    yield volume;
-    yield* _playerEngine.volumeStream;
-  }
+  Stream<double> watchVolume() => _volumeController.watchVolume();
 
   @override
   Future<void> playTrack(List<TrackWithArtists> tracks, int index) async {
@@ -427,35 +427,16 @@ class DefaultPlaybackRepository(
   }
 
   @override
-  Future<void> setVolume(double volume) async {
-    await _playerEngine.setVolume(volume);
-    _settingsRepository.setVolume(volume);
-  }
+  Future<void> setVolume(double volume) => _volumeController.setVolume(volume);
 
   @override
-  Future<void> setVolumeUp([double step = 5]) async {
-    final current = _settingsRepository.currentSettings.volume;
-    final next = (current + step).clamp(0.0, 100.0);
-    await _settingsRepository.setIsMuted(false);
-    await setVolume(next);
-  }
+  Future<void> setVolumeUp([double step = 5]) => _volumeController.setVolumeUp(step);
 
   @override
-  Future<void> setVolumeDown([double step = 5]) async {
-    final current = _settingsRepository.currentSettings.volume;
-    final next = (current - step).clamp(0.0, 100.0);
-    if (next == 0) {
-      await _settingsRepository.setIsMuted(true);
-    }
-    await setVolume(next);
-  }
+  Future<void> setVolumeDown([double step = 5]) => _volumeController.setVolumeDown(step);
 
   @override
-  Future<void> toggleMute() async {
-    final nextMute = !isMuted;
-    await _settingsRepository.setIsMuted(nextMute);
-    await _playerEngine.setVolume(nextMute ? 0.0 : _settingsRepository.currentSettings.volume);
-  }
+  Future<void> toggleMute() => _volumeController.toggleMute();
 
   @override
   Future<void> toggleShuffle() async {
@@ -641,8 +622,14 @@ final playbackRepositoryProvider = Provider<PlaybackRepository>((ref) {
   final playerEngine = ref.watch(audioPlayerEngineProvider);
   final queueRepo = ref.watch(queueRepositoryProvider);
   final settingsRepo = ref.watch(settingsRepositoryProvider);
+  final volumeController = ref.watch(volumeControllerProvider);
 
-  final repo = DefaultPlaybackRepository(playerEngine, queueRepo, settingsRepo);
+  final repo = DefaultPlaybackRepository(
+    playerEngine,
+    queueRepo,
+    settingsRepo,
+    volumeController: volumeController,
+  );
   final audioHandler = ref.watch(audioHandlerProvider);
   if (audioHandler != null) {
     audioHandler.attachRepository(repo);
