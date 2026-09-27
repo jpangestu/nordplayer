@@ -172,7 +172,6 @@ class DefaultPlaybackRepository(
           currentTrack?.track.filePath,
           activeTrackId: currentTrack?.track.id,
         );
-        _queueSaveDebouncer(() => _saveQueueState());
       }),
     );
 
@@ -195,11 +194,19 @@ class DefaultPlaybackRepository(
         bool changed = false;
         if (settings.shuffleMode != _queueManager.isShuffle) {
           _queueManager.toggleShuffle();
+          _queueRepository.updateShuffleMode(
+            isShuffle: _queueManager.isShuffle,
+            shuffleIndices: _queueManager.state.shuffleIndices,
+            activeIndex: currentIndex,
+            activeTrackPath: currentTrack?.track.filePath,
+            activeTrackId: currentTrack?.track.id,
+          );
           changed = true;
         }
         final targetLoop = settings.loopMode.toLoopMode();
         if (targetLoop != _queueManager.loopMode) {
           _queueManager.setLoopMode(targetLoop);
+          _queueRepository.updateLoopMode(targetLoop.name);
           changed = true;
         }
         if (changed) {
@@ -368,7 +375,6 @@ class DefaultPlaybackRepository(
       currentTrack?.track.filePath,
       activeTrackId: currentTrack?.track.id,
     );
-    _queueSaveDebouncer(() => _saveQueueState());
   }
 
   @override
@@ -384,7 +390,6 @@ class DefaultPlaybackRepository(
       currentTrack?.track.filePath,
       activeTrackId: currentTrack?.track.id,
     );
-    _queueSaveDebouncer(() => _saveQueueState());
   }
 
   @override
@@ -402,12 +407,14 @@ class DefaultPlaybackRepository(
         currentTrack?.track.filePath,
         activeTrackId: currentTrack?.track.id,
       );
-      _queueSaveDebouncer(() => _saveQueueState());
     }
   }
 
   @override
-  Future<void> seek(Duration position) => _playerEngine.seek(position);
+  Future<void> seek(Duration position) async {
+    await _playerEngine.seek(position);
+    _queueRepository.updateCurrentPosition(position.inMilliseconds);
+  }
 
   @override
   Future<void> setVolume(double volume) async {
@@ -446,7 +453,13 @@ class DefaultPlaybackRepository(
     await _settingsRepository.setShuffleMode(_queueManager.isShuffle);
     await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
     _emitQueueState();
-    _queueSaveDebouncer(() => _saveQueueState());
+    _queueRepository.updateShuffleMode(
+      isShuffle: _queueManager.isShuffle,
+      shuffleIndices: _queueManager.state.shuffleIndices,
+      activeIndex: currentIndex,
+      activeTrackPath: currentTrack?.track.filePath,
+      activeTrackId: currentTrack?.track.id,
+    );
   }
 
   @override
@@ -460,6 +473,7 @@ class DefaultPlaybackRepository(
     _queueManager.setLoopMode(nextMode.toLoopMode());
     await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
     _emitQueueState();
+    _queueRepository.updateLoopMode(nextMode.toLoopMode().name);
   }
 
   @override
@@ -539,7 +553,7 @@ class DefaultPlaybackRepository(
     await _playerEngine.setNextMedia(null);
     _queueManager.clear();
     _emitQueueState();
-    await _queueRepository.saveQueue([], null, Duration.zero, '', null);
+    await _queueRepository.saveQueueState(_queueManager.state, Duration.zero);
   }
 
   @override
@@ -559,31 +573,6 @@ class DefaultPlaybackRepository(
           await _playerEngine.open(current.track.filePath, startPosition: restored.resumePosition, autoplay: false);
           await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
         }
-        return;
-      }
-
-      final (restoredQueue, lastIndex, lastPos, contextType, contextId) = await _queueRepository.loadQueue();
-
-      if (restoredQueue.isEmpty) return;
-
-      _playbackContextType = contextType;
-      _playbackContextId = contextId;
-      final context = _resolvePlaybackContext(contextType, contextId);
-
-      _queueManager.setQueue(
-        restoredQueue,
-        initialIndex: (lastIndex >= 0 && lastIndex < restoredQueue.length) ? lastIndex : 0,
-        context: context,
-        shuffle: isShuffle,
-      );
-      _queueManager.setLoopMode(loopMode.toLoopMode());
-
-      _emitQueueState();
-
-      final current = _queueManager.currentTrack;
-      if (current != null) {
-        await _playerEngine.open(current.track.filePath, startPosition: lastPos, autoplay: false);
-        await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
       }
     } finally {
       _isRestoringQueue = false;
@@ -628,7 +617,8 @@ class DefaultPlaybackRepository(
     for (final sub in _subscriptions) {
       sub.cancel();
     }
-    _queueSaveDebouncer.cancel();
+    _queueSaveDebouncer.flush();
+    _queueSaveDebouncer.dispose();
     _currentTrackController.close();
     _currentIndexController.close();
     _queueController.close();

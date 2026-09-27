@@ -37,6 +37,18 @@ abstract interface class QueueRepository {
   /// Fast delta update: updates playback position timestamp for the active session.
   Future<void> updateCurrentPosition(int positionInMs);
 
+  /// Fast delta update: updates shuffle mode and shuffle indices permutation without touching QueueEntries.
+  Future<void> updateShuffleMode({
+    required bool isShuffle,
+    required List<int> shuffleIndices,
+    required int activeIndex,
+    String? activeTrackPath,
+    int? activeTrackId,
+  });
+
+  /// Fast delta update: updates loop mode in PlaybackSessions without touching QueueEntries.
+  Future<void> updateLoopMode(String loopMode);
+
   /// Restores complete [QueueState] and playback position from SQLite.
   Future<RestoredQueueState?> restoreQueueState();
 
@@ -97,15 +109,16 @@ class const DriftQueueRepository(final AppDatabase _db) implements QueueReposito
   @override
   Future<void> saveQueueState(QueueState state, Duration resumePosition) async {
     await _db.transaction(() async {
-      await _db.delete(_db.playbackSessions).go();
-      await _db.delete(_db.queueEntries).go();
-
-      if (state.items.isEmpty) return;
+      if (state.items.isEmpty) {
+        await _db.delete(_db.playbackSessions).go();
+        await _db.delete(_db.queueEntries).go();
+        return;
+      }
 
       final current = state.currentItem;
       final activeTrack = current?.track.track;
 
-      await _db.into(_db.playbackSessions).insert(
+      await _db.into(_db.playbackSessions).insertOnConflictUpdate(
         PlaybackSessionsCompanion.insert(
           id: const Value(1),
           activeTrackId: Value(activeTrack?.id),
@@ -137,6 +150,7 @@ class const DriftQueueRepository(final AppDatabase _db) implements QueueReposito
         );
       }
 
+      await _db.delete(_db.queueEntries).go();
       await _db.batch((batch) {
         batch.insertAll(_db.queueEntries, companions);
       });
@@ -160,6 +174,36 @@ class const DriftQueueRepository(final AppDatabase _db) implements QueueReposito
     await (_db.update(_db.playbackSessions)..where((s) => s.id.equals(1))).write(
       PlaybackSessionsCompanion(
         positionMs: Value(positionInMs),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  @override
+  Future<void> updateShuffleMode({
+    required bool isShuffle,
+    required List<int> shuffleIndices,
+    required int activeIndex,
+    String? activeTrackPath,
+    int? activeTrackId,
+  }) async {
+    await (_db.update(_db.playbackSessions)..where((s) => s.id.equals(1))).write(
+      PlaybackSessionsCompanion(
+        isShuffle: Value(isShuffle),
+        shuffleIndicesJson: Value(shuffleIndices.isEmpty ? null : jsonEncode(shuffleIndices)),
+        activeIndex: Value(activeIndex),
+        activeTrackPath: Value(activeTrackPath),
+        activeTrackId: Value(activeTrackId),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  @override
+  Future<void> updateLoopMode(String loopMode) async {
+    await (_db.update(_db.playbackSessions)..where((s) => s.id.equals(1))).write(
+      PlaybackSessionsCompanion(
+        loopMode: Value(loopMode),
         updatedAt: Value(DateTime.now()),
       ),
     );

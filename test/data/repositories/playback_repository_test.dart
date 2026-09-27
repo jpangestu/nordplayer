@@ -24,6 +24,9 @@ class _FakeQueueRepository implements QueueRepository {
   int? updatedActiveIndex;
   String? updatedActiveTrackPath;
   int? updatedActiveTrackId;
+  bool? updatedIsShuffle;
+  List<int>? updatedShuffleIndices;
+  String? updatedLoopMode;
 
   @override
   Future<void> saveQueue(
@@ -58,6 +61,31 @@ class _FakeQueueRepository implements QueueRepository {
   }
 
   @override
+  Future<void> updateCurrentPosition(int positionInMs) async {
+    updatedPositionMs = positionInMs;
+  }
+
+  @override
+  Future<void> updateShuffleMode({
+    required bool isShuffle,
+    required List<int> shuffleIndices,
+    required int activeIndex,
+    String? activeTrackPath,
+    int? activeTrackId,
+  }) async {
+    updatedIsShuffle = isShuffle;
+    updatedShuffleIndices = List.from(shuffleIndices);
+    updatedActiveIndex = activeIndex;
+    updatedActiveTrackPath = activeTrackPath;
+    updatedActiveTrackId = activeTrackId;
+  }
+
+  @override
+  Future<void> updateLoopMode(String loopMode) async {
+    updatedLoopMode = loopMode;
+  }
+
+  @override
   Future<RestoredQueueState?> restoreQueueState() async {
     if (savedQueueState != null) {
       return RestoredQueueState(state: savedQueueState!, resumePosition: savedPosition);
@@ -85,11 +113,6 @@ class _FakeQueueRepository implements QueueRepository {
   @override
   Future<(List<TrackWithArtists>, int, Duration, String, int?)> loadQueue() async {
     return (savedQueue, 0, savedPosition, savedContextType, savedContextId);
-  }
-
-  @override
-  Future<void> updateCurrentPosition(int positionInMs) async {
-    updatedPositionMs = positionInMs;
   }
 }
 
@@ -177,6 +200,8 @@ void main() {
       expect(repo.currentTrack?.track.title, 'Song Beta');
       expect(engine.currentUri, track2.track.filePath);
       expect(engine.nextUri, track3.track.filePath);
+      expect(queueRepo.updatedActiveIndex, 1);
+      expect(queueRepo.updatedActiveTrackPath, track2.track.filePath);
     });
 
     test('previous restarts active track if position >= 3s, or steps back if < 3s', () async {
@@ -192,6 +217,8 @@ void main() {
       await repo.previous();
       expect(repo.currentIndex, 0);
       expect(repo.currentTrack?.track.title, 'Song Alpha');
+      expect(queueRepo.updatedActiveIndex, 0);
+      expect(queueRepo.updatedActiveTrackPath, track1.track.filePath);
     });
 
     test('jumpToIndex sets target track and pre-buffers subsequent track', () async {
@@ -203,6 +230,17 @@ void main() {
       expect(repo.currentTrack?.track.title, 'Song Gamma');
       expect(engine.currentUri, track3.track.filePath);
       expect(engine.nextUri, isNull); // Reached end with loopMode off
+      expect(queueRepo.updatedActiveIndex, 2);
+      expect(queueRepo.updatedActiveTrackPath, track3.track.filePath);
+    });
+
+    test('seek immediately updates active position via delta', () async {
+      await repo.setPlaylist(tracksToPlay: [track1, track2], initialIndex: 0, playbackContextType: 'album');
+
+      await repo.seek(const Duration(seconds: 42));
+
+      expect(engine.position, const Duration(seconds: 42));
+      expect(queueRepo.updatedPositionMs, 42000);
     });
 
     test('completedStream triggers gapless auto-advance without reopening when engine already transitioned', () async {
@@ -331,12 +369,17 @@ void main() {
       // In shuffle mode, current active track is pinned to display index 0
       expect(repo.currentIndex, 0);
       expect(repo.currentTrack?.track.title, 'Song Beta');
+      expect(queueRepo.updatedIsShuffle, isTrue);
+      expect(queueRepo.updatedActiveIndex, 0);
+      expect(queueRepo.updatedActiveTrackPath, track2.track.filePath);
 
       // Toggling off restores original sequence
       await repo.toggleShuffle();
       expect(repo.isShuffle, isFalse);
       expect(repo.currentQueue.map((t) => t.track.title).toList(), ['Song Alpha', 'Song Beta', 'Song Gamma']);
       expect(repo.currentIndex, 1);
+      expect(queueRepo.updatedIsShuffle, isFalse);
+      expect(queueRepo.updatedActiveIndex, 1);
     });
 
     test('toggleLoop cycles through LoopMode.off -> single -> all -> off', () async {
@@ -347,6 +390,7 @@ void main() {
       await repo.toggleLoop();
       expect(repo.loopMode, PlaylistMode.single);
       expect(settingsRepo.currentSettings.loopMode, PlaylistMode.single);
+      expect(queueRepo.updatedLoopMode, 'single');
 
       await repo.toggleLoop();
       expect(repo.loopMode, PlaylistMode.loop);
@@ -410,6 +454,18 @@ void main() {
       repo.suppressNextScroll();
       expect(repo.consumeSuppressNextScroll(), isTrue);
       expect(repo.consumeSuppressNextScroll(), isFalse);
+    });
+
+    test('dispose immediately flushes any pending debounced queue state save', () async {
+      await repo.setPlaylist(tracksToPlay: [track1, track2], initialIndex: 0, playbackContextType: 'album');
+      expect(queueRepo.savedQueueState, isNull);
+
+      await repo.addToQueue([track3]);
+      expect(queueRepo.savedQueueState, isNull);
+
+      repo.dispose();
+      expect(queueRepo.savedQueueState, isNotNull);
+      expect(queueRepo.savedQueueState?.items.length, 3);
     });
   });
 }

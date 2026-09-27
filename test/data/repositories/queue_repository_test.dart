@@ -282,5 +282,39 @@ void main() {
       // activeIndex is anchored to 0!
       expect(restored.state.activeIndex, 0);
     });
+
+    test('updateShuffleMode updates shuffle state and indices without touching QueueEntries', () async {
+      await queueRepository.saveQueue([trackA, trackB], '/music/track_a.mp3', Duration.zero, 'album', 1);
+
+      await queueRepository.updateShuffleMode(
+        isShuffle: true,
+        shuffleIndices: [1, 0],
+        activeIndex: 0,
+        activeTrackPath: '/music/track_b.mp3',
+        activeTrackId: 2,
+      );
+
+      final session = await (db.select(db.playbackSessions)..where((s) => s.id.equals(1))).getSingle();
+      expect(session.isShuffle, isTrue);
+      expect(session.shuffleIndicesJson, '[1,0]');
+      expect(session.activeIndex, 0);
+      expect(session.activeTrackPath, '/music/track_b.mp3');
+      expect(session.activeTrackId, 2);
+
+      final entries = await db.select(db.queueEntries).get();
+      expect(entries.length, 2);
+    });
+
+    test('updateLoopMode updates loop mode without touching QueueEntries', () async {
+      await queueRepository.saveQueue([trackA, trackB], '/music/track_a.mp3', Duration.zero, 'album', 1);
+
+      await queueRepository.updateLoopMode('single');
+
+      final session = await (db.select(db.playbackSessions)..where((s) => s.id.equals(1))).getSingle();
+      expect(session.loopMode, 'single');
+
+      final entries = await db.select(db.queueEntries).get();
+      expect(entries.length, 2);
+    });
   });
 }
