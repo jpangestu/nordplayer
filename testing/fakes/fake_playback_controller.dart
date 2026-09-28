@@ -137,6 +137,7 @@ class FakePlaybackController({
       isShuffle: _isShuffle,
       loopMode: _loopMode.toLoopMode(),
       context: playbackContext,
+      precomputedDisplayQueue: _isShuffle ? null : items,
     );
   }
 

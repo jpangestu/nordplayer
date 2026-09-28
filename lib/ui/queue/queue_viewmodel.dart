@@ -26,25 +26,25 @@ class QueueViewModel extends Notifier<QueueUiState> with LoggerMixin {
     final initialSelection = ref.read(selectedTracksIndexProvider('queue_page'));
     final initialScrollBehavior = ref.read(queueScrollBehaviorProvider);
 
-    final queueSub = playbackController.watchQueue().listen((tracks) {
-      if (state.tracks != tracks) {
+    final queueStateSub = playbackController.watchQueueState().listen((qs) {
+      final newTracks = qs.tracks;
+      final newTrack = qs.currentItem?.track;
+      final newIndex = qs.activeIndex;
+
+      if (!listEquals(state.tracks, newTracks)) {
         ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.jump);
-      }
-      state = state.copyWith(tracks: tracks);
-    });
-
-    final currentTrackSub = playbackController.watchCurrentTrack().listen((track) {
-      state = state.copyWith(currentTrack: () => track);
-    });
-
-    final currentIndexSub = playbackController.watchCurrentIndex().listen((index) {
-      if (state.currentIndex != index) {
+      } else if (state.currentIndex != newIndex) {
         final currentIntent = ref.read(queueScrollBehaviorProvider);
         if (currentIntent == QueueScrollBehavior.none) {
           ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.animate);
         }
-        state = state.copyWith(currentIndex: index);
       }
+
+      state = state.copyWith(
+        tracks: newTracks,
+        currentTrack: () => newTrack,
+        currentIndex: newIndex,
+      );
     });
 
     final configSub = configRepo.watchConfig().listen((config) {
@@ -68,9 +68,7 @@ class QueueViewModel extends Notifier<QueueUiState> with LoggerMixin {
     });
 
     ref.onDispose(() {
-      queueSub.cancel();
-      currentTrackSub.cancel();
-      currentIndexSub.cancel();
+      queueStateSub.cancel();
       configSub.cancel();
     });
 

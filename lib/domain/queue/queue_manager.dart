@@ -17,9 +17,11 @@ class QueueManager({Random? random}) {
   LoopMode _loopMode = LoopMode.off;
   PlaybackContext _context = const ManualPlaybackContext();
   List<QueueItem>? _cachedDisplayQueue;
+  List<TrackWithArtists>? _cachedDisplayTracks;
 
   void _invalidateCache() {
     _cachedDisplayQueue = null;
+    _cachedDisplayTracks = null;
   }
 
   // ========================================== Getters ==========================================
@@ -55,8 +57,10 @@ class QueueManager({Random? random}) {
   /// The currently active [TrackWithArtists], if one is selected.
   TrackWithArtists? get currentTrack => currentItem?.track;
 
-  /// Backward-compatible list of track entities in active display order.
-  List<TrackWithArtists> get displayTracks => displayQueue.map((item) => item.track).toList();
+  /// Backward-compatible list of track entities in active display order ($O(1)$ cached).
+  List<TrackWithArtists> get displayTracks {
+    return _cachedDisplayTracks ??= List.unmodifiable(displayQueue.map((item) => item.track));
+  }
 
   /// The upcoming [QueueItem] that will play next after [currentItem].
   ///
@@ -86,6 +90,7 @@ class QueueManager({Random? random}) {
     isShuffle: _isShuffle,
     loopMode: _loopMode,
     context: _context,
+    precomputedDisplayQueue: displayQueue,
   );
 
   /// Whether shuffle mode is active.
@@ -254,63 +259,101 @@ class QueueManager({Random? random}) {
 
   /// Removes the track at [displayIndex] in the current [displayQueue].
   void removeAt(int displayIndex) {
-    if (displayIndex < 0 || displayIndex >= displayQueue.length) return;
+    removeIndices([displayIndex]);
+  }
+
+  /// Removes items at the given display [indices] in a single linear $O(N)$ pass.
+  void removeIndices(List<int> indices) {
+    if (indices.isEmpty || _items.isEmpty) return;
+
+    final validDisplayIndices = indices.where((idx) => idx >= 0 && idx < displayQueue.length).toSet();
+    if (validDisplayIndices.isEmpty) return;
+
+    if (validDisplayIndices.length >= displayQueue.length) {
+      clear();
+      return;
+    }
 
     if (_isShuffle) {
-      final rawIndex = _shuffleIndices.removeAt(displayIndex);
-      _items.removeAt(rawIndex);
-      // Adjust all references in _shuffleIndices that shifted due to raw removal
-      for (int i = 0; i < _shuffleIndices.length; i++) {
-        if (_shuffleIndices[i] > rawIndex) {
-          _shuffleIndices[i]--;
+      // 1. Identify raw indices targeted for removal
+      final rawIndicesToRemove = <int>{
+        for (final d in validDisplayIndices)
+          if (d < _shuffleIndices.length) _shuffleIndices[d],
+      };
+
+      // 2. Filter raw _items and construct remap array in O(N)
+      final remap = List<int>.filled(_items.length, -1);
+      final newItems = <QueueItem>[];
+      for (int i = 0; i < _items.length; i++) {
+        if (!rawIndicesToRemove.contains(i)) {
+          remap[i] = newItems.length;
+          newItems.add(_items[i]);
         }
       }
+      _items = newItems;
+
+      // 3. Filter and re-index _shuffleIndices in O(N)
+      final newShuffle = <int>[];
+      for (int d = 0; d < _shuffleIndices.length; d++) {
+        if (!validDisplayIndices.contains(d)) {
+          final oldRaw = _shuffleIndices[d];
+          final newRaw = remap[oldRaw];
+          if (newRaw != -1) {
+            newShuffle.add(newRaw);
+          }
+        }
+      }
+      _shuffleIndices = newShuffle;
     } else {
-      _items.removeAt(displayIndex);
+      final newItems = <QueueItem>[];
+      for (int i = 0; i < _items.length; i++) {
+        if (!validDisplayIndices.contains(i)) {
+          newItems.add(_items[i]);
+        }
+      }
+      _items = newItems;
       _shuffleIndices = List.generate(_items.length, (i) => i);
     }
 
-    _invalidateCache();
-
-    // Adjust active index
+    // 4. Update activeIndex cleanly
     if (_items.isEmpty) {
       _activeIndex = -1;
-    } else if (displayIndex < _activeIndex) {
-      _activeIndex--;
-    } else if (displayIndex == _activeIndex) {
-      if (_activeIndex >= displayQueue.length) {
-        _activeIndex = displayQueue.length - 1;
-      }
+    } else {
+      final removedBefore = validDisplayIndices.where((idx) => idx < _activeIndex).length;
+      _activeIndex = (_activeIndex - removedBefore).clamp(0, _items.length - 1);
     }
+
+    _invalidateCache();
   }
 
-  /// Removes all queue items matching [filePath].
+  /// Removes all queue items matching [filePath] in a single batch.
   void removeTrackByPath(String filePath) {
     final normalized = filePath.normalizePath().toLowerCase();
-    for (int i = displayQueue.length - 1; i >= 0; i--) {
-      if (displayQueue[i].track.track.filePath.normalizePath().toLowerCase() == normalized) {
-        removeAt(i);
+    final queue = displayQueue;
+    final toRemove = <int>[];
+    for (int i = 0; i < queue.length; i++) {
+      if (queue[i].track.track.filePath.normalizePath().toLowerCase() == normalized) {
+        toRemove.add(i);
       }
+    }
+    if (toRemove.isNotEmpty) {
+      removeIndices(toRemove);
     }
   }
 
-  /// Removes all queue items matching any path in [filePaths].
+  /// Removes all queue items matching any path in [filePaths] in a single batch.
   void removeTracksByPaths(Set<String> filePaths) {
     if (filePaths.isEmpty) return;
     final normalizedSet = filePaths.map((p) => p.normalizePath().toLowerCase()).toSet();
-    for (int i = displayQueue.length - 1; i >= 0; i--) {
-      if (normalizedSet.contains(displayQueue[i].track.track.filePath.normalizePath().toLowerCase())) {
-        removeAt(i);
+    final queue = displayQueue;
+    final toRemove = <int>[];
+    for (int i = 0; i < queue.length; i++) {
+      if (normalizedSet.contains(queue[i].track.track.filePath.normalizePath().toLowerCase())) {
+        toRemove.add(i);
       }
     }
-  }
-
-  /// Removes items at the given display [indices].
-  void removeIndices(List<int> indices) {
-    if (indices.isEmpty) return;
-    final sortedDesc = List<int>.from(indices)..sort((a, b) => b.compareTo(a));
-    for (final index in sortedDesc) {
-      removeAt(index);
+    if (toRemove.isNotEmpty) {
+      removeIndices(toRemove);
     }
   }
 

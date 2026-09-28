@@ -232,7 +232,7 @@ class DefaultPlaybackController(
   List<TrackWithArtists> get originalQueue => List.unmodifiable(_queueManager.rawItems.map((item) => item.track));
 
   @override
-  List<TrackWithArtists> get currentQueue => List.unmodifiable(_queueManager.displayTracks);
+  List<TrackWithArtists> get currentQueue => _queueManager.displayTracks;
 
   @override
   TrackWithArtists? get currentTrack => _queueManager.currentTrack;

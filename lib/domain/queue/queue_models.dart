@@ -142,43 +142,54 @@ class const QueueState({
   required final bool isShuffle,
   required final LoopMode loopMode,
   required final PlaybackContext context,
+  final List<QueueItem>? precomputedDisplayQueue,
 }) {
-  /// The active item currently selected, or null if the queue is empty or index invalid.
-  QueueItem? get currentItem =>
-      (activeIndex >= 0 && activeIndex < displayQueue.length) ? displayQueue[activeIndex] : null;
-
   /// Ordered items as perceived by the listener (mapped via [shuffleIndices] when [isShuffle] is true).
   List<QueueItem> get displayQueue {
+    if (precomputedDisplayQueue != null) return precomputedDisplayQueue!;
     if (!isShuffle) return items;
     return [
       for (final idx in shuffleIndices)
-        if (idx < items.length) items[idx],
+        if (idx >= 0 && idx < items.length) items[idx],
     ];
+  }
+
+  /// The active item currently selected, or null if the queue is empty or index invalid.
+  QueueItem? get currentItem {
+    final queue = displayQueue;
+    return (activeIndex >= 0 && activeIndex < queue.length) ? queue[activeIndex] : null;
   }
 
   /// Backward-compatible list of track entities in active playback order.
   List<TrackWithArtists> get tracks => displayQueue.map((item) => item.track).toList();
 
   /// User-queued tracks (Up Next / Appended).
-  List<QueueItem> get userQueuedItems => displayQueue.where((item) => item.source != QueueSource.context).toList();
+  List<QueueItem> get userQueuedItems {
+    final queue = displayQueue;
+    return queue.where((item) => item.source != QueueSource.context).toList();
+  }
 
   /// Context-origin tracks (from currently playing album/playlist).
-  List<QueueItem> get contextItems => displayQueue.where((item) => item.source == QueueSource.context).toList();
+  List<QueueItem> get contextItems {
+    final queue = displayQueue;
+    return queue.where((item) => item.source == QueueSource.context).toList();
+  }
 
   /// Calculates upcoming album art paths (up to 5 items) for stacked player bar covers.
   List<String> get upcomingCoverArts {
-    if (displayQueue.isEmpty || activeIndex < 0) return const [];
+    final queue = displayQueue;
+    if (queue.isEmpty || activeIndex < 0) return const [];
     final covers = <String>[];
-    for (int i = 0; i < displayQueue.length && covers.length < 5; i++) {
+    for (int i = 0; i < queue.length && covers.length < 5; i++) {
       int targetIdx = activeIndex + i;
-      if (targetIdx >= displayQueue.length) {
+      if (targetIdx >= queue.length) {
         if (loopMode == LoopMode.all) {
-          targetIdx = targetIdx % displayQueue.length;
+          targetIdx = targetIdx % queue.length;
         } else {
           break;
         }
       }
-      final art = displayQueue[targetIdx].track.album.albumArtPath ?? '';
+      final art = queue[targetIdx].track.album.albumArtPath ?? '';
       covers.add(art);
     }
     return covers;

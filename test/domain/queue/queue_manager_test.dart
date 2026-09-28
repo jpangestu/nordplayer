@@ -350,11 +350,17 @@ void main() {
 
         expect(identical(firstRead, secondRead), isTrue);
 
+        // displayTracks returns the same cached instance on consecutive reads
+        final tracksRead1 = manager.displayTracks;
+        final tracksRead2 = manager.displayTracks;
+        expect(identical(tracksRead1, tracksRead2), isTrue);
+
         // Mutating queue via playNext should invalidate cache
         manager.playNext([_makeTrack(5, 'Echo')]);
         final afterPlayNext = manager.displayQueue;
         expect(identical(firstRead, afterPlayNext), isFalse);
         expect(identical(afterPlayNext, manager.displayQueue), isTrue);
+        expect(identical(tracksRead1, manager.displayTracks), isFalse);
 
         // Reordering invalidates cache
         manager.reorder(0, 1);
@@ -397,6 +403,67 @@ void main() {
 
         final arts = manager.upcomingCoverArts;
         expect(arts, equals(['art1.jpg', 'art2.jpg', 'art3.jpg']));
+      });
+
+      test('removeIndices performs atomic batch removal in single pass', () {
+        final sixTracks = [
+          _makeTrack(1, 'Track 1', path: '/music/1.mp3'),
+          _makeTrack(2, 'Track 2', path: '/music/2.mp3'),
+          _makeTrack(3, 'Track 3', path: '/music/3.mp3'),
+          _makeTrack(4, 'Track 4', path: '/music/4.mp3'),
+          _makeTrack(5, 'Track 5', path: '/music/5.mp3'),
+          _makeTrack(6, 'Track 6', path: '/music/6.mp3'),
+        ];
+        manager.setQueue(sixTracks, initialIndex: 3); // Track 4 active (index 3)
+
+        // Remove non-contiguous indices [1, 4] (Track 2 and Track 5)
+        manager.removeIndices([1, 4]);
+
+        expect(manager.length, equals(4));
+        final remainingTitles = manager.displayQueue.map((i) => i.track.track.title).toList();
+        expect(remainingTitles, equals(['Track 1', 'Track 3', 'Track 4', 'Track 6']));
+        // Since Track 2 (index 1) was before Track 4 (index 3), activeIndex shifted from 3 to 2
+        expect(manager.activeIndex, equals(2));
+        expect(manager.currentItem?.track.track.title, equals('Track 4'));
+      });
+
+      test('removeIndices handles batch removal in shuffle mode', () {
+        final fiveTracks = [
+          _makeTrack(1, 'Track 1'),
+          _makeTrack(2, 'Track 2'),
+          _makeTrack(3, 'Track 3'),
+          _makeTrack(4, 'Track 4'),
+          _makeTrack(5, 'Track 5'),
+        ];
+        manager.setQueue(fiveTracks, initialIndex: 0, shuffle: true);
+        expect(manager.isShuffle, isTrue);
+
+        final initialDisplayTitles = manager.displayQueue.map((i) => i.track.track.title).toList();
+        final removedTitle1 = initialDisplayTitles[1];
+        final removedTitle2 = initialDisplayTitles[3];
+
+        manager.removeIndices([1, 3]);
+
+        expect(manager.length, equals(3));
+        final remainingTitles = manager.displayQueue.map((i) => i.track.track.title).toList();
+        expect(remainingTitles.contains(removedTitle1), isFalse);
+        expect(remainingTitles.contains(removedTitle2), isFalse);
+        expect(manager.isShuffle, isTrue);
+      });
+
+      test('removeTracksByPaths removes multiple files atomically', () {
+        final fiveTracks = [
+          _makeTrack(1, 'Track 1', path: '/music/1.mp3'),
+          _makeTrack(2, 'Track 2', path: '/music/2.mp3'),
+          _makeTrack(3, 'Track 3', path: '/music/3.mp3'),
+          _makeTrack(4, 'Track 4', path: '/music/4.mp3'),
+        ];
+        manager.setQueue(fiveTracks, initialIndex: 0);
+
+        manager.removeTracksByPaths({'/music/1.mp3', '/music/3.mp3'});
+
+        expect(manager.length, equals(2));
+        expect(manager.displayQueue.map((i) => i.track.track.title).toList(), equals(['Track 2', 'Track 4']));
       });
     });
   });
