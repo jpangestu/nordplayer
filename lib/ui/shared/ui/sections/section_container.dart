@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/data/services/system/config_service.dart';
+import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/ui/shared/ui/frosted_glass.dart';
 
 class SectionContainer extends ConsumerWidget {
@@ -11,7 +11,7 @@ class SectionContainer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final appConfig = ref.watch(configServiceProvider);
+    final appConfig = ref.watch(configStateProvider);
     final surfaceContainerLow = Theme.of(context).colorScheme.surfaceContainerLow;
 
     final defaultBackgroundColor = appConfig.adaptiveBg

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/data/services/system/config_service.dart';
+import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/ui/shared/ui/frosted_glass.dart';
 
 /// Shows a popover panel anchored to the widget referenced by [anchorKey].
@@ -85,7 +85,7 @@ class const PopoverPanel({
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider);
+    final appConfig = ref.watch(configStateProvider);
 
     return Material(
       type: MaterialType.transparency, // Required for text rendering inside a Stack

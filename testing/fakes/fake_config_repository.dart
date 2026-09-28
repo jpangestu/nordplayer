@@ -29,6 +29,12 @@ class FakeConfigRepository([AppConfig? initialConfig]) implements ConfigReposito
     flushCalled = true;
   }
 
+  @override
+  Future<void> resetToDefaults() async {
+    updateConfig(AppConfig());
+    await flush();
+  }
+
   void dispose() {
     _controller.close();
   }

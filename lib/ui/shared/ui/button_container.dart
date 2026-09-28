@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/data/services/system/config_service.dart';
+import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/ui/shared/ui/frosted_glass.dart';
 
 class ButtonContainer extends ConsumerStatefulWidget {
@@ -15,7 +15,7 @@ class _ButtonContainerState extends ConsumerState<ButtonContainer> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(configServiceProvider);
+    final appConfig = ref.watch(configStateProvider);
 
     return Container(
       height: 36,

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/data/services/system/config_service.dart';
+import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/routing/router.dart';
 import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
 import 'package:nordplayer/ui/shared/themes/theme_extension/nord_snackbar_theme.dart';
@@ -47,7 +47,7 @@ class NordSnackBar extends ConsumerWidget {
     final theme = Theme.of(context);
     final nordSnackBarTheme = theme.extension<NordSnackBarTheme>()!;
 
-    final appConfig = ref.watch(configServiceProvider);
+    final appConfig = ref.watch(configStateProvider);
     final appIconSet = ref.watch(appIconProvider);
 
     final (snackBarIcon, accentColor) = _getAccents(appIconSet, nordSnackBarTheme);

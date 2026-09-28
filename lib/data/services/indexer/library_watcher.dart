@@ -3,8 +3,8 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/config/app_config.dart';
+import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/services/indexer/library_indexer.dart';
-import 'package:nordplayer/data/services/system/config_service.dart';
 import 'package:nordplayer/utils/logger.dart';
 import 'package:path/path.dart' as p;
 import 'package:watcher/watcher.dart';
@@ -14,7 +14,7 @@ final libraryWatcherProvider = Provider<LibraryWatcher>((ref) {
 
   final watcher = LibraryWatcher(libraryIndexer);
 
-  ref.listen<AppConfig>(configServiceProvider, (previous, next) {
+  ref.listen<AppConfig>(configStateProvider, (previous, next) {
     watcher.updateConfig(next);
   }, fireImmediately: true);
 

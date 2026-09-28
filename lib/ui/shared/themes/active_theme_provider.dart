@@ -2,9 +2,9 @@ import 'dart:io' show File;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/ui_preferences_repository.dart';
 import 'package:nordplayer/data/services/audio/player_state.dart';
-import 'package:nordplayer/data/services/system/config_service.dart';
 import 'package:nordplayer/ui/shared/themes/app_theme.dart';
 import 'package:nordplayer/ui/shared/themes/themes/adaptive.dart';
 
@@ -12,7 +12,7 @@ final adaptiveThemeProvider = FutureProvider<AdaptiveColorScheme>((ref) async {
   final trackAlbumArtPath = ref.watch(currentTrackProvider.select((t) => t?.album.albumArtPath));
   final cachedAlbumArtPath = ref.watch(uiPreferencesStateProvider.select((p) => p.cachedAlbumArtPath));
 
-  final themeBrightness = ref.watch(configServiceProvider.select((c) => c.themeBrightness));
+  final themeBrightness = ref.watch(configStateProvider.select((c) => c.themeBrightness));
 
   final albumArtPath = (trackAlbumArtPath != null && trackAlbumArtPath.isNotEmpty)
       ? trackAlbumArtPath
@@ -47,8 +47,8 @@ final adaptiveThemeProvider = FutureProvider<AdaptiveColorScheme>((ref) async {
 });
 
 final activeThemeProvider = Provider<ThemeData>((ref) {
-  final currentTheme = ref.watch(configServiceProvider.select((c) => c.theme));
-  final currentFont = ref.watch(configServiceProvider.select((c) => c.fontFamily));
+  final currentTheme = ref.watch(configStateProvider.select((c) => c.theme));
+  final currentFont = ref.watch(configStateProvider.select((c) => c.fontFamily));
 
   if (currentTheme != 'adaptive') {
     return AppTheme.getTheme(currentTheme, currentFont);

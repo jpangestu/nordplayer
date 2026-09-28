@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/config/app_config.dart';
-import 'package:nordplayer/data/services/system/config_service.dart';
+import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/ui/settings/about/about_ui_state.dart';
 import 'package:nordplayer/ui/settings/about/about_viewmodel.dart';
 import 'package:package_info_plus/package_info_plus.dart';

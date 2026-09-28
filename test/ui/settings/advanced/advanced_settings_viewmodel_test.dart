@@ -9,7 +9,6 @@ import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/indexer_repository.dart';
 import 'package:nordplayer/data/repositories/ui_preferences_repository.dart';
 import 'package:nordplayer/data/services/audio/playback_controller.dart';
-import 'package:nordplayer/data/services/system/config_service.dart';
 import 'package:nordplayer/ui/settings/advanced/advanced_settings_viewmodel.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';

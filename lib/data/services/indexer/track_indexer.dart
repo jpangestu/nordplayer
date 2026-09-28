@@ -8,8 +8,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/database/app_database.dart';
+import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/services/system/background_task_service.dart';
-import 'package:nordplayer/data/services/system/config_service.dart';
 import 'package:nordplayer/utils/audio_metadata_hasher.dart';
 import 'package:nordplayer/utils/logger.dart';
 import 'package:path/path.dart' as p;
@@ -17,7 +17,7 @@ import 'package:path_provider/path_provider.dart';
 
 class TrackIndexer(final Ref _ref, final AppDatabase _db, final VoidCallback _onCancelFingerprintTask)
     with LoggerMixin {
-  AppConfig get _appConfig => _ref.read(configServiceProvider);
+  AppConfig get _appConfig => _ref.read(configStateProvider);
   String? get artistSeparatorPattern => _buildArtistSeparatorPattern(_appConfig.artistDelimiters);
 
   // Map<ArtistName, ArtistId>

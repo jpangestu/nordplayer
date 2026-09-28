@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nordplayer/data/services/system/config_service.dart';
+import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/ui/shared/themes/icon_sets/lucide_icons.dart';
 import 'package:nordplayer/ui/shared/themes/icon_sets/material_icons.dart';
 
@@ -83,7 +83,7 @@ abstract class AppIconSet {
 }
 
 final appIconProvider = Provider<AppIconSet>((ref) {
-  final iconSetName = ref.watch(configServiceProvider.select((c) => c.iconSet));
+  final iconSetName = ref.watch(configStateProvider.select((c) => c.iconSet));
 
   switch (iconSetName) {
     case 'material':
