@@ -17,9 +17,9 @@ class NordPlayerBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final appIconSet = ref.watch(appIconProvider);
-    final uiState = ref.watch(playerBarViewModelProvider);
-    final viewModel = ref.read(playerBarViewModelProvider.notifier);
+    final isAdaptiveBgOn = ref.watch(playerBarViewModelProvider.select((s) => s.isAdaptiveBgOn));
+    final adaptiveBgPanelBlur = ref.watch(playerBarViewModelProvider.select((s) => s.adaptiveBgPanelBlur));
+    final adaptiveBgThemeOverlay = ref.watch(playerBarViewModelProvider.select((s) => s.adaptiveBgThemeOverlay));
 
     final double screenWidth = MediaQuery.sizeOf(context).width;
     final bool isLargeScreen = screenWidth > 900;
@@ -30,31 +30,18 @@ class NordPlayerBar extends ConsumerWidget {
     final backgroundColor = theme.colorScheme.surfaceContainer;
 
     return FrostedGlass(
-      blurSigma: uiState.adaptiveBgPanelBlur,
+      blurSigma: adaptiveBgPanelBlur,
       child: Container(
         height: 90,
-        color: uiState.isAdaptiveBgOn
-            ? backgroundColor.withValues(alpha: uiState.adaptiveBgThemeOverlay)
+        color: isAdaptiveBgOn
+            ? backgroundColor.withValues(alpha: adaptiveBgThemeOverlay)
             : backgroundColor,
         child: Row(
           children: [
-            if (uiState.currentTrack == null) ...[
-              Expanded(flex: leftFlex, child: const SizedBox()),
-            ] else ...[
-              Expanded(
-                flex: leftFlex,
-                child: MusicTile(
-                  title: uiState.currentTrack!.track.title,
-                  artists: uiState.currentTrack!.artists.map((a) => a.name).toList(),
-                  albumArtPath: uiState.currentTrack!.album.albumArtPath,
-                  albumArtSize: 60,
-                  onTap: () {},
-                  padding: const .only(left: 16),
-                  marqueeEffect: true,
-                ),
-              ),
-            ],
-
+            Expanded(
+              flex: leftFlex,
+              child: const PlayerBarTrackSection(),
+            ),
             Expanded(
               flex: centerFlex,
               child: const Column(
@@ -67,36 +54,75 @@ class NordPlayerBar extends ConsumerWidget {
             ),
             Expanded(
               flex: rightFlex,
-              child: Row(
-                mainAxisAlignment: .end,
-                children: [
-                  IconButton(
-                    icon: AppIcon(appIconSet.lyrics),
-                    iconSize: 24,
-                    tooltip: 'Show Lyrics',
-                    onPressed: () {
-                      unimplemented(context);
-                    },
-                  ),
-                  IconButton(
-                    icon: AppIcon(appIconSet.queue),
-                    iconSize: 24,
-                    isSelected: uiState.showQueue,
-                    tooltip: 'Show Queue',
-                    onPressed: viewModel.toggleShowQueue,
-                  ),
-                  VolumeSlider(
-                    volume: uiState.volume,
-                    isMuted: uiState.isMuted,
-                    onChanged: (value) => viewModel.setVolume(value.roundToDouble()),
-                    onMute: viewModel.toggleMute,
-                  ),
-                ],
-              ),
+              child: const PlayerBarActionsSection(),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Track info section isolated from high-frequency playback position ticks.
+class PlayerBarTrackSection extends ConsumerWidget {
+  const PlayerBarTrackSection({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentTrack = ref.watch(playerBarViewModelProvider.select((s) => s.currentTrack));
+    if (currentTrack == null) {
+      return const SizedBox();
+    }
+
+    return MusicTile(
+      title: currentTrack.track.title,
+      artists: currentTrack.artists.map((a) => a.name).toList(),
+      albumArtPath: currentTrack.album.albumArtPath,
+      albumArtSize: 60,
+      onTap: () {},
+      padding: const .only(left: 16),
+      marqueeEffect: true,
+    );
+  }
+}
+
+/// Action buttons section (lyrics, queue, volume) isolated from position updates.
+class PlayerBarActionsSection extends ConsumerWidget {
+  const PlayerBarActionsSection({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appIconSet = ref.watch(appIconProvider);
+    final showQueue = ref.watch(playerBarViewModelProvider.select((s) => s.showQueue));
+    final volume = ref.watch(playerBarViewModelProvider.select((s) => s.volume));
+    final isMuted = ref.watch(playerBarViewModelProvider.select((s) => s.isMuted));
+    final viewModel = ref.read(playerBarViewModelProvider.notifier);
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        IconButton(
+          icon: AppIcon(appIconSet.lyrics),
+          iconSize: 24,
+          tooltip: 'Show Lyrics',
+          onPressed: () {
+            unimplemented(context);
+          },
+        ),
+        IconButton(
+          icon: AppIcon(appIconSet.queue),
+          iconSize: 24,
+          isSelected: showQueue,
+          tooltip: 'Show Queue',
+          onPressed: viewModel.toggleShowQueue,
+        ),
+        VolumeSlider(
+          volume: volume,
+          isMuted: isMuted,
+          onChanged: (value) => viewModel.setVolume(value.roundToDouble()),
+          onMute: viewModel.toggleMute,
+        ),
+      ],
     );
   }
 }

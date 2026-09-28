@@ -35,13 +35,11 @@ abstract interface class IndexerRepository {
 
 /// Default implementation of [IndexerRepository] coordinating [LibraryIndexer],
 /// [LibraryWatcher], and [DuplicateDetector].
-class DefaultIndexerRepository implements IndexerRepository {
-  final LibraryIndexer _indexer;
-  final LibraryWatcher _watcher;
-  final DuplicateDetector _duplicateDetector;
-
-  const DefaultIndexerRepository(this._indexer, this._watcher, this._duplicateDetector);
-
+class const DefaultIndexerRepository(
+  final LibraryIndexer _indexer,
+  final LibraryWatcher _watcher,
+  final DuplicateDetector _duplicateDetector,
+) implements IndexerRepository {
   @override
   void scanLibrary() => _indexer.scanLibrary();
 

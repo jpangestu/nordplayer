@@ -5,10 +5,10 @@ import 'package:nordplayer/utils/logger.dart';
 import 'package:nordplayer/utils/result.dart';
 
 /// Use case that orchestrates a complete music library scan.
-class ScanLibraryUseCase(final Ref _ref) with LoggerMixin {
-  TrackRepository get _trackRepo => _ref.read(trackRepositoryProvider);
-  LibraryIndexer get _indexer => _ref.read(libraryIndexerProvider);
-
+class ScanLibraryUseCase(
+  final TrackRepository _trackRepo,
+  final LibraryIndexer _indexer,
+) with LoggerMixin {
   /// Executes the library scanning workflow and returns a [Result].
   Future<Result<void>> execute({void Function(int processed, int total)? onProgress}) async {
     try {
@@ -29,5 +29,7 @@ class ScanLibraryUseCase(final Ref _ref) with LoggerMixin {
 
 /// Riverpod provider for [ScanLibraryUseCase].
 final scanLibraryUseCaseProvider = Provider<ScanLibraryUseCase>((ref) {
-  return ScanLibraryUseCase(ref);
+  final trackRepo = ref.watch(trackRepositoryProvider);
+  final indexer = ref.watch(libraryIndexerProvider);
+  return ScanLibraryUseCase(trackRepo, indexer);
 });

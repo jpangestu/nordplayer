@@ -36,11 +36,7 @@ abstract interface class PlaylistRepository {
 }
 
 /// Drift/SQLite implementation of [PlaylistRepository].
-class DriftPlaylistRepository implements PlaylistRepository {
-  final AppDatabase _db;
-
-  const DriftPlaylistRepository(this._db);
-
+class const DriftPlaylistRepository(final AppDatabase _db) implements PlaylistRepository {
   @override
   Stream<List<PlaylistWithDetails>> watchAllPlaylists() {
     final trackCount = _db.playlistTrack.trackId.count();

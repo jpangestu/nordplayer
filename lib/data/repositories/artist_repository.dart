@@ -11,11 +11,7 @@ abstract interface class ArtistRepository {
 }
 
 /// Drift/SQLite implementation of [ArtistRepository].
-class DriftArtistRepository implements ArtistRepository {
-  final AppDatabase _db;
-
-  const DriftArtistRepository(this._db);
-
+class const DriftArtistRepository(final AppDatabase _db) implements ArtistRepository {
   @override
   Stream<List<Artist>> watchArtists() {
     final query =

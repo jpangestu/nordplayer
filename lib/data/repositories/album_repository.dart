@@ -22,11 +22,7 @@ abstract interface class AlbumRepository {
 }
 
 /// Drift/SQLite implementation of [AlbumRepository].
-class DriftAlbumRepository implements AlbumRepository {
-  final AppDatabase _db;
-
-  const DriftAlbumRepository(this._db);
-
+class const DriftAlbumRepository(final AppDatabase _db) implements AlbumRepository {
   @override
   Stream<List<Album>> watchAlbums() {
     final query =
