@@ -116,19 +116,5 @@ class FakeQueueRepository implements QueueRepository {
     }
     return null;
   }
-
-  @override
-  Future<(List<TrackWithArtists>, int, Duration, String, int?)> loadQueue() async {
-    final restored = await restoreQueueState();
-    if (restored == null) {
-      return (const <TrackWithArtists>[], 0, Duration.zero, '', null);
-    }
-    return (
-      restored.state.tracks,
-      restored.state.activeIndex,
-      restored.resumePosition,
-      restored.state.context.type,
-      restored.state.context.id,
-    );
-  }
 }
+

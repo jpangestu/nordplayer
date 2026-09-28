@@ -6,9 +6,9 @@ import 'package:nordplayer/domain/models/track.dart';
 
 /// In-memory test double for [IndexerRepository].
 class FakeIndexerRepository({List<DuplicateGroup>? initialDuplicateGroups}) implements IndexerRepository {
-  bool scanLibraryCalled = false;
-  bool reindexTracksCalled = false;
-  bool generateMissingFingerprintsCalled = false;
+  bool scanCalled = false;
+  bool reindexCalled = false;
+  bool fingerprintCalled = false;
 
   final List<String> missingDirectories = [];
   final List<String> stoppedDirectories = [];
@@ -18,33 +18,22 @@ class FakeIndexerRepository({List<DuplicateGroup>? initialDuplicateGroups}) impl
   List<DuplicateGroup> duplicateGroups = initialDuplicateGroups ?? [];
   List<DuplicateGroup> duplicateGroupsToReturn = [];
 
-  bool get scanCalled => scanLibraryCalled;
-  set scanCalled(bool value) => scanLibraryCalled = value;
-
-  bool get fingerprintsCalled => generateMissingFingerprintsCalled;
-  set fingerprintsCalled(bool value) => generateMissingFingerprintsCalled = value;
-
-  bool get reindexCalled => reindexTracksCalled;
-  set reindexCalled(bool value) => reindexTracksCalled = value;
-
-  bool get fingerprintCalled => generateMissingFingerprintsCalled;
-  set fingerprintCalled(bool value) => generateMissingFingerprintsCalled = value;
   String? get lastMarkedMissingPath => missingDirectories.isEmpty ? null : missingDirectories.last;
   String? get lastStoppedPath => stoppedDirectories.isEmpty ? null : stoppedDirectories.last;
 
   @override
   void scanLibrary() {
-    scanLibraryCalled = true;
+    scanCalled = true;
   }
 
   @override
   void reindexTracks() {
-    reindexTracksCalled = true;
+    reindexCalled = true;
   }
 
   @override
   void generateMissingFingerprints() {
-    generateMissingFingerprintsCalled = true;
+    fingerprintCalled = true;
   }
 
   @override

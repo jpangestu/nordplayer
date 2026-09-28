@@ -199,12 +199,3 @@ final playlistDetailViewModelProvider = NotifierProvider.family<PlaylistDetailVi
   PlaylistDetailViewModel.new,
 );
 
-/// Backward-compatible provider for playlist collage album arts.
-final playlistDetailsAlbumArtProvider = Provider.family<List<String>, int>((ref, playlistId) {
-  return ref.watch(playlistDetailViewModelProvider(playlistId).select((s) => s.albumArtCovers));
-});
-
-/// Backward-compatible provider for playlist table columns.
-final playlistDetailPageColumnsProvider = Provider.family<List<TableColumnConfig>, int>((ref, playlistId) {
-  return ref.watch(playlistDetailViewModelProvider(playlistId).select((s) => s.columns));
-});

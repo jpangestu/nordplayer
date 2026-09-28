@@ -56,9 +56,6 @@ abstract interface class QueueRepository {
 
   /// Restores complete [QueueState] and playback position from SQLite.
   Future<RestoredQueueState?> restoreQueueState();
-
-  /// Restores the legacy tuple for backward compatibility.
-  Future<(List<TrackWithArtists>, int, Duration, String, int?)> loadQueue();
 }
 
 /// Drift/SQLite implementation of [QueueRepository].
@@ -361,21 +358,6 @@ class const DriftQueueRepository(final AppDatabase _db) implements QueueReposito
       resumePosition: Duration(milliseconds: session.positionMs),
       volume: session.volume,
       isMuted: session.isMuted,
-    );
-  }
-
-  @override
-  Future<(List<TrackWithArtists>, int, Duration, String, int?)> loadQueue() async {
-    final restored = await restoreQueueState();
-    if (restored == null) {
-      return (const <TrackWithArtists>[], 0, Duration.zero, '', null);
-    }
-    return (
-      restored.state.tracks,
-      restored.state.activeIndex,
-      restored.resumePosition,
-      restored.state.context.type,
-      restored.state.context.id,
     );
   }
 }

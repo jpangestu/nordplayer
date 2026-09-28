@@ -62,7 +62,7 @@ void main() {
       final vm = container.read(libraryViewModelProvider.notifier);
       vm.reorderSections(0, 2);
 
-      final sections = container.read(librarySectionsProvider);
+      final sections = container.read(libraryViewModelProvider).sections;
       expect(sections.map((s) => s.id).toList(), equals(['albums', 'tracks', 'recently_added']));
     });
 
@@ -71,12 +71,12 @@ void main() {
 
       // 'tracks' was false, now true
       vm.toggleSectionVisibility('tracks');
-      var sections = container.read(librarySectionsProvider);
+      var sections = container.read(libraryViewModelProvider).sections;
       expect(sections.firstWhere((s) => s.id == 'tracks').isVisible, isTrue);
 
       // Flip back to false
       vm.toggleSectionVisibility('tracks');
-      sections = container.read(librarySectionsProvider);
+      sections = container.read(libraryViewModelProvider).sections;
       expect(sections.firstWhere((s) => s.id == 'tracks').isVisible, isFalse);
     });
 

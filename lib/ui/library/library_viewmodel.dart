@@ -137,12 +137,3 @@ class LibraryViewModel extends Notifier<LibraryUiState> with LoggerMixin {
 /// Riverpod provider exposing [LibraryViewModel].
 final libraryViewModelProvider = NotifierProvider<LibraryViewModel, LibraryUiState>(LibraryViewModel.new);
 
-/// Backward-compatible provider for library sections.
-final librarySectionsProvider = Provider<List<LibrarySectionConfig>>((ref) {
-  return ref.watch(libraryViewModelProvider.select((s) => s.sections));
-});
-
-/// Backward-compatible provider for sample tracks.
-final librarySampleTracksProvider = Provider<List<TrackWithArtists>>((ref) {
-  return ref.watch(libraryViewModelProvider.select((s) => s.sampleTracks));
-});

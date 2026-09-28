@@ -11,21 +11,9 @@ import 'package:nordplayer/ui/shared/ui/table_column_config.dart';
 import 'package:nordplayer/ui/tracks/tracks_ui_state.dart';
 import 'package:nordplayer/utils/logger.dart';
 
-/// Manages table column configurations (widths, ordering, visibility) for the all-tracks table.
-class TracksPageColumnsNotifier extends Notifier<List<TableColumnConfig>> {
-  @override
-  List<TableColumnConfig> build() => initialColumns;
-
-  void toggleVisibility(String columnId) {
-    state = state.map((col) {
-      if (col.id == columnId) {
-        return col.copyWith(isVisible: !col.isVisible);
-      }
-      return col;
-    }).toList();
-  }
-
-  static const List<TableColumnConfig> initialColumns = [
+/// ViewModel coordinating state and user actions for the Tracks feature.
+class TracksViewModel extends Notifier<TracksUiState> with LoggerMixin {
+  static const List<TableColumnConfig> defaultColumns = [
     TableColumnConfig(id: 'index', label: "#", width: 60, minWidth: 60, alignment: Alignment.centerRight),
     TableColumnConfig(id: 'title_artist', label: "Title/Artist", flex: 5, minWidth: 150),
     TableColumnConfig(id: 'album', label: "Album", flex: 3, minWidth: 100),
@@ -41,10 +29,7 @@ class TracksPageColumnsNotifier extends Notifier<List<TableColumnConfig>> {
     TableColumnConfig(id: 'duration', label: 'Duration', width: 90, minWidth: 90, alignment: Alignment.centerRight),
     TableColumnConfig(id: 'context_menu', label: '', width: 75, minWidth: 75, alignment: Alignment.centerRight),
   ];
-}
 
-/// ViewModel coordinating state and user actions for the Tracks feature.
-class TracksViewModel extends Notifier<TracksUiState> with LoggerMixin {
   PlaybackController get _playbackController => ref.read(playbackControllerProvider);
 
   @override
@@ -54,7 +39,7 @@ class TracksViewModel extends Notifier<TracksUiState> with LoggerMixin {
     final configRepo = ref.watch(configRepositoryProvider);
 
     final initialConfig = configRepo.currentConfig;
-    final initialColumns = TracksPageColumnsNotifier.initialColumns;
+    final initialColumns = defaultColumns;
     final initialSelection = ref.read(selectedTracksIndexProvider('all_tracks'));
     final currentTrack = playbackController.currentTrack;
     final isPlaying = playbackController.isPlaying;
@@ -250,12 +235,3 @@ class TracksViewModel extends Notifier<TracksUiState> with LoggerMixin {
 /// Riverpod provider exposing [TracksViewModel].
 final tracksViewModelProvider = NotifierProvider<TracksViewModel, TracksUiState>(TracksViewModel.new);
 
-/// Backward-compatible provider for table column configurations.
-final tracksPageColumnsProvider = NotifierProvider<TracksPageColumnsNotifier, List<TableColumnConfig>>(
-  TracksPageColumnsNotifier.new,
-);
-
-/// Backward-compatible provider for header collage album art paths.
-final libraryAlbumArtProvider = Provider<List<String>>((ref) {
-  return ref.watch(tracksViewModelProvider.select((s) => s.albumArtCovers));
-});

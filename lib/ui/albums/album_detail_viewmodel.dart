@@ -225,17 +225,3 @@ final albumDetailViewModelProvider = NotifierProvider.family<AlbumDetailViewMode
   AlbumDetailViewModel.new,
 );
 
-/// Backward-compatible provider for album track columns.
-final albumDetailPageTableColumnsProvider = Provider.family<List<TableColumnConfig>, int>((ref, albumId) {
-  return ref.watch(albumDetailViewModelProvider(albumId).select((s) => s.columns));
-});
-
-/// Backward-compatible provider for sorted album with tracks.
-final sortedAlbumWithTracksProvider = Provider.autoDispose.family<AsyncValue<AlbumWithTracks?>, int>((ref, albumId) {
-  final uiState = ref.watch(albumDetailViewModelProvider(albumId));
-  if (uiState.isLoading) return const AsyncValue.loading();
-  if (uiState.errorMessage != null) {
-    return AsyncValue.error(uiState.errorMessage!, StackTrace.current);
-  }
-  return AsyncValue.data(uiState.albumWithTracks);
-});

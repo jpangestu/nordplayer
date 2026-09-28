@@ -227,5 +227,3 @@ class ConfigStateNotifier extends Notifier<AppConfig> {
   }
 }
 
-/// Backward-compatible alias for [configStateProvider].
-final configServiceProvider = configStateProvider;

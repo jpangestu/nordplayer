@@ -81,18 +81,20 @@ void main() {
   });
 
   group('QueueRepository Tests', () {
-    test('saveQueue and loadQueue round-trip restores queue and position', () async {
+    test('saveQueue and restoreQueueState round-trip restores queue and position', () async {
       await queueRepository.saveQueue([trackA, trackB], '/music/track_b.mp3', const Duration(seconds: 45), 'album', 1);
 
-      final (queue, lastIndex, position, contextType, contextId) = await queueRepository.loadQueue();
+      final restored = await queueRepository.restoreQueueState();
+      expect(restored, isNotNull);
+      final queue = restored!.state.tracks;
 
       expect(queue.length, 2);
       expect(queue[0].track.title, 'Track A');
       expect(queue[1].track.title, 'Track B');
-      expect(lastIndex, 1);
-      expect(position, const Duration(seconds: 45));
-      expect(contextType, 'album');
-      expect(contextId, 1);
+      expect(restored.state.activeIndex, 1);
+      expect(restored.resumePosition, const Duration(seconds: 45));
+      expect(restored.state.context.type, 'album');
+      expect(restored.state.context.id, 1);
     });
 
     test('updateCurrentPosition modifies resume timestamp in active entry', () async {
@@ -106,19 +108,20 @@ void main() {
 
       await queueRepository.updateCurrentPosition(35000); // 35 seconds
 
-      final (_, lastIndex, position, _, _) = await queueRepository.loadQueue();
-      expect(lastIndex, 0);
-      expect(position, const Duration(milliseconds: 35000));
+      final restored = await queueRepository.restoreQueueState();
+      expect(restored, isNotNull);
+      expect(restored!.state.activeIndex, 0);
+      expect(restored.resumePosition, const Duration(milliseconds: 35000));
     });
 
     test('saving empty queue clears saved state', () async {
       await queueRepository.saveQueue([trackA], '/music/track_a.mp3', Duration.zero, '', null);
-      var (queue, _, _, _, _) = await queueRepository.loadQueue();
-      expect(queue.length, 1);
+      var restored = await queueRepository.restoreQueueState();
+      expect(restored?.state.tracks.length, 1);
 
       await queueRepository.saveQueue([], null, Duration.zero, '', null);
-      (queue, _, _, _, _) = await queueRepository.loadQueue();
-      expect(queue, isEmpty);
+      restored = await queueRepository.restoreQueueState();
+      expect(restored, isNull);
     });
 
     test('verifies PlaybackSessions and QueueEntries schema v3 structures', () async {

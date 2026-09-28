@@ -216,18 +216,5 @@ void main() {
       expect(fakePlaybackController.setPlaylistIndex, equals(1));
       expect(fakePlaybackController.setPlaylistTracks.length, equals(3));
     });
-
-    test('backward-compatible sortedAlbumWithTracksProvider works as expected', () async {
-      final sub = container.listen(sortedAlbumWithTracksProvider(albumId), (_, _) {});
-      addTearDown(sub.close);
-
-      expect(container.read(sortedAlbumWithTracksProvider(albumId)).isLoading, isTrue);
-
-      fakeAlbumRepo.emitAlbum(AlbumWithTracks(album: album, tracks: [trackA, trackB], tracksLengthMs: 360000));
-      await pumpEventQueue();
-
-      final result = container.read(sortedAlbumWithTracksProvider(albumId));
-      expect(result.value?.tracks.length, equals(2));
-    });
   });
 }

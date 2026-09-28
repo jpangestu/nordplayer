@@ -239,8 +239,6 @@ void main() {
       // StateNotifier responds to stream
       await Future<void>.delayed(Duration.zero);
       expect(container.read(configStateProvider).theme, 'graphite');
-      // Backward-compatible alias
-      expect(container.read(configServiceProvider).theme, 'graphite');
     });
 
     test('supports fine-grained .select reactivity', () async {

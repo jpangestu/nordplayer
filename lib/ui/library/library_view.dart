@@ -593,7 +593,7 @@ class LibrarySectionsPanel extends ConsumerWidget {
     final theme = Theme.of(context);
     final adaptiveBgPanelBlur = ref.watch(libraryViewModelProvider.select((s) => s.adaptiveBgPanelBlur));
     final appIconSet = ref.watch(appIconProvider);
-    final sections = ref.watch(librarySectionsProvider);
+    final sections = ref.watch(libraryViewModelProvider.select((s) => s.sections));
 
     return PopoverPanel(
       width: 280,
