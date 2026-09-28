@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
-import 'package:nordplayer/data/repositories/settings_repository.dart';
+import 'package:nordplayer/data/repositories/ui_preferences_repository.dart';
 import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/ui/queue/queue_scroll_behavior.dart';
@@ -14,7 +14,7 @@ import 'package:nordplayer/utils/logger.dart';
 /// scrolling behaviors, and adaptive UI styling.
 class QueueViewModel extends Notifier<QueueUiState> with LoggerMixin {
   PlaybackController get _playbackController => ref.read(playbackControllerProvider);
-  SettingsRepository get _settingsRepo => ref.read(settingsRepositoryProvider);
+  UiPreferencesRepository get _uiPreferencesRepo => ref.read(uiPreferencesRepositoryProvider);
   SelectedTracksIndex get _selectionNotifier => ref.read(selectedTracksIndexProvider('queue_page').notifier);
 
   @override
@@ -140,7 +140,7 @@ class QueueViewModel extends Notifier<QueueUiState> with LoggerMixin {
 
   /// Closes the queue sidebar drawer.
   Future<void> closeQueue() async {
-    await _settingsRepo.setShowQueue(false);
+    await _uiPreferencesRepo.setShowQueue(false);
   }
 
   /// Resets active scroll intent back to [QueueScrollBehavior.none].

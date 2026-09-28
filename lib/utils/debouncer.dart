@@ -22,6 +22,11 @@ class Debouncer(final Duration duration) {
     if (_isDisposed) return;
     _pendingAction = action;
     _timer?.cancel();
+    if (duration == Duration.zero) {
+      _pendingAction = null;
+      action();
+      return;
+    }
     _timer = Timer(duration, () {
       if (_isDisposed) return;
       final act = _pendingAction;

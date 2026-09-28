@@ -2,42 +2,49 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/data/services/audio/volume_controller.dart';
 
 import '../../../../testing/fakes/fake_audio_player_engine.dart';
-import '../../../../testing/fakes/fake_settings_repository.dart';
+import '../../../../testing/fakes/fake_queue_repository.dart';
 
 void main() {
   group('VolumeController', () {
     late FakeAudioPlayerEngine engine;
-    late FakeSettingsRepository settingsRepo;
+    late FakeQueueRepository queueRepo;
     late VolumeController controller;
 
     setUp(() {
       engine = FakeAudioPlayerEngine();
-      settingsRepo = FakeSettingsRepository();
-      controller = VolumeController(engine, settingsRepo);
+      queueRepo = FakeQueueRepository();
+      controller = VolumeController(engine, queueRepo, persistDebounce: Duration.zero);
     });
 
-    test('initial volume and isMuted reflect engine and settings repository', () {
+    test('initial volume and isMuted reflect defaults', () {
       expect(controller.volume, 100.0);
       expect(controller.isMuted, isFalse);
     });
 
+    test('initialize restores volume and isMuted', () {
+      controller.initialize(volume: 75.0, isMuted: true);
+      expect(controller.volume, 75.0);
+      expect(controller.isMuted, isTrue);
+      expect(engine.volume, 0.0);
+    });
+
     group('setVolume', () {
-      test('sets volume on both engine and settings repository', () async {
+      test('sets volume on both engine and queue repository', () async {
         await controller.setVolume(65.0);
 
         expect(controller.volume, 65.0);
         expect(engine.volume, 65.0);
-        expect(settingsRepo.currentSettings.volume, 65.0);
+        expect(queueRepo.savedVolume, 65.0);
       });
 
       test('clamps volume between 0.0 and 100.0', () async {
         await controller.setVolume(150.0);
         expect(engine.volume, 100.0);
-        expect(settingsRepo.currentSettings.volume, 100.0);
+        expect(queueRepo.savedVolume, 100.0);
 
         await controller.setVolume(-20.0);
         expect(engine.volume, 0.0);
-        expect(settingsRepo.currentSettings.volume, 0.0);
+        expect(queueRepo.savedVolume, 0.0);
       });
     });
 
@@ -47,7 +54,7 @@ void main() {
 
         await controller.setVolumeUp();
         expect(engine.volume, 55.0);
-        expect(settingsRepo.currentSettings.volume, 55.0);
+        expect(queueRepo.savedVolume, 55.0);
       });
 
       test('increments volume by custom step', () async {
@@ -55,7 +62,7 @@ void main() {
 
         await controller.setVolumeUp(15.0);
         expect(engine.volume, 65.0);
-        expect(settingsRepo.currentSettings.volume, 65.0);
+        expect(queueRepo.savedVolume, 65.0);
       });
 
       test('unmutes if currently muted when increasing volume', () async {
@@ -66,6 +73,7 @@ void main() {
         await controller.setVolumeUp(10.0);
         expect(controller.isMuted, isFalse);
         expect(engine.volume, 60.0);
+        expect(queueRepo.savedIsMuted, isFalse);
       });
 
       test('clamps volume to 100.0 maximum', () async {
@@ -73,7 +81,7 @@ void main() {
 
         await controller.setVolumeUp(10.0);
         expect(engine.volume, 100.0);
-        expect(settingsRepo.currentSettings.volume, 100.0);
+        expect(queueRepo.savedVolume, 100.0);
       });
     });
 
@@ -83,7 +91,7 @@ void main() {
 
         await controller.setVolumeDown();
         expect(engine.volume, 45.0);
-        expect(settingsRepo.currentSettings.volume, 45.0);
+        expect(queueRepo.savedVolume, 45.0);
       });
 
       test('decrements volume by custom step', () async {
@@ -91,7 +99,7 @@ void main() {
 
         await controller.setVolumeDown(20.0);
         expect(engine.volume, 30.0);
-        expect(settingsRepo.currentSettings.volume, 30.0);
+        expect(queueRepo.savedVolume, 30.0);
       });
 
       test('automatically sets isMuted to true if volume reaches 0.0', () async {
@@ -101,6 +109,7 @@ void main() {
         await controller.setVolumeDown(10.0);
         expect(engine.volume, 0.0);
         expect(controller.isMuted, isTrue);
+        expect(queueRepo.savedIsMuted, isTrue);
       });
 
       test('clamps volume to 0.0 minimum', () async {
@@ -113,16 +122,17 @@ void main() {
     });
 
     group('toggleMute', () {
-      test('mutes and sets engine volume to 0 while preserving settings volume', () async {
+      test('mutes and sets engine volume to 0 while preserving repository volume', () async {
         await controller.setVolume(70.0);
 
         await controller.toggleMute();
         expect(controller.isMuted, isTrue);
         expect(engine.volume, 0.0);
-        expect(settingsRepo.currentSettings.volume, 70.0);
+        expect(queueRepo.savedVolume, 70.0);
+        expect(queueRepo.savedIsMuted, isTrue);
       });
 
-      test('unmutes and restores engine volume from settings', () async {
+      test('unmutes and restores engine volume from repository', () async {
         await controller.setVolume(70.0);
         await controller.toggleMute();
         expect(engine.volume, 0.0);
@@ -130,7 +140,8 @@ void main() {
         await controller.toggleMute();
         expect(controller.isMuted, isFalse);
         expect(engine.volume, 70.0);
-        expect(settingsRepo.currentSettings.volume, 70.0);
+        expect(queueRepo.savedVolume, 70.0);
+        expect(queueRepo.savedIsMuted, isFalse);
       });
     });
 
@@ -147,6 +158,22 @@ void main() {
         await controller.setVolume(45.0);
         await pumpEventQueue();
         expect(volumes, [80.0, 45.0]);
+
+        await sub.cancel();
+      });
+    });
+
+    group('watchIsMuted', () {
+      test('yields current isMuted initially and emits updates', () async {
+        final mutedStates = <bool>[];
+        final sub = controller.watchIsMuted().listen(mutedStates.add);
+
+        await pumpEventQueue();
+        expect(mutedStates, [false]);
+
+        await controller.toggleMute();
+        await pumpEventQueue();
+        expect(mutedStates, [false, true]);
 
         await sub.cancel();
       });

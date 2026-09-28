@@ -2892,6 +2892,31 @@ class $PlaybackSessionsTable extends PlaybackSessions
     requiredDuringInsert: false,
     defaultValue: const Constant('off'),
   );
+  static const VerificationMeta _volumeMeta = const VerificationMeta('volume');
+  @override
+  late final GeneratedColumn<double> volume = GeneratedColumn<double>(
+    'volume',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(100.0),
+  );
+  static const VerificationMeta _isMutedMeta = const VerificationMeta(
+    'isMuted',
+  );
+  @override
+  late final GeneratedColumn<bool> isMuted = GeneratedColumn<bool>(
+    'is_muted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_muted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -2917,6 +2942,8 @@ class $PlaybackSessionsTable extends PlaybackSessions
     isShuffle,
     shuffleIndicesJson,
     loopMode,
+    volume,
+    isMuted,
     updatedAt,
   ];
   @override
@@ -3015,6 +3042,18 @@ class $PlaybackSessionsTable extends PlaybackSessions
         loopMode.isAcceptableOrUnknown(data['loop_mode']!, _loopModeMeta),
       );
     }
+    if (data.containsKey('volume')) {
+      context.handle(
+        _volumeMeta,
+        volume.isAcceptableOrUnknown(data['volume']!, _volumeMeta),
+      );
+    }
+    if (data.containsKey('is_muted')) {
+      context.handle(
+        _isMutedMeta,
+        isMuted.isAcceptableOrUnknown(data['is_muted']!, _isMutedMeta),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -3074,6 +3113,14 @@ class $PlaybackSessionsTable extends PlaybackSessions
         DriftSqlType.string,
         data['${effectivePrefix}loop_mode'],
       )!,
+      volume: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}volume'],
+      )!,
+      isMuted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_muted'],
+      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
@@ -3120,6 +3167,12 @@ class PlaybackSession extends DataClass implements Insertable<PlaybackSession> {
   /// Active loop mode ('off', 'all', 'single').
   final String loopMode;
 
+  /// Playback volume level (0.0 to 100.0).
+  final double volume;
+
+  /// Whether playback is muted.
+  final bool isMuted;
+
   /// Last updated timestamp.
   final DateTime updatedAt;
   const PlaybackSession({
@@ -3134,6 +3187,8 @@ class PlaybackSession extends DataClass implements Insertable<PlaybackSession> {
     required this.isShuffle,
     this.shuffleIndicesJson,
     required this.loopMode,
+    required this.volume,
+    required this.isMuted,
     required this.updatedAt,
   });
   @override
@@ -3160,6 +3215,8 @@ class PlaybackSession extends DataClass implements Insertable<PlaybackSession> {
       map['shuffle_indices_json'] = Variable<String>(shuffleIndicesJson);
     }
     map['loop_mode'] = Variable<String>(loopMode);
+    map['volume'] = Variable<double>(volume);
+    map['is_muted'] = Variable<bool>(isMuted);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
   }
@@ -3187,6 +3244,8 @@ class PlaybackSession extends DataClass implements Insertable<PlaybackSession> {
           ? const Value.absent()
           : Value(shuffleIndicesJson),
       loopMode: Value(loopMode),
+      volume: Value(volume),
+      isMuted: Value(isMuted),
       updatedAt: Value(updatedAt),
     );
   }
@@ -3214,6 +3273,8 @@ class PlaybackSession extends DataClass implements Insertable<PlaybackSession> {
         json['shuffleIndicesJson'],
       ),
       loopMode: serializer.fromJson<String>(json['loopMode']),
+      volume: serializer.fromJson<double>(json['volume']),
+      isMuted: serializer.fromJson<bool>(json['isMuted']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
   }
@@ -3232,6 +3293,8 @@ class PlaybackSession extends DataClass implements Insertable<PlaybackSession> {
       'isShuffle': serializer.toJson<bool>(isShuffle),
       'shuffleIndicesJson': serializer.toJson<String?>(shuffleIndicesJson),
       'loopMode': serializer.toJson<String>(loopMode),
+      'volume': serializer.toJson<double>(volume),
+      'isMuted': serializer.toJson<bool>(isMuted),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
   }
@@ -3248,6 +3311,8 @@ class PlaybackSession extends DataClass implements Insertable<PlaybackSession> {
     bool? isShuffle,
     Value<String?> shuffleIndicesJson = const Value.absent(),
     String? loopMode,
+    double? volume,
+    bool? isMuted,
     DateTime? updatedAt,
   }) => PlaybackSession(
     id: id ?? this.id,
@@ -3271,6 +3336,8 @@ class PlaybackSession extends DataClass implements Insertable<PlaybackSession> {
         ? shuffleIndicesJson.value
         : this.shuffleIndicesJson,
     loopMode: loopMode ?? this.loopMode,
+    volume: volume ?? this.volume,
+    isMuted: isMuted ?? this.isMuted,
     updatedAt: updatedAt ?? this.updatedAt,
   );
   PlaybackSession copyWithCompanion(PlaybackSessionsCompanion data) {
@@ -3302,6 +3369,8 @@ class PlaybackSession extends DataClass implements Insertable<PlaybackSession> {
           ? data.shuffleIndicesJson.value
           : this.shuffleIndicesJson,
       loopMode: data.loopMode.present ? data.loopMode.value : this.loopMode,
+      volume: data.volume.present ? data.volume.value : this.volume,
+      isMuted: data.isMuted.present ? data.isMuted.value : this.isMuted,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -3320,6 +3389,8 @@ class PlaybackSession extends DataClass implements Insertable<PlaybackSession> {
           ..write('isShuffle: $isShuffle, ')
           ..write('shuffleIndicesJson: $shuffleIndicesJson, ')
           ..write('loopMode: $loopMode, ')
+          ..write('volume: $volume, ')
+          ..write('isMuted: $isMuted, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -3338,6 +3409,8 @@ class PlaybackSession extends DataClass implements Insertable<PlaybackSession> {
     isShuffle,
     shuffleIndicesJson,
     loopMode,
+    volume,
+    isMuted,
     updatedAt,
   );
   @override
@@ -3355,6 +3428,8 @@ class PlaybackSession extends DataClass implements Insertable<PlaybackSession> {
           other.isShuffle == this.isShuffle &&
           other.shuffleIndicesJson == this.shuffleIndicesJson &&
           other.loopMode == this.loopMode &&
+          other.volume == this.volume &&
+          other.isMuted == this.isMuted &&
           other.updatedAt == this.updatedAt);
 }
 
@@ -3370,6 +3445,8 @@ class PlaybackSessionsCompanion extends UpdateCompanion<PlaybackSession> {
   final Value<bool> isShuffle;
   final Value<String?> shuffleIndicesJson;
   final Value<String> loopMode;
+  final Value<double> volume;
+  final Value<bool> isMuted;
   final Value<DateTime> updatedAt;
   const PlaybackSessionsCompanion({
     this.id = const Value.absent(),
@@ -3383,6 +3460,8 @@ class PlaybackSessionsCompanion extends UpdateCompanion<PlaybackSession> {
     this.isShuffle = const Value.absent(),
     this.shuffleIndicesJson = const Value.absent(),
     this.loopMode = const Value.absent(),
+    this.volume = const Value.absent(),
+    this.isMuted = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
   PlaybackSessionsCompanion.insert({
@@ -3397,6 +3476,8 @@ class PlaybackSessionsCompanion extends UpdateCompanion<PlaybackSession> {
     this.isShuffle = const Value.absent(),
     this.shuffleIndicesJson = const Value.absent(),
     this.loopMode = const Value.absent(),
+    this.volume = const Value.absent(),
+    this.isMuted = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
   static Insertable<PlaybackSession> custom({
@@ -3411,6 +3492,8 @@ class PlaybackSessionsCompanion extends UpdateCompanion<PlaybackSession> {
     Expression<bool>? isShuffle,
     Expression<String>? shuffleIndicesJson,
     Expression<String>? loopMode,
+    Expression<double>? volume,
+    Expression<bool>? isMuted,
     Expression<DateTime>? updatedAt,
   }) {
     return RawValuesInsertable({
@@ -3428,6 +3511,8 @@ class PlaybackSessionsCompanion extends UpdateCompanion<PlaybackSession> {
       if (shuffleIndicesJson != null)
         'shuffle_indices_json': shuffleIndicesJson,
       if (loopMode != null) 'loop_mode': loopMode,
+      if (volume != null) 'volume': volume,
+      if (isMuted != null) 'is_muted': isMuted,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
   }
@@ -3444,6 +3529,8 @@ class PlaybackSessionsCompanion extends UpdateCompanion<PlaybackSession> {
     Value<bool>? isShuffle,
     Value<String?>? shuffleIndicesJson,
     Value<String>? loopMode,
+    Value<double>? volume,
+    Value<bool>? isMuted,
     Value<DateTime>? updatedAt,
   }) {
     return PlaybackSessionsCompanion(
@@ -3458,6 +3545,8 @@ class PlaybackSessionsCompanion extends UpdateCompanion<PlaybackSession> {
       isShuffle: isShuffle ?? this.isShuffle,
       shuffleIndicesJson: shuffleIndicesJson ?? this.shuffleIndicesJson,
       loopMode: loopMode ?? this.loopMode,
+      volume: volume ?? this.volume,
+      isMuted: isMuted ?? this.isMuted,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
@@ -3502,6 +3591,12 @@ class PlaybackSessionsCompanion extends UpdateCompanion<PlaybackSession> {
     if (loopMode.present) {
       map['loop_mode'] = Variable<String>(loopMode.value);
     }
+    if (volume.present) {
+      map['volume'] = Variable<double>(volume.value);
+    }
+    if (isMuted.present) {
+      map['is_muted'] = Variable<bool>(isMuted.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
@@ -3522,6 +3617,8 @@ class PlaybackSessionsCompanion extends UpdateCompanion<PlaybackSession> {
           ..write('isShuffle: $isShuffle, ')
           ..write('shuffleIndicesJson: $shuffleIndicesJson, ')
           ..write('loopMode: $loopMode, ')
+          ..write('volume: $volume, ')
+          ..write('isMuted: $isMuted, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -11286,6 +11383,8 @@ typedef $$PlaybackSessionsTableCreateCompanionBuilder =
       Value<bool> isShuffle,
       Value<String?> shuffleIndicesJson,
       Value<String> loopMode,
+      Value<double> volume,
+      Value<bool> isMuted,
       Value<DateTime> updatedAt,
     });
 typedef $$PlaybackSessionsTableUpdateCompanionBuilder =
@@ -11301,6 +11400,8 @@ typedef $$PlaybackSessionsTableUpdateCompanionBuilder =
       Value<bool> isShuffle,
       Value<String?> shuffleIndicesJson,
       Value<String> loopMode,
+      Value<double> volume,
+      Value<bool> isMuted,
       Value<DateTime> updatedAt,
     });
 
@@ -11387,6 +11488,16 @@ class $$PlaybackSessionsTableFilterComposer
 
   ColumnFilters<String> get loopMode => $composableBuilder(
     column: $table.loopMode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get volume => $composableBuilder(
+    column: $table.volume,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isMuted => $composableBuilder(
+    column: $table.isMuted,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -11478,6 +11589,16 @@ class $$PlaybackSessionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get volume => $composableBuilder(
+    column: $table.volume,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isMuted => $composableBuilder(
+    column: $table.isMuted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -11560,6 +11681,12 @@ class $$PlaybackSessionsTableAnnotationComposer
   GeneratedColumn<String> get loopMode =>
       $composableBuilder(column: $table.loopMode, builder: (column) => column);
 
+  GeneratedColumn<double> get volume =>
+      $composableBuilder(column: $table.volume, builder: (column) => column);
+
+  GeneratedColumn<bool> get isMuted =>
+      $composableBuilder(column: $table.isMuted, builder: (column) => column);
+
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
@@ -11628,6 +11755,8 @@ class $$PlaybackSessionsTableTableManager
                 Value<bool> isShuffle = const Value.absent(),
                 Value<String?> shuffleIndicesJson = const Value.absent(),
                 Value<String> loopMode = const Value.absent(),
+                Value<double> volume = const Value.absent(),
+                Value<bool> isMuted = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => PlaybackSessionsCompanion(
                 id: id,
@@ -11641,6 +11770,8 @@ class $$PlaybackSessionsTableTableManager
                 isShuffle: isShuffle,
                 shuffleIndicesJson: shuffleIndicesJson,
                 loopMode: loopMode,
+                volume: volume,
+                isMuted: isMuted,
                 updatedAt: updatedAt,
               ),
           createCompanionCallback:
@@ -11656,6 +11787,8 @@ class $$PlaybackSessionsTableTableManager
                 Value<bool> isShuffle = const Value.absent(),
                 Value<String?> shuffleIndicesJson = const Value.absent(),
                 Value<String> loopMode = const Value.absent(),
+                Value<double> volume = const Value.absent(),
+                Value<bool> isMuted = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => PlaybackSessionsCompanion.insert(
                 id: id,
@@ -11669,6 +11802,8 @@ class $$PlaybackSessionsTableTableManager
                 isShuffle: isShuffle,
                 shuffleIndicesJson: shuffleIndicesJson,
                 loopMode: loopMode,
+                volume: volume,
+                isMuted: isMuted,
                 updatedAt: updatedAt,
               ),
           withReferenceMapper: (p0) => p0

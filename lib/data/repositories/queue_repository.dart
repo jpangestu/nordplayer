@@ -11,7 +11,12 @@ import 'package:nordplayer/domain/queue/queue_models.dart';
 import 'package:nordplayer/utils/string_extension.dart';
 
 /// Model returned when restoring complete persisted player state.
-class const RestoredQueueState({required final QueueState state, required final Duration resumePosition});
+class const RestoredQueueState({
+  required final QueueState state,
+  required final Duration resumePosition,
+  final double volume = 100.0,
+  final bool isMuted = false,
+});
 
 /// Repository interface abstracting player queue persistence, restoration,
 /// and active playback position tracking.
@@ -26,13 +31,16 @@ abstract interface class QueueRepository {
   );
 
   /// Persists complete [QueueState] with items, shuffle indices, and session details.
-  Future<void> saveQueueState(QueueState state, Duration resumePosition);
+  Future<void> saveQueueState(QueueState state, Duration resumePosition, {double? volume, bool? isMuted});
 
   /// Fast delta update: updates active track index and file path in PlaybackSessions without touching QueueEntries.
   Future<void> updateActiveTrack(int activeIndex, String? activeTrackPath, {int? activeTrackId});
 
   /// Fast delta update: updates playback position timestamp for the active session.
   Future<void> updateCurrentPosition(int positionInMs);
+
+  /// Fast delta update: updates active volume and mute state in PlaybackSessions.
+  Future<void> updateVolume({required double volume, required bool isMuted});
 
   /// Fast delta update: updates shuffle mode and shuffle indices permutation without touching QueueEntries.
   Future<void> updateShuffleMode({
@@ -100,7 +108,7 @@ class const DriftQueueRepository(final AppDatabase _db) implements QueueReposito
   }
 
   @override
-  Future<void> saveQueueState(QueueState state, Duration resumePosition) async {
+  Future<void> saveQueueState(QueueState state, Duration resumePosition, {double? volume, bool? isMuted}) async {
     await _db.transaction(() async {
       if (state.items.isEmpty) {
         await _db.delete(_db.playbackSessions).go();
@@ -126,6 +134,8 @@ class const DriftQueueRepository(final AppDatabase _db) implements QueueReposito
               isShuffle: Value(state.isShuffle),
               shuffleIndicesJson: Value(state.shuffleIndices.isEmpty ? null : jsonEncode(state.shuffleIndices)),
               loopMode: Value(state.loopMode.name),
+              volume: volume != null ? Value(volume) : const Value.absent(),
+              isMuted: isMuted != null ? Value(isMuted) : const Value.absent(),
               updatedAt: Value(DateTime.now()),
             ),
           );
@@ -169,6 +179,25 @@ class const DriftQueueRepository(final AppDatabase _db) implements QueueReposito
     await (_db.update(_db.playbackSessions)..where((s) => s.id.equals(1))).write(
       PlaybackSessionsCompanion(positionMs: Value(positionInMs), updatedAt: Value(DateTime.now())),
     );
+  }
+
+  @override
+  Future<void> updateVolume({required double volume, required bool isMuted}) async {
+    final updatedRows = await (_db.update(_db.playbackSessions)..where((s) => s.id.equals(1))).write(
+      PlaybackSessionsCompanion(volume: Value(volume), isMuted: Value(isMuted), updatedAt: Value(DateTime.now())),
+    );
+    if (updatedRows == 0) {
+      await _db
+          .into(_db.playbackSessions)
+          .insertOnConflictUpdate(
+            PlaybackSessionsCompanion.insert(
+              id: const Value(1),
+              volume: Value(volume),
+              isMuted: Value(isMuted),
+              updatedAt: Value(DateTime.now()),
+            ),
+          );
+    }
   }
 
   @override
@@ -330,6 +359,8 @@ class const DriftQueueRepository(final AppDatabase _db) implements QueueReposito
     return RestoredQueueState(
       state: state,
       resumePosition: Duration(milliseconds: session.positionMs),
+      volume: session.volume,
+      isMuted: session.isMuted,
     );
   }
 

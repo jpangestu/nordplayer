@@ -7,10 +7,9 @@ import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/database/app_database.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/indexer_repository.dart';
-import 'package:nordplayer/data/repositories/settings_repository.dart';
+import 'package:nordplayer/data/repositories/ui_preferences_repository.dart';
 import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/data/services/system/config_service.dart';
-import 'package:nordplayer/data/services/system/preference_service.dart';
 import 'package:nordplayer/ui/settings/advanced/advanced_settings_viewmodel.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -32,12 +31,12 @@ void main() {
 
     setUp(() async {
       SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.withData({
-        PrefConstants.isMuted: true,
-        PrefConstants.volume: 40.0,
+        UiPrefConstants.showQueue: true,
+        UiPrefConstants.sidebarExtended: false,
       });
 
       final prefs = await SharedPreferencesWithCache.create(
-        cacheOptions: const SharedPreferencesWithCacheOptions(allowList: PrefConstants.allowList),
+        cacheOptions: const SharedPreferencesWithCacheOptions(allowList: UiPrefConstants.allowList),
       );
 
       db = AppDatabase(NativeDatabase.memory());
@@ -88,9 +87,9 @@ void main() {
       expect(config.theme, equals('nord'));
 
       // Preferences should be reset to default
-      final settings = container.read(settingsRepositoryProvider).currentSettings;
-      expect(settings.isMuted, isFalse);
-      expect(settings.volume, equals(100.0));
+      final uiPrefs = container.read(uiPreferencesRepositoryProvider).currentPreferences;
+      expect(uiPrefs.showQueue, isFalse);
+      expect(uiPrefs.sidebarExtended, isTrue);
 
       // Orphaned artists should be cleaned up
       final remainingArtists = await db.select(db.artists).get();

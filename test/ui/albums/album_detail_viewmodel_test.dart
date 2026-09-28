@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/data/repositories/album_repository.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
-import 'package:nordplayer/data/repositories/settings_repository.dart';
 import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
@@ -13,7 +12,6 @@ import 'package:nordplayer/ui/albums/album_detail_viewmodel.dart';
 import '../../../testing/fakes/fake_album_repository.dart';
 import '../../../testing/fakes/fake_config_repository.dart';
 import '../../../testing/fakes/fake_playback_controller.dart';
-import '../../../testing/fakes/fake_settings_repository.dart';
 
 void main() {
   group('AlbumDetailViewModel & AlbumDetailUiState', () {
@@ -85,21 +83,18 @@ void main() {
 
     late FakeAlbumRepository fakeAlbumRepo;
     late FakePlaybackController fakePlaybackController;
-    late FakeSettingsRepository fakeSettingsRepo;
     late FakeConfigRepository fakeConfigRepo;
     late ProviderContainer container;
 
     setUp(() {
       fakeAlbumRepo = FakeAlbumRepository();
       fakePlaybackController = FakePlaybackController();
-      fakeSettingsRepo = FakeSettingsRepository();
       fakeConfigRepo = FakeConfigRepository();
 
       container = ProviderContainer(
         overrides: [
           albumRepositoryProvider.overrideWithValue(fakeAlbumRepo),
           playbackControllerProvider.overrideWithValue(fakePlaybackController),
-          settingsRepositoryProvider.overrideWithValue(fakeSettingsRepo),
           configRepositoryProvider.overrideWithValue(fakeConfigRepo),
         ],
       );
@@ -109,7 +104,6 @@ void main() {
       container.dispose();
       fakeAlbumRepo.dispose();
       fakePlaybackController.dispose();
-      fakeSettingsRepo.dispose();
       fakeConfigRepo.dispose();
     });
 
@@ -193,7 +187,7 @@ void main() {
       expect(updatedCols.firstWhere((c) => c.id == 'duration').isVisible, isFalse);
     });
 
-    test('toggles shuffle mode and synchronizes with SettingsRepository', () async {
+    test('toggles shuffle mode and synchronizes with PlaybackController', () async {
       final sub = container.listen(albumDetailViewModelProvider(albumId), (_, _) {});
       addTearDown(sub.close);
 
@@ -204,7 +198,7 @@ void main() {
       await pumpEventQueue();
 
       expect(container.read(albumDetailViewModelProvider(albumId)).shouldShuffle, isTrue);
-      expect(fakeSettingsRepo.currentSettings.shuffleMode, isTrue);
+      expect(fakePlaybackController.isShuffle, isTrue);
     });
 
     test('playAlbum dispatches to PlaybackController', () async {

@@ -1,31 +1,31 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
-import 'package:nordplayer/data/repositories/settings_repository.dart';
+import 'package:nordplayer/data/repositories/ui_preferences_repository.dart';
 import 'package:nordplayer/ui/shell/shell_ui_state.dart';
 
 /// ViewModel managing layout, sidebar state, and responsive chrome visibility.
 class ShellViewModel extends Notifier<ShellUiState> {
-  late SettingsRepository _settingsRepo;
+  late UiPreferencesRepository _uiPreferencesRepo;
   late ConfigRepository _configRepo;
 
   @override
   ShellUiState build() {
-    _settingsRepo = ref.watch(settingsRepositoryProvider);
+    _uiPreferencesRepo = ref.watch(uiPreferencesRepositoryProvider);
     _configRepo = ref.watch(configRepositoryProvider);
 
-    final currentSettings = _settingsRepo.currentSettings;
+    final currentPrefs = _uiPreferencesRepo.currentPreferences;
     final currentConfig = _configRepo.currentConfig;
 
     final initialState = ShellUiState(
-      isSidebarExtended: currentSettings.sidebarExtended,
-      showQueue: currentSettings.showQueue,
+      isSidebarExtended: currentPrefs.sidebarExtended,
+      showQueue: currentPrefs.showQueue,
       isAdaptiveBg: currentConfig.adaptiveBg,
       adaptiveBgPanelBlur: currentConfig.adaptiveBgPanelBlur,
       adaptiveBgThemeOverlay: currentConfig.adaptiveBgThemeOverlay,
     );
 
-    final sub1 = _settingsRepo.watchSettings().listen((settings) {
-      state = state.copyWith(isSidebarExtended: settings.sidebarExtended, showQueue: settings.showQueue);
+    final sub1 = _uiPreferencesRepo.watchPreferences().listen((prefs) {
+      state = state.copyWith(isSidebarExtended: prefs.sidebarExtended, showQueue: prefs.showQueue);
     });
 
     final sub2 = _configRepo.watchConfig().listen((config) {
@@ -47,19 +47,19 @@ class ShellViewModel extends Notifier<ShellUiState> {
   // User Actions (Intents)
 
   Future<void> toggleSidebar() {
-    return _settingsRepo.setSidebarExtended(!state.isSidebarExtended);
+    return _uiPreferencesRepo.setSidebarExtended(!state.isSidebarExtended);
   }
 
   Future<void> setSidebarExtended(bool extended) {
-    return _settingsRepo.setSidebarExtended(extended);
+    return _uiPreferencesRepo.setSidebarExtended(extended);
   }
 
   Future<void> toggleShowQueue() {
-    return _settingsRepo.setShowQueue(!state.showQueue);
+    return _uiPreferencesRepo.setShowQueue(!state.showQueue);
   }
 
   Future<void> setShowQueue(bool show) {
-    return _settingsRepo.setShowQueue(show);
+    return _uiPreferencesRepo.setShowQueue(show);
   }
 }
 

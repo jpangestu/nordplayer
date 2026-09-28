@@ -350,11 +350,7 @@ void main() {
   group('AudioPlayerEngine Providers', () {
     test('audioPlayerEngineProvider creates MediaKitAudioPlayerEngine wrapping audioPlayerProvider', () {
       final fakePlayer = _TestPlayer();
-      final container = ProviderContainer(
-        overrides: [
-          audioPlayerProvider.overrideWithValue(fakePlayer),
-        ],
-      );
+      final container = ProviderContainer(overrides: [audioPlayerProvider.overrideWithValue(fakePlayer)]);
       addTearDown(container.dispose);
 
       final engine = container.read(audioPlayerEngineProvider);

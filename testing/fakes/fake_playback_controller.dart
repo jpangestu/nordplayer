@@ -77,6 +77,7 @@ class FakePlaybackController({
   final StreamController<Duration> _positionController = StreamController<Duration>.broadcast();
   final StreamController<Duration> _durationController = StreamController<Duration>.broadcast();
   final StreamController<double> _volumeController = StreamController<double>.broadcast();
+  final StreamController<bool> _isMutedController = StreamController<bool>.broadcast();
   final StreamController<List<String>> _queueCoverArtController = StreamController<List<String>>.broadcast();
   final StreamController<QueueState> _queueStateController = StreamController<QueueState>.broadcast();
   final StreamController<List<QueueItem>> _queueItemsController = StreamController<List<QueueItem>>.broadcast();
@@ -209,6 +210,12 @@ class FakePlaybackController({
   Stream<double> watchVolume() async* {
     yield volume;
     yield* _volumeController.stream;
+  }
+
+  @override
+  Stream<bool> watchIsMuted() async* {
+    yield isMuted;
+    yield* _isMutedController.stream;
   }
 
   @override
@@ -374,11 +381,19 @@ class FakePlaybackController({
   @override
   Future<void> toggleMute() async {
     _isMuted = !_isMuted;
+    _isMutedController.add(_isMuted);
   }
 
   @override
   Future<void> toggleShuffle() async {
     _isShuffle = !_isShuffle;
+    _queueStateController.add(queueState);
+  }
+
+  @override
+  Future<void> setShuffle(bool enable) async {
+    _isShuffle = enable;
+    _queueStateController.add(queueState);
   }
 
   @override
@@ -389,6 +404,7 @@ class FakePlaybackController({
       PlaylistMode.loop => PlaylistMode.none,
     };
     _loopMode = nextMode;
+    _queueStateController.add(queueState);
   }
 
   @override
@@ -533,6 +549,7 @@ class FakePlaybackController({
     _positionController.close();
     _durationController.close();
     _volumeController.close();
+    _isMutedController.close();
     _queueCoverArtController.close();
     _queueStateController.close();
   }

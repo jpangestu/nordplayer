@@ -3,9 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/data/repositories/playlist_repository.dart';
+import 'package:nordplayer/data/repositories/ui_preferences_repository.dart';
 import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/data/services/system/platform_service.dart' show showInFolder;
-import 'package:nordplayer/data/services/system/preference_service.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/playback_context.dart';
 import 'package:nordplayer/routing/router.dart';
@@ -85,7 +85,7 @@ class TrackContextMenu {
             onTap: () {
               ref.read(playbackControllerProvider).playNext(selectedTracks);
 
-              final showQueue = ref.read(preferenceServiceProvider).showQueue;
+              final showQueue = ref.read(uiPreferencesRepositoryProvider).currentPreferences.showQueue;
 
               showQueue
                   ? showNordSnackBar(message: 'Added ${selectedTracks.length} track(s) to queue', type: .general)
@@ -94,7 +94,7 @@ class TrackContextMenu {
                       type: .general,
                       actionLabel: 'View Queue',
                       onAction: (snackBarContext) {
-                        ref.read(preferenceServiceProvider.notifier).setShowQueue(true);
+                        ref.read(uiPreferencesRepositoryProvider).setShowQueue(true);
                       },
                     );
             },
@@ -108,7 +108,7 @@ class TrackContextMenu {
             onTap: () {
               ref.read(playbackControllerProvider).addToQueue(selectedTracks);
 
-              final showQueue = ref.read(preferenceServiceProvider).showQueue;
+              final showQueue = ref.read(uiPreferencesRepositoryProvider).currentPreferences.showQueue;
 
               showQueue
                   ? showNordSnackBar(message: 'Added ${selectedTracks.length} track(s) to queue', type: .general)
@@ -117,7 +117,7 @@ class TrackContextMenu {
                       type: .general,
                       actionLabel: 'View Queue',
                       onAction: (snackBarContext) {
-                        ref.read(preferenceServiceProvider.notifier).setShowQueue(true);
+                        ref.read(uiPreferencesRepositoryProvider).setShowQueue(true);
                       },
                     );
             },
@@ -204,7 +204,7 @@ class SearchTracksContextMenu {
             onTap: () {
               ref.read(playbackControllerProvider).playNext([tracks[indexToPlay]]);
 
-              final showQueue = ref.read(preferenceServiceProvider).showQueue;
+              final showQueue = ref.read(uiPreferencesRepositoryProvider).currentPreferences.showQueue;
 
               showQueue
                   ? showNordSnackBar(message: 'Added 1 track to queue', type: .general)
@@ -213,7 +213,7 @@ class SearchTracksContextMenu {
                       type: .general,
                       actionLabel: 'View Queue',
                       onAction: (snackBarContext) {
-                        ref.read(preferenceServiceProvider.notifier).setShowQueue(true);
+                        ref.read(uiPreferencesRepositoryProvider).setShowQueue(true);
                       },
                     );
             },
@@ -226,7 +226,7 @@ class SearchTracksContextMenu {
             onTap: () {
               ref.read(playbackControllerProvider).addToQueue([tracks[indexToPlay]]);
 
-              final showQueue = ref.read(preferenceServiceProvider).showQueue;
+              final showQueue = ref.read(uiPreferencesRepositoryProvider).currentPreferences.showQueue;
 
               showQueue
                   ? showNordSnackBar(message: 'Added 1 track to queue', type: .general)
@@ -235,7 +235,7 @@ class SearchTracksContextMenu {
                       type: .general,
                       actionLabel: 'View Queue',
                       onAction: (snackBarContext) {
-                        ref.read(preferenceServiceProvider.notifier).setShowQueue(true);
+                        ref.read(uiPreferencesRepositoryProvider).setShowQueue(true);
                       },
                     );
             },

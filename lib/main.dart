@@ -4,13 +4,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:nordplayer/data/repositories/ui_preferences_repository.dart';
 import 'package:nordplayer/data/services/audio/audio_handler.dart';
 import 'package:nordplayer/data/services/audio/audio_player_engine.dart' show audioPlayerProvider;
 import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/data/services/indexer/library_indexer.dart';
 import 'package:nordplayer/data/services/indexer/library_watcher.dart';
 import 'package:nordplayer/data/services/system/config_service.dart';
-import 'package:nordplayer/data/services/system/preference_service.dart';
 import 'package:nordplayer/routing/router.dart';
 import 'package:nordplayer/ui/shared/shortcuts.dart';
 import 'package:nordplayer/ui/shared/themes/active_theme_provider.dart';
@@ -45,7 +45,7 @@ void main() async {
   // Pre-load SharedPreferences and Config directory concurrently at startup
   final (prefs, configDir) = await (
     SharedPreferencesWithCache.create(
-      cacheOptions: const SharedPreferencesWithCacheOptions(allowList: PrefConstants.allowList),
+      cacheOptions: const SharedPreferencesWithCacheOptions(allowList: UiPrefConstants.allowList),
     ),
     getConfigDirectory(),
   ).wait;

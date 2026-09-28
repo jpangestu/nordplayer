@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
-import 'package:nordplayer/data/repositories/settings_repository.dart';
+import 'package:nordplayer/data/repositories/ui_preferences_repository.dart';
 import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/artist.dart';
@@ -13,7 +13,7 @@ import 'package:nordplayer/ui/queue/queue_viewmodel.dart';
 
 import '../../../testing/fakes/fake_config_repository.dart';
 import '../../../testing/fakes/fake_playback_controller.dart';
-import '../../../testing/fakes/fake_settings_repository.dart';
+import '../../../testing/fakes/fake_ui_preferences_repository.dart';
 
 TrackWithArtists _makeTrack(int id, String title, String path) {
   return TrackWithArtists(
@@ -36,19 +36,19 @@ void main() {
   group('QueueViewModel & QueueUiState', () {
     late FakePlaybackController fakePlaybackController;
     late FakeConfigRepository fakeConfigRepo;
-    late FakeSettingsRepository fakeSettingsRepo;
+    late FakeUiPreferencesRepository fakeUiPreferencesRepo;
     late ProviderContainer container;
 
     setUp(() {
       fakePlaybackController = FakePlaybackController();
       fakeConfigRepo = FakeConfigRepository();
-      fakeSettingsRepo = FakeSettingsRepository();
+      fakeUiPreferencesRepo = FakeUiPreferencesRepository();
 
       container = ProviderContainer(
         overrides: [
           playbackControllerProvider.overrideWithValue(fakePlaybackController),
           configRepositoryProvider.overrideWithValue(fakeConfigRepo),
-          settingsRepositoryProvider.overrideWithValue(fakeSettingsRepo),
+          uiPreferencesRepositoryProvider.overrideWithValue(fakeUiPreferencesRepo),
         ],
       );
     });
@@ -57,7 +57,7 @@ void main() {
       container.dispose();
       fakePlaybackController.dispose();
       fakeConfigRepo.dispose();
-      fakeSettingsRepo.dispose();
+      fakeUiPreferencesRepo.dispose();
     });
 
     test('initial state and reactive stream updates', () async {
@@ -186,7 +186,7 @@ void main() {
       expect(container.read(queueViewModelProvider).isDragging, isFalse);
 
       await vm.closeQueue();
-      expect(fakeSettingsRepo.showQueue, isFalse);
+      expect(fakeUiPreferencesRepo.showQueue, isFalse);
     });
 
     test('scroll behavior intent can be listened and reset', () async {

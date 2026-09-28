@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:nordplayer/data/repositories/ui_preferences_repository.dart';
 import 'package:nordplayer/data/services/audio/playback_controller.dart';
-import 'package:nordplayer/data/services/system/preference_service.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/playback_context.dart';
 import 'package:nordplayer/ui/queue/queue_scroll_behavior.dart';
@@ -80,7 +80,7 @@ class CurrentTrackNotifier extends Notifier<TrackWithArtists?> {
       state = currentTrack;
       final artPath = currentTrack?.album.albumArtPath;
       if (artPath != null && artPath.isNotEmpty) {
-        ref.read(preferenceServiceProvider.notifier).setCachedAlbumArtPath(artPath);
+        ref.read(uiPreferencesRepositoryProvider).setCachedAlbumArtPath(artPath);
       }
     });
 
@@ -90,7 +90,7 @@ class CurrentTrackNotifier extends Notifier<TrackWithArtists?> {
     final artPath = initialTrack?.album.albumArtPath;
     if (artPath != null && artPath.isNotEmpty) {
       Future.microtask(() {
-        ref.read(preferenceServiceProvider.notifier).setCachedAlbumArtPath(artPath);
+        ref.read(uiPreferencesRepositoryProvider).setCachedAlbumArtPath(artPath);
       });
     }
 

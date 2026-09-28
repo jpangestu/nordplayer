@@ -6,8 +6,8 @@ import 'package:nordplayer/data/repositories/artist_repository.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/indexer_repository.dart';
 import 'package:nordplayer/data/repositories/playlist_repository.dart';
-import 'package:nordplayer/data/repositories/settings_repository.dart';
 import 'package:nordplayer/data/repositories/track_repository.dart';
+import 'package:nordplayer/data/repositories/ui_preferences_repository.dart';
 import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/ui/shared/themes/app_theme.dart';
 
@@ -17,8 +17,8 @@ import 'fakes/fake_config_repository.dart';
 import 'fakes/fake_indexer_repository.dart';
 import 'fakes/fake_playback_controller.dart';
 import 'fakes/fake_playlist_repository.dart';
-import 'fakes/fake_settings_repository.dart';
 import 'fakes/fake_track_repository.dart';
+import 'fakes/fake_ui_preferences_repository.dart';
 
 /// Test helper providing standard repository overrides and theme scaffolding for widget tests.
 Widget createTestApp({
@@ -30,7 +30,7 @@ Widget createTestApp({
   FakeAlbumRepository? fakeAlbumRepo,
   FakeArtistRepository? fakeArtistRepo,
   FakePlaylistRepository? fakePlaylistRepo,
-  FakeSettingsRepository? fakeSettingsRepo,
+  FakeUiPreferencesRepository? fakeUiPreferencesRepo,
   FakeConfigRepository? fakeConfigRepo,
   FakeIndexerRepository? fakeIndexerRepo,
 }) {
@@ -40,7 +40,7 @@ Widget createTestApp({
     albumRepositoryProvider.overrideWithValue(fakeAlbumRepo ?? FakeAlbumRepository()),
     artistRepositoryProvider.overrideWithValue(fakeArtistRepo ?? FakeArtistRepository()),
     playlistRepositoryProvider.overrideWithValue(fakePlaylistRepo ?? FakePlaylistRepository()),
-    settingsRepositoryProvider.overrideWithValue(fakeSettingsRepo ?? FakeSettingsRepository()),
+    uiPreferencesRepositoryProvider.overrideWithValue(fakeUiPreferencesRepo ?? FakeUiPreferencesRepository()),
     configRepositoryProvider.overrideWithValue(fakeConfigRepo ?? FakeConfigRepository()),
     indexerRepositoryProvider.overrideWithValue(fakeIndexerRepo ?? FakeIndexerRepository()),
     ...overrides,
@@ -68,7 +68,7 @@ Future<void> pumpTestApp(
   FakeAlbumRepository? fakeAlbumRepo,
   FakeArtistRepository? fakeArtistRepo,
   FakePlaylistRepository? fakePlaylistRepo,
-  FakeSettingsRepository? fakeSettingsRepo,
+  FakeUiPreferencesRepository? fakeUiPreferencesRepo,
   FakeConfigRepository? fakeConfigRepo,
   FakeIndexerRepository? fakeIndexerRepo,
 }) async {
@@ -89,7 +89,7 @@ Future<void> pumpTestApp(
       fakeAlbumRepo: fakeAlbumRepo,
       fakeArtistRepo: fakeArtistRepo,
       fakePlaylistRepo: fakePlaylistRepo,
-      fakeSettingsRepo: fakeSettingsRepo,
+      fakeUiPreferencesRepo: fakeUiPreferencesRepo,
       fakeConfigRepo: fakeConfigRepo,
       fakeIndexerRepo: fakeIndexerRepo,
     ),

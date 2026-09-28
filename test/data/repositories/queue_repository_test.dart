@@ -137,6 +137,8 @@ void main() {
       expect(session.positionMs, 45000);
       expect(session.playbackContextType, 'album');
       expect(session.playbackContextId, 1);
+      expect(session.volume, 100.0);
+      expect(session.isMuted, isFalse);
 
       // Verify QueueEntries table records
       final entries = await (db.select(db.queueEntries)..orderBy([(t) => OrderingTerm.asc(t.sortOrder)])).get();
@@ -191,11 +193,13 @@ void main() {
         context: const PlaybackContext.playlist(id: 42, title: 'Favorites'),
       );
 
-      await queueRepository.saveQueueState(state, const Duration(seconds: 88));
+      await queueRepository.saveQueueState(state, const Duration(seconds: 88), volume: 85.0, isMuted: true);
 
       final restored = await queueRepository.restoreQueueState();
       expect(restored, isNotNull);
       expect(restored!.resumePosition, const Duration(seconds: 88));
+      expect(restored.volume, 85.0);
+      expect(restored.isMuted, isTrue);
 
       final restoredState = restored.state;
       expect(restoredState.items.length, 2);
@@ -216,6 +220,20 @@ void main() {
       expect(restoredState.context, isA<PlaylistPlaybackContext>());
       expect((restoredState.context as PlaylistPlaybackContext).id, 42);
       expect((restoredState.context as PlaylistPlaybackContext).title, 'Favorites');
+    });
+
+    test('updateVolume updates volume and mute status in PlaybackSessions', () async {
+      await queueRepository.saveQueue([trackA, trackB], '/music/track_a.mp3', Duration.zero, 'album', 1);
+
+      await queueRepository.updateVolume(volume: 62.5, isMuted: true);
+
+      final session = await (db.select(db.playbackSessions)..where((s) => s.id.equals(1))).getSingle();
+      expect(session.volume, 62.5);
+      expect(session.isMuted, isTrue);
+
+      final restored = await queueRepository.restoreQueueState();
+      expect(restored?.volume, 62.5);
+      expect(restored?.isMuted, isTrue);
     });
 
     test('updateActiveTrack performs high-speed single-row update on PlaybackSessions', () async {

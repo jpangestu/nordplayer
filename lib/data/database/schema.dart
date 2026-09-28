@@ -114,6 +114,12 @@ class PlaybackSessions extends Table {
   /// Active loop mode ('off', 'all', 'single').
   TextColumn get loopMode => text().withDefault(const Constant('off'))();
 
+  /// Playback volume level (0.0 to 100.0).
+  RealColumn get volume => real().withDefault(const Constant(100.0))();
+
+  /// Whether playback is muted.
+  BoolColumn get isMuted => boolean().withDefault(const Constant(false))();
+
   /// Last updated timestamp.
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 

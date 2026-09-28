@@ -3,9 +3,9 @@ import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:nordplayer/data/repositories/ui_preferences_repository.dart';
 import 'package:nordplayer/data/services/audio/player_state.dart';
 import 'package:nordplayer/data/services/system/config_service.dart';
-import 'package:nordplayer/data/services/system/preference_service.dart';
 
 class AdaptiveScaffold extends ConsumerWidget {
   const AdaptiveScaffold({super.key, required this.body});
@@ -27,7 +27,7 @@ class AdaptiveScaffold extends ConsumerWidget {
     final themeOverlay = ref.watch(configServiceProvider.select((v) => v.adaptiveBgThemeOverlay));
 
     final trackAlbumArtPath = ref.watch(currentTrackProvider.select((t) => t?.album.albumArtPath));
-    final cachedAlbumArtPath = ref.watch(preferenceServiceProvider.select((p) => p.cachedAlbumArtPath));
+    final cachedAlbumArtPath = ref.watch(uiPreferencesStateProvider.select((p) => p.cachedAlbumArtPath));
     final currentAlbumArtPath = (trackAlbumArtPath != null && trackAlbumArtPath.isNotEmpty)
         ? trackAlbumArtPath
         : cachedAlbumArtPath;

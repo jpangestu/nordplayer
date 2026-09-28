@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart' hide Track;
-import 'package:nordplayer/data/repositories/queue_repository.dart';
 import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/artist.dart';
@@ -10,109 +9,7 @@ import 'package:nordplayer/domain/models/track.dart';
 import 'package:nordplayer/domain/queue/queue_models.dart';
 
 import '../../../../testing/fakes/fake_audio_player_engine.dart';
-import '../../../../testing/fakes/fake_settings_repository.dart';
-
-class _FakeQueueRepository implements QueueRepository {
-  List<TrackWithArtists> savedQueue = [];
-  String? savedCurrentTrackPath;
-  Duration savedPosition = Duration.zero;
-  String savedContextType = '';
-  int? savedContextId;
-  int? updatedPositionMs;
-  QueueState? savedQueueState;
-  int? updatedActiveIndex;
-  String? updatedActiveTrackPath;
-  int? updatedActiveTrackId;
-  bool? updatedIsShuffle;
-  List<int>? updatedShuffleIndices;
-  String? updatedLoopMode;
-
-  @override
-  Future<void> saveQueue(
-    List<TrackWithArtists> originalQueue,
-    String? currentlyPlayedTrackPath,
-    Duration resumePositionMs,
-    String playbackContextType,
-    int? playbackContextId,
-  ) async {
-    savedQueue = List.from(originalQueue);
-    savedCurrentTrackPath = currentlyPlayedTrackPath;
-    savedPosition = resumePositionMs;
-    savedContextType = playbackContextType;
-    savedContextId = playbackContextId;
-  }
-
-  @override
-  Future<void> saveQueueState(QueueState state, Duration resumePosition) async {
-    savedQueueState = state;
-    savedQueue = state.tracks;
-    savedCurrentTrackPath = state.currentItem?.track.track.filePath;
-    savedPosition = resumePosition;
-    savedContextType = state.context.type;
-    savedContextId = state.context.id;
-  }
-
-  @override
-  Future<void> updateActiveTrack(int activeIndex, String? activeTrackPath, {int? activeTrackId}) async {
-    updatedActiveIndex = activeIndex;
-    updatedActiveTrackPath = activeTrackPath;
-    updatedActiveTrackId = activeTrackId;
-  }
-
-  @override
-  Future<void> updateCurrentPosition(int positionInMs) async {
-    updatedPositionMs = positionInMs;
-  }
-
-  @override
-  Future<void> updateShuffleMode({
-    required bool isShuffle,
-    required List<int> shuffleIndices,
-    required int activeIndex,
-    String? activeTrackPath,
-    int? activeTrackId,
-  }) async {
-    updatedIsShuffle = isShuffle;
-    updatedShuffleIndices = List.from(shuffleIndices);
-    updatedActiveIndex = activeIndex;
-    updatedActiveTrackPath = activeTrackPath;
-    updatedActiveTrackId = activeTrackId;
-  }
-
-  @override
-  Future<void> updateLoopMode(String loopMode) async {
-    updatedLoopMode = loopMode;
-  }
-
-  @override
-  Future<RestoredQueueState?> restoreQueueState() async {
-    if (savedQueueState != null) {
-      return RestoredQueueState(state: savedQueueState!, resumePosition: savedPosition);
-    }
-    if (savedQueue.isNotEmpty) {
-      final items = [
-        for (var i = 0; i < savedQueue.length; i++) QueueItem.create(track: savedQueue[i], originalOrder: i),
-      ];
-      return RestoredQueueState(
-        state: QueueState(
-          items: items,
-          shuffleIndices: List.generate(items.length, (i) => i),
-          activeIndex: 0,
-          isShuffle: false,
-          loopMode: LoopMode.off,
-          context: PlaybackContext(type: savedContextType, id: savedContextId),
-        ),
-        resumePosition: savedPosition,
-      );
-    }
-    return null;
-  }
-
-  @override
-  Future<(List<TrackWithArtists>, int, Duration, String, int?)> loadQueue() async {
-    return (savedQueue, 0, savedPosition, savedContextType, savedContextId);
-  }
-}
+import '../../../../testing/fakes/fake_queue_repository.dart';
 
 TrackWithArtists _makeTrack(int id, String title, {String path = '/music/test.mp3', String? art}) {
   return TrackWithArtists(
@@ -135,8 +32,7 @@ TrackWithArtists _makeTrack(int id, String title, {String path = '/music/test.mp
 void main() {
   group('DefaultPlaybackController', () {
     late FakeAudioPlayerEngine engine;
-    late _FakeQueueRepository queueRepo;
-    late FakeSettingsRepository settingsRepo;
+    late FakeQueueRepository queueRepo;
     late DefaultPlaybackController repo;
 
     final track1 = _makeTrack(1, 'Song Alpha', path: '/music/alpha.mp3', art: '/covers/alpha.jpg');
@@ -145,10 +41,9 @@ void main() {
 
     setUp(() {
       engine = FakeAudioPlayerEngine();
-      queueRepo = _FakeQueueRepository();
-      settingsRepo = FakeSettingsRepository();
+      queueRepo = FakeQueueRepository();
 
-      repo = DefaultPlaybackController(engine, queueRepo, settingsRepo);
+      repo = DefaultPlaybackController(engine, queueRepo);
     });
 
     tearDown(() async {
@@ -354,7 +249,6 @@ void main() {
       await repo.toggleShuffle();
 
       expect(repo.isShuffle, isTrue);
-      expect(settingsRepo.currentSettings.shuffleMode, isTrue);
       // In shuffle mode, current active track is pinned to display index 0
       expect(repo.currentIndex, 0);
       expect(repo.currentTrack?.track.title, 'Song Beta');
@@ -378,16 +272,13 @@ void main() {
 
       await repo.toggleLoop();
       expect(repo.loopMode, PlaylistMode.single);
-      expect(settingsRepo.currentSettings.loopMode, PlaylistMode.single);
       expect(queueRepo.updatedLoopMode, 'single');
 
       await repo.toggleLoop();
       expect(repo.loopMode, PlaylistMode.loop);
-      expect(settingsRepo.currentSettings.loopMode, PlaylistMode.loop);
 
       await repo.toggleLoop();
       expect(repo.loopMode, PlaylistMode.none);
-      expect(settingsRepo.currentSettings.loopMode, PlaylistMode.none);
     });
 
     test('clearQueue pauses playback and resets all queue state', () async {
@@ -418,24 +309,28 @@ void main() {
       expect(engine.nextUri, track2.track.filePath);
     });
 
-    test('volume and mute controls delegate to engine and settings repository', () async {
+    test('volume and mute controls delegate to engine and queue repository', () async {
       await repo.setVolume(75.0);
       expect(engine.volume, 75.0);
-      expect(settingsRepo.currentSettings.volume, 75.0);
+      expect(queueRepo.savedVolume, 75.0);
 
       await repo.setVolumeUp(10.0);
       expect(engine.volume, 85.0);
+      expect(queueRepo.savedVolume, 85.0);
 
       await repo.setVolumeDown(20.0);
       expect(engine.volume, 65.0);
+      expect(queueRepo.savedVolume, 65.0);
 
       await repo.toggleMute();
       expect(repo.isMuted, isTrue);
       expect(engine.volume, 0.0);
+      expect(queueRepo.savedIsMuted, isTrue);
 
       await repo.toggleMute();
       expect(repo.isMuted, isFalse);
       expect(engine.volume, 65.0);
+      expect(queueRepo.savedIsMuted, isFalse);
     });
 
     test('dispose immediately flushes any pending debounced queue state save', () async {

@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
-import 'package:nordplayer/data/repositories/settings_repository.dart';
+import 'package:nordplayer/data/repositories/ui_preferences_repository.dart';
 import 'package:nordplayer/ui/shared/themes/icon_sets/app_icon_set.dart';
 import 'package:nordplayer/ui/shared/ui/app_icon.dart';
 import 'package:nordplayer/ui/shell/widgets/nord_sidebar.dart';
@@ -17,8 +17,8 @@ class SettingsLayout extends ConsumerWidget {
     final configRepo = ref.watch(configRepositoryProvider);
     final appConfig = configRepo.currentConfig;
     final appIconSet = ref.watch(appIconProvider);
-    final settingsRepo = ref.watch(settingsRepositoryProvider);
-    final mainSidebarExtended = settingsRepo.currentSettings.sidebarExtended;
+    final uiPrefsRepo = ref.watch(uiPreferencesRepositoryProvider);
+    final mainSidebarExtended = uiPrefsRepo.currentPreferences.sidebarExtended;
 
     bool isExtended = true;
     final double screenWidth = MediaQuery.sizeOf(context).width;

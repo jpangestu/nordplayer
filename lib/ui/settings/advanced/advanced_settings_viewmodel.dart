@@ -5,8 +5,8 @@ import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/repositories/album_repository.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/indexer_repository.dart';
-import 'package:nordplayer/data/repositories/settings_repository.dart';
 import 'package:nordplayer/data/repositories/track_repository.dart';
+import 'package:nordplayer/data/repositories/ui_preferences_repository.dart';
 import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/ui/settings/advanced/advanced_settings_ui_state.dart';
 import 'package:nordplayer/utils/logger.dart';
@@ -16,7 +16,7 @@ import 'package:path_provider/path_provider.dart';
 /// ViewModel managing operations and state for Advanced Settings (data resets, cache wipes).
 class AdvancedSettingsViewModel extends Notifier<AdvancedSettingsUiState> with LoggerMixin {
   ConfigRepository get _configRepo => ref.read(configRepositoryProvider);
-  SettingsRepository get _settingsRepo => ref.read(settingsRepositoryProvider);
+  UiPreferencesRepository get _uiPreferencesRepo => ref.read(uiPreferencesRepositoryProvider);
   PlaybackController get _playbackController => ref.read(playbackControllerProvider);
   IndexerRepository get _indexerRepo => ref.read(indexerRepositoryProvider);
   TrackRepository get _trackRepo => ref.read(trackRepositoryProvider);
@@ -48,7 +48,7 @@ class AdvancedSettingsViewModel extends Notifier<AdvancedSettingsUiState> with L
 
       // Reset JSON configs and SharedPreferences
       _configRepo.updateConfig(AppConfig());
-      await _settingsRepo.resetToDefaults();
+      await _uiPreferencesRepo.resetToDefaults();
 
       // Stop watching old directories and mark their tracks as missing
       for (final path in oldPaths) {

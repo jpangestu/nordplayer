@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart' hide Track;
 import 'package:nordplayer/data/repositories/queue_repository.dart';
-import 'package:nordplayer/data/repositories/settings_repository.dart';
 import 'package:nordplayer/data/services/audio/audio_handler.dart';
 import 'package:nordplayer/data/services/audio/audio_player_engine.dart';
 import 'package:nordplayer/data/services/audio/volume_controller.dart';
@@ -61,6 +60,7 @@ abstract interface class PlaybackController {
   Stream<Duration> watchPosition();
   Stream<Duration> watchDuration();
   Stream<double> watchVolume();
+  Stream<bool> watchIsMuted();
   List<String> get currentQueueCoverArt;
   Stream<List<String>> watchQueueCoverArt();
 
@@ -92,6 +92,7 @@ abstract interface class PlaybackController {
   Future<void> setVolumeDown([double step = 5]);
   Future<void> toggleMute();
   Future<void> toggleShuffle();
+  Future<void> setShuffle(bool enable);
   Future<void> toggleLoop();
   Future<void> addToQueue(List<TrackWithArtists> tracks);
   Future<void> playNext(List<TrackWithArtists> tracks);
@@ -110,13 +111,13 @@ abstract interface class PlaybackController {
 /// [AudioPlayerEngine], [VolumeController], and persistent [QueueRepository].
 class DefaultPlaybackController(
   final AudioPlayerEngine _playerEngine,
-  final QueueRepository _queueRepository,
-  final SettingsRepository _settingsRepository, {
+  final QueueRepository _queueRepository, {
   QueueManager? queueManager,
   VolumeController? volumeController,
 }) with LoggerMixin implements PlaybackController {
   final QueueManager _queueManager = queueManager ?? QueueManager();
-  final VolumeController _volumeController = volumeController ?? VolumeController(_playerEngine, _settingsRepository);
+  final VolumeController _volumeController =
+      volumeController ?? VolumeController(_playerEngine, _queueRepository, persistDebounce: Duration.zero);
   String _playbackContextType = '';
   int? _playbackContextId;
   bool _isRestoringQueue = false;
@@ -132,14 +133,7 @@ class DefaultPlaybackController(
   }
 
   void _init() {
-    // 1. Initial settings sync
-    final initialSettings = _settingsRepository.currentSettings;
-    if (initialSettings.shuffleMode) {
-      _queueManager.setShuffle(true);
-    }
-    _queueManager.setLoopMode(initialSettings.loopMode.toLoopMode());
-
-    // 2. Transport gapless transition & playback completed
+    // 1. Transport gapless transition & playback completed
     _subscriptions.add(
       _playerEngine.completedStream.listen((_) async {
         final currentEngineUri = _playerEngine.currentUri;
@@ -171,7 +165,7 @@ class DefaultPlaybackController(
       }),
     );
 
-    // 3. Position stream updates & periodic persistence
+    // 2. Position stream updates & periodic persistence
     _subscriptions.add(
       _playerEngine.positionStream.listen((pos) {
         if (_isRestoringQueue) return;
@@ -180,34 +174,6 @@ class DefaultPlaybackController(
         if (_lastPositionSaveTime == null || now.difference(_lastPositionSaveTime!) >= const Duration(seconds: 5)) {
           _lastPositionSaveTime = now;
           _queueRepository.updateCurrentPosition(pos.inMilliseconds);
-        }
-      }),
-    );
-
-    // 4. Settings changes sync
-    _subscriptions.add(
-      _settingsRepository.watchSettings().listen((settings) async {
-        bool changed = false;
-        if (settings.shuffleMode != _queueManager.isShuffle) {
-          _queueManager.toggleShuffle();
-          _queueRepository.updateShuffleMode(
-            isShuffle: _queueManager.isShuffle,
-            shuffleIndices: _queueManager.state.shuffleIndices,
-            activeIndex: currentIndex,
-            activeTrackPath: currentTrack?.track.filePath,
-            activeTrackId: currentTrack?.track.id,
-          );
-          changed = true;
-        }
-        final targetLoop = settings.loopMode.toLoopMode();
-        if (targetLoop != _queueManager.loopMode) {
-          _queueManager.setLoopMode(targetLoop);
-          _queueRepository.updateLoopMode(targetLoop.name);
-          changed = true;
-        }
-        if (changed) {
-          await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
-          _emitQueueState();
         }
       }),
     );
@@ -337,6 +303,9 @@ class DefaultPlaybackController(
   Stream<double> watchVolume() => _volumeController.watchVolume();
 
   @override
+  Stream<bool> watchIsMuted() => _volumeController.watchIsMuted();
+
+  @override
   Future<void> playTrack(List<TrackWithArtists> tracks, int index) async {
     await setPlaylist(tracksToPlay: tracks, initialIndex: index, playbackContextType: 'tracks', forceReload: true);
   }
@@ -434,7 +403,6 @@ class DefaultPlaybackController(
   @override
   Future<void> toggleShuffle() async {
     _queueManager.toggleShuffle();
-    await _settingsRepository.setShuffleMode(_queueManager.isShuffle);
     await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
     _emitQueueState();
     _queueRepository.updateShuffleMode(
@@ -447,13 +415,18 @@ class DefaultPlaybackController(
   }
 
   @override
+  Future<void> setShuffle(bool enable) async {
+    if (_queueManager.isShuffle == enable) return;
+    await toggleShuffle();
+  }
+
+  @override
   Future<void> toggleLoop() async {
     final nextMode = switch (loopMode) {
       PlaylistMode.none => PlaylistMode.single,
       PlaylistMode.single => PlaylistMode.loop,
       PlaylistMode.loop => PlaylistMode.none,
     };
-    await _settingsRepository.setLoopMode(nextMode);
     _queueManager.setLoopMode(nextMode.toLoopMode());
     await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
     _emitQueueState();
@@ -535,18 +508,22 @@ class DefaultPlaybackController(
     _isRestoringQueue = true;
     try {
       final restored = await _queueRepository.restoreQueueState();
-      if (restored != null && restored.state.items.isNotEmpty) {
-        _playbackContextType = restored.state.context.type;
-        _playbackContextId = restored.state.context.id;
+      if (restored != null) {
+        await _volumeController.initialize(volume: restored.volume, isMuted: restored.isMuted);
 
-        _queueManager.restoreFromState(restored.state);
-        _emitQueueState();
+        if (restored.state.items.isNotEmpty) {
+          _playbackContextType = restored.state.context.type;
+          _playbackContextId = restored.state.context.id;
 
-        await _playCurrentAndPreBufferNext(
-          autoplay: false,
-          startPosition: restored.resumePosition,
-          updatePersistence: false,
-        );
+          _queueManager.restoreFromState(restored.state);
+          _emitQueueState();
+
+          await _playCurrentAndPreBufferNext(
+            autoplay: false,
+            startPosition: restored.resumePosition,
+            updatePersistence: false,
+          );
+        }
       }
     } finally {
       _isRestoringQueue = false;
@@ -610,15 +587,9 @@ class DefaultPlaybackController(
 final playbackControllerProvider = Provider<PlaybackController>((ref) {
   final playerEngine = ref.watch(audioPlayerEngineProvider);
   final queueRepo = ref.watch(queueRepositoryProvider);
-  final settingsRepo = ref.watch(settingsRepositoryProvider);
   final volumeController = ref.watch(volumeControllerProvider);
 
-  final controller = DefaultPlaybackController(
-    playerEngine,
-    queueRepo,
-    settingsRepo,
-    volumeController: volumeController,
-  );
+  final controller = DefaultPlaybackController(playerEngine, queueRepo, volumeController: volumeController);
   final audioHandler = ref.watch(audioHandlerProvider);
   if (audioHandler != null) {
     audioHandler.attachController(controller);

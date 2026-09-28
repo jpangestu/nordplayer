@@ -1,11 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nordplayer/data/repositories/ui_preferences_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-/// Provider for the pre-initialized [SharedPreferencesWithCache] instance.
-/// Must be overridden in ProviderScope at app startup.
-final sharedPreferencesInstanceProvider = Provider<SharedPreferencesWithCache>((ref) {
-  throw UnimplementedError('sharedPreferencesInstanceProvider must be initialized in main.dart');
-});
 
 /// Stateless service wrapper around [SharedPreferencesWithCache].
 class const SharedPreferencesService(final SharedPreferencesWithCache _prefs) {
@@ -30,6 +25,6 @@ class const SharedPreferencesService(final SharedPreferencesWithCache _prefs) {
 
 /// Riverpod provider for [SharedPreferencesService].
 final sharedPreferencesServiceProvider = Provider<SharedPreferencesService>((ref) {
-  final prefs = ref.watch(sharedPreferencesInstanceProvider);
+  final prefs = ref.watch(sharedPrefsProvider);
   return SharedPreferencesService(prefs);
 });

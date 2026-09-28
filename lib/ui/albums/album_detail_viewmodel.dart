@@ -5,7 +5,6 @@ import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/data/repositories/album_repository.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
-import 'package:nordplayer/data/repositories/settings_repository.dart';
 import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/playback_context.dart';
@@ -17,21 +16,18 @@ import 'package:nordplayer/utils/logger.dart';
 /// ViewModel orchestrating Album Detail state, sorting, filtering, columns, selection, and playback.
 class AlbumDetailViewModel(final int albumId) extends Notifier<AlbumDetailUiState> with LoggerMixin {
   PlaybackController get _playbackController => ref.read(playbackControllerProvider);
-  SettingsRepository get _settingsRepository => ref.read(settingsRepositoryProvider);
 
   @override
   AlbumDetailUiState build() {
     final albumRepo = ref.watch(albumRepositoryProvider);
     final playbackController = ref.watch(playbackControllerProvider);
     final configRepo = ref.watch(configRepositoryProvider);
-    final settingsRepo = ref.watch(settingsRepositoryProvider);
 
     final initialConfig = configRepo.currentConfig;
     final initialColumns = _initialColumns;
     final initialSelection = ref.read(selectedTracksIndexProvider('album'));
     final currentTrack = playbackController.currentTrack;
     final isPlaying = playbackController.isPlaying;
-    final initialSettings = settingsRepo.currentSettings;
 
     final albumSub = albumRepo
         .watchAlbumWithTracks(albumId)
@@ -72,9 +68,9 @@ class AlbumDetailViewModel(final int albumId) extends Notifier<AlbumDetailUiStat
       );
     });
 
-    final settingsSub = settingsRepo.watchSettings().listen((settings) {
-      if (state.shouldShuffle != settings.shuffleMode) {
-        state = state.copyWith(shouldShuffle: settings.shuffleMode);
+    final queueSub = playbackController.watchQueueState().listen((queueState) {
+      if (state.shouldShuffle != queueState.isShuffle) {
+        state = state.copyWith(shouldShuffle: queueState.isShuffle);
       }
     });
 
@@ -89,7 +85,7 @@ class AlbumDetailViewModel(final int albumId) extends Notifier<AlbumDetailUiStat
       trackSub.cancel();
       playingSub.cancel();
       configSub.cancel();
-      settingsSub.cancel();
+      queueSub.cancel();
     });
 
     return AlbumDetailUiState(
@@ -97,7 +93,7 @@ class AlbumDetailViewModel(final int albumId) extends Notifier<AlbumDetailUiStat
       selectedIndices: initialSelection,
       activeTrackPath: currentTrack?.track.filePath,
       isAudioPlaying: isPlaying,
-      shouldShuffle: initialSettings.shuffleMode,
+      shouldShuffle: playbackController.queueState.isShuffle,
       isLoading: true,
       isAdaptiveBg: initialConfig.adaptiveBg,
       adaptiveBgPanelBlur: initialConfig.adaptiveBgPanelBlur,
@@ -126,11 +122,11 @@ class AlbumDetailViewModel(final int albumId) extends Notifier<AlbumDetailUiStat
     state = state.copyWith(showFavoritesOnly: toggled, albumWithTracks: () => sorted);
   }
 
-  /// Toggles shuffle mode for album playback and syncs with [SettingsRepository].
+  /// Toggles shuffle mode for album playback and syncs with [PlaybackController].
   void toggleShuffle() {
     final newShuffle = !state.shouldShuffle;
     state = state.copyWith(shouldShuffle: newShuffle);
-    _settingsRepository.setShuffleMode(newShuffle);
+    _playbackController.toggleShuffle();
   }
 
   /// Toggles column visibility for column [columnId].
@@ -170,7 +166,7 @@ class AlbumDetailViewModel(final int albumId) extends Notifier<AlbumDetailUiStat
     final shuffle = shouldShuffle ?? state.shouldShuffle;
     final startIndex = initialIndex ?? (shuffle && tracksToPlay.isNotEmpty ? Random().nextInt(tracksToPlay.length) : 0);
 
-    _settingsRepository.setShuffleMode(shuffle);
+    _playbackController.setShuffle(shuffle);
 
     final albumTitle = state.albumWithTracks?.album.title ?? '';
 

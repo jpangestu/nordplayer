@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
-import 'package:nordplayer/data/repositories/settings_repository.dart';
+import 'package:nordplayer/data/repositories/ui_preferences_repository.dart';
 import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/domain/models/time_label_type.dart';
 import 'package:nordplayer/ui/shell/player_bar_ui_state.dart';
@@ -8,29 +8,30 @@ import 'package:nordplayer/ui/shell/player_bar_ui_state.dart';
 /// ViewModel managing the player bar and playback controls.
 class PlayerBarViewModel extends Notifier<PlayerBarUiState> {
   late PlaybackController _playbackController;
-  late SettingsRepository _settingsRepo;
+  late UiPreferencesRepository _uiPreferencesRepo;
   late ConfigRepository _configRepo;
 
   @override
   PlayerBarUiState build() {
     _playbackController = ref.watch(playbackControllerProvider);
-    _settingsRepo = ref.watch(settingsRepositoryProvider);
+    _uiPreferencesRepo = ref.watch(uiPreferencesRepositoryProvider);
     _configRepo = ref.watch(configRepositoryProvider);
 
-    final currentSettings = _settingsRepo.currentSettings;
+    final currentPrefs = _uiPreferencesRepo.currentPreferences;
     final currentConfig = _configRepo.currentConfig;
+    final currentQueueState = _playbackController.queueState;
 
     final initialState = PlayerBarUiState(
       currentTrack: _playbackController.currentTrack,
       isPlaying: _playbackController.isPlaying,
       position: _playbackController.position,
       duration: _playbackController.duration,
-      volume: currentSettings.volume,
-      isMuted: currentSettings.isMuted,
-      isShuffle: currentSettings.shuffleMode,
-      loopMode: currentSettings.loopMode,
-      showQueue: currentSettings.showQueue,
-      timeLabelType: currentSettings.timeLabelType,
+      volume: _playbackController.volume,
+      isMuted: _playbackController.isMuted,
+      isShuffle: currentQueueState.isShuffle,
+      loopMode: currentQueueState.loopMode.toPlaylistMode(),
+      showQueue: currentPrefs.showQueue,
+      timeLabelType: currentPrefs.timeLabelType,
       isAdaptiveBgOn: currentConfig.adaptiveBg,
       adaptiveBgPanelBlur: currentConfig.adaptiveBgPanelBlur,
       adaptiveBgThemeOverlay: currentConfig.adaptiveBgThemeOverlay,
@@ -54,17 +55,19 @@ class PlayerBarViewModel extends Notifier<PlayerBarUiState> {
     final sub4 = _playbackController.watchDuration().listen((dur) {
       state = state.copyWith(duration: dur);
     });
-    final sub5 = _settingsRepo.watchSettings().listen((settings) {
-      state = state.copyWith(
-        volume: settings.volume,
-        isMuted: settings.isMuted,
-        isShuffle: settings.shuffleMode,
-        loopMode: settings.loopMode,
-        showQueue: settings.showQueue,
-        timeLabelType: settings.timeLabelType,
-      );
+    final sub5 = _playbackController.watchVolume().listen((vol) {
+      state = state.copyWith(volume: vol);
     });
-    final sub6 = _configRepo.watchConfig().listen((config) {
+    final sub6 = _playbackController.watchIsMuted().listen((muted) {
+      state = state.copyWith(isMuted: muted);
+    });
+    final sub7 = _playbackController.watchQueueState().listen((qs) {
+      state = state.copyWith(isShuffle: qs.isShuffle, loopMode: qs.loopMode.toPlaylistMode());
+    });
+    final sub8 = _uiPreferencesRepo.watchPreferences().listen((prefs) {
+      state = state.copyWith(showQueue: prefs.showQueue, timeLabelType: prefs.timeLabelType);
+    });
+    final sub9 = _configRepo.watchConfig().listen((config) {
       state = state.copyWith(
         isAdaptiveBgOn: config.adaptiveBg,
         adaptiveBgPanelBlur: config.adaptiveBgPanelBlur,
@@ -79,6 +82,9 @@ class PlayerBarViewModel extends Notifier<PlayerBarUiState> {
       sub4.cancel();
       sub5.cancel();
       sub6.cancel();
+      sub7.cancel();
+      sub8.cancel();
+      sub9.cancel();
     });
   }
 
@@ -104,13 +110,13 @@ class PlayerBarViewModel extends Notifier<PlayerBarUiState> {
 
   Future<void> setVolumeDown([double step = 5]) => _playbackController.setVolumeDown(step);
 
-  Future<void> toggleShowQueue() => _settingsRepo.setShowQueue(!state.showQueue);
+  Future<void> toggleShowQueue() => _uiPreferencesRepo.setShowQueue(!state.showQueue);
 
   Future<void> toggleTimeLabelType() {
     final nextType = state.timeLabelType == TimeLabelType.totalTime
         ? TimeLabelType.remainingTime
         : TimeLabelType.totalTime;
-    return _settingsRepo.setTimeLabelType(nextType);
+    return _uiPreferencesRepo.setTimeLabelType(nextType);
   }
 }
 
