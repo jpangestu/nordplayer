@@ -13,7 +13,6 @@ class AppAudioHandler(final Player _player) extends BaseAudioHandler with QueueH
   final List<StreamSubscription<dynamic>> _playerSubscriptions = [];
   final List<StreamSubscription<dynamic>> _controllerSubscriptions = [];
   StreamSubscription<dynamic>? _fallbackPlaylistSubscription;
-  int _lastSyncedQueueLength = -1;
   String _lastSyncedQueueSignature = '';
   DateTime? _lastPositionBroadcast;
 
@@ -108,12 +107,9 @@ class AppAudioHandler(final Player _player) extends BaseAudioHandler with QueueH
   }
 
   void _syncQueue(List<TrackWithArtists> tracks) {
-    final signature = tracks.isEmpty
-        ? ''
-        : '${tracks.length}:${tracks.first.track.filePath}:${tracks.last.track.filePath}';
+    final signature = tracks.map((d) => d.track.filePath).join('|');
 
-    if (tracks.length != _lastSyncedQueueLength || signature != _lastSyncedQueueSignature) {
-      _lastSyncedQueueLength = tracks.length;
+    if (signature != _lastSyncedQueueSignature) {
       _lastSyncedQueueSignature = signature;
 
       queue.add(

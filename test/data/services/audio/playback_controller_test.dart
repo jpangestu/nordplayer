@@ -91,8 +91,7 @@ class _FakeQueueRepository implements QueueRepository {
     }
     if (savedQueue.isNotEmpty) {
       final items = [
-        for (var i = 0; i < savedQueue.length; i++)
-          QueueItem.create(track: savedQueue[i], originalOrder: i),
+        for (var i = 0; i < savedQueue.length; i++) QueueItem.create(track: savedQueue[i], originalOrder: i),
       ];
       return RestoredQueueState(
         state: QueueState(
@@ -255,11 +254,7 @@ void main() {
     });
 
     test('completedStream in LoopMode.single naturally loops and re-opens current track', () async {
-      await repo.setPlaylist(
-        tracksToPlay: [track1, track2],
-        initialIndex: 0,
-        playbackContextType: 'album',
-      );
+      await repo.setPlaylist(tracksToPlay: [track1, track2], initialIndex: 0, playbackContextType: 'album');
       await repo.toggleLoop(); // Changes to PlaylistMode.single (LoopMode.single)
 
       expect(repo.loopMode, PlaylistMode.single);
@@ -457,11 +452,7 @@ void main() {
 
     test('setPlaylist with typed PlaybackContext preserves type, id, and title', () async {
       const context = PlaybackContext.album(id: 42, title: 'Abbey Road');
-      await repo.setPlaylist(
-        tracksToPlay: [track1, track2],
-        initialIndex: 0,
-        context: context,
-      );
+      await repo.setPlaylist(tracksToPlay: [track1, track2], initialIndex: 0, context: context);
 
       expect(repo.playbackContext, equals(context));
       expect(repo.playbackContext.type, 'album');
@@ -487,11 +478,7 @@ void main() {
 
     test('watchPlaybackContext and watchCurrentTrack immediately emit current state on subscription', () async {
       const context = PlaybackContext.album(id: 12, title: 'Dark Side');
-      await repo.setPlaylist(
-        tracksToPlay: [track1, track2],
-        initialIndex: 1,
-        context: context,
-      );
+      await repo.setPlaylist(tracksToPlay: [track1, track2], initialIndex: 1, context: context);
 
       final emittedContext = await repo.watchPlaybackContext().first;
       expect(emittedContext, equals(context));
@@ -525,10 +512,7 @@ void main() {
       expect(queueEvents.length, equals(1));
 
       // 1. setPlaylist emits new state to all streams
-      await repo.setPlaylist(
-        tracksToPlay: [track1, track2],
-        initialIndex: 0,
-      );
+      await repo.setPlaylist(tracksToPlay: [track1, track2], initialIndex: 0);
       await Future<void>.delayed(const Duration(milliseconds: 10));
 
       expect(stateEvents.length, equals(2));

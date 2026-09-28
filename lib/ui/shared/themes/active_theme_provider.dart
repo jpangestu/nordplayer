@@ -14,7 +14,9 @@ final adaptiveThemeProvider = FutureProvider<AdaptiveColorScheme>((ref) async {
 
   final themeBrightness = ref.watch(configServiceProvider.select((c) => c.themeBrightness));
 
-  final albumArtPath = trackAlbumArtPath ?? cachedAlbumArtPath;
+  final albumArtPath = (trackAlbumArtPath != null && trackAlbumArtPath.isNotEmpty)
+      ? trackAlbumArtPath
+      : cachedAlbumArtPath;
 
   // Determine the correct ImageProvider based on the path
   final ImageProvider imageProvider;

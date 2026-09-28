@@ -20,7 +20,9 @@ class PlaylistsViewModel extends Notifier<PlaylistsUiState> with LoggerMixin {
     final configRepo = ref.watch(configRepositoryProvider);
 
     final initialConfig = configRepo.currentConfig;
-    final initialActiveId = playbackController.playbackContextType == 'playlist' ? playbackController.playbackContextId : null;
+    final initialActiveId = playbackController.playbackContextType == 'playlist'
+        ? playbackController.playbackContextId
+        : null;
     final initialAlbumArt = playbackController.currentQueueCoverArt;
 
     final playlistsSub = playlistRepo.watchAllPlaylists().listen(
@@ -127,9 +129,8 @@ class PlaylistsViewModel extends Notifier<PlaylistsUiState> with LoggerMixin {
     bool forceReload = false,
   }) {
     if (tracks.isEmpty) return;
-    final title = playlistTitle ??
-        state.playlists.where((p) => p.playlist.id == playlistId).firstOrNull?.playlist.name ??
-        '';
+    final title =
+        playlistTitle ?? state.playlists.where((p) => p.playlist.id == playlistId).firstOrNull?.playlist.name ?? '';
     _playbackController.setPlaylist(
       tracksToPlay: tracks,
       initialIndex: initialIndex,

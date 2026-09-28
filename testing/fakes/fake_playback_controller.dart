@@ -36,7 +36,8 @@ class FakePlaybackController({
   PlaylistMode _loopMode = loopMode;
   String _playbackContextType = playbackContextType;
   int? _playbackContextId = playbackContextId;
-  PlaybackContext _playbackContext = playbackContext ??
+  PlaybackContext _playbackContext =
+      playbackContext ??
       (playbackContextType.isNotEmpty
           ? PlaybackContext(type: playbackContextType, id: playbackContextId)
           : const PlaybackContext.manual());
@@ -79,8 +80,7 @@ class FakePlaybackController({
   final StreamController<List<String>> _queueCoverArtController = StreamController<List<String>>.broadcast();
   final StreamController<QueueState> _queueStateController = StreamController<QueueState>.broadcast();
   final StreamController<List<QueueItem>> _queueItemsController = StreamController<List<QueueItem>>.broadcast();
-  final StreamController<PlaybackContext> _playbackContextController =
-      StreamController<PlaybackContext>.broadcast();
+  final StreamController<PlaybackContext> _playbackContextController = StreamController<PlaybackContext>.broadcast();
 
   @override
   List<TrackWithArtists> get originalQueue => List.unmodifiable(_originalQueue);
@@ -256,14 +256,19 @@ class FakePlaybackController({
     bool forceReload = false,
     bool autoplay = true,
   }) async {
-    final resolvedContext = context ??
+    final resolvedContext =
+        context ??
         switch ((playbackContextType ?? 'manual').toLowerCase()) {
           'album' => PlaybackContext.album(id: playbackContextId ?? 0, title: playbackContextTitle ?? ''),
           'playlist' => PlaybackContext.playlist(id: playbackContextId ?? 0, title: playbackContextTitle ?? ''),
           'all' || 'tracks' || 'library' || 'all_tracks' => const PlaybackContext.allTracks(),
           'search' => PlaybackContext.search(query: playbackContextTitle ?? ''),
           'manual' => const PlaybackContext.manual(),
-          _ => PlaybackContext(type: playbackContextType ?? 'manual', id: playbackContextId, title: playbackContextTitle),
+          _ => PlaybackContext(
+            type: playbackContextType ?? 'manual',
+            id: playbackContextId,
+            title: playbackContextTitle,
+          ),
         };
 
     lastTracks = List.from(tracksToPlay);
@@ -532,4 +537,3 @@ class FakePlaybackController({
     _queueStateController.close();
   }
 }
-

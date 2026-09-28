@@ -74,7 +74,9 @@ class SearchResultsDropdown extends ConsumerWidget {
                       artists: trackWithArtists.artists.map<String>((artist) => artist.name).toList(),
                       onTap: () {
                         final query = ref.read(searchQueryProvider);
-                        ref.read(playbackControllerProvider).setPlaylist(
+                        ref
+                            .read(playbackControllerProvider)
+                            .setPlaylist(
                               tracksToPlay: tracks,
                               initialIndex: index,
                               context: PlaybackContext.search(query: query),

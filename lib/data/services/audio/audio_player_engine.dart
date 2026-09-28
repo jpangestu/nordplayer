@@ -78,10 +78,7 @@ abstract interface class AudioPlayerEngine {
 
 /// [media_kit.Player] implementation of [AudioPlayerEngine] featuring a rolling 2-track window
 /// for gapless transitions without excessive native memory allocation.
-class MediaKitAudioPlayerEngine(
-  final Player _player, {
-  final bool disposePlayer = true,
-}) implements AudioPlayerEngine {
+class MediaKitAudioPlayerEngine(final Player _player, {final bool disposePlayer = true}) implements AudioPlayerEngine {
   final bool _disposePlayer = disposePlayer;
   String? _currentUri;
   String? _nextUri;

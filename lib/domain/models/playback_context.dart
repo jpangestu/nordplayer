@@ -44,9 +44,11 @@ sealed class PlaybackContext {
 }
 
 /// Generic playback context used for legacy string-based callers and tests.
-class const RawPlaybackContext(
-    {@override required final String type, @override final int? id, @override final String? title})
-    extends PlaybackContext {
+class const RawPlaybackContext({
+  @override required final String type,
+  @override final int? id,
+  @override final String? title,
+}) extends PlaybackContext {
   this : super._();
 
   @override

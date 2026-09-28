@@ -2,35 +2,24 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:nordplayer/data/services/audio/player_service.dart';
+import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/data/services/system/preference_service.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/playback_context.dart';
 import 'package:nordplayer/ui/queue/queue_scroll_behavior.dart';
-import 'package:nordplayer/utils/debouncer.dart';
-import 'package:nordplayer/utils/stream_extension.dart';
 
 // ========================================== Playback Streams ==========================================
 
 /// Stream provider for current track playback position.
-final positionStreamProvider = StreamProvider<Duration>((ref) async* {
-  final player = ref.watch(playerServiceProvider).mkPlayer;
-  yield player.state.position;
-  yield* player.stream.position;
-});
-
-/// Stream provider for audio playback buffer position.
-final bufferStreamProvider = StreamProvider<Duration>((ref) async* {
-  final player = ref.watch(playerServiceProvider).mkPlayer;
-  yield player.state.buffer;
-  yield* player.stream.buffer;
+final positionStreamProvider = StreamProvider<Duration>((ref) {
+  final controller = ref.watch(playbackControllerProvider);
+  return controller.watchPosition();
 });
 
 /// Stream provider for active media duration.
-final durationStreamProvider = StreamProvider<Duration>((ref) async* {
-  final player = ref.watch(playerServiceProvider).mkPlayer;
-  yield player.state.duration;
-  yield* player.stream.duration;
+final durationStreamProvider = StreamProvider<Duration>((ref) {
+  final controller = ref.watch(playbackControllerProvider);
+  return controller.watchDuration();
 });
 
 // ========================================== Playing State ============================================
@@ -39,31 +28,16 @@ final durationStreamProvider = StreamProvider<Duration>((ref) async* {
 final isPlayingProvider = NotifierProvider<IsPlayingNotifier, bool>(IsPlayingNotifier.new);
 
 class IsPlayingNotifier extends Notifier<bool> {
-  Timer? _debounceTimer;
-
   @override
   bool build() {
-    final player = ref.watch(playerServiceProvider).mkPlayer;
+    final controller = ref.watch(playbackControllerProvider);
 
-    final playingSub = player.stream.playing.listen((isPlaying) {
-      if (isPlaying) {
-        _debounceTimer?.cancel();
-        state = true;
-      } else {
-        _debounceTimer?.cancel();
-        _debounceTimer = Timer(const Duration(milliseconds: 150), () {
-          state = false;
-        });
-      }
+    final subscription = controller.watchIsPlaying().listen((playing) {
+      state = playing;
     });
 
-    ref.onDispose(() {
-      playingSub.cancel();
-      _debounceTimer?.cancel();
-    });
-
-    // Initial synchronous return for instant UI painting
-    return player.state.playing;
+    ref.onDispose(subscription.cancel);
+    return controller.isPlaying;
   }
 }
 
@@ -76,7 +50,16 @@ final playbackContextProvider = NotifierProvider<PlaybackContextNotifier, Playba
 
 class PlaybackContextNotifier extends Notifier<PlaybackContext?> {
   @override
-  PlaybackContext? build() => null;
+  PlaybackContext? build() {
+    final controller = ref.watch(playbackControllerProvider);
+
+    final subscription = controller.watchPlaybackContext().listen((ctx) {
+      state = ctx;
+    });
+
+    ref.onDispose(subscription.cancel);
+    return controller.playbackContext;
+  }
 
   void setContext(String type, int? id) {
     state = PlaybackContext(type: type, id: id);
@@ -91,37 +74,27 @@ final currentTrackProvider = NotifierProvider<CurrentTrackNotifier, TrackWithArt
 class CurrentTrackNotifier extends Notifier<TrackWithArtists?> {
   @override
   TrackWithArtists? build() {
-    final player = ref.watch(playerServiceProvider).mkPlayer;
+    final controller = ref.watch(playbackControllerProvider);
 
-    final trackStream = player.stream.playlist
-        .map((playlist) {
-          if (playlist.medias.isEmpty || playlist.index < 0 || playlist.index >= playlist.medias.length) {
-            return null;
-          }
-          return playlist.medias[playlist.index].extras?['data'] as TrackWithArtists?;
-        })
-        .distinct((prev, next) {
-          return prev?.track.filePath == next?.track.filePath;
-        })
-        .debounceTime(const Duration(milliseconds: 50));
-
-    final subscription = trackStream.listen((currentTrack) {
+    final subscription = controller.watchCurrentTrack().listen((currentTrack) {
       state = currentTrack;
-      ref.read(preferenceServiceProvider.notifier).setCachedAlbumArtPath(currentTrack?.album.albumArtPath);
+      final artPath = currentTrack?.album.albumArtPath;
+      if (artPath != null && artPath.isNotEmpty) {
+        ref.read(preferenceServiceProvider.notifier).setCachedAlbumArtPath(artPath);
+      }
     });
 
-    ref.onDispose(() {
-      subscription.cancel();
-    });
+    ref.onDispose(subscription.cancel);
 
-    final initialPlaylist = player.state.playlist;
-    if (initialPlaylist.medias.isEmpty ||
-        initialPlaylist.index < 0 ||
-        initialPlaylist.index >= initialPlaylist.medias.length) {
-      return null;
+    final initialTrack = controller.currentTrack;
+    final artPath = initialTrack?.album.albumArtPath;
+    if (artPath != null && artPath.isNotEmpty) {
+      Future.microtask(() {
+        ref.read(preferenceServiceProvider.notifier).setCachedAlbumArtPath(artPath);
+      });
     }
 
-    return initialPlaylist.medias[initialPlaylist.index].extras?['data'] as TrackWithArtists?;
+    return initialTrack;
   }
 }
 
@@ -133,30 +106,20 @@ final currentTrackIndexProvider = NotifierProvider<CurrentTrackIndexNotifier, in
 class CurrentTrackIndexNotifier extends Notifier<int> {
   @override
   int build() {
-    final playerService = ref.watch(playerServiceProvider);
-    final player = playerService.mkPlayer;
-    final debouncer = Debouncer(const Duration(milliseconds: 50));
+    final controller = ref.watch(playbackControllerProvider);
 
-    final subscription = player.stream.playlist.listen((playlist) {
-      debouncer(() {
-        if (state != playlist.index) {
-          if (!playerService.consumeSuppressNextScroll()) {
-            final currentIntent = ref.read(queueScrollBehaviorProvider);
-            if (currentIntent == QueueScrollBehavior.none) {
-              ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.animate);
-            }
-          }
-          state = playlist.index;
+    final subscription = controller.watchCurrentIndex().listen((index) {
+      if (state != index) {
+        final currentIntent = ref.read(queueScrollBehaviorProvider);
+        if (currentIntent == QueueScrollBehavior.none) {
+          ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.animate);
         }
-      });
+        state = index;
+      }
     });
 
-    ref.onDispose(() {
-      debouncer.dispose();
-      subscription.cancel();
-    });
-
-    return player.state.playlist.index;
+    ref.onDispose(subscription.cancel);
+    return controller.currentIndex;
   }
 }
 
@@ -170,28 +133,24 @@ final currentTracksInQueueProvider = NotifierProvider<CurrentTracksInQueueNotifi
 class CurrentTracksInQueueNotifier extends Notifier<List<TrackWithArtists>> {
   @override
   List<TrackWithArtists> build() {
-    final player = ref.watch(playerServiceProvider).mkPlayer;
-    final debouncer = Debouncer(const Duration(milliseconds: 50));
+    final controller = ref.watch(playbackControllerProvider);
 
-    final subscription = player.stream.playlist.listen((playlist) {
-      debouncer(() {
-        state = playlist.medias.map((media) => media.extras?['data']).whereType<TrackWithArtists>().toList();
-      });
+    final subscription = controller.watchQueue().listen((tracks) {
+      state = tracks;
     });
 
-    ref.onDispose(() {
-      debouncer.dispose();
-      subscription.cancel();
-    });
-
-    return player.state.playlist.medias.map((media) => media.extras?['data']).whereType<TrackWithArtists>().toList();
+    ref.onDispose(subscription.cancel);
+    return controller.currentQueue;
   }
 
   void moveTrackOptimistically(int oldIndex, int newIndex) {
     final list = List<TrackWithArtists>.from(state);
-    final item = list.removeAt(oldIndex);
-    list.insert(newIndex, item);
-    state = list;
+    if (oldIndex >= 0 && oldIndex < list.length && newIndex >= 0 && newIndex <= list.length) {
+      final item = list.removeAt(oldIndex);
+      final targetIndex = newIndex.clamp(0, list.length);
+      list.insert(targetIndex, item);
+      state = list;
+    }
   }
 }
 
@@ -205,25 +164,18 @@ final current5TracksAlbumArtInQueueProvider = NotifierProvider<Current5TracksAlb
 class Current5TracksAlbumArtNotifier extends Notifier<List<String>> {
   @override
   List<String> build() {
-    final player = ref.watch(playerServiceProvider).mkPlayer;
-    final loopMode = ref.watch(preferenceServiceProvider.select((prefs) => prefs.loopMode));
-    final debouncer = Debouncer(const Duration(milliseconds: 150));
+    final controller = ref.watch(playbackControllerProvider);
 
-    final subscription = player.stream.playlist.listen((playlist) {
-      debouncer(() {
-        state = calculateCovers(playlist, loopMode);
-      });
+    final subscription = controller.watchQueueCoverArt().listen((covers) {
+      state = covers;
     });
 
-    ref.onDispose(() {
-      debouncer.dispose();
-      subscription.cancel();
-    });
-
-    return calculateCovers(player.state.playlist, loopMode);
+    ref.onDispose(subscription.cancel);
+    return controller.currentQueueCoverArt;
   }
 
   /// Pure computation for upcoming artwork paths given a playlist and loop configuration.
+  /// Maintained for unit test compatibility.
   static List<String> calculateCovers(Playlist playlist, PlaylistMode loopMode) {
     if (playlist.medias.isEmpty || playlist.index < 0) {
       return const [];

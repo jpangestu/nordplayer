@@ -28,7 +28,10 @@ class AdaptiveScaffold extends ConsumerWidget {
 
     final trackAlbumArtPath = ref.watch(currentTrackProvider.select((t) => t?.album.albumArtPath));
     final cachedAlbumArtPath = ref.watch(preferenceServiceProvider.select((p) => p.cachedAlbumArtPath));
-    final currentAlbumArtPath = trackAlbumArtPath ?? cachedAlbumArtPath;
+    final currentAlbumArtPath = (trackAlbumArtPath != null && trackAlbumArtPath.isNotEmpty)
+        ? trackAlbumArtPath
+        : cachedAlbumArtPath;
+    final hasValidArt = currentAlbumArtPath != null && currentAlbumArtPath.isNotEmpty;
 
     final cacheW = _getCacheWidth(blur);
 
@@ -50,7 +53,7 @@ class AdaptiveScaffold extends ConsumerWidget {
                 duration: const Duration(milliseconds: 600),
                 switchInCurve: Curves.easeOut,
                 switchOutCurve: Curves.easeIn,
-                child: currentAlbumArtPath != null
+                child: hasValidArt
                     ? SizedBox.expand(
                         key: ValueKey(currentAlbumArtPath),
                         child: ImageFiltered(
@@ -74,7 +77,7 @@ class AdaptiveScaffold extends ConsumerWidget {
                 duration: const Duration(milliseconds: 600),
                 switchInCurve: Curves.easeOut,
                 switchOutCurve: Curves.easeIn,
-                child: currentAlbumArtPath != null
+                child: hasValidArt
                     ? SizedBox.expand(
                         key: ValueKey(currentAlbumArtPath),
                         child: ImageFiltered(

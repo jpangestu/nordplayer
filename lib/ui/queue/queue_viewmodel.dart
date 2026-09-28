@@ -40,11 +40,7 @@ class QueueViewModel extends Notifier<QueueUiState> with LoggerMixin {
         }
       }
 
-      state = state.copyWith(
-        tracks: newTracks,
-        currentTrack: () => newTrack,
-        currentIndex: newIndex,
-      );
+      state = state.copyWith(tracks: newTracks, currentTrack: () => newTrack, currentIndex: newIndex);
     });
 
     final configSub = configRepo.watchConfig().listen((config) {

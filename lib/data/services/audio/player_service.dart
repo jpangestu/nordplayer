@@ -7,11 +7,7 @@ import 'package:nordplayer/ui/queue/queue_scroll_behavior.dart';
 import 'package:nordplayer/utils/logger.dart';
 
 /// Audio player service managing transport volume, mute, and playback triggers.
-class PlayerService(
-  final Ref _ref,
-  final Player _mkPlayer, {
-  final bool disposePlayer = true,
-}) with LoggerMixin {
+class PlayerService(final Ref _ref, final Player _mkPlayer, {final bool disposePlayer = true}) with LoggerMixin {
   final bool _disposePlayer = disposePlayer;
   Player get mkPlayer => _mkPlayer;
 
@@ -19,8 +15,7 @@ class PlayerService(
   final List<StreamSubscription<dynamic>> _subscriptions = [];
 
   /// Backward-compatible named constructor for test or legacy callers.
-  new withPlayer(Ref ref, Player player, {bool disposePlayer = true})
-      : this(ref, player, disposePlayer: disposePlayer);
+  new withPlayer(Ref ref, Player player, {bool disposePlayer = true}) : this(ref, player, disposePlayer: disposePlayer);
 
   /// Call this before an intentional programmatic track change to suppress auto-scroll.
   void suppressNextScroll() {

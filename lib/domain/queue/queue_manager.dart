@@ -146,9 +146,7 @@ class QueueManager({Random? random}) {
       return;
     }
 
-    final validIndices = state.shuffleIndices
-        .where((idx) => idx >= 0 && idx < _items.length)
-        .toList();
+    final validIndices = state.shuffleIndices.where((idx) => idx >= 0 && idx < _items.length).toList();
     if (_isShuffle && validIndices.length == _items.length && validIndices.toSet().length == _items.length) {
       _shuffleIndices = validIndices;
     } else if (_isShuffle) {
@@ -157,9 +155,7 @@ class QueueManager({Random? random}) {
       _shuffleIndices = List.generate(_items.length, (i) => i);
     }
 
-    _activeIndex = (state.activeIndex >= 0 && state.activeIndex < displayQueue.length)
-        ? state.activeIndex
-        : 0;
+    _activeIndex = (state.activeIndex >= 0 && state.activeIndex < displayQueue.length) ? state.activeIndex : 0;
   }
 
   /// Initializes or replaces the queue with a list of tracks.
@@ -543,9 +539,7 @@ class QueueManager({Random? random}) {
       return;
     }
 
-    final validIndices = (shuffleIndices ?? const [])
-        .where((idx) => idx >= 0 && idx < _items.length)
-        .toList();
+    final validIndices = (shuffleIndices ?? const []).where((idx) => idx >= 0 && idx < _items.length).toList();
     if (_isShuffle && validIndices.length == _items.length && validIndices.toSet().length == _items.length) {
       _shuffleIndices = validIndices;
     } else if (_isShuffle) {
@@ -554,9 +548,7 @@ class QueueManager({Random? random}) {
       _shuffleIndices = List.generate(_items.length, (i) => i);
     }
 
-    _activeIndex = (activeIndex >= 0 && activeIndex < displayQueue.length)
-        ? activeIndex
-        : 0;
+    _activeIndex = (activeIndex >= 0 && activeIndex < displayQueue.length) ? activeIndex : 0;
   }
 
   // ========================================== Helpers ==========================================

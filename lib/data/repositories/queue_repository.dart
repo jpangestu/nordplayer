@@ -11,10 +11,7 @@ import 'package:nordplayer/domain/queue/queue_models.dart';
 import 'package:nordplayer/utils/string_extension.dart';
 
 /// Model returned when restoring complete persisted player state.
-class const RestoredQueueState({
-  required final QueueState state,
-  required final Duration resumePosition,
-});
+class const RestoredQueueState({required final QueueState state, required final Duration resumePosition});
 
 /// Repository interface abstracting player queue persistence, restoration,
 /// and active playback position tracking.
@@ -87,11 +84,7 @@ class const DriftQueueRepository(final AppDatabase _db) implements QueueReposito
 
     final items = [
       for (var i = 0; i < originalQueue.length; i++)
-        QueueItem.create(
-          track: originalQueue[i],
-          originalOrder: i,
-          source: QueueSource.context,
-        ),
+        QueueItem.create(track: originalQueue[i], originalOrder: i, source: QueueSource.context),
     ];
 
     final state = QueueState(
@@ -118,22 +111,24 @@ class const DriftQueueRepository(final AppDatabase _db) implements QueueReposito
       final current = state.currentItem;
       final activeTrack = current?.track.track;
 
-      await _db.into(_db.playbackSessions).insertOnConflictUpdate(
-        PlaybackSessionsCompanion.insert(
-          id: const Value(1),
-          activeTrackId: Value(activeTrack?.id),
-          activeTrackPath: Value(activeTrack?.filePath),
-          activeIndex: Value(state.activeIndex),
-          positionMs: Value(resumePosition.inMilliseconds),
-          playbackContextType: Value(state.context.type),
-          playbackContextId: Value(state.context.id),
-          playbackContextTitle: Value(state.context.title),
-          isShuffle: Value(state.isShuffle),
-          shuffleIndicesJson: Value(state.shuffleIndices.isEmpty ? null : jsonEncode(state.shuffleIndices)),
-          loopMode: Value(state.loopMode.name),
-          updatedAt: Value(DateTime.now()),
-        ),
-      );
+      await _db
+          .into(_db.playbackSessions)
+          .insertOnConflictUpdate(
+            PlaybackSessionsCompanion.insert(
+              id: const Value(1),
+              activeTrackId: Value(activeTrack?.id),
+              activeTrackPath: Value(activeTrack?.filePath),
+              activeIndex: Value(state.activeIndex),
+              positionMs: Value(resumePosition.inMilliseconds),
+              playbackContextType: Value(state.context.type),
+              playbackContextId: Value(state.context.id),
+              playbackContextTitle: Value(state.context.title),
+              isShuffle: Value(state.isShuffle),
+              shuffleIndicesJson: Value(state.shuffleIndices.isEmpty ? null : jsonEncode(state.shuffleIndices)),
+              loopMode: Value(state.loopMode.name),
+              updatedAt: Value(DateTime.now()),
+            ),
+          );
 
       final companions = <QueueEntriesCompanion>[];
       for (var i = 0; i < state.items.length; i++) {
@@ -172,10 +167,7 @@ class const DriftQueueRepository(final AppDatabase _db) implements QueueReposito
   @override
   Future<void> updateCurrentPosition(int positionInMs) async {
     await (_db.update(_db.playbackSessions)..where((s) => s.id.equals(1))).write(
-      PlaybackSessionsCompanion(
-        positionMs: Value(positionInMs),
-        updatedAt: Value(DateTime.now()),
-      ),
+      PlaybackSessionsCompanion(positionMs: Value(positionInMs), updatedAt: Value(DateTime.now())),
     );
   }
 
@@ -202,10 +194,7 @@ class const DriftQueueRepository(final AppDatabase _db) implements QueueReposito
   @override
   Future<void> updateLoopMode(String loopMode) async {
     await (_db.update(_db.playbackSessions)..where((s) => s.id.equals(1))).write(
-      PlaybackSessionsCompanion(
-        loopMode: Value(loopMode),
-        updatedAt: Value(DateTime.now()),
-      ),
+      PlaybackSessionsCompanion(loopMode: Value(loopMode), updatedAt: Value(DateTime.now())),
     );
   }
 
@@ -253,10 +242,7 @@ class const DriftQueueRepository(final AppDatabase _db) implements QueueReposito
     final items = <QueueItem>[];
     for (final record in groupedRows.values) {
       final (entry, trackWithArtists) = record;
-      final source = QueueSource.values.firstWhere(
-        (s) => s.name == entry.source,
-        orElse: () => QueueSource.context,
-      );
+      final source = QueueSource.values.firstWhere((s) => s.name == entry.source, orElse: () => QueueSource.context);
       items.add(
         QueueItem(
           id: entry.id,
@@ -289,10 +275,7 @@ class const DriftQueueRepository(final AppDatabase _db) implements QueueReposito
       }
     }
 
-    final loopMode = LoopMode.values.firstWhere(
-      (m) => m.name == session.loopMode,
-      orElse: () => LoopMode.off,
-    );
+    final loopMode = LoopMode.values.firstWhere((m) => m.name == session.loopMode, orElse: () => LoopMode.off);
 
     PlaybackContext context;
     final type = session.playbackContextType.toLowerCase();
@@ -312,9 +295,7 @@ class const DriftQueueRepository(final AppDatabase _db) implements QueueReposito
       );
     }
 
-    int activeIndex = (session.activeIndex >= 0 && session.activeIndex < items.length)
-        ? session.activeIndex
-        : 0;
+    int activeIndex = (session.activeIndex >= 0 && session.activeIndex < items.length) ? session.activeIndex : 0;
 
     int foundRawIndex = -1;
     if (session.activeTrackPath != null && session.activeTrackPath!.isNotEmpty) {
@@ -324,9 +305,7 @@ class const DriftQueueRepository(final AppDatabase _db) implements QueueReposito
       );
     }
     if (foundRawIndex == -1 && session.activeTrackId != null) {
-      foundRawIndex = items.indexWhere(
-        (item) => item.track.track.id == session.activeTrackId,
-      );
+      foundRawIndex = items.indexWhere((item) => item.track.track.id == session.activeTrackId);
     }
     if (foundRawIndex != -1) {
       if (session.isShuffle && shuffleIndices.isNotEmpty) {

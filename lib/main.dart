@@ -52,7 +52,7 @@ void main() async {
 
   final appConfig = await ConfigService.loadInitialConfig(configDir);
 
-  // Set here because PlayerService and AppAudioHandler need the same player instance
+  // Set here because AudioPlayerEngine and AppAudioHandler need the same player instance
   final player = Player();
   final audioHandler = await AudioService.init(
     builder: () => AppAudioHandler(player),

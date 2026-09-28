@@ -49,7 +49,11 @@ void main() {
 
     testWidgets('renders current track title and artist when playing', (tester) async {
       final sampleTrack = createTrack(1, 'Bohemian Rhapsody', 'Queen');
-      final fakePlaybackController = FakePlaybackController(initialQueue: [sampleTrack], initialIndex: 0, isPlaying: true);
+      final fakePlaybackController = FakePlaybackController(
+        initialQueue: [sampleTrack],
+        initialIndex: 0,
+        isPlaying: true,
+      );
 
       await pumpTestApp(tester, child: const NordPlayerBar(), fakePlaybackController: fakePlaybackController);
 
@@ -59,7 +63,11 @@ void main() {
 
     testWidgets('tapping play/pause toggles playback state on repository', (tester) async {
       final sampleTrack = createTrack(1, 'Hotel California', 'Eagles');
-      final fakePlaybackController = FakePlaybackController(initialQueue: [sampleTrack], initialIndex: 0, isPlaying: false);
+      final fakePlaybackController = FakePlaybackController(
+        initialQueue: [sampleTrack],
+        initialIndex: 0,
+        isPlaying: false,
+      );
 
       await pumpTestApp(tester, child: const NordPlayerBar(), fakePlaybackController: fakePlaybackController);
 

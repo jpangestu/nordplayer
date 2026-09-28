@@ -338,12 +338,7 @@ class DefaultPlaybackController(
 
   @override
   Future<void> playTrack(List<TrackWithArtists> tracks, int index) async {
-    await setPlaylist(
-      tracksToPlay: tracks,
-      initialIndex: index,
-      playbackContextType: 'tracks',
-      forceReload: true,
-    );
+    await setPlaylist(tracksToPlay: tracks, initialIndex: index, playbackContextType: 'tracks', forceReload: true);
   }
 
   @override
@@ -358,12 +353,7 @@ class DefaultPlaybackController(
     bool autoplay = true,
   }) async {
     final resolvedContext =
-        context ??
-        _resolvePlaybackContext(
-          playbackContextType ?? '',
-          playbackContextId,
-          title: playbackContextTitle,
-        );
+        context ?? _resolvePlaybackContext(playbackContextType ?? '', playbackContextId, title: playbackContextTitle);
 
     _playbackContextType = resolvedContext.type;
     _playbackContextId = resolvedContext.id;
@@ -583,11 +573,7 @@ class DefaultPlaybackController(
   }) async {
     final current = _queueManager.currentTrack;
     if (current != null) {
-      await _playerEngine.open(
-        current.track.filePath,
-        autoplay: autoplay,
-        startPosition: startPosition,
-      );
+      await _playerEngine.open(current.track.filePath, autoplay: autoplay, startPosition: startPosition);
       await _playerEngine.setNextMedia(_queueManager.nextTrackFilePath);
     }
     if (updatePersistence) {
