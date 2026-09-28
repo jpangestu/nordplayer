@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart' hide Track;
 import 'package:nordplayer/data/services/audio/audio_player_engine.dart';
@@ -343,6 +344,21 @@ void main() {
       expect(fake.buffer, const Duration(seconds: 60));
 
       await sub.cancel();
+    });
+  });
+
+  group('AudioPlayerEngine Providers', () {
+    test('audioPlayerEngineProvider creates MediaKitAudioPlayerEngine wrapping audioPlayerProvider', () {
+      final fakePlayer = _TestPlayer();
+      final container = ProviderContainer(
+        overrides: [
+          audioPlayerProvider.overrideWithValue(fakePlayer),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final engine = container.read(audioPlayerEngineProvider);
+      expect(engine, isA<MediaKitAudioPlayerEngine>());
     });
   });
 }

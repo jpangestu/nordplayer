@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:nordplayer/data/services/audio/player_service.dart' show audioPlayerProvider;
 
 /// Abstract transport driver defining platform-independent audio operations and streams.
 abstract interface class AudioPlayerEngine {
@@ -235,6 +234,13 @@ class MediaKitAudioPlayerEngine(final Player _player, {final bool disposePlayer 
     }
   }
 }
+
+/// Global raw audio player engine provider.
+final audioPlayerProvider = Provider<Player>((ref) {
+  final player = Player();
+  ref.onDispose(() => player.dispose());
+  return player;
+});
 
 /// Riverpod provider for [AudioPlayerEngine].
 final audioPlayerEngineProvider = Provider<AudioPlayerEngine>((ref) {
