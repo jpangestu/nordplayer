@@ -140,7 +140,7 @@ TrackWithArtists _makeTrack(int id, String title, {String path = '/music/test.mp
 }
 
 void main() {
-  group('AppAudioHandler Unattached (Fallback Mode)', () {
+  group('AppAudioHandler Unattached', () {
     late _TestPlayer player;
     late AppAudioHandler handler;
 
@@ -170,24 +170,20 @@ void main() {
       expect(handler.playbackState.value.controls, contains(MediaControl.play));
     });
 
-    test('transport controls delegate directly to Player when repository is not attached', () async {
+    test('transport controls safely no-op when controller is not attached', () async {
       await handler.play();
-      expect(player.playCount, 1);
-
       await handler.pause();
-      expect(player.pauseCount, 1);
-
       await handler.skipToNext();
-      expect(player.nextCount, 1);
-
       await handler.skipToPrevious();
-      expect(player.previousCount, 1);
-
       await handler.seek(const Duration(seconds: 15));
-      expect(player.seekPos, const Duration(seconds: 15));
-
       await handler.skipToQueueItem(3);
-      expect(player.jumpIndex, 3);
+
+      expect(player.playCount, 0);
+      expect(player.pauseCount, 0);
+      expect(player.nextCount, 0);
+      expect(player.previousCount, 0);
+      expect(player.seekPos, isNull);
+      expect(player.jumpIndex, -1);
     });
   });
 

@@ -1,12 +1,15 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:media_kit/media_kit.dart' hide Track;
+import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/data/services/audio/player_state.dart';
 import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/track.dart';
 
+import '../../../../testing/fakes/fake_playback_controller.dart';
+
 void main() {
-  group('Current5TracksAlbumArtNotifier.calculateCovers Tests', () {
+  group('current5TracksAlbumArtInQueueProvider Tests', () {
     TrackWithArtists createTrack(int id, String? artPath) {
       return TrackWithArtists(
         track: Track(
@@ -30,57 +33,42 @@ void main() {
       );
     }
 
-    Media createMedia(int id, String? artPath) {
-      final track = createTrack(id, artPath);
-      return Media(track.track.filePath, extras: {'title': track.track.title, 'artists': track.artists, 'data': track});
-    }
+    test('initializes with controller currentQueueCoverArt', () {
+      final tracks = [
+        createTrack(1, '/art1.jpg'),
+        createTrack(2, '/art2.jpg'),
+      ];
+      final controller = FakePlaybackController(initialQueue: tracks);
+      final container = ProviderContainer(
+        overrides: [
+          playbackControllerProvider.overrideWithValue(controller),
+        ],
+      );
+      addTearDown(container.dispose);
 
-    test('returns empty list for empty playlist', () {
-      final covers = Current5TracksAlbumArtNotifier.calculateCovers(const Playlist([]), PlaylistMode.none);
-      expect(covers, isEmpty);
+      final covers = container.read(current5TracksAlbumArtInQueueProvider);
+      expect(covers, equals(['/art1.jpg', '/art2.jpg']));
     });
 
-    test('returns empty list for negative playlist index', () {
-      final playlist = Playlist([createMedia(1, '/art1.jpg')], index: -1);
-      final covers = Current5TracksAlbumArtNotifier.calculateCovers(playlist, PlaylistMode.none);
-      expect(covers, isEmpty);
-    });
+    test('updates reactively when controller emits new cover art', () async {
+      final controller = FakePlaybackController();
+      final container = ProviderContainer(
+        overrides: [
+          playbackControllerProvider.overrideWithValue(controller),
+        ],
+      );
+      addTearDown(container.dispose);
 
-    test('returns up to 5 covers starting from current index when loop is none', () {
-      final medias = List.generate(8, (i) => createMedia(i + 1, '/art${i + 1}.jpg'));
-      final playlist = Playlist(medias, index: 2);
+      expect(container.read(current5TracksAlbumArtInQueueProvider), isEmpty);
 
-      final covers = Current5TracksAlbumArtNotifier.calculateCovers(playlist, PlaylistMode.none);
+      final tracks = [
+        createTrack(1, '/cover_a.jpg'),
+        createTrack(2, '/cover_b.jpg'),
+      ];
+      controller.emitQueue(tracks);
+      await pumpEventQueue();
 
-      expect(covers, equals(['/art3.jpg', '/art4.jpg', '/art5.jpg', '/art6.jpg', '/art7.jpg']));
-    });
-
-    test('stops at end of playlist when loop is none', () {
-      final medias = List.generate(3, (i) => createMedia(i + 1, '/art${i + 1}.jpg'));
-      final playlist = Playlist(medias, index: 1);
-
-      final covers = Current5TracksAlbumArtNotifier.calculateCovers(playlist, PlaylistMode.none);
-
-      expect(covers, equals(['/art2.jpg', '/art3.jpg']));
-    });
-
-    test('wraps around to start when loop is PlaylistMode.loop', () {
-      final medias = List.generate(3, (i) => createMedia(i + 1, '/art${i + 1}.jpg'));
-      final playlist = Playlist(medias, index: 1);
-
-      final covers = Current5TracksAlbumArtNotifier.calculateCovers(playlist, PlaylistMode.loop);
-
-      // index 1, index 2, wrap to index 0
-      expect(covers, equals(['/art2.jpg', '/art3.jpg', '/art1.jpg']));
-    });
-
-    test('handles null or empty albumArtPath gracefully by emitting empty string', () {
-      final medias = [createMedia(1, null), createMedia(2, ''), createMedia(3, '/art3.jpg')];
-      final playlist = Playlist(medias, index: 0);
-
-      final covers = Current5TracksAlbumArtNotifier.calculateCovers(playlist, PlaylistMode.none);
-
-      expect(covers, equals(['', '', '/art3.jpg']));
+      expect(container.read(current5TracksAlbumArtInQueueProvider), equals(['/cover_a.jpg', '/cover_b.jpg']));
     });
   });
 }

@@ -56,6 +56,9 @@ abstract interface class AudioPlayerEngine {
   /// signaling the queue coordinator to advance.
   Stream<void> get completedStream;
 
+  /// Stream of playback or decoding error messages.
+  Stream<String> get errorStream;
+
   /// Snapshot of whether the engine is currently playing.
   bool get isPlaying;
 
@@ -103,10 +106,11 @@ class MediaKitAudioPlayerEngine(final Player _player, {final bool disposePlayer 
             try {
               await _player.remove(0);
             } catch (_) {}
-            _completedController.add(null);
           } finally {
             _isTransitioning = false;
           }
+          // Emit completed after resetting _isTransitioning so listeners calling setNextMedia do not block
+          _completedController.add(null);
         }
       }),
     );
@@ -156,15 +160,22 @@ class MediaKitAudioPlayerEngine(final Player _player, {final bool disposePlayer 
 
     try {
       if (uri == null) {
-        if (playlist.medias.length > 1) {
+        while (_player.state.playlist.medias.length > 1) {
           await _player.remove(1);
         }
       } else {
-        if (playlist.medias.length == 1) {
-          await _player.add(Media(uri));
-        } else if (playlist.medias.length > 1 && playlist.medias[1].uri != Media(uri).uri) {
+        final targetMedia = Media(uri);
+        final currentNextMedia = playlist.medias.length > 1 ? playlist.medias[1] : null;
+
+        if (currentNextMedia == null) {
+          await _player.add(targetMedia);
+        } else if (currentNextMedia.uri != targetMedia.uri) {
           await _player.remove(1);
-          await _player.add(Media(uri));
+          await _player.add(targetMedia);
+        }
+
+        while (_player.state.playlist.medias.length > 2) {
+          await _player.remove(2);
         }
       }
     } catch (_) {}
@@ -184,6 +195,9 @@ class MediaKitAudioPlayerEngine(final Player _player, {final bool disposePlayer 
     _currentUri = null;
     _nextUri = null;
     await _player.stop();
+    try {
+      await _player.open(const Playlist([]), play: false);
+    } catch (_) {}
   }
 
   @override
@@ -209,6 +223,9 @@ class MediaKitAudioPlayerEngine(final Player _player, {final bool disposePlayer 
 
   @override
   Stream<void> get completedStream => _completedController.stream;
+
+  @override
+  Stream<String> get errorStream => _player.stream.error;
 
   @override
   bool get isPlaying => _player.state.playing;

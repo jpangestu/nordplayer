@@ -19,6 +19,7 @@ class FakeAudioPlayerEngine extends Fake implements AudioPlayerEngine {
   final StreamController<Duration> _bufferController = StreamController<Duration>.broadcast();
   final StreamController<double> _volumeController = StreamController<double>.broadcast();
   final StreamController<void> _completedController = StreamController<void>.broadcast();
+  final StreamController<String> _errorController = StreamController<String>.broadcast();
 
   @override
   String? get currentUri => _currentUri;
@@ -57,6 +58,9 @@ class FakeAudioPlayerEngine extends Fake implements AudioPlayerEngine {
 
   @override
   Stream<void> get completedStream => _completedController.stream;
+
+  @override
+  Stream<String> get errorStream => _errorController.stream;
 
   @override
   Future<void> open(String uri, {Duration? startPosition, bool autoplay = true}) async {
@@ -152,6 +156,11 @@ class FakeAudioPlayerEngine extends Fake implements AudioPlayerEngine {
     _bufferController.add(buffer);
   }
 
+  /// Test helper: simulate a playback error.
+  void simulateError(String error) {
+    _errorController.add(error);
+  }
+
   @override
   Future<void> dispose() async {
     await _playingController.close();
@@ -159,5 +168,6 @@ class FakeAudioPlayerEngine extends Fake implements AudioPlayerEngine {
     await _durationController.close();
     await _bufferController.close();
     await _completedController.close();
+    await _errorController.close();
   }
 }

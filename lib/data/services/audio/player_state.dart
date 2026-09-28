@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:media_kit/media_kit.dart';
 import 'package:nordplayer/data/repositories/ui_preferences_repository.dart';
 import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
@@ -172,37 +171,5 @@ class Current5TracksAlbumArtNotifier extends Notifier<List<String>> {
 
     ref.onDispose(subscription.cancel);
     return controller.currentQueueCoverArt;
-  }
-
-  /// Pure computation for upcoming artwork paths given a playlist and loop configuration.
-  /// Maintained for unit test compatibility.
-  static List<String> calculateCovers(Playlist playlist, PlaylistMode loopMode) {
-    if (playlist.medias.isEmpty || playlist.index < 0) {
-      return const [];
-    }
-
-    final int currentIndex = playlist.index;
-    final List<Media> allMedia = playlist.medias;
-    final List<String> stackCovers = [];
-
-    for (int count = 0; count < allMedia.length && stackCovers.length < 5; count++) {
-      int targetIndex = currentIndex + count;
-
-      if (targetIndex >= allMedia.length) {
-        if (loopMode == PlaylistMode.loop) {
-          targetIndex = targetIndex % allMedia.length;
-        } else {
-          break;
-        }
-      }
-
-      final track = allMedia[targetIndex].extras?['data'] as TrackWithArtists?;
-      if (track != null) {
-        final artPath = (track.album.albumArtPath?.isNotEmpty ?? false) ? track.album.albumArtPath! : '';
-        stackCovers.add(artPath);
-      }
-    }
-
-    return stackCovers;
   }
 }

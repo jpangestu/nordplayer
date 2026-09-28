@@ -14,6 +14,7 @@ class _FakePlayerStream extends Fake implements PlayerStream {
   final bufferController = StreamController<Duration>.broadcast();
   final playingController = StreamController<bool>.broadcast();
   final completedController = StreamController<bool>.broadcast();
+  final errorController = StreamController<String>.broadcast();
 
   @override
   Stream<Playlist> get playlist => playlistController.stream;
@@ -33,6 +34,9 @@ class _FakePlayerStream extends Fake implements PlayerStream {
   @override
   Stream<bool> get completed => completedController.stream;
 
+  @override
+  Stream<String> get error => errorController.stream;
+
   void dispose() {
     playlistController.close();
     positionController.close();
@@ -40,6 +44,7 @@ class _FakePlayerStream extends Fake implements PlayerStream {
     bufferController.close();
     playingController.close();
     completedController.close();
+    errorController.close();
   }
 }
 
@@ -266,12 +271,24 @@ void main() {
       expect(player.stopCount, 1);
       expect(engine.currentUri, isNull);
       expect(engine.nextUri, isNull);
+      expect(player.state.playlist.medias, isEmpty);
 
       await engine.seek(const Duration(seconds: 12));
       expect(player.lastSeekPosition, const Duration(seconds: 12));
 
       await engine.setVolume(75.0);
       expect(player.state.volume, 75.0);
+    });
+
+    test('errorStream forwards errors from Player', () async {
+      String? receivedError;
+      final sub = engine.errorStream.listen((err) => receivedError = err);
+
+      player.fakeStreams.errorController.add('Failed to decode audio track');
+      await pumpEventQueue();
+
+      expect(receivedError, 'Failed to decode audio track');
+      await sub.cancel();
     });
 
     test('dispose does not dispose Player when disposePlayer is false', () async {
@@ -342,6 +359,17 @@ void main() {
 
       fake.updateBuffer(const Duration(seconds: 60));
       expect(fake.buffer, const Duration(seconds: 60));
+
+      await sub.cancel();
+    });
+
+    test('simulateError emits to errorStream', () async {
+      String? error;
+      final sub = fake.errorStream.listen((e) => error = e);
+
+      fake.simulateError('Corrupt audio header');
+      await pumpEventQueue();
+      expect(error, 'Corrupt audio header');
 
       await sub.cancel();
     });

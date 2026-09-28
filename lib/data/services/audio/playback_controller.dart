@@ -177,6 +177,13 @@ class DefaultPlaybackController(
         }
       }),
     );
+
+    // 3. Playback engine error notifications
+    _subscriptions.add(
+      _playerEngine.errorStream.listen((error) {
+        log.e('AudioPlayerEngine playback error: $error');
+      }),
+    );
   }
 
   void _emitQueueState() {

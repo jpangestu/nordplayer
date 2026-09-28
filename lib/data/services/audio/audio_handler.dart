@@ -12,7 +12,6 @@ class AppAudioHandler(final Player _player) extends BaseAudioHandler with QueueH
   PlaybackController? _controller;
   final List<StreamSubscription<dynamic>> _playerSubscriptions = [];
   final List<StreamSubscription<dynamic>> _controllerSubscriptions = [];
-  StreamSubscription<dynamic>? _fallbackPlaylistSubscription;
   String _lastSyncedQueueSignature = '';
   DateTime? _lastPositionBroadcast;
 
@@ -49,28 +48,9 @@ class AppAudioHandler(final Player _player) extends BaseAudioHandler with QueueH
         }
       }),
     );
-
-    // Initial fallback: sync from media_kit playlist until controller is attached
-    _fallbackPlaylistSubscription = _player.stream.playlist.listen((playlist) {
-      if (_controller != null) return; // Controller has precedence
-      if (playlist.medias.isEmpty || playlist.index < 0 || playlist.index >= playlist.medias.length) {
-        mediaItem.add(null);
-        return;
-      }
-
-      final media = playlist.medias[playlist.index];
-      final data = media.extras?['data'] as TrackWithArtists?;
-      if (data != null) {
-        _updateMediaItemFromTrack(data);
-      }
-    });
   }
 
   void _listenToController(PlaybackController controller) {
-    // Cancel fallback media_kit playlist listener
-    _fallbackPlaylistSubscription?.cancel();
-    _fallbackPlaylistSubscription = null;
-
     for (final sub in _controllerSubscriptions) {
       sub.cancel();
     }
@@ -175,28 +155,14 @@ class AppAudioHandler(final Player _player) extends BaseAudioHandler with QueueH
   // --- Transport Controls (Hardware media keys & OS flyout buttons) ---
 
   @override
-  Future<void> play() async {
-    if (_controller != null) {
-      await _controller!.play();
-    } else {
-      await _player.play();
-    }
-  }
+  Future<void> play() async => await _controller?.play();
 
   @override
-  Future<void> pause() async {
-    if (_controller != null) {
-      await _controller!.pause();
-    } else {
-      await _player.pause();
-    }
-  }
+  Future<void> pause() async => await _controller?.pause();
 
   @override
   Future<void> stop() async {
-    if (_controller != null) {
-      await _controller!.pause();
-    }
+    await _controller?.pause();
     await _player.stop();
     playbackState.add(playbackState.value.copyWith(processingState: AudioProcessingState.idle, playing: false));
     await super.stop();
@@ -204,41 +170,19 @@ class AppAudioHandler(final Player _player) extends BaseAudioHandler with QueueH
 
   @override
   Future<void> seek(Duration position) async {
-    if (_controller != null) {
-      await _controller!.seek(position);
-    } else {
-      await _player.seek(position);
-    }
+    await _controller?.seek(position);
     _lastPositionBroadcast = DateTime.now();
     _broadcastState();
   }
 
   @override
-  Future<void> skipToNext() async {
-    if (_controller != null) {
-      await _controller!.next();
-    } else {
-      await _player.next();
-    }
-  }
+  Future<void> skipToNext() async => await _controller?.next();
 
   @override
-  Future<void> skipToPrevious() async {
-    if (_controller != null) {
-      await _controller!.previous();
-    } else {
-      await _player.previous();
-    }
-  }
+  Future<void> skipToPrevious() async => await _controller?.previous();
 
   @override
-  Future<void> skipToQueueItem(int index) async {
-    if (_controller != null) {
-      await _controller!.jumpToIndex(index);
-    } else {
-      await _player.jump(index);
-    }
-  }
+  Future<void> skipToQueueItem(int index) async => await _controller?.jumpToIndex(index);
 
   /// Releases resources and cancels active stream subscriptions.
   Future<void> dispose() async {
@@ -251,14 +195,8 @@ class AppAudioHandler(final Player _player) extends BaseAudioHandler with QueueH
       await sub.cancel();
     }
     _controllerSubscriptions.clear();
-
-    await _fallbackPlaylistSubscription?.cancel();
-    _fallbackPlaylistSubscription = null;
   }
 }
-
-/// Backward-compatible type alias for existing references.
-typedef MediaKitAudioHandler = AppAudioHandler;
 
 /// Riverpod provider for [AppAudioHandler] (can be overridden in [ProviderScope]).
 final audioHandlerProvider = Provider<AppAudioHandler?>((ref) => null);
