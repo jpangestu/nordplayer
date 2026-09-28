@@ -3,15 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/repositories/album_repository.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
-import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/track_repository.dart';
+import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/ui/library/library_ui_state.dart';
 import 'package:nordplayer/utils/logger.dart';
 
 /// ViewModel coordinating Library overview screen state, sections order, and playback.
 class LibraryViewModel extends Notifier<LibraryUiState> with LoggerMixin {
-  PlaybackRepository get _playbackRepository => ref.read(playbackRepositoryProvider);
+  PlaybackController get _playbackController => ref.read(playbackControllerProvider);
   ConfigRepository get _configRepo => ref.read(configRepositoryProvider);
 
   @override
@@ -118,14 +118,14 @@ class LibraryViewModel extends Notifier<LibraryUiState> with LoggerMixin {
     state = state.copyWith(isRecentlyAddedExpanded: !state.isRecentlyAddedExpanded);
   }
 
-  /// Plays tracks in the specified context via [PlaybackRepository].
+  /// Plays tracks in the specified context via [PlaybackController].
   void playTrack({
     required List<TrackWithArtists> tracksToPlay,
     required int index,
     required String playbackContextType,
     int? playbackContextId,
   }) {
-    _playbackRepository.setPlaylist(
+    _playbackController.setPlaylist(
       tracksToPlay: tracksToPlay,
       initialIndex: index,
       playbackContextType: playbackContextType,

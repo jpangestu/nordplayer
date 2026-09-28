@@ -1,13 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/track_repository.dart';
+import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/track.dart';
 import 'package:nordplayer/ui/tracks/tracks_viewmodel.dart';
 
-import '../../../testing/fakes/fake_playback_repository.dart';
+import '../../../testing/fakes/fake_playback_controller.dart';
 import '../../../testing/fakes/fake_track_repository.dart';
 
 TrackWithArtists _createTrack(int id, String title, String path) {
@@ -35,16 +35,16 @@ TrackWithArtists _createTrack(int id, String title, String path) {
 
 void main() {
   group('TracksViewModel', () {
-    late FakePlaybackRepository fakePlaybackRepo;
+    late FakePlaybackController fakePlaybackController;
     late FakeTrackRepository fakeTrackRepo;
     late ProviderContainer container;
 
     setUp(() {
-      fakePlaybackRepo = FakePlaybackRepository();
+      fakePlaybackController = FakePlaybackController();
       fakeTrackRepo = FakeTrackRepository();
       container = ProviderContainer(
         overrides: [
-          playbackRepositoryProvider.overrideWithValue(fakePlaybackRepo),
+          playbackControllerProvider.overrideWithValue(fakePlaybackController),
           trackRepositoryProvider.overrideWithValue(fakeTrackRepo),
         ],
       );
@@ -52,7 +52,7 @@ void main() {
 
     tearDown(() {
       container.dispose();
-      fakePlaybackRepo.dispose();
+      fakePlaybackController.dispose();
       fakeTrackRepo.dispose();
     });
 
@@ -62,10 +62,10 @@ void main() {
 
       vm.playTrack(tracks, 1);
 
-      expect(fakePlaybackRepo.lastTracks, equals(tracks));
-      expect(fakePlaybackRepo.lastInitialIndex, equals(1));
-      expect(fakePlaybackRepo.lastContextType, equals('all_tracks'));
-      expect(fakePlaybackRepo.lastContextId, isNull);
+      expect(fakePlaybackController.lastTracks, equals(tracks));
+      expect(fakePlaybackController.lastInitialIndex, equals(1));
+      expect(fakePlaybackController.lastContextType, equals('all_tracks'));
+      expect(fakePlaybackController.lastContextId, isNull);
     });
 
     test('playTrack ignores invalid indices and empty list', () {
@@ -73,13 +73,13 @@ void main() {
       final tracks = [_createTrack(1, 'Track 1', '/music/1.mp3')];
 
       vm.playTrack([], 0);
-      expect(fakePlaybackRepo.lastInitialIndex, equals(-1));
+      expect(fakePlaybackController.lastInitialIndex, equals(-1));
 
       vm.playTrack(tracks, -1);
-      expect(fakePlaybackRepo.lastInitialIndex, equals(-1));
+      expect(fakePlaybackController.lastInitialIndex, equals(-1));
 
       vm.playTrack(tracks, 5);
-      expect(fakePlaybackRepo.lastInitialIndex, equals(-1));
+      expect(fakePlaybackController.lastInitialIndex, equals(-1));
     });
 
     test('playAsPlaylist delegates to playTrack when only one track selected', () {
@@ -88,9 +88,9 @@ void main() {
 
       vm.playAsPlaylist([allTracks[0]], clickedIndex: 0, allTracks: allTracks);
 
-      expect(fakePlaybackRepo.lastTracks, equals(allTracks));
-      expect(fakePlaybackRepo.lastInitialIndex, equals(0));
-      expect(fakePlaybackRepo.lastContextType, equals('all_tracks'));
+      expect(fakePlaybackController.lastTracks, equals(allTracks));
+      expect(fakePlaybackController.lastInitialIndex, equals(0));
+      expect(fakePlaybackController.lastContextType, equals('all_tracks'));
     });
 
     test('playAsPlaylist plays subset of tracks with context play_as_playlist', () {
@@ -104,9 +104,9 @@ void main() {
 
       vm.playAsPlaylist(selected, clickedIndex: 2, allTracks: allTracks);
 
-      expect(fakePlaybackRepo.lastTracks, equals(selected));
-      expect(fakePlaybackRepo.lastInitialIndex, equals(1));
-      expect(fakePlaybackRepo.lastContextType, equals('play_as_playlist'));
+      expect(fakePlaybackController.lastTracks, equals(selected));
+      expect(fakePlaybackController.lastInitialIndex, equals(1));
+      expect(fakePlaybackController.lastContextType, equals('play_as_playlist'));
     });
 
     test('toggleColumnVisibility updates column state correctly', () {

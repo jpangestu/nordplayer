@@ -8,7 +8,7 @@ import 'package:nordplayer/ui/shell/widgets/player_bar/nord_player_bar.dart';
 import 'package:nordplayer/ui/shell/widgets/player_bar/playback.dart';
 
 import '../../../testing/app.dart';
-import '../../../testing/fakes/fake_playback_repository.dart';
+import '../../../testing/fakes/fake_playback_controller.dart';
 
 void main() {
   Finder findRichText(String text) {
@@ -39,9 +39,9 @@ void main() {
 
   group('NordPlayerBar Widget Tests', () {
     testWidgets('renders player bar with playback controls when idle', (tester) async {
-      final fakePlaybackRepo = FakePlaybackRepository(initialQueue: [], isPlaying: false);
+      final fakePlaybackController = FakePlaybackController(initialQueue: [], isPlaying: false);
 
-      await pumpTestApp(tester, child: const NordPlayerBar(), fakePlaybackRepo: fakePlaybackRepo);
+      await pumpTestApp(tester, child: const NordPlayerBar(), fakePlaybackController: fakePlaybackController);
 
       expect(find.byType(NordPlayerBar), findsOneWidget);
       expect(find.byType(Playback), findsOneWidget);
@@ -49,9 +49,9 @@ void main() {
 
     testWidgets('renders current track title and artist when playing', (tester) async {
       final sampleTrack = createTrack(1, 'Bohemian Rhapsody', 'Queen');
-      final fakePlaybackRepo = FakePlaybackRepository(initialQueue: [sampleTrack], initialIndex: 0, isPlaying: true);
+      final fakePlaybackController = FakePlaybackController(initialQueue: [sampleTrack], initialIndex: 0, isPlaying: true);
 
-      await pumpTestApp(tester, child: const NordPlayerBar(), fakePlaybackRepo: fakePlaybackRepo);
+      await pumpTestApp(tester, child: const NordPlayerBar(), fakePlaybackController: fakePlaybackController);
 
       expect(findRichText('Bohemian Rhapsody'), findsOneWidget);
       expect(findRichText('Queen'), findsWidgets);
@@ -59,11 +59,11 @@ void main() {
 
     testWidgets('tapping play/pause toggles playback state on repository', (tester) async {
       final sampleTrack = createTrack(1, 'Hotel California', 'Eagles');
-      final fakePlaybackRepo = FakePlaybackRepository(initialQueue: [sampleTrack], initialIndex: 0, isPlaying: false);
+      final fakePlaybackController = FakePlaybackController(initialQueue: [sampleTrack], initialIndex: 0, isPlaying: false);
 
-      await pumpTestApp(tester, child: const NordPlayerBar(), fakePlaybackRepo: fakePlaybackRepo);
+      await pumpTestApp(tester, child: const NordPlayerBar(), fakePlaybackController: fakePlaybackController);
 
-      expect(fakePlaybackRepo.isPlaying, isFalse);
+      expect(fakePlaybackController.isPlaying, isFalse);
 
       // Tap play button inside Playback controls
       final playButtonFinder = find.descendant(of: find.byType(Playback), matching: find.byType(GestureDetector));

@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
-import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/playlist_repository.dart';
+import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/playback_context.dart';
 import 'package:nordplayer/ui/playlists/playlists_ui_state.dart';
@@ -11,17 +11,17 @@ import 'package:nordplayer/utils/logger.dart';
 /// ViewModel orchestrating playlists overview state, mutations, and playback dispatch.
 class PlaylistsViewModel extends Notifier<PlaylistsUiState> with LoggerMixin {
   PlaylistRepository get _repository => ref.read(playlistRepositoryProvider);
-  PlaybackRepository get _playbackRepository => ref.read(playbackRepositoryProvider);
+  PlaybackController get _playbackController => ref.read(playbackControllerProvider);
 
   @override
   PlaylistsUiState build() {
     final playlistRepo = ref.watch(playlistRepositoryProvider);
-    final playbackRepo = ref.watch(playbackRepositoryProvider);
+    final playbackController = ref.watch(playbackControllerProvider);
     final configRepo = ref.watch(configRepositoryProvider);
 
     final initialConfig = configRepo.currentConfig;
-    final initialActiveId = playbackRepo.playbackContextType == 'playlist' ? playbackRepo.playbackContextId : null;
-    final initialAlbumArt = playbackRepo.currentQueueCoverArt;
+    final initialActiveId = playbackController.playbackContextType == 'playlist' ? playbackController.playbackContextId : null;
+    final initialAlbumArt = playbackController.currentQueueCoverArt;
 
     final playlistsSub = playlistRepo.watchAllPlaylists().listen(
       (playlists) {
@@ -32,15 +32,15 @@ class PlaylistsViewModel extends Notifier<PlaylistsUiState> with LoggerMixin {
       },
     );
 
-    final playingSub = playbackRepo.watchIsPlaying().listen((playing) {
+    final playingSub = playbackController.watchIsPlaying().listen((playing) {
       if (state.isAudioPlaying != playing) {
         state = state.copyWith(isAudioPlaying: playing);
       }
     });
 
-    final currentTrackSub = playbackRepo.watchCurrentTrack().listen((_) {
-      final isPlaylistActive = playbackRepo.playbackContextType == 'playlist';
-      final activeId = isPlaylistActive ? playbackRepo.playbackContextId : null;
+    final currentTrackSub = playbackController.watchCurrentTrack().listen((_) {
+      final isPlaylistActive = playbackController.playbackContextType == 'playlist';
+      final activeId = isPlaylistActive ? playbackController.playbackContextId : null;
       if (state.activePlaylistId != activeId) {
         state = state.copyWith(activePlaylistId: () => activeId);
       }
@@ -54,7 +54,7 @@ class PlaylistsViewModel extends Notifier<PlaylistsUiState> with LoggerMixin {
       );
     });
 
-    final queueArtSub = playbackRepo.watchQueueCoverArt().listen((next) {
+    final queueArtSub = playbackController.watchQueueCoverArt().listen((next) {
       if (!listEquals(state.activePlaylistAlbumArt, next)) {
         state = state.copyWith(activePlaylistAlbumArt: next);
       }
@@ -71,7 +71,7 @@ class PlaylistsViewModel extends Notifier<PlaylistsUiState> with LoggerMixin {
     return PlaylistsUiState(
       isLoading: true,
       activePlaylistId: initialActiveId,
-      isAudioPlaying: playbackRepo.isPlaying,
+      isAudioPlaying: playbackController.isPlaying,
       activePlaylistAlbumArt: initialAlbumArt,
       isAdaptiveBg: initialConfig.adaptiveBg,
       adaptiveBgPanelBlur: initialConfig.adaptiveBgPanelBlur,
@@ -130,7 +130,7 @@ class PlaylistsViewModel extends Notifier<PlaylistsUiState> with LoggerMixin {
     final title = playlistTitle ??
         state.playlists.where((p) => p.playlist.id == playlistId).firstOrNull?.playlist.name ??
         '';
-    _playbackRepository.setPlaylist(
+    _playbackController.setPlaylist(
       tracksToPlay: tracks,
       initialIndex: initialIndex,
       context: PlaybackContext.playlist(id: playlistId, title: title),
@@ -148,7 +148,7 @@ class PlaylistsViewModel extends Notifier<PlaylistsUiState> with LoggerMixin {
 
     final title = state.playlists.where((p) => p.playlist.id == playlistId).firstOrNull?.playlist.name ?? '';
 
-    await _playbackRepository.setPlaylist(
+    await _playbackController.setPlaylist(
       tracksToPlay: tracks,
       initialIndex: 0,
       context: PlaybackContext.playlist(id: playlistId, title: title),
@@ -165,7 +165,7 @@ class PlaylistsViewModel extends Notifier<PlaylistsUiState> with LoggerMixin {
     final tracks = await _repository.getPlaylistTracks(playlistId);
     if (tracks.isEmpty) return 0;
 
-    await _playbackRepository.addToQueue(tracks);
+    await _playbackController.addToQueue(tracks);
     return tracks.length;
   }
 }

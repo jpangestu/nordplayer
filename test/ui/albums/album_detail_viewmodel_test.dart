@@ -2,8 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/data/repositories/album_repository.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
-import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/settings_repository.dart';
+import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/track.dart';
@@ -12,7 +12,7 @@ import 'package:nordplayer/ui/albums/album_detail_viewmodel.dart';
 
 import '../../../testing/fakes/fake_album_repository.dart';
 import '../../../testing/fakes/fake_config_repository.dart';
-import '../../../testing/fakes/fake_playback_repository.dart';
+import '../../../testing/fakes/fake_playback_controller.dart';
 import '../../../testing/fakes/fake_settings_repository.dart';
 
 void main() {
@@ -84,21 +84,21 @@ void main() {
     );
 
     late FakeAlbumRepository fakeAlbumRepo;
-    late FakePlaybackRepository fakePlaybackRepo;
+    late FakePlaybackController fakePlaybackController;
     late FakeSettingsRepository fakeSettingsRepo;
     late FakeConfigRepository fakeConfigRepo;
     late ProviderContainer container;
 
     setUp(() {
       fakeAlbumRepo = FakeAlbumRepository();
-      fakePlaybackRepo = FakePlaybackRepository();
+      fakePlaybackController = FakePlaybackController();
       fakeSettingsRepo = FakeSettingsRepository();
       fakeConfigRepo = FakeConfigRepository();
 
       container = ProviderContainer(
         overrides: [
           albumRepositoryProvider.overrideWithValue(fakeAlbumRepo),
-          playbackRepositoryProvider.overrideWithValue(fakePlaybackRepo),
+          playbackControllerProvider.overrideWithValue(fakePlaybackController),
           settingsRepositoryProvider.overrideWithValue(fakeSettingsRepo),
           configRepositoryProvider.overrideWithValue(fakeConfigRepo),
         ],
@@ -108,7 +108,7 @@ void main() {
     tearDown(() {
       container.dispose();
       fakeAlbumRepo.dispose();
-      fakePlaybackRepo.dispose();
+      fakePlaybackController.dispose();
       fakeSettingsRepo.dispose();
       fakeConfigRepo.dispose();
     });
@@ -207,7 +207,7 @@ void main() {
       expect(fakeSettingsRepo.currentSettings.shuffleMode, isTrue);
     });
 
-    test('playAlbum dispatches to PlaybackRepository', () async {
+    test('playAlbum dispatches to PlaybackController', () async {
       final sub = container.listen(albumDetailViewModelProvider(albumId), (_, _) {});
       addTearDown(sub.close);
 
@@ -217,10 +217,10 @@ void main() {
       final vm = container.read(albumDetailViewModelProvider(albumId).notifier);
       vm.playAlbum(initialIndex: 1, shouldShuffle: false);
 
-      expect(fakePlaybackRepo.setPlaylistContextType, equals('album'));
-      expect(fakePlaybackRepo.setPlaylistContextId, equals(albumId));
-      expect(fakePlaybackRepo.setPlaylistIndex, equals(1));
-      expect(fakePlaybackRepo.setPlaylistTracks.length, equals(3));
+      expect(fakePlaybackController.setPlaylistContextType, equals('album'));
+      expect(fakePlaybackController.setPlaylistContextId, equals(albumId));
+      expect(fakePlaybackController.setPlaylistIndex, equals(1));
+      expect(fakePlaybackController.setPlaylistTracks.length, equals(3));
     });
 
     test('backward-compatible sortedAlbumWithTracksProvider works as expected', () async {

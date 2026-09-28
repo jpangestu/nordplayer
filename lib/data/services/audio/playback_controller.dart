@@ -33,9 +33,9 @@ extension PlaylistModeConversion on LoopMode {
   };
 }
 
-/// Repository interface abstracting active playback session, queue sequencing,
-/// shuffle/loop state, and persistent queue synchronization.
-abstract interface class PlaybackRepository {
+/// Controller interface abstracting active playback session, queue sequencing,
+/// transport actions, shuffle/loop state, and persistent queue synchronization.
+abstract interface class PlaybackController {
   List<TrackWithArtists> get originalQueue;
   List<TrackWithArtists> get currentQueue;
   TrackWithArtists? get currentTrack;
@@ -106,15 +106,15 @@ abstract interface class PlaybackRepository {
   Future<void> restoreQueue();
 }
 
-/// Default implementation of [PlaybackRepository] coordinating [QueueManager] and [AudioPlayerEngine]
-/// with non-destructive shuffle, in-memory sorting, gapless transitions, and persistence.
-class DefaultPlaybackRepository(
+/// Default implementation of [PlaybackController] coordinating [QueueManager],
+/// [AudioPlayerEngine], [VolumeController], and persistent [QueueRepository].
+class DefaultPlaybackController(
   final AudioPlayerEngine _playerEngine,
   final QueueRepository _queueRepository,
   final SettingsRepository _settingsRepository, {
   QueueManager? queueManager,
   VolumeController? volumeController,
-}) with LoggerMixin implements PlaybackRepository {
+}) with LoggerMixin implements PlaybackController {
   final QueueManager _queueManager = queueManager ?? QueueManager();
   final VolumeController _volumeController = volumeController ?? VolumeController(_playerEngine, _settingsRepository);
   String _playbackContextType = '';
@@ -232,22 +232,22 @@ class DefaultPlaybackRepository(
   List<TrackWithArtists> get originalQueue => List.unmodifiable(_queueManager.rawItems.map((item) => item.track));
 
   @override
-  List<TrackWithArtists> get currentQueue => _queueManager.displayTracks;
+  List<TrackWithArtists> get currentQueue => List.unmodifiable(_queueManager.displayTracks);
 
   @override
   TrackWithArtists? get currentTrack => _queueManager.currentTrack;
 
   @override
-  int get currentIndex => _queueManager.currentIndex;
-
-  @override
-  List<String> get currentQueueCoverArt => _queueManager.upcomingCoverArts;
+  int get currentIndex => _queueManager.activeIndex;
 
   @override
   QueueState get queueState => _queueManager.state;
 
   @override
   List<QueueItem> get currentQueueItems => _queueManager.displayQueue;
+
+  @override
+  List<String> get currentQueueCoverArt => _queueManager.upcomingCoverArts;
 
   @override
   PlaybackContext get playbackContext => _queueManager.context;
@@ -338,7 +338,12 @@ class DefaultPlaybackRepository(
 
   @override
   Future<void> playTrack(List<TrackWithArtists> tracks, int index) async {
-    await setPlaylist(tracksToPlay: tracks, initialIndex: index, playbackContextType: 'direct');
+    await setPlaylist(
+      tracksToPlay: tracks,
+      initialIndex: index,
+      playbackContextType: 'tracks',
+      forceReload: true,
+    );
   }
 
   @override
@@ -352,11 +357,10 @@ class DefaultPlaybackRepository(
     bool forceReload = false,
     bool autoplay = true,
   }) async {
-    if (tracksToPlay.isEmpty) return;
-
-    final resolvedContext = context ??
+    final resolvedContext =
+        context ??
         _resolvePlaybackContext(
-          playbackContextType ?? 'manual',
+          playbackContextType ?? '',
           playbackContextId,
           title: playbackContextTitle,
         );
@@ -364,11 +368,10 @@ class DefaultPlaybackRepository(
     _playbackContextType = resolvedContext.type;
     _playbackContextId = resolvedContext.id;
 
-    _queueManager.setQueue(tracksToPlay, initialIndex: initialIndex, context: resolvedContext, shuffle: isShuffle);
-    _queueManager.setLoopMode(loopMode.toLoopMode());
-
+    _queueManager.setQueue(tracksToPlay, initialIndex: initialIndex, context: resolvedContext);
     _emitQueueState();
-    await _playCurrentAndPreBufferNext(autoplay: autoplay, updatePersistence: false);
+
+    await _playCurrentAndPreBufferNext(autoplay: autoplay, startPosition: Duration.zero);
     _queueSaveDebouncer(() => _saveQueueState());
   }
 
@@ -617,14 +620,14 @@ class DefaultPlaybackRepository(
   }
 }
 
-/// Riverpod provider for [PlaybackRepository].
-final playbackRepositoryProvider = Provider<PlaybackRepository>((ref) {
+/// Riverpod provider for [PlaybackController].
+final playbackControllerProvider = Provider<PlaybackController>((ref) {
   final playerEngine = ref.watch(audioPlayerEngineProvider);
   final queueRepo = ref.watch(queueRepositoryProvider);
   final settingsRepo = ref.watch(settingsRepositoryProvider);
   final volumeController = ref.watch(volumeControllerProvider);
 
-  final repo = DefaultPlaybackRepository(
+  final controller = DefaultPlaybackController(
     playerEngine,
     queueRepo,
     settingsRepo,
@@ -632,9 +635,9 @@ final playbackRepositoryProvider = Provider<PlaybackRepository>((ref) {
   );
   final audioHandler = ref.watch(audioHandlerProvider);
   if (audioHandler != null) {
-    audioHandler.attachRepository(repo);
+    audioHandler.attachController(controller);
   }
 
-  ref.onDispose(repo.dispose);
-  return repo;
+  ref.onDispose(controller.dispose);
+  return controller;
 });

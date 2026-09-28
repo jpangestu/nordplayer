@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/data/repositories/playback_repository.dart';
+import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/ui/shared/ui/selection_state.dart';
 
@@ -54,7 +54,7 @@ class PlayOrPauseAction(final WidgetRef ref) extends Action<PlayOrPauseIntent> {
 
   @override
   void invoke(covariant PlayOrPauseIntent intent) {
-    ref.read(playbackRepositoryProvider).playOrPause();
+    ref.read(playbackControllerProvider).playOrPause();
   }
 }
 
@@ -71,7 +71,7 @@ class SkipToNextAction(final WidgetRef ref) extends Action<SkipToNextIntent> {
 
   @override
   void invoke(covariant SkipToNextIntent intent) {
-    ref.read(playbackRepositoryProvider).next();
+    ref.read(playbackControllerProvider).next();
   }
 }
 
@@ -88,7 +88,7 @@ class SkipToPreviousAction(final WidgetRef ref) extends Action<SkipToPreviousInt
 
   @override
   void invoke(covariant SkipToPreviousIntent intent) {
-    ref.read(playbackRepositoryProvider).previous();
+    ref.read(playbackControllerProvider).previous();
   }
 }
 
@@ -105,7 +105,7 @@ class ToggleShuffleAction(final WidgetRef ref) extends Action<ToggleShuffleInten
 
   @override
   void invoke(covariant ToggleShuffleIntent intent) {
-    ref.read(playbackRepositoryProvider).toggleShuffle();
+    ref.read(playbackControllerProvider).toggleShuffle();
   }
 }
 
@@ -122,7 +122,7 @@ class CycleLoopAction(final WidgetRef ref) extends Action<CycleLoopIntent> {
 
   @override
   void invoke(covariant CycleLoopIntent intent) {
-    ref.read(playbackRepositoryProvider).toggleLoop();
+    ref.read(playbackControllerProvider).toggleLoop();
   }
 }
 
@@ -139,7 +139,7 @@ class VolumeUpAction(final WidgetRef ref) extends Action<VolumeUpIntent> {
 
   @override
   void invoke(covariant VolumeUpIntent intent) {
-    ref.read(playbackRepositoryProvider).setVolumeUp(5);
+    ref.read(playbackControllerProvider).setVolumeUp(5);
   }
 }
 
@@ -156,7 +156,7 @@ class VolumeDownAction(final WidgetRef ref) extends Action<VolumeDownIntent> {
 
   @override
   void invoke(covariant VolumeDownIntent intent) {
-    ref.read(playbackRepositoryProvider).setVolumeDown(5);
+    ref.read(playbackControllerProvider).setVolumeDown(5);
   }
 }
 
@@ -173,7 +173,7 @@ class MuteAction(final WidgetRef ref) extends Action<MuteIntent> {
 
   @override
   void invoke(covariant MuteIntent intent) {
-    ref.read(playbackRepositoryProvider).toggleMute();
+    ref.read(playbackControllerProvider).toggleMute();
   }
 }
 
@@ -230,7 +230,7 @@ class PlaySelectedAction({
       // Single Selection: Play the whole list, starting at the selected index
       final targetIndex = selectedIndices.first;
       ref
-          .read(playbackRepositoryProvider)
+          .read(playbackControllerProvider)
           .setPlaylist(
             tracksToPlay: tracks,
             initialIndex: targetIndex,
@@ -243,7 +243,7 @@ class PlaySelectedAction({
       final selectedTracks = sortedIndices.map((i) => tracks[i]).toList();
 
       ref
-          .read(playbackRepositoryProvider)
+          .read(playbackControllerProvider)
           .setPlaylist(
             tracksToPlay: selectedTracks,
             initialIndex: 0,

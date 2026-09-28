@@ -3,15 +3,15 @@ import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:nordplayer/data/repositories/playback_repository.dart';
+import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 
-/// Bridges [Player] and [PlaybackRepository] playback events to the host operating system
+/// Bridges [Player] and [PlaybackController] playback events to the host operating system
 /// (Windows System Media Transport Controls / Linux MPRIS / Android notification).
 class AppAudioHandler(final Player _player) extends BaseAudioHandler with QueueHandler, SeekHandler {
-  PlaybackRepository? _repository;
+  PlaybackController? _controller;
   final List<StreamSubscription<dynamic>> _playerSubscriptions = [];
-  final List<StreamSubscription<dynamic>> _repoSubscriptions = [];
+  final List<StreamSubscription<dynamic>> _controllerSubscriptions = [];
   StreamSubscription<dynamic>? _fallbackPlaylistSubscription;
   int _lastSyncedQueueLength = -1;
   String _lastSyncedQueueSignature = '';
@@ -24,14 +24,14 @@ class AppAudioHandler(final Player _player) extends BaseAudioHandler with QueueH
   /// Underlying raw [Player] instance.
   Player get player => _player;
 
-  /// Active repository coordinator if attached.
-  PlaybackRepository? get repository => _repository;
+  /// Active controller coordinator if attached.
+  PlaybackController? get controller => _controller;
 
-  /// Attaches the domain [PlaybackRepository] as the single source of truth for queue
+  /// Attaches the [PlaybackController] as the single source of truth for queue
   /// sequencing, track metadata, and hardware media key actions.
-  void attachRepository(PlaybackRepository repository) {
-    _repository = repository;
-    _listenToRepository(repository);
+  void attachController(PlaybackController controller) {
+    _controller = controller;
+    _listenToController(controller);
   }
 
   void _listenToPlayerStreams() {
@@ -51,9 +51,9 @@ class AppAudioHandler(final Player _player) extends BaseAudioHandler with QueueH
       }),
     );
 
-    // Initial fallback: sync from media_kit playlist until repository is attached
+    // Initial fallback: sync from media_kit playlist until controller is attached
     _fallbackPlaylistSubscription = _player.stream.playlist.listen((playlist) {
-      if (_repository != null) return; // Repository has precedence
+      if (_controller != null) return; // Controller has precedence
       if (playlist.medias.isEmpty || playlist.index < 0 || playlist.index >= playlist.medias.length) {
         mediaItem.add(null);
         return;
@@ -67,30 +67,30 @@ class AppAudioHandler(final Player _player) extends BaseAudioHandler with QueueH
     });
   }
 
-  void _listenToRepository(PlaybackRepository repo) {
+  void _listenToController(PlaybackController controller) {
     // Cancel fallback media_kit playlist listener
     _fallbackPlaylistSubscription?.cancel();
     _fallbackPlaylistSubscription = null;
 
-    for (final sub in _repoSubscriptions) {
+    for (final sub in _controllerSubscriptions) {
       sub.cancel();
     }
-    _repoSubscriptions.clear();
+    _controllerSubscriptions.clear();
 
-    // Initial snapshot sync from attached repository
-    if (repo.currentTrack != null) {
-      _updateMediaItemFromTrack(repo.currentTrack!);
+    // Initial snapshot sync from attached controller
+    if (controller.currentTrack != null) {
+      _updateMediaItemFromTrack(controller.currentTrack!);
     } else {
       mediaItem.add(null);
     }
 
-    if (repo.currentQueue.isNotEmpty) {
-      _syncQueue(repo.currentQueue);
+    if (controller.currentQueue.isNotEmpty) {
+      _syncQueue(controller.currentQueue);
     }
 
     // 1. Sync active track to OS notification / Windows SMTC
-    _repoSubscriptions.add(
-      repo.watchCurrentTrack().listen((track) {
+    _controllerSubscriptions.add(
+      controller.watchCurrentTrack().listen((track) {
         if (track == null) {
           mediaItem.add(null);
         } else {
@@ -100,8 +100,8 @@ class AppAudioHandler(final Player _player) extends BaseAudioHandler with QueueH
     );
 
     // 2. Sync full active queue to OS (MPRIS / Android Auto)
-    _repoSubscriptions.add(
-      repo.watchQueue().listen((tracks) {
+    _controllerSubscriptions.add(
+      controller.watchQueue().listen((tracks) {
         _syncQueue(tracks);
       }),
     );
@@ -180,8 +180,8 @@ class AppAudioHandler(final Player _player) extends BaseAudioHandler with QueueH
 
   @override
   Future<void> play() async {
-    if (_repository != null) {
-      await _repository!.play();
+    if (_controller != null) {
+      await _controller!.play();
     } else {
       await _player.play();
     }
@@ -189,8 +189,8 @@ class AppAudioHandler(final Player _player) extends BaseAudioHandler with QueueH
 
   @override
   Future<void> pause() async {
-    if (_repository != null) {
-      await _repository!.pause();
+    if (_controller != null) {
+      await _controller!.pause();
     } else {
       await _player.pause();
     }
@@ -198,8 +198,8 @@ class AppAudioHandler(final Player _player) extends BaseAudioHandler with QueueH
 
   @override
   Future<void> stop() async {
-    if (_repository != null) {
-      await _repository!.pause();
+    if (_controller != null) {
+      await _controller!.pause();
     }
     await _player.stop();
     playbackState.add(playbackState.value.copyWith(processingState: AudioProcessingState.idle, playing: false));
@@ -208,8 +208,8 @@ class AppAudioHandler(final Player _player) extends BaseAudioHandler with QueueH
 
   @override
   Future<void> seek(Duration position) async {
-    if (_repository != null) {
-      await _repository!.seek(position);
+    if (_controller != null) {
+      await _controller!.seek(position);
     } else {
       await _player.seek(position);
     }
@@ -219,8 +219,8 @@ class AppAudioHandler(final Player _player) extends BaseAudioHandler with QueueH
 
   @override
   Future<void> skipToNext() async {
-    if (_repository != null) {
-      await _repository!.next();
+    if (_controller != null) {
+      await _controller!.next();
     } else {
       await _player.next();
     }
@@ -228,8 +228,8 @@ class AppAudioHandler(final Player _player) extends BaseAudioHandler with QueueH
 
   @override
   Future<void> skipToPrevious() async {
-    if (_repository != null) {
-      await _repository!.previous();
+    if (_controller != null) {
+      await _controller!.previous();
     } else {
       await _player.previous();
     }
@@ -237,8 +237,8 @@ class AppAudioHandler(final Player _player) extends BaseAudioHandler with QueueH
 
   @override
   Future<void> skipToQueueItem(int index) async {
-    if (_repository != null) {
-      await _repository!.jumpToIndex(index);
+    if (_controller != null) {
+      await _controller!.jumpToIndex(index);
     } else {
       await _player.jump(index);
     }
@@ -251,10 +251,10 @@ class AppAudioHandler(final Player _player) extends BaseAudioHandler with QueueH
     }
     _playerSubscriptions.clear();
 
-    for (final sub in _repoSubscriptions) {
+    for (final sub in _controllerSubscriptions) {
       await sub.cancel();
     }
-    _repoSubscriptions.clear();
+    _controllerSubscriptions.clear();
 
     await _fallbackPlaylistSubscription?.cancel();
     _fallbackPlaylistSubscription = null;

@@ -1,29 +1,29 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/playlist_repository.dart';
+import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/track.dart';
 import 'package:nordplayer/ui/playlists/playlist_detail_viewmodel.dart';
 import 'package:nordplayer/ui/playlists/playlists_viewmodel.dart';
 
-import '../../../testing/fakes/fake_playback_repository.dart';
+import '../../../testing/fakes/fake_playback_controller.dart';
 import '../../../testing/fakes/fake_playlist_repository.dart';
 
 void main() {
   group('PlaylistsViewModel', () {
     late FakePlaylistRepository fakeRepo;
-    late FakePlaybackRepository fakePlayback;
+    late FakePlaybackController fakePlayback;
     late ProviderContainer container;
 
     setUp(() {
       fakeRepo = FakePlaylistRepository();
-      fakePlayback = FakePlaybackRepository();
+      fakePlayback = FakePlaybackController();
       container = ProviderContainer(
         overrides: [
           playlistRepositoryProvider.overrideWithValue(fakeRepo),
-          playbackRepositoryProvider.overrideWithValue(fakePlayback),
+          playbackControllerProvider.overrideWithValue(fakePlayback),
         ],
       );
     });
@@ -161,16 +161,16 @@ void main() {
 
   group('PlaylistDetailViewModel', () {
     late FakePlaylistRepository fakeRepo;
-    late FakePlaybackRepository fakePlayback;
+    late FakePlaybackController fakePlayback;
     late ProviderContainer container;
 
     setUp(() {
       fakeRepo = FakePlaylistRepository();
-      fakePlayback = FakePlaybackRepository();
+      fakePlayback = FakePlaybackController();
       container = ProviderContainer(
         overrides: [
           playlistRepositoryProvider.overrideWithValue(fakeRepo),
-          playbackRepositoryProvider.overrideWithValue(fakePlayback),
+          playbackControllerProvider.overrideWithValue(fakePlayback),
         ],
       );
     });

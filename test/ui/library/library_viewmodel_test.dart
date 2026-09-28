@@ -2,26 +2,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/repositories/album_repository.dart';
-import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/track_repository.dart';
+import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/data/services/system/config_service.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/library_stats.dart';
 import 'package:nordplayer/ui/library/library_viewmodel.dart';
 
 import '../../../testing/fakes/fake_album_repository.dart';
-import '../../../testing/fakes/fake_playback_repository.dart';
+import '../../../testing/fakes/fake_playback_controller.dart';
 import '../../../testing/fakes/fake_track_repository.dart';
 
 void main() {
   group('LibraryViewModel', () {
     late ProviderContainer container;
-    late FakePlaybackRepository fakePlaybackRepo;
+    late FakePlaybackController fakePlaybackController;
     late FakeTrackRepository fakeTrackRepo;
     late FakeAlbumRepository fakeAlbumRepo;
 
     setUp(() {
-      fakePlaybackRepo = FakePlaybackRepository();
+      fakePlaybackController = FakePlaybackController();
       fakeTrackRepo = FakeTrackRepository(
         initialStats: const LibraryStats(
           trackCount: 42,
@@ -44,7 +44,7 @@ void main() {
       container = ProviderContainer(
         overrides: [
           initialAppConfigProvider.overrideWithValue(AppConfig(librarySections: initialSections)),
-          playbackRepositoryProvider.overrideWithValue(fakePlaybackRepo),
+          playbackControllerProvider.overrideWithValue(fakePlaybackController),
           trackRepositoryProvider.overrideWithValue(fakeTrackRepo),
           albumRepositoryProvider.overrideWithValue(fakeAlbumRepo),
         ],
@@ -53,7 +53,7 @@ void main() {
 
     tearDown(() {
       container.dispose();
-      fakePlaybackRepo.dispose();
+      fakePlaybackController.dispose();
       fakeTrackRepo.dispose();
       fakeAlbumRepo.dispose();
     });
@@ -91,14 +91,14 @@ void main() {
       expect(container.read(libraryViewModelProvider).isRecentlyAddedExpanded, isFalse);
     });
 
-    test('playTrack delegates to PlaybackRepository', () {
+    test('playTrack delegates to PlaybackController', () {
       final vm = container.read(libraryViewModelProvider.notifier);
       final tracks = <TrackWithArtists>[];
 
       vm.playTrack(tracksToPlay: tracks, index: 0, playbackContextType: 'recently_added');
 
-      expect(fakePlaybackRepo.lastContextType, equals('recently_added'));
-      expect(fakePlaybackRepo.lastInitialIndex, equals(0));
+      expect(fakePlaybackController.lastContextType, equals('recently_added'));
+      expect(fakePlaybackController.lastInitialIndex, equals(0));
     });
   });
 }

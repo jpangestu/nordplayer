@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart' hide Track;
-import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/queue_repository.dart';
+import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/artist.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
@@ -9,8 +9,8 @@ import 'package:nordplayer/domain/models/playback_context.dart';
 import 'package:nordplayer/domain/models/track.dart';
 import 'package:nordplayer/domain/queue/queue_models.dart';
 
-import '../../../testing/fakes/fake_audio_player_engine.dart';
-import '../../../testing/fakes/fake_settings_repository.dart';
+import '../../../../testing/fakes/fake_audio_player_engine.dart';
+import '../../../../testing/fakes/fake_settings_repository.dart';
 
 class _FakeQueueRepository implements QueueRepository {
   List<TrackWithArtists> savedQueue = [];
@@ -134,11 +134,11 @@ TrackWithArtists _makeTrack(int id, String title, {String path = '/music/test.mp
 }
 
 void main() {
-  group('DefaultPlaybackRepository', () {
+  group('DefaultPlaybackController', () {
     late FakeAudioPlayerEngine engine;
     late _FakeQueueRepository queueRepo;
     late FakeSettingsRepository settingsRepo;
-    late DefaultPlaybackRepository repo;
+    late DefaultPlaybackController repo;
 
     final track1 = _makeTrack(1, 'Song Alpha', path: '/music/alpha.mp3', art: '/covers/alpha.jpg');
     final track2 = _makeTrack(2, 'Song Beta', path: '/music/beta.mp3', art: '/covers/beta.jpg');
@@ -149,7 +149,7 @@ void main() {
       queueRepo = _FakeQueueRepository();
       settingsRepo = FakeSettingsRepository();
 
-      repo = DefaultPlaybackRepository(engine, queueRepo, settingsRepo);
+      repo = DefaultPlaybackController(engine, queueRepo, settingsRepo);
     });
 
     tearDown(() async {

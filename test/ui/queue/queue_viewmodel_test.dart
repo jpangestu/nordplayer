@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
-import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/settings_repository.dart';
+import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/domain/models/album.dart';
 import 'package:nordplayer/domain/models/artist.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
@@ -12,7 +12,7 @@ import 'package:nordplayer/ui/queue/queue_ui_state.dart';
 import 'package:nordplayer/ui/queue/queue_viewmodel.dart';
 
 import '../../../testing/fakes/fake_config_repository.dart';
-import '../../../testing/fakes/fake_playback_repository.dart';
+import '../../../testing/fakes/fake_playback_controller.dart';
 import '../../../testing/fakes/fake_settings_repository.dart';
 
 TrackWithArtists _makeTrack(int id, String title, String path) {
@@ -34,19 +34,19 @@ TrackWithArtists _makeTrack(int id, String title, String path) {
 
 void main() {
   group('QueueViewModel & QueueUiState', () {
-    late FakePlaybackRepository fakePlaybackRepo;
+    late FakePlaybackController fakePlaybackController;
     late FakeConfigRepository fakeConfigRepo;
     late FakeSettingsRepository fakeSettingsRepo;
     late ProviderContainer container;
 
     setUp(() {
-      fakePlaybackRepo = FakePlaybackRepository();
+      fakePlaybackController = FakePlaybackController();
       fakeConfigRepo = FakeConfigRepository();
       fakeSettingsRepo = FakeSettingsRepository();
 
       container = ProviderContainer(
         overrides: [
-          playbackRepositoryProvider.overrideWithValue(fakePlaybackRepo),
+          playbackControllerProvider.overrideWithValue(fakePlaybackController),
           configRepositoryProvider.overrideWithValue(fakeConfigRepo),
           settingsRepositoryProvider.overrideWithValue(fakeSettingsRepo),
         ],
@@ -55,7 +55,7 @@ void main() {
 
     tearDown(() {
       container.dispose();
-      fakePlaybackRepo.dispose();
+      fakePlaybackController.dispose();
       fakeConfigRepo.dispose();
       fakeSettingsRepo.dispose();
     });
@@ -74,9 +74,9 @@ void main() {
       final track1 = _makeTrack(1, 'Song 1', '/music/1.mp3');
       final track2 = _makeTrack(2, 'Song 2', '/music/2.mp3');
 
-      fakePlaybackRepo.emitQueue([track1, track2]);
-      fakePlaybackRepo.emitCurrentTrack(track1);
-      fakePlaybackRepo.emitCurrentIndex(0);
+      fakePlaybackController.emitQueue([track1, track2]);
+      fakePlaybackController.emitCurrentTrack(track1);
+      fakePlaybackController.emitCurrentIndex(0);
       await pumpEventQueue();
 
       final state = container.read(queueViewModelProvider);
@@ -95,7 +95,7 @@ void main() {
       final track1 = _makeTrack(1, 'Song 1', '/music/1.mp3');
       final track2 = _makeTrack(2, 'Song 2', '/music/2.mp3');
       final track3 = _makeTrack(3, 'Song 3', '/music/3.mp3');
-      fakePlaybackRepo.emitQueue([track1, track2, track3]);
+      fakePlaybackController.emitQueue([track1, track2, track3]);
       await pumpEventQueue();
 
       // Select track 2 (index 1)
@@ -107,8 +107,8 @@ void main() {
       vm.moveTrack(0, 2);
 
       // Verify repository was called
-      expect(fakePlaybackRepo.moveOld, equals(0));
-      expect(fakePlaybackRepo.moveNew, equals(2));
+      expect(fakePlaybackController.moveOld, equals(0));
+      expect(fakePlaybackController.moveNew, equals(2));
 
       // Verify optimistic reorder in state: track1 moved to index 2
       final state = container.read(queueViewModelProvider);
@@ -129,7 +129,7 @@ void main() {
 
       vm.removeTrack(2);
 
-      expect(fakePlaybackRepo.removedIndex, equals(2));
+      expect(fakePlaybackController.removedIndex, equals(2));
       // Index 5 shifts down to 4
       expect(container.read(queueViewModelProvider).selectedIndices, equals({4}));
     });
@@ -144,7 +144,7 @@ void main() {
 
       await vm.removeSelectedTracks([1, 3]);
 
-      expect(fakePlaybackRepo.batchRemoved, equals([1, 3]));
+      expect(fakePlaybackController.batchRemoved, equals([1, 3]));
       expect(container.read(queueViewModelProvider).selectedIndices, isEmpty);
     });
 
@@ -157,7 +157,7 @@ void main() {
 
       await vm.clearQueue();
 
-      expect(fakePlaybackRepo.cleared, isTrue);
+      expect(fakePlaybackController.cleared, isTrue);
       expect(container.read(queueViewModelProvider).selectedIndices, isEmpty);
     });
 
@@ -169,7 +169,7 @@ void main() {
       vm.jumpToTrack(4);
 
       expect(container.read(queueScrollBehaviorProvider), equals(QueueScrollBehavior.none));
-      expect(fakePlaybackRepo.jumpedIndex, equals(4));
+      expect(fakePlaybackController.jumpedIndex, equals(4));
     });
 
     test('setDragging and closeQueue operate correctly', () async {

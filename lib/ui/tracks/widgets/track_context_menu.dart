@@ -2,8 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/playlist_repository.dart';
+import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/data/services/system/platform_service.dart' show showInFolder;
 import 'package:nordplayer/data/services/system/preference_service.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
@@ -47,7 +47,7 @@ class TrackContextMenu {
           onTap: () {
             if (selectedTracks.length == 1) {
               ref
-                  .read(playbackRepositoryProvider)
+                  .read(playbackControllerProvider)
                   .setPlaylist(
                     context: playbackContext,
                     playbackContextType: playbackContextType,
@@ -67,7 +67,7 @@ class TrackContextMenu {
 
               // Pass the sorted list, but tell the player to start at the clicked track
               ref
-                  .read(playbackRepositoryProvider)
+                  .read(playbackControllerProvider)
                   .setPlaylist(
                     playbackContextType: 'play_as_playlist',
                     playbackContextId: null,
@@ -83,7 +83,7 @@ class TrackContextMenu {
             icon: appIconSet.playNext,
             label: 'Play Next',
             onTap: () {
-              ref.read(playbackRepositoryProvider).playNext(selectedTracks);
+              ref.read(playbackControllerProvider).playNext(selectedTracks);
 
               final showQueue = ref.read(preferenceServiceProvider).showQueue;
 
@@ -106,7 +106,7 @@ class TrackContextMenu {
             icon: appIconSet.addToQueue,
             label: 'Add to queue',
             onTap: () {
-              ref.read(playbackRepositoryProvider).addToQueue(selectedTracks);
+              ref.read(playbackControllerProvider).addToQueue(selectedTracks);
 
               final showQueue = ref.read(preferenceServiceProvider).showQueue;
 
@@ -185,7 +185,7 @@ class SearchTracksContextMenu {
           label: 'Play',
           onTap: () {
             ref
-                .read(playbackRepositoryProvider)
+                .read(playbackControllerProvider)
                 .setPlaylist(
                   context: playbackContext,
                   playbackContextType: playbackContextType,
@@ -202,7 +202,7 @@ class SearchTracksContextMenu {
             icon: LucideIcons.listStart,
             label: 'Play Next',
             onTap: () {
-              ref.read(playbackRepositoryProvider).playNext([tracks[indexToPlay]]);
+              ref.read(playbackControllerProvider).playNext([tracks[indexToPlay]]);
 
               final showQueue = ref.read(preferenceServiceProvider).showQueue;
 
@@ -224,7 +224,7 @@ class SearchTracksContextMenu {
             icon: appIconSet.addToQueue,
             label: 'Add to queue',
             onTap: () {
-              ref.read(playbackRepositoryProvider).addToQueue([tracks[indexToPlay]]);
+              ref.read(playbackControllerProvider).addToQueue([tracks[indexToPlay]]);
 
               final showQueue = ref.read(preferenceServiceProvider).showQueue;
 

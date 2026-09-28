@@ -9,7 +9,7 @@ import 'package:nordplayer/domain/models/artist.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/track.dart';
 
-import '../../../../testing/fakes/fake_playback_repository.dart';
+import '../../../../testing/fakes/fake_playback_controller.dart';
 
 class _FakePlayerStream extends Fake implements PlayerStream {
   final playlistController = StreamController<Playlist>.broadcast();
@@ -191,19 +191,19 @@ void main() {
     });
   });
 
-  group('AppAudioHandler Attached to PlaybackRepository', () {
+  group('AppAudioHandler Attached to PlaybackController', () {
     late _TestPlayer player;
     late AppAudioHandler handler;
-    late FakePlaybackRepository repo;
+    late FakePlaybackController controller;
 
     final track1 = _makeTrack(1, 'Track One', path: '/music/t1.mp3', art: '/covers/c1.jpg');
     final track2 = _makeTrack(2, 'Track Two', path: '/music/t2.mp3');
 
     setUp(() {
       player = _TestPlayer();
-      repo = FakePlaybackRepository(initialQueue: [track1, track2], initialIndex: 0);
+      controller = FakePlaybackController(initialQueue: [track1, track2], initialIndex: 0);
       handler = AppAudioHandler(player);
-      handler.attachRepository(repo);
+      handler.attachController(controller);
     });
 
     tearDown(() async {
@@ -211,7 +211,7 @@ void main() {
       await player.dispose();
     });
 
-    test('syncs active track from repository to mediaItem', () async {
+    test('syncs active track from controller to mediaItem', () async {
       await pumpEventQueue();
 
       expect(handler.mediaItem.value, isNotNull);
@@ -222,7 +222,7 @@ void main() {
       expect(handler.mediaItem.value!.artUri, Uri.file('/covers/c1.jpg'));
     });
 
-    test('syncs full queue from repository to queue stream', () async {
+    test('syncs full queue from controller to queue stream', () async {
       await pumpEventQueue();
 
       expect(handler.queue.value.length, 2);
@@ -230,40 +230,40 @@ void main() {
       expect(handler.queue.value[1].title, 'Track Two');
     });
 
-    test('skipToNext delegates to PlaybackRepository.next()', () async {
+    test('skipToNext delegates to PlaybackController.next()', () async {
       await handler.skipToNext();
       await pumpEventQueue();
 
-      // FakePlaybackRepository advances index to 1
-      expect(repo.currentIndex, 1);
+      // FakePlaybackController advances index to 1
+      expect(controller.currentIndex, 1);
       expect(player.nextCount, 0); // Player was not called directly
     });
 
-    test('skipToPrevious delegates to PlaybackRepository.previous()', () async {
-      repo.jumpToIndex(1);
+    test('skipToPrevious delegates to PlaybackController.previous()', () async {
+      controller.jumpToIndex(1);
       await handler.skipToPrevious();
       await pumpEventQueue();
 
-      expect(repo.currentIndex, 0);
+      expect(controller.currentIndex, 0);
       expect(player.previousCount, 0);
     });
 
-    test('play and pause delegate to PlaybackRepository', () async {
+    test('play and pause delegate to PlaybackController', () async {
       await handler.play();
-      expect(repo.isPlaying, isTrue);
+      expect(controller.isPlaying, isTrue);
 
       await handler.pause();
-      expect(repo.isPlaying, isFalse);
+      expect(controller.isPlaying, isFalse);
     });
 
-    test('seek delegates to PlaybackRepository.seek()', () async {
+    test('seek delegates to PlaybackController.seek()', () async {
       await handler.seek(const Duration(seconds: 42));
-      expect(repo.position, const Duration(seconds: 42));
+      expect(controller.position, const Duration(seconds: 42));
     });
 
-    test('skipToQueueItem delegates to PlaybackRepository.jumpToIndex()', () async {
+    test('skipToQueueItem delegates to PlaybackController.jumpToIndex()', () async {
       await handler.skipToQueueItem(1);
-      expect(repo.jumpedIndex, 1);
+      expect(controller.jumpedIndex, 1);
     });
   });
 }

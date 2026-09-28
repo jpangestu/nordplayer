@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
-import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/track_repository.dart';
+import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/playback_context.dart';
 import 'package:nordplayer/ui/shared/ui/selection_state.dart';
@@ -45,26 +45,26 @@ class TracksPageColumnsNotifier extends Notifier<List<TableColumnConfig>> {
 
 /// ViewModel coordinating state and user actions for the Tracks feature.
 class TracksViewModel extends Notifier<TracksUiState> with LoggerMixin {
-  PlaybackRepository get _playbackRepository => ref.read(playbackRepositoryProvider);
+  PlaybackController get _playbackController => ref.read(playbackControllerProvider);
 
   @override
   TracksUiState build() {
     final trackRepo = ref.watch(trackRepositoryProvider);
-    final playbackRepo = ref.watch(playbackRepositoryProvider);
+    final playbackController = ref.watch(playbackControllerProvider);
     final configRepo = ref.watch(configRepositoryProvider);
 
     final initialConfig = configRepo.currentConfig;
     final initialColumns = TracksPageColumnsNotifier.initialColumns;
     final initialSelection = ref.read(selectedTracksIndexProvider('all_tracks'));
-    final currentTrack = playbackRepo.currentTrack;
-    final isPlaying = playbackRepo.isPlaying;
+    final currentTrack = playbackController.currentTrack;
+    final isPlaying = playbackController.isPlaying;
 
     final tracksSub = trackRepo.watchAllTracks().listen(
       (tracks) {
         state = state.copyWith(
           tracks: tracks,
           isLoading: false,
-          albumArtCovers: _computeCollageCovers(tracks, playbackRepo),
+          albumArtCovers: _computeCollageCovers(tracks, playbackController),
           errorMessage: () => null,
         );
       },
@@ -73,19 +73,19 @@ class TracksViewModel extends Notifier<TracksUiState> with LoggerMixin {
       },
     );
 
-    final trackSub = playbackRepo.watchCurrentTrack().listen((current) {
+    final trackSub = playbackController.watchCurrentTrack().listen((current) {
       state = state.copyWith(
         activeTrackPath: () => current?.track.filePath,
-        albumArtCovers: _computeCollageCovers(state.tracks, playbackRepo),
+        albumArtCovers: _computeCollageCovers(state.tracks, playbackController),
       );
     });
 
-    final playingSub = playbackRepo.watchIsPlaying().listen((playing) {
+    final playingSub = playbackController.watchIsPlaying().listen((playing) {
       state = state.copyWith(isAudioPlaying: playing);
     });
 
-    final queueSub = playbackRepo.watchQueue().listen((_) {
-      state = state.copyWith(albumArtCovers: _computeCollageCovers(state.tracks, playbackRepo));
+    final queueSub = playbackController.watchQueue().listen((_) {
+      state = state.copyWith(albumArtCovers: _computeCollageCovers(state.tracks, playbackController));
     });
 
     final configSub = configRepo.watchConfig().listen((config) {
@@ -123,10 +123,10 @@ class TracksViewModel extends Notifier<TracksUiState> with LoggerMixin {
   }
 
   /// Computes up to 5 unique album art paths for the tracks header collage.
-  List<String> _computeCollageCovers(List<TrackWithArtists> tracks, PlaybackRepository playbackRepo) {
-    if (playbackRepo.playbackContextType == 'all_tracks') {
-      final queue = playbackRepo.currentQueue;
-      final currentIndex = playbackRepo.currentIndex;
+  List<String> _computeCollageCovers(List<TrackWithArtists> tracks, PlaybackController playbackController) {
+    if (playbackController.playbackContextType == 'all_tracks') {
+      final queue = playbackController.currentQueue;
+      final currentIndex = playbackController.currentIndex;
       if (queue.isNotEmpty && currentIndex >= 0 && currentIndex < queue.length) {
         final wallCovers = <String>[];
         final seen = <String>{};
@@ -159,7 +159,7 @@ class TracksViewModel extends Notifier<TracksUiState> with LoggerMixin {
   /// Plays the track at [index] in the context of [tracks].
   void playTrack(List<TrackWithArtists> tracks, int index) {
     if (tracks.isEmpty || index < 0 || index >= tracks.length) return;
-    _playbackRepository.setPlaylist(
+    _playbackController.setPlaylist(
       context: const PlaybackContext.allTracks(),
       playbackContextType: 'all_tracks',
       playbackContextId: null,
@@ -188,7 +188,7 @@ class TracksViewModel extends Notifier<TracksUiState> with LoggerMixin {
       (t) => t.track.filePath == allTracks[clickedIndex].track.filePath,
     );
 
-    _playbackRepository.setPlaylist(
+    _playbackController.setPlaylist(
       playbackContextType: 'play_as_playlist',
       playbackContextId: null,
       tracksToPlay: selectedTracks,

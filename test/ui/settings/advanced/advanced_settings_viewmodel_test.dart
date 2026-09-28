@@ -7,8 +7,8 @@ import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/database/app_database.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/indexer_repository.dart';
-import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/settings_repository.dart';
+import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/data/services/system/config_service.dart';
 import 'package:nordplayer/data/services/system/preference_service.dart';
 import 'package:nordplayer/ui/settings/advanced/advanced_settings_viewmodel.dart';
@@ -18,14 +18,14 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 import '../../../../testing/fakes/fake_indexer_repository.dart';
-import '../../../../testing/fakes/fake_playback_repository.dart';
+import '../../../../testing/fakes/fake_playback_controller.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('AdvancedSettingsViewModel', () {
     late AppDatabase db;
-    late FakePlaybackRepository fakePlaybackRepo;
+    late FakePlaybackController fakePlaybackController;
     late FakeIndexerRepository fakeIndexerRepo;
     late Directory tempDir;
     late ProviderContainer container;
@@ -41,14 +41,14 @@ void main() {
       );
 
       db = AppDatabase(NativeDatabase.memory());
-      fakePlaybackRepo = FakePlaybackRepository();
+      fakePlaybackController = FakePlaybackController();
       fakeIndexerRepo = FakeIndexerRepository();
       tempDir = await Directory.systemTemp.createTemp('nordplayer_test_cache_');
 
       container = ProviderContainer(
         overrides: [
           appDatabaseProvider.overrideWithValue(db),
-          playbackRepositoryProvider.overrideWithValue(fakePlaybackRepo),
+          playbackControllerProvider.overrideWithValue(fakePlaybackController),
           indexerRepositoryProvider.overrideWithValue(fakeIndexerRepo),
           sharedPrefsProvider.overrideWithValue(prefs),
           initialAppConfigProvider.overrideWithValue(
@@ -62,7 +62,7 @@ void main() {
     tearDown(() async {
       await db.close();
       container.dispose();
-      fakePlaybackRepo.dispose();
+      fakePlaybackController.dispose();
       if (await tempDir.exists()) {
         await tempDir.delete(recursive: true);
       }
@@ -78,7 +78,7 @@ void main() {
       await vm.resetSettingsToDefault();
 
       expect(container.read(advancedSettingsViewModelProvider).isProcessing, isFalse);
-      expect(fakePlaybackRepo.clearedQueue, isTrue);
+      expect(fakePlaybackController.clearedQueue, isTrue);
       expect(fakeIndexerRepo.stoppedDirectories, containsAll(['/music/dir1', '/music/dir2']));
       expect(fakeIndexerRepo.missingDirectories, containsAll(['/music/dir1', '/music/dir2']));
 
@@ -109,7 +109,7 @@ void main() {
       await vm.wipeAllLibraryData(getCacheDir: () async => tempDir);
 
       expect(container.read(advancedSettingsViewModelProvider).isProcessing, isFalse);
-      expect(fakePlaybackRepo.clearedQueue, isTrue);
+      expect(fakePlaybackController.clearedQueue, isTrue);
       expect(await artDir.exists(), isFalse);
       expect(fakeIndexerRepo.scanCalled, isTrue);
     });

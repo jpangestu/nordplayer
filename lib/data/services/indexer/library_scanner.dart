@@ -6,8 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/database/app_database.dart';
-import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/track_repository.dart';
+import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/data/services/indexer/track_indexer.dart';
 import 'package:nordplayer/data/services/system/background_task_service.dart';
 import 'package:nordplayer/data/services/system/config_service.dart';
@@ -202,11 +202,11 @@ class LibraryScanner(
         log.i('[Benchmark] Updated missing tracks in DB in ${stepStopwatch.elapsedMilliseconds}ms');
         stepStopwatch.reset();
 
-        // Also remove missing tracks from the playback repository queue
+        // Also remove missing tracks from the playback controller queue
         try {
-          await _ref.read(playbackRepositoryProvider).removeTracksByPaths(missingPaths.toSet());
+          await _ref.read(playbackControllerProvider).removeTracksByPaths(missingPaths.toSet());
         } catch (e) {
-          log.e("Failed to remove missing tracks from playback repository queue: $e");
+          log.e("Failed to remove missing tracks from playback controller queue: $e");
         }
       }
 

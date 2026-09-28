@@ -4,8 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/services/audio/audio_handler.dart';
+import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/data/services/audio/player_service.dart' show audioPlayerProvider;
 import 'package:nordplayer/data/services/indexer/library_indexer.dart';
 import 'package:nordplayer/data/services/indexer/library_watcher.dart';
@@ -92,7 +92,7 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp> with WindowListen
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       ref.read(libraryWatcherProvider);
 
-      await ref.read(playbackRepositoryProvider).restoreQueue();
+      await ref.read(playbackControllerProvider).restoreQueue();
 
       // Run scan library only when the main thread is idle (all UI render finished)
       SchedulerBinding.instance.scheduleTask(() {

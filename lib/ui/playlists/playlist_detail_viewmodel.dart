@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
-import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/playlist_repository.dart';
+import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/playback_context.dart';
 import 'package:nordplayer/ui/playlists/playlist_detail_ui_state.dart';
@@ -13,19 +13,19 @@ import 'package:nordplayer/utils/logger.dart';
 
 /// ViewModel orchestrating Playlist Detail state, selection, column configs, and playback.
 class PlaylistDetailViewModel(final int playlistId) extends Notifier<PlaylistDetailUiState> with LoggerMixin {
-  PlaybackRepository get _playbackRepository => ref.read(playbackRepositoryProvider);
+  PlaybackController get _playbackController => ref.read(playbackControllerProvider);
 
   @override
   PlaylistDetailUiState build() {
     final playlistRepo = ref.watch(playlistRepositoryProvider);
-    final playbackRepo = ref.watch(playbackRepositoryProvider);
+    final playbackController = ref.watch(playbackControllerProvider);
     final configRepo = ref.watch(configRepositoryProvider);
 
     final initialConfig = configRepo.currentConfig;
     final initialColumns = _initialColumns;
     final initialSelection = ref.read(selectedTracksIndexProvider('playlist'));
-    final currentTrack = playbackRepo.currentTrack;
-    final isPlaying = playbackRepo.isPlaying;
+    final currentTrack = playbackController.currentTrack;
+    final isPlaying = playbackController.isPlaying;
 
     final playlistSub = playlistRepo
         .watchPlaylist(playlistId)
@@ -50,14 +50,14 @@ class PlaylistDetailViewModel(final int playlistId) extends Notifier<PlaylistDet
           },
         );
 
-    final trackSub = playbackRepo.watchCurrentTrack().listen((track) {
+    final trackSub = playbackController.watchCurrentTrack().listen((track) {
       final activePath = track?.track.filePath;
       if (state.activeTrackPath != activePath) {
         state = state.copyWith(activeTrackPath: () => activePath);
       }
     });
 
-    final playingSub = playbackRepo.watchIsPlaying().listen((playing) {
+    final playingSub = playbackController.watchIsPlaying().listen((playing) {
       if (state.isAudioPlaying != playing) {
         state = state.copyWith(isAudioPlaying: playing);
       }
@@ -145,7 +145,7 @@ class PlaylistDetailViewModel(final int playlistId) extends Notifier<PlaylistDet
   void playTrack(int index) {
     if (index < 0 || index >= state.tracks.length) return;
     final playlistTitle = state.playlist?.name ?? '';
-    _playbackRepository.setPlaylist(
+    _playbackController.setPlaylist(
       tracksToPlay: state.tracks,
       initialIndex: index,
       context: PlaybackContext.playlist(id: playlistId, title: playlistTitle),

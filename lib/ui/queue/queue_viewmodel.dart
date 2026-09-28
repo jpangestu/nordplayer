@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
-import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/settings_repository.dart';
+import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/ui/queue/queue_scroll_behavior.dart';
 import 'package:nordplayer/ui/queue/queue_ui_state.dart';
@@ -13,31 +13,31 @@ import 'package:nordplayer/utils/logger.dart';
 /// optimistic track reordering, single and batch removals, track selection,
 /// scrolling behaviors, and adaptive UI styling.
 class QueueViewModel extends Notifier<QueueUiState> with LoggerMixin {
-  PlaybackRepository get _playbackRepo => ref.read(playbackRepositoryProvider);
+  PlaybackController get _playbackController => ref.read(playbackControllerProvider);
   SettingsRepository get _settingsRepo => ref.read(settingsRepositoryProvider);
   SelectedTracksIndex get _selectionNotifier => ref.read(selectedTracksIndexProvider('queue_page').notifier);
 
   @override
   QueueUiState build() {
-    final playbackRepo = ref.watch(playbackRepositoryProvider);
+    final playbackController = ref.watch(playbackControllerProvider);
     final configRepo = ref.watch(configRepositoryProvider);
 
     final initialConfig = configRepo.currentConfig;
     final initialSelection = ref.read(selectedTracksIndexProvider('queue_page'));
     final initialScrollBehavior = ref.read(queueScrollBehaviorProvider);
 
-    final queueSub = playbackRepo.watchQueue().listen((tracks) {
+    final queueSub = playbackController.watchQueue().listen((tracks) {
       if (state.tracks != tracks) {
         ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.jump);
       }
       state = state.copyWith(tracks: tracks);
     });
 
-    final currentTrackSub = playbackRepo.watchCurrentTrack().listen((track) {
+    final currentTrackSub = playbackController.watchCurrentTrack().listen((track) {
       state = state.copyWith(currentTrack: () => track);
     });
 
-    final currentIndexSub = playbackRepo.watchCurrentIndex().listen((index) {
+    final currentIndexSub = playbackController.watchCurrentIndex().listen((index) {
       if (state.currentIndex != index) {
         final currentIntent = ref.read(queueScrollBehaviorProvider);
         if (currentIntent == QueueScrollBehavior.none) {
@@ -75,9 +75,9 @@ class QueueViewModel extends Notifier<QueueUiState> with LoggerMixin {
     });
 
     return QueueUiState(
-      tracks: playbackRepo.currentQueue,
-      currentTrack: playbackRepo.currentTrack,
-      currentIndex: playbackRepo.currentIndex,
+      tracks: playbackController.currentQueue,
+      currentTrack: playbackController.currentTrack,
+      currentIndex: playbackController.currentIndex,
       selectedIndices: initialSelection,
       scrollBehavior: initialScrollBehavior,
       isAdaptiveBg: initialConfig.adaptiveBg,
@@ -94,7 +94,7 @@ class QueueViewModel extends Notifier<QueueUiState> with LoggerMixin {
   }
 
   /// Moves a track from [oldIndex] to [newIndex] with optimistic state updating,
-  /// delegating to [PlaybackRepository] and shifting multi-selection indices.
+  /// delegating to [PlaybackController] and shifting multi-selection indices.
   void moveTrack(int oldIndex, int newIndex) {
     log.d('QueueViewModel.moveTrack from $oldIndex to $newIndex');
 
@@ -107,36 +107,36 @@ class QueueViewModel extends Notifier<QueueUiState> with LoggerMixin {
       state = state.copyWith(tracks: list);
     }
 
-    _playbackRepo.reorderQueue(oldIndex, newIndex);
+    _playbackController.reorderQueue(oldIndex, newIndex);
     _selectionNotifier.updateIndicesOnReorder(oldIndex, newIndex);
   }
 
   /// Removes a single track at [index], shifting downstream selected indices.
   void removeTrack(int index) {
     log.d('QueueViewModel.removeTrack at index $index');
-    _playbackRepo.removeQueueItem(index);
+    _playbackController.removeQueueItem(index);
     _selectionNotifier.updateIndicesOnRemove(index);
   }
 
-  /// Removes multiple tracks identified by [indices] atomically via `playbackRepo.removeQueueItems`.
+  /// Removes multiple tracks identified by [indices] atomically via `playbackController.removeQueueItems`.
   Future<void> removeSelectedTracks(List<int> indices) async {
     if (indices.isEmpty) return;
     log.i('QueueViewModel.removeSelectedTracks: ${indices.length} tracks');
-    await _playbackRepo.removeQueueItems(indices);
+    await _playbackController.removeQueueItems(indices);
     _selectionNotifier.clear();
   }
 
   /// Clears the entire playback queue and clears selection state.
   Future<void> clearQueue() async {
     log.i('QueueViewModel.clearQueue');
-    await _playbackRepo.clearQueue();
+    await _playbackController.clearQueue();
     _selectionNotifier.clear();
   }
 
   /// Jumps playback directly to the track at [index], suppressing auto-scroll since the user triggered it.
   void jumpToTrack(int index) {
     ref.read(queueScrollBehaviorProvider.notifier).setIntent(QueueScrollBehavior.none);
-    _playbackRepo.jumpToIndex(index);
+    _playbackController.jumpToIndex(index);
   }
 
   /// Selects or multi-selects a track index in the queue.

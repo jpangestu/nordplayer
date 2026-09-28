@@ -5,9 +5,9 @@ import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/data/repositories/album_repository.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
 import 'package:nordplayer/data/repositories/indexer_repository.dart';
-import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/settings_repository.dart';
 import 'package:nordplayer/data/repositories/track_repository.dart';
+import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/ui/settings/advanced/advanced_settings_ui_state.dart';
 import 'package:nordplayer/utils/logger.dart';
 import 'package:path/path.dart' as p;
@@ -17,7 +17,7 @@ import 'package:path_provider/path_provider.dart';
 class AdvancedSettingsViewModel extends Notifier<AdvancedSettingsUiState> with LoggerMixin {
   ConfigRepository get _configRepo => ref.read(configRepositoryProvider);
   SettingsRepository get _settingsRepo => ref.read(settingsRepositoryProvider);
-  PlaybackRepository get _playbackRepo => ref.read(playbackRepositoryProvider);
+  PlaybackController get _playbackController => ref.read(playbackControllerProvider);
   IndexerRepository get _indexerRepo => ref.read(indexerRepositoryProvider);
   TrackRepository get _trackRepo => ref.read(trackRepositoryProvider);
 
@@ -44,7 +44,7 @@ class AdvancedSettingsViewModel extends Notifier<AdvancedSettingsUiState> with L
       final oldPaths = _configRepo.currentConfig.trackDirectories;
 
       // Stop playback and clear the active queue
-      await _playbackRepo.clearQueue();
+      await _playbackController.clearQueue();
 
       // Reset JSON configs and SharedPreferences
       _configRepo.updateConfig(AppConfig());
@@ -72,7 +72,7 @@ class AdvancedSettingsViewModel extends Notifier<AdvancedSettingsUiState> with L
 
     try {
       // Stop playback and clear the queue
-      await _playbackRepo.clearQueue();
+      await _playbackController.clearQueue();
 
       // Clear all database tables
       await _trackRepo.clearAllData();

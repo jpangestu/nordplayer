@@ -3,14 +3,14 @@
 import 'dart:async';
 
 import 'package:media_kit/media_kit.dart' hide Track;
-import 'package:nordplayer/data/repositories/playback_repository.dart';
+import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/playback_context.dart';
 import 'package:nordplayer/domain/queue/queue_models.dart';
 import 'package:nordplayer/utils/string_extension.dart';
 
-/// In-memory test double for [PlaybackRepository].
-class FakePlaybackRepository({
+/// In-memory test double for [PlaybackController].
+class FakePlaybackController({
   List<TrackWithArtists>? initialQueue,
   int? initialIndex,
   bool isPlaying = false,
@@ -23,7 +23,7 @@ class FakePlaybackRepository({
   String playbackContextType = '',
   int? playbackContextId,
   PlaybackContext? playbackContext,
-}) implements PlaybackRepository {
+}) implements PlaybackController {
   List<TrackWithArtists> _currentQueue = initialQueue ?? [];
   List<TrackWithArtists> _originalQueue = initialQueue != null ? List.from(initialQueue) : [];
   int _currentIndex = initialIndex ?? ((initialQueue != null && initialQueue.isNotEmpty) ? 0 : -1);
@@ -529,6 +529,6 @@ class FakePlaybackRepository({
     _volumeController.close();
     _queueCoverArtController.close();
     _queueStateController.close();
-    _queueItemsController.close();
   }
 }
+

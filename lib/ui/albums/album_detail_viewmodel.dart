@@ -5,8 +5,8 @@ import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/data/repositories/album_repository.dart';
 import 'package:nordplayer/data/repositories/config_repository.dart';
-import 'package:nordplayer/data/repositories/playback_repository.dart';
 import 'package:nordplayer/data/repositories/settings_repository.dart';
+import 'package:nordplayer/data/services/audio/playback_controller.dart';
 import 'package:nordplayer/domain/models/composite_models.dart';
 import 'package:nordplayer/domain/models/playback_context.dart';
 import 'package:nordplayer/ui/albums/album_detail_ui_state.dart';
@@ -16,21 +16,21 @@ import 'package:nordplayer/utils/logger.dart';
 
 /// ViewModel orchestrating Album Detail state, sorting, filtering, columns, selection, and playback.
 class AlbumDetailViewModel(final int albumId) extends Notifier<AlbumDetailUiState> with LoggerMixin {
-  PlaybackRepository get _playbackRepository => ref.read(playbackRepositoryProvider);
+  PlaybackController get _playbackController => ref.read(playbackControllerProvider);
   SettingsRepository get _settingsRepository => ref.read(settingsRepositoryProvider);
 
   @override
   AlbumDetailUiState build() {
     final albumRepo = ref.watch(albumRepositoryProvider);
-    final playbackRepo = ref.watch(playbackRepositoryProvider);
+    final playbackController = ref.watch(playbackControllerProvider);
     final configRepo = ref.watch(configRepositoryProvider);
     final settingsRepo = ref.watch(settingsRepositoryProvider);
 
     final initialConfig = configRepo.currentConfig;
     final initialColumns = _initialColumns;
     final initialSelection = ref.read(selectedTracksIndexProvider('album'));
-    final currentTrack = playbackRepo.currentTrack;
-    final isPlaying = playbackRepo.isPlaying;
+    final currentTrack = playbackController.currentTrack;
+    final isPlaying = playbackController.isPlaying;
     final initialSettings = settingsRepo.currentSettings;
 
     final albumSub = albumRepo
@@ -51,14 +51,14 @@ class AlbumDetailViewModel(final int albumId) extends Notifier<AlbumDetailUiStat
           },
         );
 
-    final trackSub = playbackRepo.watchCurrentTrack().listen((track) {
+    final trackSub = playbackController.watchCurrentTrack().listen((track) {
       final activePath = track?.track.filePath;
       if (state.activeTrackPath != activePath) {
         state = state.copyWith(activeTrackPath: () => activePath);
       }
     });
 
-    final playingSub = playbackRepo.watchIsPlaying().listen((playing) {
+    final playingSub = playbackController.watchIsPlaying().listen((playing) {
       if (state.isAudioPlaying != playing) {
         state = state.copyWith(isAudioPlaying: playing);
       }
@@ -174,7 +174,7 @@ class AlbumDetailViewModel(final int albumId) extends Notifier<AlbumDetailUiStat
 
     final albumTitle = state.albumWithTracks?.album.title ?? '';
 
-    _playbackRepository.setPlaylist(
+    _playbackController.setPlaylist(
       tracksToPlay: tracksToPlay,
       initialIndex: startIndex,
       context: PlaybackContext.album(id: albumId, title: albumTitle),
