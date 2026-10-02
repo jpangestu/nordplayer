@@ -30,7 +30,7 @@ class NordPlayerBar extends ConsumerWidget {
     final backgroundColor = theme.colorScheme.surfaceContainer;
 
     return FrostedGlass(
-      blurSigma: adaptiveBgPanelBlur,
+      blurSigma: isAdaptiveBgOn ? adaptiveBgPanelBlur : 0,
       child: Container(
         height: 90,
         color: isAdaptiveBgOn

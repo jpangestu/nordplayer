@@ -49,6 +49,12 @@ class FakeTrackRepository({List<TrackWithArtists>? initialTracks, LibraryStats? 
   }
 
   @override
+  Future<List<TrackWithArtists>> getRandomTracks({int limitAmount = 6}) async {
+    final list = List<TrackWithArtists>.from(tracks)..shuffle();
+    return list.take(limitAmount).toList();
+  }
+
+  @override
   Stream<LibraryStats> watchLibraryStats() {
     return Stream.value(stats).concatWith([_statsController.stream]);
   }

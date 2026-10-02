@@ -160,6 +160,15 @@ void main() {
       expect(byArtist.first.track.title, 'Zeta Track');
     });
 
+    test('getRandomTracks returns randomized sample within limit', () async {
+      final sample = await trackRepository.getRandomTracks(limitAmount: 1);
+      expect(sample.length, 1);
+      expect(sample.first.track.isMissing, isFalse);
+
+      final fullSample = await trackRepository.getRandomTracks(limitAmount: 10);
+      expect(fullSample.length, 2);
+    });
+
     test('clearAllData wipes all tables', () async {
       await trackRepository.clearAllData();
 

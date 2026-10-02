@@ -87,7 +87,7 @@ class _QueueViewState extends ConsumerState<QueueView> {
     final selectedIndices = uiState.selectedIndices;
 
     return FrostedGlass(
-      blurSigma: uiState.adaptiveBgPanelBlur,
+      blurSigma: uiState.isAdaptiveBg ? uiState.adaptiveBgPanelBlur : 0,
       child: SizedBox(
         width: 300,
         child: Scaffold(

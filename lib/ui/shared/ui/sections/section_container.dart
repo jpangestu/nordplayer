@@ -19,7 +19,7 @@ class SectionContainer extends ConsumerWidget {
         : surfaceContainerLow;
 
     return FrostedGlass(
-      blurSigma: appConfig.adaptiveBgPanelBlur,
+      blurSigma: appConfig.adaptiveBg ? appConfig.adaptiveBgPanelBlur : 0,
       backgroundColor: backgroundColor != null
           ? appConfig.adaptiveBg
                 ? backgroundColor!.withValues(alpha: appConfig.adaptiveBgThemeOverlay)

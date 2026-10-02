@@ -187,7 +187,7 @@ class PlaylistDetailViewHeader extends ConsumerWidget {
       backgroundColor: uiState.isAdaptiveBg
           ? theme.colorScheme.surfaceContainer.withValues(alpha: uiState.adaptiveBgThemeOverlay)
           : theme.colorScheme.surface,
-      blurSigma: uiState.adaptiveBgPanelBlur,
+      blurSigma: uiState.isAdaptiveBg ? uiState.adaptiveBgPanelBlur : 0,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         decoration: uiState.isAdaptiveBg

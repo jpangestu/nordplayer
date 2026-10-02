@@ -36,14 +36,14 @@ class LibraryViewModel extends Notifier<LibraryUiState> with LoggerMixin {
       state = state.copyWith(recentlyAddedTracks: recent);
     });
 
-    final tracksSub = trackRepo.watchAllTracks().listen((tracks) {
-      if (tracks.isEmpty) {
-        state = state.copyWith(sampleTracks: const []);
-      } else {
-        final sample = List<TrackWithArtists>.from(tracks)..shuffle();
-        state = state.copyWith(sampleTracks: sample.take(6).toList());
-      }
-    });
+    trackRepo
+        .getRandomTracks(limitAmount: 6)
+        .then((tracks) {
+          state = state.copyWith(sampleTracks: tracks);
+        })
+        .catchError((e) {
+          log.w('Failed to load random sample tracks: $e');
+        });
 
     albumRepo
         .getRandomAlbums(limitAmount: 10)
@@ -71,7 +71,6 @@ class LibraryViewModel extends Notifier<LibraryUiState> with LoggerMixin {
     ref.onDispose(() {
       statsSub.cancel();
       recentSub.cancel();
-      tracksSub.cancel();
       configSub.cancel();
     });
 

@@ -22,6 +22,10 @@ import 'package:window_manager/window_manager.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Cap global image cache memory to prevent excessive heap retention of decoded raw bitmaps
+  PaintingBinding.instance.imageCache.maximumSize = 150;
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 40 << 20; // 40 MB
+
   await windowManager.ensureInitialized();
 
   WindowOptions windowOptions = const WindowOptions(

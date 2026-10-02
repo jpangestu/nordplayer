@@ -245,7 +245,7 @@ class TracksPageHeader extends ConsumerWidget {
       backgroundColor: isAdaptive
           ? theme.colorScheme.surfaceContainer.withValues(alpha: themeOverlay)
           : theme.colorScheme.surface,
-      blurSigma: panelBlur,
+      blurSigma: isAdaptive ? panelBlur : 0,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         decoration: isAdaptive

@@ -20,6 +20,9 @@ abstract interface class TrackRepository {
   /// Watches aggregate counts, storage size, and playtime across the library.
   Stream<LibraryStats> watchLibraryStats();
 
+  /// Fetches a randomized sample of non-missing tracks.
+  Future<List<TrackWithArtists>> getRandomTracks({int limitAmount = 6});
+
   /// Searches tracks by title, album title, or artist name.
   Stream<List<TrackWithArtists>> searchTracks(String queryStr);
 
@@ -80,6 +83,28 @@ class const DriftTrackRepository(final AppDatabase _db) implements TrackReposito
     query.limit(limitAmount * 4);
 
     return query.watch().map((rows) => _groupTrackRows(rows).take(limitAmount).toList());
+  }
+
+  @override
+  Future<List<TrackWithArtists>> getRandomTracks({int limitAmount = 6}) async {
+    final trackIdQuery = _db.selectOnly(_db.tracks)
+      ..addColumns([_db.tracks.id])
+      ..where(_db.tracks.isMissing.equals(false))
+      ..orderBy([OrderingTerm(expression: const CustomExpression('RANDOM()'))])
+      ..limit(limitAmount);
+
+    final trackIdRows = await trackIdQuery.get();
+    if (trackIdRows.isEmpty) return const [];
+    final trackIds = trackIdRows.map((r) => r.read(_db.tracks.id)!).toList();
+
+    final query = (_db.select(_db.tracks)..where((t) => t.id.isIn(trackIds))).join([
+      leftOuterJoin(_db.albums, _db.albums.id.equalsExp(_db.tracks.albumId)),
+      leftOuterJoin(_db.trackArtist, _db.trackArtist.trackId.equalsExp(_db.tracks.id)),
+      leftOuterJoin(_db.artists, _db.artists.id.equalsExp(_db.trackArtist.artistId)),
+    ]);
+
+    final rows = await query.get();
+    return _groupTrackRows(rows);
   }
 
   @override
@@ -238,4 +263,8 @@ final libraryStreamProvider = StreamProvider<List<TrackWithArtists>>((ref) {
 
 final recentlyAddedTracksProvider = StreamProvider<List<TrackWithArtists>>((ref) {
   return ref.watch(trackRepositoryProvider).watchRecentlyAddedTracks(limitAmount: 12);
+});
+
+final randomTracksProvider = FutureProvider<List<TrackWithArtists>>((ref) {
+  return ref.watch(trackRepositoryProvider).getRandomTracks(limitAmount: 6);
 });

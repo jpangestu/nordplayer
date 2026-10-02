@@ -18,30 +18,31 @@ final adaptiveThemeProvider = FutureProvider<AdaptiveColorScheme>((ref) async {
       ? trackAlbumArtPath
       : cachedAlbumArtPath;
 
-  // Determine the correct ImageProvider based on the path
+  // Determine the correct ImageProvider based on the path.
+  // Downsample to 112x112 thumbnail: Material 3 ColorScheme extraction only requires
+  // a small palette sample and avoids decoding full multi-megabyte images into RAM.
   final ImageProvider imageProvider;
+  final FileImage? fileImage;
   if (albumArtPath != null && albumArtPath.isNotEmpty) {
-    // If it's a real path on the device, use FileImage
-    imageProvider = FileImage(File(albumArtPath));
+    fileImage = FileImage(File(albumArtPath));
+    imageProvider = ResizeImage(fileImage, width: 112, height: 112);
   } else {
-    // If it's a fallback asset bundled with the app, use AssetImage
-    imageProvider = const AssetImage('assets/images/default_background.png');
+    fileImage = null;
+    imageProvider = const ResizeImage(AssetImage('assets/images/default_background.png'), width: 112, height: 112);
   }
 
   // Register onDispose listener to evict the image from cache if the provider is cancelled or rebuilt.
   ref.onDispose(() {
-    if (imageProvider is FileImage) {
-      imageProvider.evict();
-    }
+    imageProvider.evict();
+    fileImage?.evict();
   });
 
   final generatedScheme = await ColorScheme.fromImageProvider(provider: imageProvider, brightness: themeBrightness);
 
   // Evict the image provider from Flutter's imageCache immediately after extraction
-  // to avoid retaining the full-resolution decoded image in memory.
-  if (imageProvider is FileImage) {
-    await imageProvider.evict();
-  }
+  // to avoid retaining the decoded image in memory.
+  await imageProvider.evict();
+  await fileImage?.evict();
 
   return AdaptiveColorScheme.fromColorScheme(generatedScheme);
 });

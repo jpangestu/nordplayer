@@ -267,7 +267,7 @@ class _AlbumDetailViewHeaderState extends ConsumerState<AlbumDetailViewHeader> {
       backgroundColor: uiState.isAdaptiveBg
           ? theme.colorScheme.surfaceContainer.withValues(alpha: uiState.adaptiveBgThemeOverlay)
           : theme.colorScheme.surface,
-      blurSigma: uiState.adaptiveBgPanelBlur,
+      blurSigma: uiState.isAdaptiveBg ? uiState.adaptiveBgPanelBlur : 0,
       child: Container(
         padding: const .symmetric(horizontal: 24, vertical: 24),
         height: 200 + 48 + 24 + 36,

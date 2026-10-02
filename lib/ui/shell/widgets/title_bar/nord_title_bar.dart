@@ -34,7 +34,7 @@ class _NordplayerTitleBarState extends ConsumerState<NordTitleBar> {
     final appIconSet = ref.watch(appIconProvider);
 
     return FrostedGlass(
-      blurSigma: (shellState.adaptiveBgPanelBlur + 30).clamp(0, 100),
+      blurSigma: shellState.isAdaptiveBg ? (shellState.adaptiveBgPanelBlur + 30).clamp(0, 100) : 0,
       backgroundColor: shellState.isAdaptiveBg
           ? colorScheme.surfaceContainer.withValues(alpha: shellState.adaptiveBgThemeOverlay)
           : colorScheme.surfaceContainer,
