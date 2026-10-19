@@ -1,11 +1,28 @@
+import 'dart:io';
+import 'dart:ui' show AppExitResponse;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nordplayer/core/utils/directory_helper.dart';
+import 'package:path/path.dart' as p;
+import 'package:typed_config/typed_config.dart';
 import 'package:window_manager/window_manager.dart';
+
+import 'config/app_config.dart';
+import 'routing/router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await windowManager.ensureInitialized();
+
+  final appSupportDir = await getConfigDirectory();
+  final configFile = File(p.join(appSupportDir.path, 'config.json'));
+  final config = await Config.initialize(
+    configFile: configFile,
+    create: AppConfig.new,
+    schemaVersion: currentSchemaVersion,
+  );
 
   WindowOptions windowOptions = const WindowOptions(
     size: Size(1080, 720),
@@ -15,7 +32,7 @@ void main() async {
     skipTaskbar: false,
     windowButtonVisibility: true,
     title: 'Nordplayer',
-    titleBarStyle: .hidden,
+    titleBarStyle: .normal,
   );
 
   windowManager.waitUntilReadyToShow(windowOptions, () async {
@@ -23,7 +40,17 @@ void main() async {
     await windowManager.focus();
   });
 
-  runApp(const ProviderScope(child: NordplayerApp()));
+  runApp(
+    ProviderScope(
+      overrides: [
+        appConfigProvider.overrideWith((ref) {
+          ref.onDispose(config.dispose);
+          return config;
+        }),
+      ],
+      child: const NordplayerApp(),
+    ),
+  );
 }
 
 class NordplayerApp extends ConsumerStatefulWidget {
@@ -34,14 +61,25 @@ class NordplayerApp extends ConsumerStatefulWidget {
 }
 
 class _NordplayerAppState extends ConsumerState<NordplayerApp> with WindowListener {
+  late final AppLifecycleListener _lifecycleListener;
+
   @override
   void initState() {
     super.initState();
     windowManager.addListener(this);
+
+    _lifecycleListener = AppLifecycleListener(
+      onExitRequested: () async {
+        // Flushes any debounced dirty config changes before window closes
+        await ref.read(appConfigProvider).flush();
+        return AppExitResponse.exit;
+      },
+    );
   }
 
   @override
   void dispose() {
+    _lifecycleListener.dispose();
     windowManager.removeListener(this);
     super.dispose();
   }
@@ -60,6 +98,9 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp> with WindowListen
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router();
+    final appConfig = ref.watch(appConfigProvider);
+    final themeMode = ref.watch(appConfig.themeMode.provider);
+
+    return MaterialApp.router(routerConfig: router, themeMode: themeMode, title: 'Nordplayer');
   }
 }

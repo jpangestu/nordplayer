@@ -18,7 +18,7 @@ linter:
     - prefer_const_constructors
 
 formatter:
-  page_width: 110
+  page_width: 100
 
 plugins:
   riverpod_lint: ^3.1.9
