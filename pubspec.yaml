@@ -37,9 +37,9 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/icons
-    - assets/icons/window_control/kde_breeze
-    - assets/icons/window_control/windows11
+    - assets/icons/
+    - assets/icons/window_control/kde_breeze/
+    - assets/icons/window_control/windows11/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
