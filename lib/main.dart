@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'dart:ui' show AppExitResponse;
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/utils/directory_helper.dart';
 import 'package:path/path.dart' as p;
 import 'package:typed_config/typed_config.dart';
@@ -30,9 +30,9 @@ void main() async {
     center: true,
     backgroundColor: Colors.transparent,
     skipTaskbar: false,
-    windowButtonVisibility: true,
+    windowButtonVisibility: false,
     title: 'Nordplayer',
-    titleBarStyle: .normal,
+    titleBarStyle: TitleBarStyle.hidden,
   );
 
   windowManager.waitUntilReadyToShow(windowOptions, () async {

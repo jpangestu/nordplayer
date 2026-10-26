@@ -61,6 +61,13 @@ class _Windows11WindowControlState extends State<Windows11WindowControl> with Wi
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final defaultIconColor = _isFocused
+        ? colorScheme.onSurface
+        : colorScheme.onSurface.withValues(alpha: 0.45);
+    final hoverOverlayColor = colorScheme.onSurface.withValues(alpha: 0.08);
+    final clickOverlayColor = colorScheme.onSurface.withValues(alpha: 0.15);
+
     return Row(
       children: [
         BaseButton(
@@ -69,11 +76,11 @@ class _Windows11WindowControlState extends State<Windows11WindowControl> with Wi
           buttonWidth: 46,
           enableSplash: false,
           iconSize: 13,
-          iconColor: _isFocused ? Colors.white : Colors.grey,
-          iconColorOnHover: Colors.white,
+          iconColor: defaultIconColor,
+          iconColorOnHover: colorScheme.onSurface,
           overlayShape: .rectangle,
-          overlayColor: Colors.white.withValues(alpha: 0.1),
-          overlayColorOnClick: Colors.white.withValues(alpha: 0.05),
+          overlayColor: hoverOverlayColor,
+          overlayColorOnClick: clickOverlayColor,
           tooltip: 'Minimize',
           onClick: () {
             windowManager.minimize();
@@ -88,11 +95,11 @@ class _Windows11WindowControlState extends State<Windows11WindowControl> with Wi
           buttonWidth: 46,
           enableSplash: false,
           iconSize: 13,
-          iconColor: _isFocused ? Colors.white : Colors.grey,
-          iconColorOnHover: Colors.white,
+          iconColor: defaultIconColor,
+          iconColorOnHover: colorScheme.onSurface,
           overlayShape: .rectangle,
-          overlayColor: Colors.white.withValues(alpha: 0.1),
-          overlayColorOnClick: Colors.white.withValues(alpha: 0.05),
+          overlayColor: hoverOverlayColor,
+          overlayColorOnClick: clickOverlayColor,
           tooltip: _isMaximized ? 'Restore' : 'Maximize',
           onClick: () {
             if (_isMaximized) {
@@ -108,11 +115,11 @@ class _Windows11WindowControlState extends State<Windows11WindowControl> with Wi
           buttonWidth: 46,
           enableSplash: false,
           iconSize: 13,
-          iconColor: _isFocused ? Colors.white : Colors.grey,
+          iconColor: defaultIconColor,
           iconColorOnHover: Colors.white,
           overlayShape: .rectangle,
-          overlayColor: const Color.fromARGB(255, 196, 43, 28),
-          overlayColorOnClick: const Color.fromARGB(255, 196, 43, 28).withValues(alpha: 0.9),
+          overlayColor: const Color(0xFFC42B1C),
+          overlayColorOnClick: const Color(0xFFC42B1C).withValues(alpha: 0.9),
           tooltip: 'Close',
           onClick: () {
             windowManager.close();

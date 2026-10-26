@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart' show ThemeMode;
 import 'package:typed_config/typed_config.dart';
 
 /// Current schema version for UI settings.

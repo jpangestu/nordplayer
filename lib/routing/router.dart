@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/ui/library/library_view.dart';
+import 'package:nordplayer/ui/shell/shell.dart';
 
 abstract final class Routes {
   static const libraryView = '/library';
@@ -17,7 +18,7 @@ final router = GoRouter(
   initialLocation: Routes.libraryView,
   routes: [
     StatefulShellRoute.indexedStack(
-      builder: (context, state, navigationShell) => navigationShell,
+      builder: (context, state, navigationShell) => Shell(child: navigationShell),
       branches: [
         StatefulShellBranch(
           routes: [

@@ -13,12 +13,15 @@ class BreezeWindowControl extends StatefulWidget {
 
 class _BreezeWindowControlState extends State<BreezeWindowControl> with WindowListener {
   bool _isMaximized = false;
+  bool _isFocused = true;
 
   Future<void> _initWindowState() async {
     bool isMax = await windowManager.isMaximized();
+    bool isFoc = await windowManager.isFocused();
     if (mounted) {
       setState(() {
         _isMaximized = isMax;
+        _isFocused = isFoc;
       });
     }
   }
@@ -47,20 +50,33 @@ class _BreezeWindowControlState extends State<BreezeWindowControl> with WindowLi
   }
 
   @override
+  void onWindowFocus() {
+    if (mounted) setState(() => _isFocused = true);
+  }
+
+  @override
+  void onWindowBlur() {
+    if (mounted) setState(() => _isFocused = false);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final defaultIconColor = _isFocused
+        ? colorScheme.onSurface
+        : colorScheme.onSurface.withValues(alpha: 0.45);
 
     return Row(
       children: [
         BaseButton(
-          svgAssetPath: 'assets/icons/window_control/breeze/window-minimize.svg',
+          svgAssetPath: 'assets/icons/window_control/kde_breeze/window-minimize.svg',
           buttonHeight: 24,
           buttonWidth: 24,
           enableSplash: false,
           iconSize: 16,
-          iconColor: colorScheme.onSurface,
+          iconColor: defaultIconColor,
           iconColorOnHover: colorScheme.surface,
-          overlayShape: .circle,
+          overlayShape: BoxShape.circle,
           overlayColor: colorScheme.onSurface,
           tooltip: 'Minimize',
           onClick: () {
@@ -72,15 +88,15 @@ class _BreezeWindowControlState extends State<BreezeWindowControl> with WindowLi
 
         BaseButton(
           svgAssetPath: _isMaximized
-              ? 'assets/icons/window_control/breeze/window-restore.svg'
-              : 'assets/icons/window_control/breeze/window-maximize.svg',
+              ? 'assets/icons/window_control/kde_breeze/window-restore.svg'
+              : 'assets/icons/window_control/kde_breeze/window-maximize.svg',
           buttonHeight: 24,
           buttonWidth: 24,
           enableSplash: false,
           iconSize: 16,
-          iconColor: colorScheme.onSurface,
+          iconColor: defaultIconColor,
           iconColorOnHover: colorScheme.surface,
-          overlayShape: .circle,
+          overlayShape: BoxShape.circle,
           overlayColor: colorScheme.onSurface,
           tooltip: _isMaximized ? 'Restore' : 'Maximize',
           onClick: () {
@@ -95,14 +111,14 @@ class _BreezeWindowControlState extends State<BreezeWindowControl> with WindowLi
         const SizedBox(width: 4.0),
 
         BaseButton(
-          svgAssetPath: 'assets/icons/window_control/breeze/window-close.svg',
+          svgAssetPath: 'assets/icons/window_control/kde_breeze/window-close.svg',
           buttonHeight: 24,
           buttonWidth: 24,
           enableSplash: false,
           iconSize: 16,
-          iconColor: Colors.white,
-          overlayShape: .circle,
-          overlayColor: Theme.of(context).colorScheme.error,
+          iconColor: _isFocused ? Colors.white : Colors.white70,
+          overlayShape: BoxShape.circle,
+          overlayColor: colorScheme.error,
           tooltip: 'Close',
           onClick: () {
             windowManager.close();
