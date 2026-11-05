@@ -2,11 +2,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart' show ThemeMode;
 import 'package:typed_config/typed_config.dart';
 
-/// Current schema version for UI settings.
 const currentSchemaVersion = 1;
 
-class AppConfig(super.builder) extends Config {
+final class AppConfig(super.builder) extends TypedConfig {
   final themeMode = builder.defineEnum('themeMode', ThemeMode.system, values: ThemeMode.values);
+  final ConfigEntry<String> selectedTheme = builder.define('theme', 'nord');
+  final adaptiveBg = builder.group('adaptiveBg', AdaptiveBg.new);
+}
+
+final class AdaptiveBg(super.builder) extends TypedConfig {
+  final isEnabled = builder.define('isEnabled', false);
+  final blurLevel = builder.define('blur', 20);
 }
 
 // ================================================================================================

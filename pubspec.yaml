@@ -26,6 +26,10 @@ dependencies:
   flutter_riverpod: ^3.4.3
   window_manager: ^0.5.1
 
+# dependency_overrides:
+#   typed_config:
+#     path: ../typed_config
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
