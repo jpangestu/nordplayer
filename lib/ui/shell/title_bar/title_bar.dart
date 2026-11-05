@@ -85,7 +85,7 @@ class _NordplayerTitleBarState extends ConsumerState<TitleBar> with WindowListen
     return Container(
       height: 34,
       decoration: BoxDecoration(
-        color: colorScheme.surface,
+        color: colorScheme.surfaceContainer,
         border: Border(
           bottom: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.35), width: 1),
         ),

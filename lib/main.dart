@@ -4,6 +4,7 @@ import 'dart:ui' show AppExitResponse;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/utils/directory_helper.dart';
+import 'package:nordplayer/theme/app_theme.dart';
 import 'package:path/path.dart' as p;
 import 'package:typed_config/typed_config.dart';
 import 'package:window_manager/window_manager.dart';
@@ -18,9 +19,11 @@ void main() async {
 
   final appSupportDir = await getConfigDirectory();
   final configFile = File(p.join(appSupportDir.path, 'config.json'));
-  final config = await Config.initialize(
+  final config = await TypedConfig.initialize(
     configFile: configFile,
+    watchConfigFile: true,
     create: AppConfig.new,
+    saveDefaultValue: true,
     schemaVersion: currentSchemaVersion,
   );
 
@@ -100,7 +103,14 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp> with WindowListen
   Widget build(BuildContext context) {
     final appConfig = ref.watch(appConfigProvider);
     final themeMode = ref.watch(appConfig.themeMode.provider);
+    final appTheme = ref.watch(appThemeProvider);
 
-    return MaterialApp.router(routerConfig: router, themeMode: themeMode, title: 'Nordplayer');
+    return MaterialApp.router(
+      routerConfig: router,
+      theme: appTheme.lightTheme,
+      darkTheme: appTheme.darkTheme,
+      themeMode: appTheme.resolveThemeMode(themeMode),
+      title: 'Nordplayer',
+    );
   }
 }
