@@ -128,16 +128,34 @@ bool Win32Window::Create(const std::wstring& title,
   const wchar_t* window_class =
       WindowClassRegistrar::GetInstance()->GetWindowClass();
 
-  const POINT target_point = {static_cast<LONG>(origin.x),
-                              static_cast<LONG>(origin.y)};
+  const POINT target_point = {static_cast<LONG>(origin.x < 0 ? 0 : origin.x),
+                              static_cast<LONG>(origin.y < 0 ? 0 : origin.y)};
   HMONITOR monitor = MonitorFromPoint(target_point, MONITOR_DEFAULTTONEAREST);
   UINT dpi = FlutterDesktopGetDpiForMonitor(monitor);
   double scale_factor = dpi / 96.0;
 
+  MONITORINFO monitor_info{};
+  monitor_info.cbSize = sizeof(MONITORINFO);
+  GetMonitorInfoW(monitor, &monitor_info);
+
+  int scaled_width = Scale(size.width, scale_factor);
+  int scaled_height = Scale(size.height, scale_factor);
+
+  // Auto-center within the monitor work area (excluding taskbar) if origin < 0;
+  // otherwise, apply DPI scaling to the explicit coordinates.
+  int x = origin.x < 0
+          ? monitor_info.rcWork.left +
+            (monitor_info.rcWork.right - monitor_info.rcWork.left - scaled_width) / 2
+          : Scale(origin.x, scale_factor);
+  int y = origin.y < 0
+          ? monitor_info.rcWork.top +
+            (monitor_info.rcWork.bottom - monitor_info.rcWork.top - scaled_height) / 2
+          : Scale(origin.y, scale_factor);
+
   HWND window = CreateWindow(
       window_class, title.c_str(), WS_OVERLAPPEDWINDOW,
-      Scale(origin.x, scale_factor), Scale(origin.y, scale_factor),
-      Scale(size.width, scale_factor), Scale(size.height, scale_factor),
+      x, y,
+      scaled_width, scaled_height,
       nullptr, nullptr, GetModuleHandle(nullptr), this);
 
   if (!window) {

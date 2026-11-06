@@ -3,84 +3,26 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:nordplayer/core/window/drag_to_move_area.dart';
+import 'package:nordplayer/core/window/native_window.dart';
 import 'package:nordplayer/ui/shell/title_bar/window_control/breeze.dart';
 import 'package:nordplayer/ui/shell/title_bar/window_control/windows11.dart';
-import 'package:window_manager/window_manager.dart';
 
-// windowManager.popUpWindowMenu is not working on windows
-// And the windows tiling popover when hovering over maximize button is still not added
-
-class TitleBar extends ConsumerStatefulWidget {
+class TitleBar extends ConsumerWidget {
   const TitleBar({super.key});
 
   @override
-  ConsumerState<TitleBar> createState() => _NordplayerTitleBarState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nativeWindow = ref.read(nativeWindowProvider);
+    final isFocused = ref.watch(isWindowFocusedProvider);
+    final isMaximized = ref.watch(isWindowMaximizedProvider);
 
-class _NordplayerTitleBarState extends ConsumerState<TitleBar> with WindowListener {
-  bool _isFocused = true;
-  bool _isMaximized = false;
-
-  Future<void> _initWindowState() async {
-    final focused = await windowManager.isFocused();
-    final maximized = await windowManager.isMaximized();
-    if (mounted) {
-      setState(() {
-        _isFocused = focused;
-        _isMaximized = maximized;
-      });
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    windowManager.addListener(this);
-    _initWindowState();
-  }
-
-  @override
-  void dispose() {
-    windowManager.removeListener(this);
-    super.dispose();
-  }
-
-  @override
-  void onWindowFocus() {
-    if (mounted) setState(() => _isFocused = true);
-  }
-
-  @override
-  void onWindowBlur() {
-    if (mounted) setState(() => _isFocused = false);
-  }
-
-  @override
-  void onWindowMaximize() {
-    if (mounted) setState(() => _isMaximized = true);
-  }
-
-  @override
-  void onWindowUnmaximize() {
-    if (mounted) setState(() => _isMaximized = false);
-  }
-
-  Future<void> _toggleMaximize() async {
-    if (await windowManager.isMaximized()) {
-      await windowManager.unmaximize();
-    } else {
-      await windowManager.maximize();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final titleColor = _isFocused
+    final titleColor = isFocused
         ? colorScheme.onSurface
         : colorScheme.onSurface.withValues(alpha: 0.5);
 
-    const double resizeEdgeHeight = 4.0;
+    const double resizeHitboxHeight = 6.0;
 
     return Container(
       height: 34,
@@ -93,19 +35,17 @@ class _NordplayerTitleBarState extends ConsumerState<TitleBar> with WindowListen
       child: Stack(
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onSecondaryTap: () async {
-                          await windowManager.popUpWindowMenu();
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.only(left: 8.0, right: 6),
+                child: DragToMoveArea(
+                  child: Container(
+                    color: Colors.transparent,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(left: 12.0, right: 6),
                           child: SvgPicture.asset(
                             'assets/icons/nordplayer_logo_white_transparent.svg',
                             width: 20,
@@ -113,85 +53,45 @@ class _NordplayerTitleBarState extends ConsumerState<TitleBar> with WindowListen
                             colorFilter: ColorFilter.mode(titleColor, BlendMode.srcIn),
                           ),
                         ),
-                      ),
-
-                      Expanded(
-                        child: DragToMoveArea(
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.translucent,
-                            onDoubleTap: _toggleMaximize,
-                            onSecondaryTap: () async {
-                              await windowManager.popUpWindowMenu();
-                            },
-                            child: Row(
-                              children: [
-                                Text(
-                                  'Nordplayer',
-                                  style: TextStyle(
-                                    fontFamily: 'inter',
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: titleColor,
-                                  ),
-                                ),
-                                const Spacer(),
-                              ],
-                            ),
+                        Text(
+                          'Nordplayer',
+                          style: TextStyle(
+                            fontFamily: 'inter',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: titleColor,
                           ),
                         ),
-                      ),
-
-                      DragToMoveArea(
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.translucent,
-                          onDoubleTap: _toggleMaximize,
-                          onSecondaryTap: () async {
-                            await windowManager.popUpWindowMenu();
-                          },
-                          // SizedBox can't be used inside DragToMoveArea because it can be clicked
-                          child: Container(width: 8, color: Colors.transparent),
-                        ),
-                      ),
-                    ],
+                        const Spacer(),
+                      ],
+                    ),
                   ),
                 ),
               ),
-
-              if (Platform.isWindows) ...[
-                DragToMoveArea(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onDoubleTap: _toggleMaximize,
-                    onSecondaryTap: () async {
-                      await windowManager.popUpWindowMenu();
-                    },
-                    child: Container(width: 8, color: Colors.transparent),
-                  ),
-                ),
+              if (Platform.isWindows)
+                const Windows11WindowControl()
+              else if (Platform.isLinux)
+                const BreezeWindowControl()
+              else
                 const Windows11WindowControl(),
-              ] else if (Platform.isLinux) ...[
-                const BreezeWindowControl(),
-              ] else ...[
-                const Windows11WindowControl(),
-              ],
             ],
           ),
 
-          // To increase window resize hitbox when window is not maximized
-          if (!_isMaximized)
+          // Custom resize hitbox at the very top of the window when not maximized
+          if (!isMaximized)
             Positioned(
               top: 0,
               left: 0,
               right: 0,
-              height: resizeEdgeHeight,
+              height: resizeHitboxHeight,
               child: Row(
                 children: [
                   MouseRegion(
                     cursor: SystemMouseCursors.resizeUpLeft,
                     child: GestureDetector(
                       behavior: HitTestBehavior.translucent,
-                      onPanStart: (_) => windowManager.startResizing(ResizeEdge.topLeft),
-                      child: const SizedBox(width: 8, height: resizeEdgeHeight),
+                      onPanStart: (_) => nativeWindow.startResizing(WindowResizeEdge.topLeft),
+                      child: const SizedBox(width: 8, height: resizeHitboxHeight),
                     ),
                   ),
                   Expanded(
@@ -199,8 +99,8 @@ class _NordplayerTitleBarState extends ConsumerState<TitleBar> with WindowListen
                       cursor: SystemMouseCursors.resizeUp,
                       child: GestureDetector(
                         behavior: HitTestBehavior.translucent,
-                        onPanStart: (_) => windowManager.startResizing(ResizeEdge.top),
-                        onDoubleTap: _toggleMaximize,
+                        onPanStart: (_) => nativeWindow.startResizing(WindowResizeEdge.top),
+                        onDoubleTap: nativeWindow.toggleMaximize,
                       ),
                     ),
                   ),
@@ -208,8 +108,8 @@ class _NordplayerTitleBarState extends ConsumerState<TitleBar> with WindowListen
                     cursor: SystemMouseCursors.resizeUpRight,
                     child: GestureDetector(
                       behavior: HitTestBehavior.translucent,
-                      onPanStart: (_) => windowManager.startResizing(ResizeEdge.topRight),
-                      child: const SizedBox(width: 8, height: resizeEdgeHeight),
+                      onPanStart: (_) => nativeWindow.startResizing(WindowResizeEdge.topRight),
+                      child: const SizedBox(width: 8, height: resizeHitboxHeight),
                     ),
                   ),
                 ],

@@ -1,68 +1,21 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:nordplayer/core/window/native_window.dart';
 import 'package:nordplayer/ui/shared/base_button.dart';
-import 'package:window_manager/window_manager.dart';
 
 // Window control icons obtained from copying the included breeze icons in usr/share/icons/ (CachyOS KDE).
 
-class BreezeWindowControl extends StatefulWidget {
+class BreezeWindowControl extends ConsumerWidget {
   const BreezeWindowControl({super.key});
 
   @override
-  State<BreezeWindowControl> createState() => _BreezeWindowControlState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isMaximized = ref.watch(isWindowMaximizedProvider);
+    final isFocused = ref.watch(isWindowFocusedProvider);
+    final nativeWindow = ref.read(nativeWindowProvider);
 
-class _BreezeWindowControlState extends State<BreezeWindowControl> with WindowListener {
-  bool _isMaximized = false;
-  bool _isFocused = true;
-
-  Future<void> _initWindowState() async {
-    bool isMax = await windowManager.isMaximized();
-    bool isFoc = await windowManager.isFocused();
-    if (mounted) {
-      setState(() {
-        _isMaximized = isMax;
-        _isFocused = isFoc;
-      });
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    windowManager.addListener(this);
-    _initWindowState();
-  }
-
-  @override
-  void dispose() {
-    windowManager.removeListener(this);
-    super.dispose();
-  }
-
-  @override
-  void onWindowMaximize() {
-    if (mounted) setState(() => _isMaximized = true);
-  }
-
-  @override
-  void onWindowUnmaximize() {
-    if (mounted) setState(() => _isMaximized = false);
-  }
-
-  @override
-  void onWindowFocus() {
-    if (mounted) setState(() => _isFocused = true);
-  }
-
-  @override
-  void onWindowBlur() {
-    if (mounted) setState(() => _isFocused = false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final defaultIconColor = _isFocused
+    final defaultIconColor = isFocused
         ? colorScheme.onSurface
         : colorScheme.onSurface.withValues(alpha: 0.45);
 
@@ -79,15 +32,11 @@ class _BreezeWindowControlState extends State<BreezeWindowControl> with WindowLi
           overlayShape: BoxShape.circle,
           overlayColor: colorScheme.onSurface,
           tooltip: 'Minimize',
-          onClick: () {
-            windowManager.minimize();
-          },
+          onClick: nativeWindow.minimize,
         ),
-
         const SizedBox(width: 4.0),
-
         BaseButton(
-          svgAssetPath: _isMaximized
+          svgAssetPath: isMaximized
               ? 'assets/icons/window_control/kde_breeze/window-restore.svg'
               : 'assets/icons/window_control/kde_breeze/window-maximize.svg',
           buttonHeight: 24,
@@ -98,33 +47,22 @@ class _BreezeWindowControlState extends State<BreezeWindowControl> with WindowLi
           iconColorOnHover: colorScheme.surface,
           overlayShape: BoxShape.circle,
           overlayColor: colorScheme.onSurface,
-          tooltip: _isMaximized ? 'Restore' : 'Maximize',
-          onClick: () {
-            if (_isMaximized) {
-              windowManager.unmaximize();
-            } else {
-              windowManager.maximize();
-            }
-          },
+          tooltip: isMaximized ? 'Restore' : 'Maximize',
+          onClick: nativeWindow.toggleMaximize,
         ),
-
         const SizedBox(width: 4.0),
-
         BaseButton(
           svgAssetPath: 'assets/icons/window_control/kde_breeze/window-close.svg',
           buttonHeight: 24,
           buttonWidth: 24,
           enableSplash: false,
           iconSize: 16,
-          iconColor: _isFocused ? Colors.white : Colors.white70,
+          iconColor: isFocused ? Colors.white : Colors.white70,
           overlayShape: BoxShape.circle,
           overlayColor: colorScheme.error,
           tooltip: 'Close',
-          onClick: () {
-            windowManager.close();
-          },
+          onClick: nativeWindow.close,
         ),
-
         const SizedBox(width: 8.0),
       ],
     );
