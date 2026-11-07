@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/core/window/drag_to_move_area.dart';
 import 'package:nordplayer/core/window/native_window.dart';
 import 'package:nordplayer/ui/shell/title_bar/window_control/breeze.dart';
@@ -24,10 +25,16 @@ class TitleBar extends ConsumerWidget {
 
     const double resizeHitboxHeight = 6.0;
 
+    final appConfig = ref.watch(appConfigProvider);
+    final windowBgType = ref.watch(appConfig.windowBg.type.provider);
+    final themeOverlay = ref.watch(appConfig.windowBg.albumArt.themeOverlay.provider);
+
     return Container(
       height: 34,
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainer,
+        color: windowBgType != WindowBgType.solid
+            ? colorScheme.surfaceContainer.withValues(alpha: (themeOverlay + 0.2).clamp(0.0, 1.0))
+            : colorScheme.surfaceContainer,
         border: Border(
           bottom: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.35), width: 1),
         ),
@@ -39,32 +46,27 @@ class TitleBar extends ConsumerWidget {
             children: [
               Expanded(
                 child: DragToMoveArea(
-                  child: Container(
-                    color: Colors.transparent,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(left: 12.0, right: 6),
-                          child: SvgPicture.asset(
-                            'assets/icons/nordplayer_logo_white_transparent.svg',
-                            width: 20,
-                            height: 20,
-                            colorFilter: ColorFilter.mode(titleColor, BlendMode.srcIn),
-                          ),
+                  child: Row(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 12.0, right: 6),
+                        child: SvgPicture.asset(
+                          'assets/icons/nordplayer_logo_white_transparent.svg',
+                          width: 20,
+                          height: 20,
+                          colorFilter: ColorFilter.mode(titleColor, BlendMode.srcIn),
                         ),
-                        Text(
-                          'Nordplayer',
-                          style: TextStyle(
-                            fontFamily: 'inter',
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: titleColor,
-                          ),
+                      ),
+                      Text(
+                        'Nordplayer',
+                        style: TextStyle(
+                          fontFamily: 'inter',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: titleColor,
                         ),
-                        const Spacer(),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
