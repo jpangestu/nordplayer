@@ -139,4 +139,80 @@ class Win32Window extends NativeWindow {
       checkStateChanges();
     }
   }
+
+  @override
+  /// Set null for solid
+  void setWindowPlatformStyle(PlatformStyle? platformStyle) {
+    if (platformStyle is! WindowsWindowStyle && platformStyle != null) return;
+    final h = hwnd;
+    if (h.address == 0) return;
+
+    final isWindowsWindowStyle = platformStyle != null;
+
+    // Reset any legacy composition accent policy
+    final accent = calloc<ACCENT_POLICY>();
+    final compData = calloc<WINDOWCOMPOSITIONATTRIBDATA>();
+    try {
+      accent.ref.AccentState = ACCENT_DISABLED;
+      accent.ref.AccentFlags = 2;
+      accent.ref.GradientColor = 0;
+      accent.ref.AnimationId = 0;
+
+      compData.ref.Attrib = WCA_ACCENT_POLICY;
+      compData.ref.pvData = accent.cast();
+      compData.ref.cbData = sizeOf<ACCENT_POLICY>();
+      SetWindowCompositionAttribute(h, compData);
+    } finally {
+      free(accent);
+      free(compData);
+    }
+
+    // DWM Frame Margins:
+    // - System effects require -1 margins across the entire window.
+    // - Solid / None restores standard {0, 0, 1, 0} margins.
+    final margins = calloc<MARGINS>()
+      ..ref.cxLeftWidth = isWindowsWindowStyle ? -1 : 0
+      ..ref.cxRightWidth = isWindowsWindowStyle ? -1 : 0
+      ..ref.cyTopHeight = isWindowsWindowStyle ? -1 : 1
+      ..ref.cyBottomHeight = isWindowsWindowStyle ? -1 : 0;
+    try {
+      DwmExtendFrameIntoClientArea(h, margins);
+    } finally {
+      free(margins);
+    }
+
+    // Titlebar caption fill (0xFFFFFFFF = DWMWA_COLOR_DEFAULT) / (0xFFFFFFFE = DWMWA_COLOR_NONE)
+    final captionColor = calloc<DWORD>()..value = isWindowsWindowStyle ? 0xFFFFFFFE : 0xFFFFFFFF;
+    try {
+      DwmSetWindowAttribute(h, DWMWA_CAPTION_COLOR, captionColor, sizeOf<DWORD>());
+    } finally {
+      free(captionColor);
+    }
+
+    // DWM System Backdrop Type:
+    final backdropType = switch (platformStyle) {
+      null => 1, // DWMSBT_NONE (1) No system backdrop / solid
+      WindowsWindowStyle.mica => 2, // DWMSBT_MAINWINDOW (2) for Mica
+      WindowsWindowStyle.acrylic => 3, // DWMSBT_TRANSIENTWINDOW (3) for Acrylic
+      WindowsWindowStyle.micaAlt => 4, // DWMSBT_TABBEDWINDOW (4) for Mica Alt
+    };
+
+    final backdropPtr = calloc<DWORD>()..value = backdropType;
+    try {
+      DwmSetWindowAttribute(h, DWMWA_SYSTEMBACKDROP_TYPE, backdropPtr, sizeOf<DWORD>());
+    } finally {
+      free(backdropPtr);
+    }
+
+    // Force DWM to update frame composition immediately
+    SetWindowPos(
+      h,
+      HWND(nullptr),
+      0,
+      0,
+      0,
+      0,
+      SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE,
+    );
+  }
 }

@@ -4,6 +4,7 @@ import 'dart:ui' show AppExitResponse;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/core/utils/directory_helper.dart';
+import 'package:nordplayer/core/window/native_window.dart';
 import 'package:nordplayer/theme/app_theme.dart';
 import 'package:path/path.dart' as p;
 import 'package:typed_config/typed_config.dart';
@@ -16,7 +17,7 @@ void main() async {
 
   final appSupportDir = await getConfigDirectory();
   final configFile = File(p.join(appSupportDir.path, 'config.json'));
-  final config = await TypedConfig.initialize(
+  final appConfig = await TypedConfig.initialize(
     configFile: configFile,
     watchConfigFile: true,
     create: AppConfig.new,
@@ -24,12 +25,16 @@ void main() async {
     schemaVersion: currentSchemaVersion,
   );
 
+  if (appConfig.windowBg.type.value == WindowBgType.platformStyle) {
+    NativeWindow.instance.setWindowPlatformStyle(appConfig.windowBg.platformStyle.windows.value);
+  }
+
   runApp(
     ProviderScope(
       overrides: [
         appConfigProvider.overrideWith((ref) {
-          ref.onDispose(config.dispose);
-          return config;
+          ref.onDispose(appConfig.dispose);
+          return appConfig;
         }),
       ],
       child: const NordplayerApp(),

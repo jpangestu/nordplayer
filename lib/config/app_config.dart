@@ -1,17 +1,35 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart' show ThemeMode;
+import 'package:nordplayer/core/window/native_window.dart';
 import 'package:typed_config/typed_config.dart';
 
 const currentSchemaVersion = 1;
 
 final class AppConfig(super.builder) extends TypedConfig {
   final themeMode = builder.defineEnum('themeMode', ThemeMode.system, values: ThemeMode.values);
-  final ConfigEntry<String> selectedTheme = builder.define('theme', 'nord');
-  final adaptiveBg = builder.group('adaptiveBg', AdaptiveBg.new);
+  final ConfigEntry<String> colorTheme = builder.define('colorTheme', 'nord');
+
+  final windowBg = builder.group('windowBackground', WindowBackgroundConfig.new);
 }
 
-final class AdaptiveBg(super.builder) extends TypedConfig {
-  final isEnabled = builder.define('isEnabled', false);
+enum WindowBgType { solid, platformStyle, albumArt, customImage }
+
+final class WindowBackgroundConfig(super.builder) extends TypedConfig {
+  final type = builder.defineEnum('type', WindowBgType.solid, values: WindowBgType.values);
+  final platformStyle = builder.group('platformStyle', PlatformStyleConfig.new);
+  final albumArt = builder.group('albumArt', AlbumArtConfig.new);
+}
+
+final class PlatformStyleConfig(super.builder) extends TypedConfig {
+  final windows = builder.defineEnum(
+    'windows',
+    WindowsWindowStyle.acrylic,
+    values: WindowsWindowStyle.values,
+  );
+}
+
+final class AlbumArtConfig(super.builder) extends TypedConfig {
+  final themeOverlay = builder.define('themeOverlay', 0.85);
   final blurLevel = builder.define('blur', 20);
 }
 

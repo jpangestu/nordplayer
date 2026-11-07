@@ -21,14 +21,14 @@ class Windows11WindowControl extends ConsumerWidget {
         ? colorScheme.onSurface
         : colorScheme.onSurface.withValues(alpha: 0.45);
     final hoverOverlayColor = colorScheme.onSurface.withValues(alpha: 0.08);
-    final clickOverlayColor = colorScheme.onSurface.withValues(alpha: 0.15);
+    final clickOverlayColor = colorScheme.onSurface.withValues(alpha: 0.05);
 
     return Row(
       children: [
         BaseButton(
           svgAssetPath: 'assets/icons/window_control/windows11/e921_chrome_minimize.svg',
           buttonHeight: 34,
-          buttonWidth: 46,
+          buttonWidth: 47.2,
           enableSplash: false,
           iconSize: 13,
           iconColor: defaultIconColor,
@@ -44,7 +44,7 @@ class Windows11WindowControl extends ConsumerWidget {
               ? 'assets/icons/window_control/windows11/e923_chrome_restore.svg'
               : 'assets/icons/window_control/windows11/e922_chrome_maximize.svg',
           buttonHeight: 34,
-          buttonWidth: 46,
+          buttonWidth: 47.2,
           enableSplash: false,
           iconSize: 13,
           iconColor: defaultIconColor,
@@ -58,7 +58,7 @@ class Windows11WindowControl extends ConsumerWidget {
         BaseButton(
           svgAssetPath: 'assets/icons/window_control/windows11/e8bb_chrome_close.svg',
           buttonHeight: 34,
-          buttonWidth: 46,
+          buttonWidth: 47.2,
           enableSplash: false,
           iconSize: 13,
           iconColor: defaultIconColor,

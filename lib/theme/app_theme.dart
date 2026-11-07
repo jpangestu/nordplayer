@@ -10,7 +10,7 @@ final availableThemes = <AppTheme>[nordTheme, graphiteTheme];
 /// Active ThemeDefinition based on user setting
 final appThemeProvider = Provider<AppTheme>((ref) {
   final appConfig = ref.watch(appConfigProvider);
-  final selectedTheme = ref.watch(appConfig.selectedTheme.provider);
+  final selectedTheme = ref.watch(appConfig.colorTheme.provider);
 
   return availableThemes.firstWhere(
     (theme) => theme.name.toLowerCase() == selectedTheme.toLowerCase(),

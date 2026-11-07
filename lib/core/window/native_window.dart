@@ -38,6 +38,10 @@ enum WindowResizeEdge {
   bottomRight,
 }
 
+sealed class PlatformStyle {}
+
+enum WindowsWindowStyle implements PlatformStyle { acrylic, mica, micaAlt }
+
 /// Abstract base controller for native desktop window operations.
 ///
 /// Defines the cross-platform window contract and uses [WidgetsBindingObserver] to reactively
@@ -80,6 +84,8 @@ abstract class NativeWindow with WidgetsBindingObserver {
     }
   }
 
+  void setWindowPlatformStyle(PlatformStyle? pllatformStyle) {}
+
   // ==============================================================================================
   // State observation & listener management
   // ==============================================================================================
@@ -103,7 +109,8 @@ abstract class NativeWindow with WidgetsBindingObserver {
     // and avoid inconsistent reads across the check and assignment.
     final currentMaximizedState = isMaximized;
     final currentFocusedState = isFocused;
-    if (currentMaximizedState != _lastMaximizedState || currentFocusedState != _lastFocusedState) {
+
+    if (_lastMaximizedState != currentMaximizedState || _lastFocusedState != currentFocusedState) {
       _lastMaximizedState = currentMaximizedState;
       _lastFocusedState = currentFocusedState;
       notifyListeners();
@@ -121,12 +128,6 @@ abstract class NativeWindow with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     checkStateChanges();
-  }
-
-  @mustCallSuper
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _listeners.clear();
   }
 }
 
@@ -152,9 +153,9 @@ class _NoOpNativeWindow extends NativeWindow {
   void startResizing(WindowResizeEdge edge) {}
 }
 
-// =============================================================================
-// Riverpod Integration
-// =============================================================================
+// ================================================================================================
+// Riverpod Providers
+// ================================================================================================
 
 /// Provider for the [NativeWindow] singleton instance.
 final nativeWindowProvider = Provider<NativeWindow>((ref) => NativeWindow.instance);
@@ -167,17 +168,19 @@ final isWindowMaximizedProvider = NotifierProvider<WindowMaximizedNotifier, bool
 class WindowMaximizedNotifier extends Notifier<bool> {
   @override
   bool build() {
-    final window = ref.watch(nativeWindowProvider);
+    final nativeWindow = ref.read(nativeWindowProvider);
+
     void listener() {
-      final maximized = window.isMaximized;
-      if (state != maximized) {
-        state = maximized;
+      final isMaximized = nativeWindow.isMaximized;
+      if (state != isMaximized) {
+        state = isMaximized;
       }
     }
 
-    window.addListener(listener);
-    ref.onDispose(() => window.removeListener(listener));
-    return window.isMaximized;
+    nativeWindow.addListener(listener);
+    ref.onDispose(() => nativeWindow.removeListener(listener));
+
+    return nativeWindow.isMaximized;
   }
 }
 
@@ -189,16 +192,18 @@ final isWindowFocusedProvider = NotifierProvider<WindowFocusedNotifier, bool>(
 class WindowFocusedNotifier extends Notifier<bool> {
   @override
   bool build() {
-    final window = ref.watch(nativeWindowProvider);
+    final nativeWindow = ref.read(nativeWindowProvider);
+
     void listener() {
-      final focused = window.isFocused;
-      if (state != focused) {
-        state = focused;
+      final isFocused = nativeWindow.isFocused;
+      if (state != isFocused) {
+        state = isFocused;
       }
     }
 
-    window.addListener(listener);
-    ref.onDispose(() => window.removeListener(listener));
-    return window.isFocused;
+    nativeWindow.addListener(listener);
+    ref.onDispose(() => nativeWindow.removeListener(listener));
+
+    return nativeWindow.isFocused;
   }
 }
