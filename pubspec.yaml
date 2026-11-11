@@ -42,6 +42,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/
     - assets/icons/
     - assets/icons/window_control/kde_breeze/
     - assets/icons/window_control/windows11/

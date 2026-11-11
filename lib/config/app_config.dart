@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:material_ui/material_ui.dart' show ThemeMode;
+import 'package:material_ui/material_ui.dart' show BoxFit, ThemeMode;
 import 'package:nordplayer/core/window/native_window.dart';
 import 'package:typed_config/typed_config.dart';
 
@@ -8,6 +8,8 @@ const currentSchemaVersion = 1;
 final class AppConfig(super.builder) extends TypedConfig {
   final themeMode = builder.defineEnum('themeMode', ThemeMode.system, values: ThemeMode.values);
   final ConfigEntry<String> colorTheme = builder.define('colorTheme', 'nord');
+  final themeOverlayOpacity = builder.define('themeOverlayOpacity', 0.40);
+  final panelBlurLevel = builder.define('panelBlurLevel', 20.0);
 
   final windowBg = builder.group('windowBackground', WindowBackgroundConfig.new);
 }
@@ -29,8 +31,8 @@ final class PlatformStyleConfig(super.builder) extends TypedConfig {
 }
 
 final class AlbumArtConfig(super.builder) extends TypedConfig {
-  final themeOverlay = builder.define('themeOverlay', 0.85);
-  final blurLevel = builder.define('blur', 20);
+  final fit = builder.defineEnum('fit', BoxFit.cover, values: BoxFit.values);
+  final blurSigma = builder.define('blur', 20.0);
 }
 
 // ================================================================================================

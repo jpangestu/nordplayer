@@ -15,9 +15,11 @@ class LibraryViewState extends ConsumerState<LibraryView> {
   Widget build(BuildContext context) {
     final appConfig = ref.watch(appConfigProvider);
     final themeMode = ref.watch(appConfig.themeMode.provider);
+    final themeOverlayOpacity = ref.watch(appConfig.themeOverlayOpacity.provider);
     final windowBgType = ref.watch(appConfig.windowBg.type.provider);
     final platformStyle = ref.watch(appConfig.windowBg.platformStyle.windows.provider);
-    final themeOverlay = ref.watch(appConfig.windowBg.albumArt.themeOverlay.provider);
+    final albumArtBlur = ref.watch(appConfig.windowBg.albumArt.blurSigma.provider);
+    final albumArtFit = ref.watch(appConfig.windowBg.albumArt.fit.provider);
 
     final textTheme = Theme.of(context).textTheme;
 
@@ -119,21 +121,73 @@ class LibraryViewState extends ConsumerState<LibraryView> {
                     },
                   ),
                 ],
+                if (windowBgType == WindowBgType.albumArt) ...[
+                  const SizedBox(height: 24),
+                  Text(
+                    'Album Art Blur: ${albumArtBlur.round()}px',
+                    style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  Slider(
+                    value: albumArtBlur.clamp(0.0, 100.0),
+                    min: 0.0,
+                    max: 100.0,
+                    divisions: 100,
+                    label: '${albumArtBlur.round()}px',
+                    onChanged: (newVal) {
+                      appConfig.windowBg.albumArt.blurSigma.value = newVal;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Album Art Fit: ${albumArtFit.name.toUpperCase()}',
+                    style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 12),
+                  SegmentedButton<BoxFit>(
+                    segments: const [
+                      ButtonSegment<BoxFit>(
+                        value: BoxFit.cover,
+                        icon: Icon(Icons.crop_free_outlined),
+                        label: Text('Cover'),
+                      ),
+                      ButtonSegment<BoxFit>(
+                        value: BoxFit.contain,
+                        icon: Icon(Icons.fit_screen_outlined),
+                        label: Text('Contain'),
+                      ),
+                      ButtonSegment<BoxFit>(
+                        value: BoxFit.fill,
+                        icon: Icon(Icons.aspect_ratio_outlined),
+                        label: Text('Fill'),
+                      ),
+                      ButtonSegment<BoxFit>(
+                        value: BoxFit.fitWidth,
+                        icon: Icon(Icons.swap_horiz_outlined),
+                        label: Text('Fit Width'),
+                      ),
+                    ],
+                    selected: {albumArtFit},
+                    onSelectionChanged: (newSelection) {
+                      appConfig.windowBg.albumArt.fit.value = newSelection.first;
+                    },
+                  ),
+                ],
                 const SizedBox(height: 32),
                 Text(
-                  'Theme Overlay Opacity: ${(themeOverlay * 100).round()}%',
+                  'Theme Overlay Opacity: ${(themeOverlayOpacity * 100).round()}%',
                   style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
                 Slider(
-                  value: themeOverlay.clamp(0.0, 1.0),
+                  value: themeOverlayOpacity.clamp(0.0, 1.0),
                   min: 0.0,
                   max: 1.0,
                   divisions: 100,
-                  label: '${(themeOverlay * 100).round()}%',
+                  label: '${(themeOverlayOpacity * 100).round()}%',
                   onChanged: windowBgType != WindowBgType.solid
                       ? (newVal) {
-                          appConfig.windowBg.albumArt.themeOverlay.value = newVal;
+                          appConfig.themeOverlayOpacity.value = newVal;
                         }
                       : null,
                 ),
