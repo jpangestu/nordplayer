@@ -37,16 +37,16 @@ final class PlatformStyleConfig(super.builder) extends TypedConfig {
 
 final class AlbumArtConfig(super.builder) extends TypedConfig {
   final fit = builder.defineEnum('fit', BoxFit.cover, values: BoxFit.values);
-  final blurSigma = builder.define('blur', 20.0);
+  final blurRadius = builder.define('blurRadius', 20.0);
 }
 
 final class CustomImageConfig(super.builder) extends TypedConfig {
   final fit = builder.defineEnum('fit', BoxFit.cover, values: BoxFit.values);
-  final blurSigma = builder.define('blur', 20.0);
+  final blurRadius = builder.define('blurRadius', 20.0);
 }
 
 final class SurfaceConfig(super.builder) extends TypedConfig {
-  final blurSigma = builder.define('blurSigma', 20.0);
+  final blurRadius = builder.define('blurRadius', 20.0);
   final opacityLow = builder.define('opacityLow', 0.5);
   final opacityMid = builder.define('opacityMid', 0.7);
   final opacityHigh = builder.define('opacityHigh', 0.9);

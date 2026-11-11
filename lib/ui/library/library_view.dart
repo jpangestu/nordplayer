@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/core/window/native_window.dart';
+import 'package:nordplayer/routing/router.dart';
 
 class LibraryView extends ConsumerStatefulWidget {
   const LibraryView({super.key});
@@ -18,7 +20,7 @@ class LibraryViewState extends ConsumerState<LibraryView> {
     final themeOverlayOpacity = ref.watch(appConfig.windowBackdrop.themeOverlayOpacity.provider);
     final windowBackdropType = ref.watch(appConfig.windowBackdrop.type.provider);
     final platformStyle = ref.watch(appConfig.windowBackdrop.platformStyle.windows.provider);
-    final albumArtBlur = ref.watch(appConfig.windowBackdrop.albumArt.blurSigma.provider);
+    final albumArtBlur = ref.watch(appConfig.windowBackdrop.albumArt.blurRadius.provider);
     final albumArtFit = ref.watch(appConfig.windowBackdrop.albumArt.fit.provider);
 
     final textTheme = Theme.of(context).textTheme;
@@ -135,7 +137,7 @@ class LibraryViewState extends ConsumerState<LibraryView> {
                     divisions: 100,
                     label: '${albumArtBlur.round()}px',
                     onChanged: (newVal) {
-                      appConfig.windowBackdrop.albumArt.blurSigma.value = newVal;
+                      appConfig.windowBackdrop.albumArt.blurRadius.value = newVal;
                     },
                   ),
                   const SizedBox(height: 16),
@@ -190,6 +192,15 @@ class LibraryViewState extends ConsumerState<LibraryView> {
                           appConfig.windowBackdrop.themeOverlayOpacity.value = newVal;
                         }
                       : null,
+                ),
+                const SizedBox(height: 36),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.tonalIcon(
+                    icon: const Icon(Icons.grid_view_rounded),
+                    label: const Text('Open AdaptiveSurface Test Suite'),
+                    onPressed: () => context.push(Routes.surfaceBenchmark),
+                  ),
                 ),
               ],
             ),

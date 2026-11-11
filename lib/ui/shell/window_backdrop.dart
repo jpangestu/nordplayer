@@ -84,7 +84,7 @@ class _WindowBackdropState extends ConsumerState<WindowBackdrop> {
     final appConfig = ref.watch(appConfigProvider);
     final windowBackdropType = ref.watch(appConfig.windowBackdrop.type.provider);
     final themeOverlayOpacity = ref.watch(appConfig.windowBackdrop.themeOverlayOpacity.provider);
-    final albumArtBlurSigma = ref.watch(appConfig.windowBackdrop.albumArt.blurSigma.provider);
+    final albumArtBlurRadius = ref.watch(appConfig.windowBackdrop.albumArt.blurRadius.provider);
     final albumArtFit = ref.watch(appConfig.windowBackdrop.albumArt.fit.provider);
 
     final colorScheme = Theme.of(context).colorScheme;
@@ -126,8 +126,8 @@ class _WindowBackdropState extends ConsumerState<WindowBackdrop> {
           ImageFiltered(
             imageFilter: ui.ImageFilter.blur(
               tileMode: ui.TileMode.clamp,
-              sigmaX: albumArtBlurSigma,
-              sigmaY: albumArtBlurSigma,
+              sigmaX: albumArtBlurRadius,
+              sigmaY: albumArtBlurRadius,
             ),
             child: Image.asset('assets/album_art.jpg', fit: albumArtFit),
           ),
