@@ -25,8 +25,10 @@ void main() async {
     schemaVersion: currentSchemaVersion,
   );
 
-  if (appConfig.windowBg.type.value == WindowBgType.platformStyle) {
-    NativeWindow.instance.setWindowPlatformStyle(appConfig.windowBg.platformStyle.windows.value);
+  if (appConfig.windowBackdrop.type.value == WindowBackdropType.platformStyle) {
+    NativeWindow.instance.setWindowPlatformStyle(
+      appConfig.windowBackdrop.platformStyle.windows.value,
+    );
   }
 
   runApp(
