@@ -8,18 +8,23 @@ const currentSchemaVersion = 1;
 final class AppConfig(super.builder) extends TypedConfig {
   final themeMode = builder.defineEnum('themeMode', ThemeMode.system, values: ThemeMode.values);
   final ConfigEntry<String> colorTheme = builder.define('colorTheme', 'nord');
-  final themeOverlayOpacity = builder.define('themeOverlayOpacity', 0.40);
-  final panelBlurLevel = builder.define('panelBlurLevel', 20.0);
 
-  final windowBg = builder.group('windowBackground', WindowBackgroundConfig.new);
+  final windowBackdrop = builder.group('windowBackground', WindowBackdropConfig.new);
+  final surface = builder.group('surface', SurfaceConfig.new);
 }
 
-enum WindowBgType { solid, platformStyle, albumArt, customImage }
+enum WindowBackdropType { solid, platformStyle, albumArt, customImage }
 
-final class WindowBackgroundConfig(super.builder) extends TypedConfig {
-  final type = builder.defineEnum('type', WindowBgType.solid, values: WindowBgType.values);
+final class WindowBackdropConfig(super.builder) extends TypedConfig {
+  final type = builder.defineEnum(
+    'type',
+    WindowBackdropType.solid,
+    values: WindowBackdropType.values,
+  );
+  final themeOverlayOpacity = builder.define('themeOverlayOpacity', 0.4);
   final platformStyle = builder.group('platformStyle', PlatformStyleConfig.new);
   final albumArt = builder.group('albumArt', AlbumArtConfig.new);
+  final customImage = builder.group('customImage', CustomImageConfig.new);
 }
 
 final class PlatformStyleConfig(super.builder) extends TypedConfig {
@@ -33,6 +38,18 @@ final class PlatformStyleConfig(super.builder) extends TypedConfig {
 final class AlbumArtConfig(super.builder) extends TypedConfig {
   final fit = builder.defineEnum('fit', BoxFit.cover, values: BoxFit.values);
   final blurSigma = builder.define('blur', 20.0);
+}
+
+final class CustomImageConfig(super.builder) extends TypedConfig {
+  final fit = builder.defineEnum('fit', BoxFit.cover, values: BoxFit.values);
+  final blurSigma = builder.define('blur', 20.0);
+}
+
+final class SurfaceConfig(super.builder) extends TypedConfig {
+  final blurSigma = builder.define('blurSigma', 20.0);
+  final opacityLow = builder.define('opacityLow', 0.5);
+  final opacityMid = builder.define('opacityMid', 0.7);
+  final opacityHigh = builder.define('opacityHigh', 0.9);
 }
 
 // ================================================================================================

@@ -26,13 +26,13 @@ class TitleBar extends ConsumerWidget {
     const double resizeHitboxHeight = 6.0;
 
     final appConfig = ref.watch(appConfigProvider);
-    final windowBgType = ref.watch(appConfig.windowBg.type.provider);
-    final themeOverlay = ref.watch(appConfig.themeOverlayOpacity.provider);
+    final windowBackdropType = ref.watch(appConfig.windowBackdrop.type.provider);
+    final themeOverlay = ref.watch(appConfig.windowBackdrop.themeOverlayOpacity.provider);
 
     return Container(
       height: 34,
       decoration: BoxDecoration(
-        color: windowBgType != WindowBgType.solid
+        color: windowBackdropType != WindowBackdropType.solid
             ? colorScheme.surfaceContainer.withValues(alpha: (themeOverlay + 0.2).clamp(0.0, 1.0))
             : colorScheme.surfaceContainer,
         border: Border(

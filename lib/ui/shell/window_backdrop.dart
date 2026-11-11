@@ -6,16 +6,16 @@ import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/core/window/native_window.dart';
 
-class AdaptiveScaffold extends ConsumerStatefulWidget {
+class WindowBackdrop extends ConsumerStatefulWidget {
   final Widget child;
 
-  const AdaptiveScaffold({super.key, required this.child});
+  const WindowBackdrop({super.key, required this.child});
 
   @override
-  ConsumerState<AdaptiveScaffold> createState() => _AdaptiveScaffoldState();
+  ConsumerState<WindowBackdrop> createState() => _WindowBackdropState();
 }
 
-class _AdaptiveScaffoldState extends ConsumerState<AdaptiveScaffold> {
+class _WindowBackdropState extends ConsumerState<WindowBackdrop> {
   ui.Image? _resolvedAlbumArt;
   ImageStream? _imageStream;
   ImageStreamListener? _streamListener;
@@ -68,88 +68,81 @@ class _AdaptiveScaffoldState extends ConsumerState<AdaptiveScaffold> {
 
   void _applyPlatformStyle() {
     final appConfig = ref.read(appConfigProvider);
-    final windowBgType = ref.read(appConfig.windowBg.type.provider);
+    final windowBackdropType = ref.read(appConfig.windowBackdrop.type.provider);
     final nativeWindow = ref.read(nativeWindowProvider);
     final platformStyle = Platform.isWindows
-        ? ref.read(appConfig.windowBg.platformStyle.windows.provider)
+        ? ref.read(appConfig.windowBackdrop.platformStyle.windows.provider)
         : null;
 
     nativeWindow.setWindowPlatformStyle(
-      windowBgType == WindowBgType.platformStyle ? platformStyle : null,
+      windowBackdropType == WindowBackdropType.platformStyle ? platformStyle : null,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final appConfig = ref.watch(appConfigProvider);
-    final windowBgType = ref.watch(appConfig.windowBg.type.provider);
-    final themeOverlayOpacity = ref.watch(appConfig.themeOverlayOpacity.provider);
-    final albumArtBlurSigma = ref.watch(appConfig.windowBg.albumArt.blurSigma.provider);
-    final albumArtFit = ref.watch(appConfig.windowBg.albumArt.fit.provider);
+    final windowBackdropType = ref.watch(appConfig.windowBackdrop.type.provider);
+    final themeOverlayOpacity = ref.watch(appConfig.windowBackdrop.themeOverlayOpacity.provider);
+    final albumArtBlurSigma = ref.watch(appConfig.windowBackdrop.albumArt.blurSigma.provider);
+    final albumArtFit = ref.watch(appConfig.windowBackdrop.albumArt.fit.provider);
 
     final colorScheme = Theme.of(context).colorScheme;
 
     // Reactively update window backdrop when config changes
-    ref.listen(appConfig.windowBg.type.provider, (_, newType) {
+    ref.listen(appConfig.windowBackdrop.type.provider, (_, newType) {
       _applyPlatformStyle();
     });
-    ref.listen(appConfig.windowBg.platformStyle.windows.provider, (_, newEffect) {
+    ref.listen(appConfig.windowBackdrop.platformStyle.windows.provider, (_, newEffect) {
       _applyPlatformStyle();
     });
 
-    return Scaffold(
-      backgroundColor: windowBgType != WindowBgType.solid
-          ? Colors.transparent
-          : colorScheme.surface,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // ======================================================================================
-          // Album Art layer
-          // ======================================================================================
-          if (windowBgType == WindowBgType.albumArt) ...[
-            // Ambient background (blurred)
-            if (_resolvedAlbumArt != null &&
-                albumArtFit != BoxFit.cover &&
-                albumArtFit != BoxFit.fill)
-              RepaintBoundary(
-                child: ImageFiltered(
-                  imageFilter: ui.ImageFilter.blur(
-                    tileMode: ui.TileMode.clamp,
-                    sigmaX: 20,
-                    sigmaY: 20,
-                  ),
-                  child: CustomPaint(
-                    painter: ImageAmbientPainter(image: _resolvedAlbumArt!, fit: albumArtFit),
-                    size: Size.infinite,
-                  ),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // ====== Layer 1: Solid color-theme or album art or none (transparent) ===================
+        if (windowBackdropType == WindowBackdropType.solid)
+          ColoredBox(color: colorScheme.surface)
+        else if (windowBackdropType == WindowBackdropType.albumArt) ...[
+          // Ambient background (blurred)
+          if (_resolvedAlbumArt != null &&
+              albumArtFit != BoxFit.cover &&
+              albumArtFit != BoxFit.fill)
+            RepaintBoundary(
+              child: ImageFiltered(
+                imageFilter: ui.ImageFilter.blur(
+                  tileMode: ui.TileMode.clamp,
+                  sigmaX: 20,
+                  sigmaY: 20,
+                ),
+                child: CustomPaint(
+                  painter: ImageAmbientPainter(image: _resolvedAlbumArt!, fit: albumArtFit),
+                  size: Size.infinite,
                 ),
               ),
-
-            // The album art
-            ImageFiltered(
-              imageFilter: ui.ImageFilter.blur(
-                tileMode: ui.TileMode.clamp,
-                sigmaX: albumArtBlurSigma,
-                sigmaY: albumArtBlurSigma,
-              ),
-              child: Image.asset('assets/album_art.jpg', fit: albumArtFit),
             ),
 
-            // ColorTheme overlay tint
-            ColoredBox(
-              color: colorScheme.surface.withValues(alpha: themeOverlayOpacity.clamp(0.0, 1.0)),
+          // The album art
+          ImageFiltered(
+            imageFilter: ui.ImageFilter.blur(
+              tileMode: ui.TileMode.clamp,
+              sigmaX: albumArtBlurSigma,
+              sigmaY: albumArtBlurSigma,
             ),
-          ] else if (windowBgType != WindowBgType.solid) ...[
-            // Translucent platform style overlay
-            ColoredBox(
-              color: colorScheme.surface.withValues(alpha: themeOverlayOpacity.clamp(0.0, 1.0)),
-            ),
-          ],
-
-          widget.child,
+            child: Image.asset('assets/album_art.jpg', fit: albumArtFit),
+          ),
         ],
-      ),
+
+        // ====== Layer 2: Theme overlay (tint) ===================================================
+        if (windowBackdropType != WindowBackdropType.solid) ...[
+          ColoredBox(
+            color: colorScheme.surface.withValues(alpha: themeOverlayOpacity.clamp(0.0, 1.0)),
+          ),
+        ],
+
+        // ====== Layer 3: Shell ==================================================================
+        widget.child,
+      ],
     );
   }
 }

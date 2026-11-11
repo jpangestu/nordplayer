@@ -15,11 +15,11 @@ class LibraryViewState extends ConsumerState<LibraryView> {
   Widget build(BuildContext context) {
     final appConfig = ref.watch(appConfigProvider);
     final themeMode = ref.watch(appConfig.themeMode.provider);
-    final themeOverlayOpacity = ref.watch(appConfig.themeOverlayOpacity.provider);
-    final windowBgType = ref.watch(appConfig.windowBg.type.provider);
-    final platformStyle = ref.watch(appConfig.windowBg.platformStyle.windows.provider);
-    final albumArtBlur = ref.watch(appConfig.windowBg.albumArt.blurSigma.provider);
-    final albumArtFit = ref.watch(appConfig.windowBg.albumArt.fit.provider);
+    final themeOverlayOpacity = ref.watch(appConfig.windowBackdrop.themeOverlayOpacity.provider);
+    final windowBackdropType = ref.watch(appConfig.windowBackdrop.type.provider);
+    final platformStyle = ref.watch(appConfig.windowBackdrop.platformStyle.windows.provider);
+    final albumArtBlur = ref.watch(appConfig.windowBackdrop.albumArt.blurSigma.provider);
+    final albumArtFit = ref.watch(appConfig.windowBackdrop.albumArt.fit.provider);
 
     final textTheme = Theme.of(context).textTheme;
 
@@ -63,34 +63,34 @@ class LibraryViewState extends ConsumerState<LibraryView> {
                 ),
                 const SizedBox(height: 32),
                 Text(
-                  'Window Background: ${windowBgType.name.toUpperCase()}',
+                  'Window Background: ${windowBackdropType.name.toUpperCase()}',
                   style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 12),
-                SegmentedButton<WindowBgType>(
+                SegmentedButton<WindowBackdropType>(
                   segments: const [
-                    ButtonSegment<WindowBgType>(
-                      value: WindowBgType.solid,
+                    ButtonSegment<WindowBackdropType>(
+                      value: WindowBackdropType.solid,
                       icon: Icon(Icons.stop_outlined),
                       label: Text('Solid'),
                     ),
-                    ButtonSegment<WindowBgType>(
-                      value: WindowBgType.platformStyle,
+                    ButtonSegment<WindowBackdropType>(
+                      value: WindowBackdropType.platformStyle,
                       icon: Icon(Icons.blur_on_outlined),
                       label: Text('Platform Style'),
                     ),
-                    ButtonSegment<WindowBgType>(
-                      value: WindowBgType.albumArt,
+                    ButtonSegment<WindowBackdropType>(
+                      value: WindowBackdropType.albumArt,
                       icon: Icon(Icons.album_outlined),
                       label: Text('Album Art'),
                     ),
                   ],
-                  selected: {windowBgType},
+                  selected: {windowBackdropType},
                   onSelectionChanged: (newSelection) {
-                    appConfig.windowBg.type.value = newSelection.first;
+                    appConfig.windowBackdrop.type.value = newSelection.first;
                   },
                 ),
-                if (windowBgType == WindowBgType.platformStyle) ...[
+                if (windowBackdropType == WindowBackdropType.platformStyle) ...[
                   const SizedBox(height: 24),
                   Text(
                     'Platform Style: ${platformStyle.name.toUpperCase()}',
@@ -117,11 +117,11 @@ class LibraryViewState extends ConsumerState<LibraryView> {
                     ],
                     selected: {platformStyle},
                     onSelectionChanged: (newSelection) {
-                      appConfig.windowBg.platformStyle.windows.value = newSelection.first;
+                      appConfig.windowBackdrop.platformStyle.windows.value = newSelection.first;
                     },
                   ),
                 ],
-                if (windowBgType == WindowBgType.albumArt) ...[
+                if (windowBackdropType == WindowBackdropType.albumArt) ...[
                   const SizedBox(height: 24),
                   Text(
                     'Album Art Blur: ${albumArtBlur.round()}px',
@@ -135,7 +135,7 @@ class LibraryViewState extends ConsumerState<LibraryView> {
                     divisions: 100,
                     label: '${albumArtBlur.round()}px',
                     onChanged: (newVal) {
-                      appConfig.windowBg.albumArt.blurSigma.value = newVal;
+                      appConfig.windowBackdrop.albumArt.blurSigma.value = newVal;
                     },
                   ),
                   const SizedBox(height: 16),
@@ -169,7 +169,7 @@ class LibraryViewState extends ConsumerState<LibraryView> {
                     ],
                     selected: {albumArtFit},
                     onSelectionChanged: (newSelection) {
-                      appConfig.windowBg.albumArt.fit.value = newSelection.first;
+                      appConfig.windowBackdrop.albumArt.fit.value = newSelection.first;
                     },
                   ),
                 ],
@@ -185,9 +185,9 @@ class LibraryViewState extends ConsumerState<LibraryView> {
                   max: 1.0,
                   divisions: 100,
                   label: '${(themeOverlayOpacity * 100).round()}%',
-                  onChanged: windowBgType != WindowBgType.solid
+                  onChanged: windowBackdropType != WindowBackdropType.solid
                       ? (newVal) {
-                          appConfig.themeOverlayOpacity.value = newVal;
+                          appConfig.windowBackdrop.themeOverlayOpacity.value = newVal;
                         }
                       : null,
                 ),
