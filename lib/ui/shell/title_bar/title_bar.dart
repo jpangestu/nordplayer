@@ -27,13 +27,15 @@ class TitleBar extends ConsumerWidget {
 
     final appConfig = ref.watch(appConfigProvider);
     final windowBackdropType = ref.watch(appConfig.windowBackdrop.type.provider);
-    final themeOverlay = ref.watch(appConfig.windowBackdrop.themeOverlayOpacity.provider);
+    final themeOverlayOpacity = ref.watch(appConfig.windowBackdrop.themeOverlayOpacity.provider);
 
     return Container(
       height: 34,
       decoration: BoxDecoration(
         color: windowBackdropType != WindowBackdropType.solid
-            ? colorScheme.surfaceContainer.withValues(alpha: (themeOverlay + 0.2).clamp(0.0, 1.0))
+            ? colorScheme.surfaceContainer.withValues(
+                alpha: (themeOverlayOpacity + 0.2).clamp(0.0, 1.0),
+              )
             : colorScheme.surfaceContainer,
         border: Border(
           bottom: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.35), width: 1),

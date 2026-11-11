@@ -11,11 +11,14 @@ class Shell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return WindowBackdrop(
-      child: Column(
-        children: [
-          const TitleBar(),
-          Expanded(child: ClipRect(child: child)),
-        ],
+      child: Material(
+        type: .transparency,
+        child: Column(
+          children: [
+            const TitleBar(),
+            Expanded(child: ClipRect(child: child)),
+          ],
+        ),
       ),
     );
   }
