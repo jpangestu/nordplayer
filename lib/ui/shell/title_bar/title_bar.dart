@@ -27,7 +27,7 @@ class TitleBar extends ConsumerWidget {
 
     final appConfig = ref.watch(appConfigProvider);
     final windowBgType = ref.watch(appConfig.windowBg.type.provider);
-    final themeOverlay = ref.watch(appConfig.windowBg.albumArt.themeOverlay.provider);
+    final themeOverlay = ref.watch(appConfig.themeOverlayOpacity.provider);
 
     return Container(
       height: 34,
