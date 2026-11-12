@@ -2,7 +2,6 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/ui/library/library_view.dart';
 import 'package:nordplayer/ui/shell/shell.dart';
-import 'package:nordplayer/ui/test/adaptive_surface_overview.dart';
 
 abstract final class Routes {
   static const libraryView = '/library';
@@ -10,7 +9,6 @@ abstract final class Routes {
   static const playlistsView = '/playlists';
   static const albumsView = '/albums';
   static const artistsView = '/artists';
-  static const surfaceBenchmark = '/benchmark';
 }
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -25,10 +23,6 @@ final router = GoRouter(
         StatefulShellBranch(
           routes: [
             GoRoute(path: Routes.libraryView, builder: (context, state) => const LibraryView()),
-            GoRoute(
-              path: Routes.surfaceBenchmark,
-              builder: (context, state) => const AdaptiveSurfaceBenchmarkView(),
-            ),
           ],
         ),
       ],
