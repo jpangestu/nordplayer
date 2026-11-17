@@ -2,10 +2,13 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/core/window/drag_to_move_area.dart';
 import 'package:nordplayer/core/window/native_window.dart';
+import 'package:nordplayer/ui/shared/popover.dart';
+import 'package:nordplayer/ui/shell/performance/performance_panel.dart';
 import 'package:nordplayer/ui/shell/title_bar/window_control/breeze.dart';
 import 'package:nordplayer/ui/shell/title_bar/window_control/windows11.dart';
 
@@ -68,10 +71,23 @@ class TitleBar extends ConsumerWidget {
                           color: titleColor,
                         ),
                       ),
+                      const Spacer(),
                     ],
                   ),
                 ),
               ),
+
+              Popover(
+                anchorWidget: const Icon(LucideIcons.monitorActivity, size: 16),
+                preferredAlignment: .center,
+                offset: const Offset(0, 0),
+                popoverBuilder: (context, controller) {
+                  return const PerformancePanel();
+                },
+              ),
+
+              const SizedBox(width: 24),
+
               if (Platform.isWindows)
                 const Windows11WindowControl()
               else if (Platform.isLinux)
