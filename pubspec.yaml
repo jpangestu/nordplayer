@@ -22,9 +22,12 @@ dependencies:
 
   # Mine
   typed_config: ^0.2.0
+  app_resource_monitor:
+    git: https://github.com/jpangestu/app_resource_monitor
 
   # Third parties
   flutter_riverpod: ^3.4.3
+  lucide_icons_flutter: ^4.0.3
   win32: ^6.4.0
 
 # dependency_overrides:

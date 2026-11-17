@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show KeyDownEvent, LogicalKeyboardKey;
+import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/ui/shell/adaptive_surface.dart';
 
 /// Preferred horizontal alignment of the popover relative to its anchor.
@@ -20,7 +20,7 @@ enum PopoverAlignment {
 /// A lightweight handle to programmatically open, close, or toggle a [Popover].
 ///
 /// If no controller is provided to [Popover], an internal instance is automatically
-/// created and forwarded to both the [Popover.builder] and [Popover.content]
+/// created and forwarded to both the [Popover.anchorBuilder] and [Popover.popoverBuilder]
 /// callbacks so children can dismiss the popover without extra boilerplate.
 class PopoverController {
   _PopoverState? _state;
@@ -43,17 +43,17 @@ class PopoverController {
   void toggle() => _state?._toggle();
 }
 
-/// A popover widget anchored to [anchorChild].
+/// A popover widget anchored to [anchorWidget].
 ///
 /// [Popover] renders floating content inside an [AdaptiveSurface] via Flutter's
 /// root [OverlayPortal], linked to its anchor position with [LayerLink].
 ///
 /// ### Basic Usage (Tap-to-Toggle):
-/// Pass an [anchorChild] and a [content] builder. The [anchorChild] is
+/// Pass an [anchorWidget] and a [popoverBuilder] builder. The [anchorWidget] is
 /// automatically wrapped to toggle the popover on tap:
 /// ```dart
 /// Popover(
-///   anchorChild: const IconButton(icon: Icon(Icons.more_vert), onPressed: null),
+///   anchorWidget: const IconButton(icon: Icon(Icons.more_vert), onPressed: null),
 ///   content: (context, controller) => Column(
 ///     mainAxisSize: MainAxisSize.min,
 ///     children: [
@@ -70,7 +70,7 @@ class PopoverController {
 /// ```
 ///
 /// ### Advanced Trigger (Custom Styling / Gestures):
-/// Use [builder] when the anchor button needs access to [PopoverController]
+/// Use [anchorBuilder] when the anchor button needs access to [PopoverController]
 /// (e.g. to highlight the button while open):
 /// ```dart
 /// Popover(
@@ -88,13 +88,22 @@ class const Popover({
   /// Optional external controller to programmatically open/close this popover.
   final PopoverController? controller,
 
-  /// The anchor widget. If provided without a [builder], tapping it automatically
+  /// The anchor widget. If provided without a [anchorBuilder], tapping it automatically
   /// toggles the popover.
-  final Widget? anchorChild,
+  ///
+  /// Optimization tip: if the anchorWidget is an expensive widget, put it as parameter to
+  /// anchorWidget so it only get instantiated once. If you only put it in anchorBuilder,
+  /// it'll get reinstantiated every time popover update.
+  final Widget? anchorWidget,
 
   /// Builder for dynamic triggers that need direct access to [PopoverController]
   /// (e.g. for active button highlighting or custom gestures).
-  final Widget Function(BuildContext context, PopoverController controller, Widget? child)? builder,
+  ///
+  /// Optimization tip: if the anchorWidget is an expensive widget, put it as parameter to
+  /// anchorWidget so it only get instantiated once. If you only put it in anchorBuilder,
+  /// it'll get reinstantiated every time popover update.
+  final Widget Function(BuildContext context, PopoverController controller, Widget? anchorWidget)?
+  anchorBuilder,
 
   /// Preferred horizontal alignment relative to the anchor widget.
   /// Automatically adjusts to keep the popover within viewport bounds.
@@ -116,12 +125,12 @@ class const Popover({
 
   /// Builds the floating popup content.
   /// Receives the [PopoverController] so actions inside can call `controller.hide()`.
-  required final Widget Function(BuildContext context, PopoverController controller) content,
+  required final Widget Function(BuildContext context, PopoverController controller) popoverBuilder,
 }) extends StatefulWidget {
   this
     : assert(
-        anchorChild != null || builder != null,
-        'Popover requires either an anchorChild or a builder to serve as its trigger anchor.',
+        anchorWidget != null || anchorBuilder != null,
+        'Popover requires either an anchorWidget or a builder to serve as its trigger anchor.',
       );
   @override
   State<Popover> createState() => _PopoverState();
@@ -130,6 +139,14 @@ class const Popover({
 class _PopoverState extends State<Popover> with SingleTickerProviderStateMixin {
   final LayerLink _layerLink = LayerLink();
   final OverlayPortalController _overlayPortalController = OverlayPortalController();
+
+  // anchorWidget and popover should be wrapped in TapRegion and given the same group id.
+  // This way, both are considered the same and will not trigger onTapOutside and the
+  // [controller.toggle()] will not clash with TapRegion when set in anchor widget onTap.
+  final Object _regionGroupId = Object();
+
+  /// Is popover being shown
+  bool _isShown = false;
 
   late final AnimationController _animationController = AnimationController(
     vsync: this,
@@ -180,6 +197,9 @@ class _PopoverState extends State<Popover> with SingleTickerProviderStateMixin {
   }
 
   void _show() {
+    if (_isShown) return;
+    _isShown = true;
+
     _overlayPortalController.show();
     if (widget.disableAnimation) {
       _animationController.value = 1.0;
@@ -189,13 +209,15 @@ class _PopoverState extends State<Popover> with SingleTickerProviderStateMixin {
   }
 
   void _hide() {
-    if (!_overlayPortalController.isShowing) return;
+    if (!_isShown) return;
+    _isShown = false;
+
     if (widget.disableAnimation) {
       _animationController.value = 0.0;
       _overlayPortalController.hide();
     } else {
       _animationController.reverse().then((_) {
-        if (mounted && !_animationController.isAnimating) {
+        if (mounted && !_isShown) {
           _overlayPortalController.hide();
         }
       });
@@ -203,7 +225,7 @@ class _PopoverState extends State<Popover> with SingleTickerProviderStateMixin {
   }
 
   void _toggle() {
-    if (_overlayPortalController.isShowing) {
+    if (_isShown) {
       _hide();
     } else {
       _show();
@@ -214,13 +236,13 @@ class _PopoverState extends State<Popover> with SingleTickerProviderStateMixin {
   Widget build(BuildContext context) {
     Widget triggerWidget;
 
-    if (widget.builder != null) {
-      triggerWidget = widget.builder!(context, _popoverController, widget.anchorChild);
-    } else if (widget.anchorChild != null) {
+    if (widget.anchorBuilder != null) {
+      triggerWidget = widget.anchorBuilder!(context, _popoverController, widget.anchorWidget);
+    } else if (widget.anchorWidget != null) {
       triggerWidget = GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: _popoverController.toggle,
-        child: widget.anchorChild!,
+        child: widget.anchorWidget!,
       );
     } else {
       triggerWidget = const SizedBox.shrink();
@@ -231,15 +253,16 @@ class _PopoverState extends State<Popover> with SingleTickerProviderStateMixin {
       overlayChildBuilder: (context) {
         final anchors = _resolveAnchors(context);
 
-        final content = AdaptiveSurface(
+        final popover = AdaptiveSurface(
           elevation: SurfaceElevation.high,
           showShadow: true,
           cornerRadius: widget.cornerRadius,
           padding: widget.padding,
-          child: widget.content(context, _popoverController),
+          child: widget.popoverBuilder(context, _popoverController),
         );
 
         return TapRegion(
+          groupId: _regionGroupId,
           onTapOutside: (_) => _hide(),
           child: Focus(
             autofocus: true,
@@ -262,13 +285,13 @@ class _PopoverState extends State<Popover> with SingleTickerProviderStateMixin {
                   child: ConstrainedBox(
                     constraints: BoxConstraints(maxHeight: anchors.maxHeight),
                     child: widget.disableAnimation
-                        ? content
+                        ? popover
                         : FadeTransition(
                             opacity: _fade,
                             child: ScaleTransition(
                               scale: _scale,
                               alignment: anchors.follower,
-                              child: content,
+                              child: popover,
                             ),
                           ),
                   ),
@@ -278,7 +301,10 @@ class _PopoverState extends State<Popover> with SingleTickerProviderStateMixin {
           ),
         );
       },
-      child: CompositedTransformTarget(link: _layerLink, child: triggerWidget),
+      child: CompositedTransformTarget(
+        link: _layerLink,
+        child: TapRegion(groupId: _regionGroupId, child: triggerWidget),
+      ),
     );
   }
 

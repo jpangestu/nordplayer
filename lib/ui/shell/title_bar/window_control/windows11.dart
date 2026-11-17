@@ -62,7 +62,7 @@ class Windows11WindowControl extends ConsumerWidget {
           enableSplash: false,
           iconSize: 13,
           iconColor: defaultIconColor,
-          iconColorOnHover: colorScheme.onError,
+          iconColorOnHover: colorScheme.onSurface,
           overlayShape: .rectangle,
           overlayColor: colorScheme.error,
           overlayColorOnClick: colorScheme.error.withValues(alpha: 0.8),
