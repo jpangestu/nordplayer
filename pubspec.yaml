@@ -30,9 +30,9 @@ dependencies:
   lucide_icons_flutter: ^4.0.3
   win32: ^6.4.0
 
-# dependency_overrides:
-#   typed_config:
-#     path: ../typed_config
+dependency_overrides:
+  typed_config:
+    path: ../typed_config
 
 dev_dependencies:
   flutter_test:

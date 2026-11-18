@@ -1,9 +1,67 @@
 import 'dart:async';
 
 import 'package:app_resource_monitor/app_resource_monitor.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart' show FrameTiming;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
+
+enum PerformanceMetric {
+  frameRate(key: 'frameRate', label: 'Frame Rate', defaultVisible: true),
+  frameTime(key: 'frameTime', label: 'Frame Latency', defaultVisible: true),
+  uiTime(key: 'uiTime', label: 'UI Build', isSubRow: true),
+  rasterTime(key: 'rasterTime', label: 'GPU Raster', isSubRow: true),
+  averageFrameTime(key: 'averageFrameTime', label: 'Avg Frame Time'),
+  minFrameTime(key: 'minFrameTime', label: 'Fastest Frame'),
+  maxFrameTime(key: 'maxFrameTime', label: 'Slowest Frame'),
+  cpuUsage(key: 'cpuUsage', label: 'CPU Usage', defaultVisible: true),
+  gpuUsage(key: 'gpuUsage', label: 'GPU Usage'),
+  gpuVram(key: 'gpuVram', label: 'GPU VRAM'),
+  gpuShared(key: 'gpuShared', label: 'GPU Shared'),
+  ramPrivate(key: 'ramPrivate', label: 'RAM (Private)'),
+  ramRss(key: 'ramRss', label: 'RAM (Working Set)'),
+  ramCommitted(key: 'ramCommitted', label: 'RAM (Committed)'),
+  ramTotal(key: 'ramTotal', label: 'System RAM Total');
+
+  const PerformanceMetric({
+    required this.key,
+    required this.label,
+    this.defaultVisible = false,
+    this.isSubRow = false,
+  });
+
+  final String key;
+  final String label;
+  final bool defaultVisible;
+  final bool isSubRow;
+
+  /// Retrieves the formatted string for this metric
+  String format(PerformanceMetricsState state) => switch (this) {
+    PerformanceMetric.frameRate => state.formattedFrameRate,
+    PerformanceMetric.frameTime => '${state.formattedFrameTime} (${state.formattedFps})',
+    PerformanceMetric.uiTime => state.formattedUiTime,
+    PerformanceMetric.rasterTime => state.formattedRasterTime,
+    PerformanceMetric.averageFrameTime => state.formattedAverageFrameTime,
+    PerformanceMetric.minFrameTime => state.formattedMinFrameTime,
+    PerformanceMetric.maxFrameTime => state.formattedMaxFrameTime,
+    PerformanceMetric.cpuUsage => state.formattedCpuUsage,
+    PerformanceMetric.gpuUsage => state.formattedGpuUsage,
+    PerformanceMetric.gpuVram => state.formattedGpuVram,
+    PerformanceMetric.gpuShared => state.formattedGpuShared,
+    PerformanceMetric.ramPrivate => state.formattedRamPrivate,
+    PerformanceMetric.ramRss => state.formattedRamRss,
+    PerformanceMetric.ramCommitted => state.formattedRamCommitted,
+    PerformanceMetric.ramTotal => state.formattedRamTotal,
+  };
+
+  /// Check whether the metric is available (e.g. GPU metrics require GPU support)
+  bool isAvailable(PerformanceMetricsState state) {
+    if (this == gpuUsage || this == gpuVram || this == gpuShared) {
+      return state.gpu != null;
+    }
+    return true;
+  }
+}
 
 // To get informations about rendering perfomance (frame time), we need either
 // [WidgetBinding.instance.addTimingsCallback], or [dart:ui.PlatformDispatcher.onReportTimings].
@@ -16,7 +74,7 @@ final performanceMetricsProvider =
     );
 
 class PerformanceMetricsNotifier extends Notifier<PerformanceMetricsState> {
-  static const Duration _interval = Duration(milliseconds: 500);
+  static const Duration _interval = Duration(milliseconds: kDebugMode || kProfileMode ? 500 : 1000);
 
   final List<DateTime> _frameHistory = [];
   int _frameRate = 0;

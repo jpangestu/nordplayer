@@ -8,6 +8,7 @@ import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/core/window/drag_to_move_area.dart';
 import 'package:nordplayer/core/window/native_window.dart';
 import 'package:nordplayer/ui/shared/popover.dart';
+import 'package:nordplayer/ui/shell/performance/performance_indicator.dart';
 import 'package:nordplayer/ui/shell/performance/performance_panel.dart';
 import 'package:nordplayer/ui/shell/title_bar/window_control/breeze.dart';
 import 'package:nordplayer/ui/shell/title_bar/window_control/windows11.dart';
@@ -26,7 +27,7 @@ class TitleBar extends ConsumerWidget {
         ? colorScheme.onSurface
         : colorScheme.onSurface.withValues(alpha: 0.5);
 
-    const double resizeHitboxHeight = 6.0;
+    const double resizeHitboxHeight = 4.0;
 
     final appConfig = ref.watch(appConfigProvider);
     final windowBackdropType = ref.watch(appConfig.windowBackdrop.type.provider);
@@ -72,13 +73,16 @@ class TitleBar extends ConsumerWidget {
                         ),
                       ),
                       const Spacer(),
+                      const PerformanceIndicator(),
+                      const SizedBox(width: 4),
                     ],
                   ),
                 ),
               ),
 
+              // ====== Performance Metrics Popover ===============================================
               Popover(
-                anchorWidget: const Icon(LucideIcons.monitorActivity, size: 16),
+                anchorWidget: const Icon(LucideIcons.monitorActivity, size: 14),
                 preferredAlignment: .center,
                 offset: const Offset(0, 0),
                 popoverBuilder: (context, controller) {

@@ -11,6 +11,7 @@ final class AppConfig(super.builder) extends TypedConfig {
 
   final windowBackdrop = builder.group('windowBackground', WindowBackdropConfig.new);
   final surface = builder.group('surface', SurfaceConfig.new);
+  final performance = builder.group('performance', PerformanceMetricsConfig.new);
 }
 
 enum WindowBackdropType { solid, platformStyle, albumArt, customImage }
@@ -50,6 +51,27 @@ final class SurfaceConfig(super.builder) extends TypedConfig {
   final opacityLow = builder.define('opacityLow', 0.5);
   final opacityMid = builder.define('opacityMid', 0.7);
   final opacityHigh = builder.define('opacityHigh', 0.9);
+}
+
+final class PerformanceMetricsConfig(super.builder) extends TypedConfig {
+  final metricsVisibility = builder.defineMap('metricsVisibility', const <String, bool>{
+    'frameRate': false,
+    'frameTime': false,
+    'uiTime': false,
+    'rasterTime': false,
+    'fps': false,
+    'averageFrameTime': false,
+    'minFrameTime': false,
+    'maxFrameTime': false,
+    'cpuUsage': false,
+    'gpuUsage': false,
+    'gpuVram': false,
+    'gpuShared': false,
+    'ramPrivate': false,
+    'ramRss': false,
+    'ramCommitted': false,
+    'ramTotal': false,
+  });
 }
 
 // ================================================================================================

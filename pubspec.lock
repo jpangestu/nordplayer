@@ -702,11 +702,10 @@ packages:
   typed_config:
     dependency: "direct main"
     description:
-      name: typed_config
-      sha256: "784d027f4a0476d74bf64e17d27b4165b68767536707c2f587b79dff68592213"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.4"
+      path: "../typed_config"
+      relative: true
+    source: path
+    version: "0.2.5"
   typed_data:
     dependency: transitive
     description:
