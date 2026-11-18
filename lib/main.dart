@@ -1,20 +1,5 @@
-import 'package:audio_service/audio_service.dart';
-import 'package:flutter/scheduler.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:material_ui/material_ui.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:nordplayer/models/app_config.dart';
-import 'package:nordplayer/models/app_theme.dart';
-import 'package:nordplayer/routes/router.dart';
-import 'package:nordplayer/services/config_service.dart';
-import 'package:nordplayer/services/library_indexer/library_indexer.dart';
-import 'package:nordplayer/services/library_watcher.dart';
-import 'package:nordplayer/services/player_service.dart';
-import 'package:nordplayer/services/preference_service.dart';
-import 'package:nordplayer/utils/shortcuts.dart';
-import 'package:nordplayer/widgets/adaptive_scaffold.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
 void main() async {
@@ -38,36 +23,7 @@ void main() async {
     await windowManager.focus();
   });
 
-  MediaKit.ensureInitialized();
-
-  // SharedPreferencesWithCache must be loaded once at startup
-  final prefs = await SharedPreferencesWithCache.create(
-    cacheOptions: const SharedPreferencesWithCacheOptions(allowList: PrefConstants.allowList),
-  );
-
-  // Set here because PlayerService and MediaKitAudioHandler need the same player instance
-  final player = Player();
-  await AudioService.init(
-    builder: () => MediaKitAudioHandler(player),
-    config: const AudioServiceConfig(
-      androidNotificationChannelId: 'com.nordplayer.nordplayer.channel.audio',
-      androidNotificationChannelName: 'Audio Playback',
-    ),
-  );
-
-  runApp(
-    ProviderScope(
-      overrides: [
-        sharedPrefsProvider.overrideWithValue(prefs),
-        playerServiceProvider.overrideWith((ref) {
-          final service = PlayerService.withPlayer(ref, player);
-          ref.onDispose(() => service.dispose());
-          return service;
-        }),
-      ],
-      child: const NordplayerApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: NordplayerApp()));
 }
 
 class NordplayerApp extends ConsumerStatefulWidget {
@@ -104,93 +60,6 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp> with WindowListen
 
   @override
   Widget build(BuildContext context) {
-    // Scan and watch for changes in library after config loaded
-    ref.listen<AsyncValue<AppConfig>>(configServiceProvider, (previous, next) async {
-      if (previous is AsyncLoading && next is AsyncData) {
-        ref.read(playerServiceProvider).init();
-        ref.read(libraryWatcherProvider);
-
-        await ref.read(playerServiceProvider).initializeQueueFromDatabase();
-
-        // Run scan library only when the main thread is idle (all UI render finished)
-        SchedulerBinding.instance.scheduleTask(() {
-          ref.read(libraryIndexerProvider).scanLibrary();
-        }, Priority.idle);
-      }
-    });
-
-    // Select only the loading/error/value status fields so that changing config fields
-    // does not trigger a rebuild of the entire NordplayerApp (and therefore MaterialApp).
-    final configStatus = ref.watch(
-      configServiceProvider.select(
-        (v) => (isLoading: v.isLoading, hasError: v.hasError, error: v.error, hasValue: v.hasValue),
-      ),
-    );
-
-    if (configStatus.isLoading) {
-      return const SizedBox.shrink();
-    }
-
-    if (configStatus.hasError) {
-      return MaterialApp(
-        theme: ThemeData.light(),
-        darkTheme: ThemeData.dark(),
-        themeMode: ThemeMode.system,
-        home: Scaffold(body: Center(child: Text('Disk Error: ${configStatus.error}'))),
-      );
-    }
-
-    if (!configStatus.hasValue) {
-      return const SizedBox.shrink();
-    }
-
-    // Depends on activeThemeProvider, which only rebuilds when theme or fontFamily changes
-    final themeData = ref.watch(activeThemeProvider);
-
-    return MaterialApp.router(
-      routerConfig: router,
-      title: 'Nordplayer',
-      theme: themeData,
-      builder: (context, child) {
-        return Shortcuts(
-          shortcuts: <ShortcutActivator, Intent>{
-            const SingleActivator(LogicalKeyboardKey.keyK, control: true): const FocusSearchIntent(),
-            const SingleActivator(LogicalKeyboardKey.space): const PlayOrPauseIntent(),
-            const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): const SkipToNextIntent(),
-            const SingleActivator(LogicalKeyboardKey.arrowLeft, control: true): const SkipToPreviousIntent(),
-            const CharacterActivator('s', control: true): const ToggleShuffleIntent(),
-            const CharacterActivator('l', control: true): const CycleLoopIntent(),
-            const SingleActivator(LogicalKeyboardKey.arrowUp, control: true): const VolumeUpIntent(),
-            const SingleActivator(LogicalKeyboardKey.arrowDown, control: true): const VolumeDownIntent(),
-            const CharacterActivator('m'): const MuteIntent(),
-          },
-          child: Actions(
-            actions: <Type, Action<Intent>>{
-              FocusSearchIntent: FocusSearchAction(ref),
-              PlayOrPauseIntent: PlayOrPauseAction(ref),
-              SkipToNextIntent: SkipToNextAction(ref),
-              SkipToPreviousIntent: SkipToPreviousAction(ref),
-              ToggleShuffleIntent: ToggleShuffleAction(ref),
-              CycleLoopIntent: CycleLoopAction(ref),
-              VolumeUpIntent: VolumeUpAction(ref),
-              VolumeDownIntent: VolumeDownAction(ref),
-              MuteIntent: MuteAction(ref),
-            },
-            child: Focus(
-              child: Consumer(
-                builder: (context, ref, _) {
-                  // Localize text scale rebuilds to this sub-tree instead of rebuilding the entire MaterialApp.
-                  final textScale = ref.watch(configServiceProvider.select((v) => v.value?.textScale ?? 1.0));
-                  return MediaQuery(
-                    data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(textScale)),
-                    child: AdaptiveScaffold(body: child!),
-                  );
-                },
-              ),
-            ),
-          ),
-        );
-      },
-    );
+    return MaterialApp.router();
   }
 }
