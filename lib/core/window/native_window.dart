@@ -86,6 +86,10 @@ abstract class NativeWindow with WidgetsBindingObserver {
 
   void setWindowPlatformStyle(PlatformStyle? pllatformStyle) {}
 
+  /// Saves the current theme surface color and dark-mode flag
+  /// so native window creation matches the theme on startup.
+  void saveThemeColorForStartup({required Color color, required bool isDark}) {}
+
   // ==============================================================================================
   // State observation & listener management
   // ==============================================================================================
@@ -168,14 +172,9 @@ final isWindowMaximizedProvider = NotifierProvider<WindowMaximizedNotifier, bool
 class WindowMaximizedNotifier extends Notifier<bool> {
   @override
   bool build() {
-    final nativeWindow = ref.read(nativeWindowProvider);
+    final nativeWindow = ref.watch(nativeWindowProvider);
 
-    void listener() {
-      final isMaximized = nativeWindow.isMaximized;
-      if (state != isMaximized) {
-        state = isMaximized;
-      }
-    }
+    void listener() => state = nativeWindow.isMaximized;
 
     nativeWindow.addListener(listener);
     ref.onDispose(() => nativeWindow.removeListener(listener));
@@ -184,7 +183,7 @@ class WindowMaximizedNotifier extends Notifier<bool> {
   }
 }
 
-/// Reactive provider for the window's focus state.
+/// Reactive provider for the window's focused state.
 final isWindowFocusedProvider = NotifierProvider<WindowFocusedNotifier, bool>(
   WindowFocusedNotifier.new,
 );
@@ -192,14 +191,9 @@ final isWindowFocusedProvider = NotifierProvider<WindowFocusedNotifier, bool>(
 class WindowFocusedNotifier extends Notifier<bool> {
   @override
   bool build() {
-    final nativeWindow = ref.read(nativeWindowProvider);
+    final nativeWindow = ref.watch(nativeWindowProvider);
 
-    void listener() {
-      final isFocused = nativeWindow.isFocused;
-      if (state != isFocused) {
-        state = isFocused;
-      }
-    }
+    void listener() => state = nativeWindow.isFocused;
 
     nativeWindow.addListener(listener);
     ref.onDispose(() => nativeWindow.removeListener(listener));

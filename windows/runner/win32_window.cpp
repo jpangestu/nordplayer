@@ -16,15 +16,44 @@ namespace {
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
 #endif
 
+#ifndef DWMWA_CAPTION_COLOR
+#define DWMWA_CAPTION_COLOR 35
+#endif
+
 constexpr const wchar_t kWindowClassName[] = L"FLUTTER_RUNNER_WIN32_WINDOW";
 
-/// Registry key for app theme preference.
+/// Registry key for Windows OS theme preference.
 ///
 /// A value of 0 indicates apps should use dark mode. A non-zero or missing
 /// value indicates apps should use light mode.
 constexpr const wchar_t kGetPreferredBrightnessRegKey[] =
   L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize";
 constexpr const wchar_t kGetPreferredBrightnessRegValue[] = L"AppsUseLightTheme";
+
+/// Registry path for Nordplayer app settings
+constexpr const wchar_t kAppRegKey[] = L"Software\\Nordplayer";
+constexpr const wchar_t kAppThemeColorRegValue[] = L"ThemeColor";
+constexpr const wchar_t kAppIsDarkRegValue[] = L"IsDarkMode";
+
+/// Default fallback color: Nord Polar Night #2E3440 (R: 46, G: 52, B: 64)
+constexpr COLORREF kDefaultNordColor = RGB(46, 52, 64);
+
+COLORREF GetSavedThemeColor() {
+  DWORD color_val = 0;
+  DWORD size = sizeof(color_val);
+  LSTATUS status = RegGetValueW(
+      HKEY_CURRENT_USER, kAppRegKey, kAppThemeColorRegValue,
+      RRF_RT_REG_DWORD, nullptr, &color_val, &size);
+
+  if (status == ERROR_SUCCESS) {
+    // Stored as 0x00RRGGBB
+    BYTE r = (color_val >> 16) & 0xFF;
+    BYTE g = (color_val >> 8) & 0xFF;
+    BYTE b = color_val & 0xFF;
+    return RGB(r, g, b);
+  }
+  return kDefaultNordColor;
+}
 
 // The number of Win32Window objects that currently exist.
 static int g_active_window_count = 0;
@@ -97,7 +126,11 @@ const wchar_t* WindowClassRegistrar::GetWindowClass() {
     window_class.hInstance = GetModuleHandle(nullptr);
     window_class.hIcon =
         LoadIcon(window_class.hInstance, MAKEINTRESOURCE(IDI_APP_ICON));
-    window_class.hbrBackground = 0;
+
+    // Dynamic background brush based on last active theme
+    COLORREF theme_color = GetSavedThemeColor();
+    window_class.hbrBackground = CreateSolidBrush(theme_color);
+
     window_class.lpszMenuName = nullptr;
     window_class.lpfnWndProc = Win32Window::WndProc;
     RegisterClass(&window_class);
@@ -291,16 +324,30 @@ void Win32Window::OnDestroy() {
 }
 
 void Win32Window::UpdateTheme(HWND const window) {
-  DWORD light_mode;
-  DWORD light_mode_size = sizeof(light_mode);
-  LSTATUS result = RegGetValue(HKEY_CURRENT_USER, kGetPreferredBrightnessRegKey,
-                               kGetPreferredBrightnessRegValue,
-                               RRF_RT_REG_DWORD, nullptr, &light_mode,
-                               &light_mode_size);
+  // Check app setting first, fallback to OS setting
+  DWORD is_dark = 1; // Default to dark (Nord)
+  DWORD size = sizeof(is_dark);
 
-  if (result == ERROR_SUCCESS) {
-    BOOL enable_dark_mode = light_mode == 0;
-    DwmSetWindowAttribute(window, DWMWA_USE_IMMERSIVE_DARK_MODE,
-                          &enable_dark_mode, sizeof(enable_dark_mode));
+  LSTATUS status = RegGetValueW(HKEY_CURRENT_USER, kAppRegKey, kAppIsDarkRegValue,
+                                RRF_RT_REG_DWORD, nullptr, &is_dark, &size);
+
+  if (status != ERROR_SUCCESS) {
+    // Fallback to system preference if app registry key not found
+    DWORD light_mode;
+    DWORD light_mode_size = sizeof(light_mode);
+    if (RegGetValueW(HKEY_CURRENT_USER, kGetPreferredBrightnessRegKey,
+                     kGetPreferredBrightnessRegValue, RRF_RT_REG_DWORD,
+                     nullptr, &light_mode, &light_mode_size) == ERROR_SUCCESS) {
+      is_dark = (light_mode == 0) ? 1 : 0;
+    }
   }
+
+  BOOL enable_dark_mode = is_dark != 0;
+  DwmSetWindowAttribute(window, DWMWA_USE_IMMERSIVE_DARK_MODE,
+                        &enable_dark_mode, sizeof(enable_dark_mode));
+
+  // Set the DWM caption bar color to match the saved theme color
+  COLORREF caption_color = GetSavedThemeColor();
+  DwmSetWindowAttribute(window, DWMWA_CAPTION_COLOR,
+                        &caption_color, sizeof(caption_color));
 }

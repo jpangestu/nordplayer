@@ -215,4 +215,50 @@ class Win32Window extends NativeWindow {
       SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE,
     );
   }
+
+  /// Saves the current theme surface color and dark-mode flag to Windows Registry
+  /// under HKCU\Software\Nordplayer so the native Win32 window and DWM caption bar match
+  /// the active theme from the very first frame of application launch.
+  @override
+  void saveThemeColorForStartup({required dynamic color, required bool isDark}) {
+    if (!Platform.isWindows) return;
+
+    final subKey = 'Software\\Nordplayer'.toPcwstr();
+    final themeColorName = 'ThemeColor'.toPcwstr();
+    final isDarkName = 'IsDarkMode'.toPcwstr();
+    final phkResult = calloc<Pointer>();
+
+    try {
+      final createStatus = RegCreateKey(HKEY_CURRENT_USER, subKey, phkResult);
+
+      if (createStatus == ERROR_SUCCESS) {
+        final key = HKEY(phkResult.value);
+        try {
+          // Extract 0x00RRGGBB
+          final r = ((color.r as num) * 255).round() & 0xFF;
+          final g = ((color.g as num) * 255).round() & 0xFF;
+          final b = ((color.b as num) * 255).round() & 0xFF;
+          final colorValue = (r << 16) | (g << 8) | b;
+
+          final colorData = calloc<DWORD>()..value = colorValue;
+          final isDarkData = calloc<DWORD>()..value = isDark ? 1 : 0;
+
+          try {
+            RegSetValueEx(key, themeColorName, REG_DWORD, colorData.cast<Uint8>(), sizeOf<DWORD>());
+            RegSetValueEx(key, isDarkName, REG_DWORD, isDarkData.cast<Uint8>(), sizeOf<DWORD>());
+          } finally {
+            free(colorData);
+            free(isDarkData);
+          }
+        } finally {
+          RegCloseKey(key);
+        }
+      }
+    } finally {
+      free(subKey);
+      free(themeColorName);
+      free(isDarkName);
+      free(phkResult);
+    }
+  }
 }

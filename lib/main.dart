@@ -73,11 +73,32 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp> {
     super.dispose();
   }
 
+  void _saveThemeColorForStartup(AppTheme appTheme, ThemeMode preferredMode) {
+    final effectiveMode = appTheme.resolveThemeMode(preferredMode);
+    final isDark =
+        effectiveMode == ThemeMode.dark ||
+        (effectiveMode == ThemeMode.system &&
+            WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark);
+
+    final palette = isDark ? (appTheme.dark ?? appTheme.light) : (appTheme.light ?? appTheme.dark);
+    if (palette != null) {
+      NativeWindow.instance.saveThemeColorForStartup(color: palette.surface, isDark: isDark);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final appConfig = ref.watch(appConfigProvider);
     final themeMode = ref.watch(appConfig.themeMode.provider);
     final appTheme = ref.watch(appThemeProvider);
+
+    // Save theme color whenever theme or theme mode changes
+    ref.listen(appThemeProvider, (_, nextTheme) {
+      _saveThemeColorForStartup(nextTheme, ref.read(appConfig.themeMode.provider));
+    });
+    ref.listen(appConfig.themeMode.provider, (_, nextMode) {
+      _saveThemeColorForStartup(ref.read(appThemeProvider), nextMode);
+    });
 
     return MaterialApp.router(
       routerConfig: router,
