@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/config/app_config.dart';
-import 'package:nordplayer/ui/shell/performance/performance_metrics.dart';
+import 'package:nordplayer/ui/shell/title_bar/performance_metrics/performance_metrics.dart';
 
 class PerformanceIndicator extends ConsumerWidget {
   const PerformanceIndicator({super.key});

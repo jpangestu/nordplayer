@@ -8,8 +8,8 @@ import 'package:nordplayer/config/app_config.dart';
 import 'package:nordplayer/core/window/drag_to_move_area.dart';
 import 'package:nordplayer/core/window/native_window.dart';
 import 'package:nordplayer/ui/shared/popover.dart';
-import 'package:nordplayer/ui/shell/performance/performance_indicator.dart';
-import 'package:nordplayer/ui/shell/performance/performance_panel.dart';
+import 'package:nordplayer/ui/shell/title_bar/performance_metrics/performance_indicator.dart';
+import 'package:nordplayer/ui/shell/title_bar/performance_metrics/performance_panel.dart';
 import 'package:nordplayer/ui/shell/title_bar/window_control/breeze.dart';
 import 'package:nordplayer/ui/shell/title_bar/window_control/windows11.dart';
 

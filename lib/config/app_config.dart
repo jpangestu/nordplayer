@@ -12,6 +12,20 @@ final class AppConfig(super.builder) extends TypedConfig {
   final windowBackdrop = builder.group('windowBackground', WindowBackdropConfig.new);
   final surface = builder.group('surface', SurfaceConfig.new);
   final performance = builder.group('performance', PerformanceMetricsConfig.new);
+  final ui = builder.group('ui', UiConfig.new);
+}
+
+final class UiConfig(super.builder) extends TypedConfig {
+  final playerBar = builder.group('player_bar', PlayerBarConfig.new);
+  final sidebar = builder.group('sidebar', SidebarConfig.new);
+}
+
+final class PlayerBarConfig(super.builder) extends TypedConfig {
+  final height = builder.define('heght', 90.0);
+}
+
+final class SidebarConfig(super.builder) extends TypedConfig {
+  final width = builder.define('width', 300.0);
 }
 
 enum WindowBackdropType { solid, platformStyle, albumArt, customImage }

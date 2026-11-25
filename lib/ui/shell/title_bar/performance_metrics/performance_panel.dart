@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nordplayer/config/app_config.dart';
-import 'package:nordplayer/ui/shell/performance/performance_metrics.dart';
+import 'package:nordplayer/ui/shell/title_bar/performance_metrics/performance_metrics.dart';
 
 class PerformancePanel extends ConsumerStatefulWidget {
   const PerformancePanel({super.key});
