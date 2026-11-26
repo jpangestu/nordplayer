@@ -14,7 +14,6 @@ class Shell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final appConfig = ref.watch(appConfigProvider);
-    final playerBarHeight = ref.watch(appConfig.ui.playerBar.height.provider);
     final sidebarWidth = ref.watch(appConfig.ui.sidebar.width.provider);
     final cursorOverride = ref.watch(cursorOverrideProvider);
 
@@ -33,40 +32,23 @@ class Shell extends ConsumerWidget {
                 Expanded(
                   child: Stack(
                     children: [
-                      Column(
+                      Row(
                         children: [
-                          Expanded(
-                            child: Stack(
-                              children: [
-                                Row(
-                                  children: [
-                                    const Sidebar(),
-                                    Expanded(child: ClipRect(child: child)),
-                                  ],
-                                ),
-                                Positioned(
-                                  top: 0,
-                                  bottom: 0,
-                                  left: sidebarWidth - (resizeHitboxSize / 2),
-                                  width: resizeHitboxSize,
-                                  child: const _SidebarResizeHandle(),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const PlayerBar(),
+                          const Sidebar(),
+                          Expanded(child: ClipRect(child: child)),
                         ],
                       ),
                       Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: playerBarHeight - (resizeHitboxSize / 2),
-                        height: resizeHitboxSize,
-                        child: const _PlayerBarResizeHandle(),
+                        top: 0,
+                        bottom: 0,
+                        left: sidebarWidth - (resizeHitboxSize / 2),
+                        width: resizeHitboxSize,
+                        child: const _SidebarResizeHandle(),
                       ),
                     ],
                   ),
                 ),
+                const PlayerBar(),
               ],
             ),
           ),
@@ -119,54 +101,6 @@ class _SidebarResizeHandleState extends ConsumerState<_SidebarResizeHandle> {
         },
         onHorizontalDragEnd: (_) => _endDrag(),
         onHorizontalDragCancel: _endDrag,
-      ),
-    );
-  }
-}
-
-class _PlayerBarResizeHandle extends ConsumerStatefulWidget {
-  const _PlayerBarResizeHandle();
-
-  @override
-  ConsumerState<_PlayerBarResizeHandle> createState() => _PlayerBarResizeHandleState();
-}
-
-class _PlayerBarResizeHandleState extends ConsumerState<_PlayerBarResizeHandle> {
-  static const double _minHeight = 64.0;
-  static const double _maxHeight = 120.0;
-
-  double? _dragStartY;
-  double? _dragStartHeight;
-
-  void _endDrag() {
-    _dragStartY = null;
-    _dragStartHeight = null;
-    ref.read(cursorOverrideProvider.notifier).set(null);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final appConfig = ref.watch(appConfigProvider);
-
-    return MouseRegion(
-      cursor: SystemMouseCursors.resizeUpDown,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onVerticalDragStart: (details) {
-          _dragStartY = details.globalPosition.dy;
-          _dragStartHeight = appConfig.ui.playerBar.height.value;
-          ref.read(cursorOverrideProvider.notifier).set(SystemMouseCursors.resizeUpDown);
-        },
-        onVerticalDragUpdate: (details) {
-          if (_dragStartY == null || _dragStartHeight == null) return;
-          final deltaY = _dragStartY! - details.globalPosition.dy;
-          appConfig.ui.playerBar.height.value = (_dragStartHeight! + deltaY).clamp(
-            _minHeight,
-            _maxHeight,
-          );
-        },
-        onVerticalDragEnd: (_) => _endDrag(),
-        onVerticalDragCancel: _endDrag,
       ),
     );
   }

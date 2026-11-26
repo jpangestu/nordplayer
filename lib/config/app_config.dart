@@ -20,8 +20,24 @@ final class UiConfig(super.builder) extends TypedConfig {
   final sidebar = builder.group('sidebar', SidebarConfig.new);
 }
 
+enum PlayerBarSize {
+  compact(height: 68.0, albumArtSize: 44.0, showAlbum: false),
+  standard(height: 84.0, albumArtSize: 56.0, showAlbum: true),
+  spacious(height: 100.0, albumArtSize: 72.0, showAlbum: true);
+
+  const PlayerBarSize({
+    required this.height,
+    required this.albumArtSize,
+    required this.showAlbum,
+  });
+
+  final double height;
+  final double albumArtSize;
+  final bool showAlbum;
+}
+
 final class PlayerBarConfig(super.builder) extends TypedConfig {
-  final height = builder.define('height', 90.0);
+  final size = builder.defineEnum('size', PlayerBarSize.standard, values: PlayerBarSize.values);
 }
 
 final class SidebarConfig(super.builder) extends TypedConfig {
