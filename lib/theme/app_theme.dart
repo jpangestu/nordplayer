@@ -139,7 +139,11 @@ extension ColorPaletteExtension on ColorPalette {
       fontFamilyFallback: fontFallbacks,
       scaffoldBackgroundColor: surface,
 
-      // Register custom extensions
+      sliderTheme: const SliderThemeData(
+        thumbShape: RoundSliderThumbShape(enabledThumbRadius: 6.0, pressedElevation: 4.0),
+        overlayShape: RoundSliderOverlayShape(overlayRadius: 14.0),
+      ),
+
       extensions: [AppSemanticColors(success: success, warning: warning, info: info, error: error)],
     );
   }

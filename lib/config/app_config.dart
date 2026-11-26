@@ -21,7 +21,7 @@ final class UiConfig(super.builder) extends TypedConfig {
 }
 
 final class PlayerBarConfig(super.builder) extends TypedConfig {
-  final height = builder.define('heght', 90.0);
+  final height = builder.define('height', 90.0);
 }
 
 final class SidebarConfig(super.builder) extends TypedConfig {
