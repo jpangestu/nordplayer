@@ -51,13 +51,13 @@ sealed class const LayoutSize({final double minExtent = 32.0, final double? maxE
 
   static LayoutSize fromJson(dynamic json) {
     if (json is! Map) return const FlexSize(1.0);
-    final kind = json['kind'];
+    final type = json['type'];
     final minExtent = (json['minExtent'] is num)
         ? (json['minExtent'] as num).toDouble().clamp(0.0, 2000.0)
         : 32.0;
     final maxExtent = (json['maxExtent'] is num) ? (json['maxExtent'] as num).toDouble() : null;
 
-    return switch (kind) {
+    return switch (type) {
       'fixed' => FixedSize(
         (json['pixels'] is num) ? (json['pixels'] as num).toDouble().clamp(16.0, 4000.0) : 160.0,
         minExtent: minExtent,
@@ -87,7 +87,7 @@ final class const FlexSize(final double weight, {super.minExtent = 32.0, super.m
 
   @override
   Map<String, dynamic> toJson() => {
-    'kind': 'flex',
+    'type': 'flex',
     'weight': weight,
     if (minExtent != 32.0) 'minExtent': minExtent,
     if (maxExtent != null) 'maxExtent': maxExtent,
@@ -118,7 +118,7 @@ final class const FixedSize(final double pixels, {super.minExtent = 32.0, super.
 
   @override
   Map<String, dynamic> toJson() => {
-    'kind': 'fixed',
+    'type': 'fixed',
     'pixels': pixels,
     if (minExtent != 32.0) 'minExtent': minExtent,
     if (maxExtent != null) 'maxExtent': maxExtent,
@@ -142,7 +142,7 @@ final class const FitContentSize({super.minExtent = 0.0, super.maxExtent}) exten
 
   @override
   Map<String, dynamic> toJson() => {
-    'kind': 'fit',
+    'type': 'fit',
     if (minExtent != 0.0) 'minExtent': minExtent,
     if (maxExtent != null) 'maxExtent': maxExtent,
   };
@@ -295,13 +295,13 @@ final class const SplitContainer({
       Object.hash('split', id, size, axis, spacing, padding, Object.hashAll(children));
 }
 
-/// Leaf container that arranges widgets along [axis] with [alignment], [crossAlignment], [gap],
+/// Leaf container that arranges widgets along [axis] with [mainAlignment], [crossAlignment], [gap],
 /// and [padding].
 final class const GroupContainer({
   required super.id,
   super.size = const FlexSize(1.0),
   final LayoutAxis axis = LayoutAxis.horizontal,
-  final LayoutAlign alignment = LayoutAlign.center,
+  final LayoutAlign mainAlignment = LayoutAlign.center,
   final LayoutCrossAlign crossAlignment = LayoutCrossAlign.center,
   final double gap = 2.0,
   final EdgeInsets padding = EdgeInsets.zero,
@@ -313,7 +313,7 @@ final class const GroupContainer({
   GroupContainer copyWith({
     LayoutSize? size,
     LayoutAxis? axis,
-    LayoutAlign? alignment,
+    LayoutAlign? mainAlignment,
     LayoutCrossAlign? crossAlignment,
     double? gap,
     EdgeInsets? padding,
@@ -323,7 +323,7 @@ final class const GroupContainer({
       id: id,
       size: size ?? this.size,
       axis: axis ?? this.axis,
-      alignment: alignment ?? this.alignment,
+      mainAlignment: mainAlignment ?? this.mainAlignment,
       crossAlignment: crossAlignment ?? this.crossAlignment,
       gap: gap ?? this.gap,
       padding: padding ?? this.padding,
@@ -337,7 +337,7 @@ final class const GroupContainer({
     'id': id,
     'size': size.toJson(),
     'axis': axis.name,
-    'alignment': alignment.name,
+    'mainAlignment': mainAlignment.name,
     'crossAlignment': crossAlignment.name,
     if (gap != 2.0) 'gap': gap,
     if (padding != EdgeInsets.zero)
@@ -352,8 +352,8 @@ final class const GroupContainer({
         : nextLayoutId('g');
     final axis =
         LayoutAxis.values.where((a) => a.name == json['axis']).firstOrNull ?? LayoutAxis.horizontal;
-    final alignment =
-        LayoutAlign.values.where((a) => a.name == json['alignment']).firstOrNull ??
+    final mainAlignment =
+        LayoutAlign.values.where((a) => a.name == json['mainAlignment']).firstOrNull ??
         LayoutAlign.center;
     final crossAlignment =
         LayoutCrossAlign.values.where((a) => a.name == json['crossAlignment']).firstOrNull ??
@@ -379,7 +379,7 @@ final class const GroupContainer({
       id: id,
       size: size,
       axis: axis,
-      alignment: alignment,
+      mainAlignment: mainAlignment,
       crossAlignment: crossAlignment,
       gap: gap,
       padding: padding,
@@ -393,7 +393,7 @@ final class const GroupContainer({
       other.id == id &&
       other.size == size &&
       other.axis == axis &&
-      other.alignment == alignment &&
+      other.mainAlignment == mainAlignment &&
       other.crossAlignment == crossAlignment &&
       other.gap == gap &&
       other.padding == padding &&
@@ -405,7 +405,7 @@ final class const GroupContainer({
     id,
     size,
     axis,
-    alignment,
+    mainAlignment,
     crossAlignment,
     gap,
     padding,

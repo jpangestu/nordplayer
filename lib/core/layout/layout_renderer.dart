@@ -705,7 +705,7 @@ class _GroupContainerViewState extends State<_GroupContainerView> {
     Widget buildFlexContent() {
       final children = <Widget>[];
       for (var i = 0; i < group.items.length; i++) {
-        if (i > 0 && group.gap > 0 && group.alignment != LayoutAlign.spaceBetween) {
+        if (i > 0 && group.gap > 0 && group.mainAlignment != LayoutAlign.spaceBetween) {
           children.add(isHorizontal ? SizedBox(width: group.gap) : SizedBox(height: group.gap));
         }
 
@@ -753,7 +753,7 @@ class _GroupContainerViewState extends State<_GroupContainerView> {
         padding: group.padding,
         child: Flex(
           direction: isHorizontal ? Axis.horizontal : Axis.vertical,
-          mainAxisAlignment: group.alignment.mainAxis,
+          mainAxisAlignment: group.mainAlignment.mainAxis,
           mainAxisSize: hasBoundedMain ? MainAxisSize.max : MainAxisSize.min,
           crossAxisAlignment: effectiveCrossAlign,
           children: children,

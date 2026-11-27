@@ -115,7 +115,7 @@ abstract final class LayoutOps {
       id: nextLayoutId('g'),
       size: const FlexSize(1.0),
       axis: LayoutAxis.horizontal,
-      alignment: LayoutAlign.center,
+      mainAlignment: LayoutAlign.center,
     );
 
     final parent = parentOf(root, targetId);
@@ -137,7 +137,6 @@ abstract final class LayoutOps {
         id: nextLayoutId('s'),
         size: target.size,
         axis: axis,
-        spacing: axis == LayoutAxis.horizontal ? 8.0 : 2.0,
         children: insertBefore ? [newGroup, existingAsChild] : [existingAsChild, newGroup],
       );
     });
