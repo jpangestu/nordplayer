@@ -1,31 +1,25 @@
-import 'dart:io';
-
 import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nordplayer/core/window/native_window.dart';
 
 /// A widget that initiates native window dragging when a pan gesture begins.
-class DragToMoveArea extends StatelessWidget {
+class DragToMoveArea extends ConsumerWidget {
   final Widget child;
   final VoidCallback? onDoubleTap;
-  final GestureTapDownCallback? onSecondaryTapDown;
+  final GestureTapUpCallback? onSecondaryTapUp;
 
-  const DragToMoveArea({super.key, required this.child, this.onDoubleTap, this.onSecondaryTapDown});
+  const DragToMoveArea({super.key, required this.child, this.onDoubleTap, this.onSecondaryTapUp});
 
   @override
-  Widget build(BuildContext context) {
-    if (!Platform.isWindows) {
-      return child;
-    }
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nativeWindow = ref.read(nativeWindowProvider);
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onPanStart: (_) {
-        NativeWindow.instance.startDragging();
-      },
-      onDoubleTap: onDoubleTap ?? NativeWindow.instance.toggleMaximize,
-      onSecondaryTapDown:
-          onSecondaryTapDown ??
-          (details) => NativeWindow.instance.popUpWindowMenu(details.globalPosition),
+      onPanStart: (_) => nativeWindow.startDragging(),
+      onDoubleTap: onDoubleTap ?? nativeWindow.toggleMaximize,
+      onSecondaryTapUp:
+          onSecondaryTapUp ?? (details) => nativeWindow.popUpWindowMenu(details.globalPosition),
       child: child,
     );
   }

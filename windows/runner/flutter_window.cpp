@@ -2,9 +2,42 @@
 
 #include <dwmapi.h>
 #include <flutter_windows.h>
+#include <shellapi.h>
 #include <optional>
 
 #include "flutter/generated_plugin_registrant.h"
+
+namespace {
+
+// Insets the maximized work area by 1px on any edge that has an auto-hide
+// taskbar docked on the given monitor so the taskbar can still reveal on hover.
+void AdjustForAutoHideTaskbar(const RECT& monitor_rect, RECT* client_rect) {
+  APPBARDATA abd{};
+  abd.cbSize = sizeof(abd);
+  if ((::SHAppBarMessage(ABM_GETSTATE, &abd) & ABS_AUTOHIDE) == 0) {
+    return;
+  }
+
+  auto has_autohide_bar = [&](UINT edge) -> bool {
+    APPBARDATA edge_abd{};
+    edge_abd.cbSize = sizeof(edge_abd);
+    edge_abd.uEdge = edge;
+    edge_abd.rc = monitor_rect;
+    return ::SHAppBarMessage(ABM_GETAUTOHIDEBAREX, &edge_abd) != 0;
+  };
+
+  if (has_autohide_bar(ABE_BOTTOM)) {
+    client_rect->bottom -= 1;
+  } else if (has_autohide_bar(ABE_TOP)) {
+    client_rect->top += 1;
+  } else if (has_autohide_bar(ABE_LEFT)) {
+    client_rect->left += 1;
+  } else if (has_autohide_bar(ABE_RIGHT)) {
+    client_rect->right -= 1;
+  }
+}
+
+}  // namespace
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
@@ -75,10 +108,10 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
       }
       auto* params = reinterpret_cast<NCCALCSIZE_PARAMS*>(lparam);
       if (::IsZoomed(hwnd)) {
-        // When maximized, Windows expands the window frame ~8px beyond the display
+        // When maximized, Windows expands the window frame beyond the display
         // to hide legacy borders, which would clip the custom title bar off-screen.
-        // We snap the client rect to the monitor's work area (rcWork) to keep all
-        // window edges and controls perfectly aligned with the visible desktop.
+        // Snap the client rect to the monitor's work area (rcWork) and leave a 1px
+        // edge margin if an auto-hide taskbar is docked on this monitor.
         HMONITOR monitor =
             ::MonitorFromRect(&params->rgrc[0], MONITOR_DEFAULTTONEAREST);
         if (monitor) {
@@ -86,17 +119,28 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
           monitor_info.cbSize = sizeof(MONITORINFO);
           if (::GetMonitorInfoW(monitor, &monitor_info)) {
             params->rgrc[0] = monitor_info.rcWork;
+            if (::EqualRect(&monitor_info.rcWork, &monitor_info.rcMonitor)) {
+              AdjustForAutoHideTaskbar(monitor_info.rcMonitor,
+                                       &params->rgrc[0]);
+            }
           }
         }
       } else {
         // In restored (normal) mode:
-        // - Retain 8px invisible non-client borders on left, bottom, and right so
-        //   Windows handles native cursor resizing and DWM drop shadows automatically.
+        // - Retain DPI-scaled invisible non-client borders on left, bottom, and right
+        //   so Windows handles native cursor resizing and DWM drop shadows accurately
+        //   across 100%/125%/150%/200% displays.
         // - Leave the top edge at 0 (unmodified) to eliminate the native title bar,
         //   allowing the custom title bar to render flush at the very top.
-        params->rgrc[0].right -= 8;
-        params->rgrc[0].bottom -= 8;
-        params->rgrc[0].left += 8;
+        UINT dpi = FlutterDesktopGetDpiForMonitor(
+            ::MonitorFromRect(&params->rgrc[0], MONITOR_DEFAULTTONEAREST));
+        int border_x = ::GetSystemMetricsForDpi(SM_CXFRAME, dpi) +
+                       ::GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
+        int border_y = ::GetSystemMetricsForDpi(SM_CYFRAME, dpi) +
+                       ::GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
+        params->rgrc[0].right -= border_x;
+        params->rgrc[0].bottom -= border_y;
+        params->rgrc[0].left += border_x;
       }
       return 0;
     }
@@ -125,7 +169,9 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
 
   switch (message) {
     case WM_FONTCHANGE:
-      flutter_controller_->engine()->ReloadSystemFonts();
+      if (flutter_controller_) {
+        flutter_controller_->engine()->ReloadSystemFonts();
+      }
       break;
   }
 

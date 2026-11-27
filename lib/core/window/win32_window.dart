@@ -1,57 +1,69 @@
 import 'dart:ffi';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:ffi/ffi.dart';
 import 'package:nordplayer/core/window/native_window.dart';
 import 'package:win32/win32.dart';
 
-/// Windows implemetations of [NativeWindow].
+/// Windows implementation of [NativeWindow].
 class Win32Window extends NativeWindow {
+  static const _windowClassName = 'NORDPLAYER_WIN32_WINDOW';
+  static const _win11Build22H2 = 22621;
+
   HWND? _hwnd;
+  late final bool _supportsSystemBackdrop = OsVersion.current.build >= _win11Build22H2;
+  bool _hasSystemBackdrop = false;
+  int? _lastCaptionColorRef;
 
   /// Resolves and caches the top-level window handle for the current process.
   HWND get hwnd {
     if (!Platform.isWindows) return HWND(nullptr);
-    if (_hwnd != null && _hwnd!.address != 0) return _hwnd!;
+    if (_hwnd != null && _hwnd!.address != 0 && IsWindow(_hwnd)) return _hwnd!;
+    _hwnd = null;
 
-    // 1. Try active window on current platform thread
-    final active = GetActiveWindow();
-    if (active.address != 0) {
-      final root = GetAncestor(active, GA_ROOT);
-      if (root.address != 0) {
-        _hwnd = root;
+    final currentPid = GetCurrentProcessId();
+    final processIdPtr = calloc<DWORD>();
+    try {
+      // 1. Enumerate top-level windows matching Nordplayer's unique class name and PID.
+      // Checked first so a native modal dialog (e.g. file picker) can never be cached.
+      final className = _windowClassName.toPcwstr();
+      try {
+        HWND? candidate;
+        while (true) {
+          final found = FindWindowEx(null, candidate, className, null).value;
+          if (found.address == 0) break;
+          GetWindowThreadProcessId(found, processIdPtr);
+          if (processIdPtr.value == currentPid) {
+            _hwnd = found;
+            return _hwnd!;
+          }
+          candidate = found;
+        }
+      } finally {
+        free(className);
+      }
+
+      // 2. Fallback: active window on current platform thread
+      final active = GetActiveWindow();
+      if (active.address != 0) {
+        final root = GetAncestor(active, GA_ROOT);
+        _hwnd = root.address != 0 ? root : active;
         return _hwnd!;
       }
-      _hwnd = active;
-      return _hwnd!;
-    }
 
-    // 2. Try foreground window if it belongs to this process
-    final foreground = GetForegroundWindow();
-    if (foreground.address != 0) {
-      final processIdPtr = calloc<DWORD>();
-      try {
+      // 3. Fallback: foreground window if it belongs to this process
+      final foreground = GetForegroundWindow();
+      if (foreground.address != 0) {
         GetWindowThreadProcessId(foreground, processIdPtr);
-        if (processIdPtr.value == GetCurrentProcessId()) {
+        if (processIdPtr.value == currentPid) {
           final root = GetAncestor(foreground, GA_ROOT);
           _hwnd = root.address != 0 ? root : foreground;
           return _hwnd!;
         }
-      } finally {
-        free(processIdPtr);
-      }
-    }
-
-    // 3. Try FindWindow with the Flutter runner window class name
-    final className = 'FLUTTER_RUNNER_WIN32_WINDOW'.toPcwstr();
-    try {
-      final found = FindWindow(className, null);
-      if (found.value.address != 0) {
-        _hwnd = found.value;
-        return _hwnd!;
       }
     } finally {
-      free(className);
+      free(processIdPtr);
     }
 
     return HWND(nullptr);
@@ -68,27 +80,30 @@ class Win32Window extends NativeWindow {
   /// Synchronously returns whether the window is currently focused.
   @override
   bool get isFocused {
-    if (hwnd.address == 0) return true;
+    final h = hwnd;
+    if (h.address == 0) return true;
     final active = GetActiveWindow();
     if (active.address == 0) {
       final foreground = GetForegroundWindow();
-      return foreground.address == hwnd.address ||
-          GetAncestor(foreground, GA_ROOT).address == hwnd.address;
+      return foreground.address == h.address ||
+          GetAncestor(foreground, GA_ROOT).address == h.address;
     }
-    return active.address == hwnd.address || GetAncestor(active, GA_ROOT).address == hwnd.address;
+    return active.address == h.address || GetAncestor(active, GA_ROOT).address == h.address;
   }
 
   /// Minimizes the window.
   @override
   void minimize() {
-    if (hwnd.address != 0) ShowWindow(hwnd, SW_MINIMIZE);
+    final h = hwnd;
+    if (h.address != 0) ShowWindow(h, SW_MINIMIZE);
   }
 
   /// Maximizes the window.
   @override
   void maximize() {
-    if (hwnd.address != 0) {
-      ShowWindow(hwnd, SW_MAXIMIZE);
+    final h = hwnd;
+    if (h.address != 0) {
+      ShowWindow(h, SW_MAXIMIZE);
       checkStateChanges();
     }
   }
@@ -96,8 +111,9 @@ class Win32Window extends NativeWindow {
   /// Restores the window from a maximized or minimized state.
   @override
   void restore() {
-    if (hwnd.address != 0) {
-      ShowWindow(hwnd, SW_RESTORE);
+    final h = hwnd;
+    if (h.address != 0) {
+      ShowWindow(h, SW_RESTORE);
       checkStateChanges();
     }
   }
@@ -105,29 +121,41 @@ class Win32Window extends NativeWindow {
   /// Closes the window.
   @override
   void close() {
-    if (hwnd.address != 0) {
-      SendMessage(hwnd, WM_CLOSE, const WPARAM(0), const LPARAM(0));
+    final h = hwnd;
+    if (h.address != 0) {
+      PostMessage(h, WM_CLOSE, const WPARAM(0), const LPARAM(0));
+    }
+  }
+
+  LPARAM _cursorPosLParam() {
+    final pt = calloc<POINT>();
+    try {
+      if (!GetCursorPos(pt).value) return const LPARAM(0);
+      return LPARAM(((pt.ref.y & 0xFFFF) << 16) | (pt.ref.x & 0xFFFF));
+    } finally {
+      free(pt);
     }
   }
 
   /// Starts native window dragging with Windows Aero Snap support.
   @override
   void startDragging() {
-    if (hwnd.address != 0) {
+    final h = hwnd;
+    if (h.address != 0) {
       ReleaseCapture();
-      SendMessage(hwnd, WM_NCLBUTTONDOWN, const WPARAM(HTCAPTION), const LPARAM(0));
-      checkStateChanges();
+      PostMessage(h, WM_NCLBUTTONDOWN, const WPARAM(HTCAPTION), _cursorPosLParam());
     }
   }
 
   /// Starts native edge or corner window resizing.
   @override
   void startResizing(WindowResizeEdge edge) {
-    if (hwnd.address != 0) {
+    final h = hwnd;
+    if (h.address != 0) {
       final hitTest = switch (edge) {
         WindowResizeEdge.left => HTLEFT,
         WindowResizeEdge.right => HTRIGHT,
-        WindowResizeEdge.top || WindowResizeEdge.topCenter => HTTOP,
+        WindowResizeEdge.top => HTTOP,
         WindowResizeEdge.bottom => HTBOTTOM,
         WindowResizeEdge.topLeft => HTTOPLEFT,
         WindowResizeEdge.topRight => HTTOPRIGHT,
@@ -135,54 +163,89 @@ class Win32Window extends NativeWindow {
         WindowResizeEdge.bottomRight => HTBOTTOMRIGHT,
       };
       ReleaseCapture();
-      SendMessage(hwnd, WM_NCLBUTTONDOWN, WPARAM(hitTest), const LPARAM(0));
-      checkStateChanges();
+      PostMessage(h, WM_NCLBUTTONDOWN, WPARAM(hitTest), _cursorPosLParam());
     }
   }
 
-  @override
-  /// Set null for solid
-  void setWindowPlatformStyle(PlatformStyle? platformStyle) {
-    if (platformStyle is! WindowsWindowStyle && platformStyle != null) return;
-    final h = hwnd;
-    if (h.address == 0) return;
-
-    final isWindowsWindowStyle = platformStyle != null;
-
-    // Reset any legacy composition accent policy
+  void _setAccentPolicy(HWND h, {required ACCENT_STATE state, int gradientColor = 0}) {
     final accent = calloc<ACCENT_POLICY>();
     final compData = calloc<WINDOWCOMPOSITIONATTRIBDATA>();
     try {
-      accent.ref.AccentState = ACCENT_DISABLED;
-      accent.ref.AccentFlags = 2;
-      accent.ref.GradientColor = 0;
-      accent.ref.AnimationId = 0;
+      accent.ref
+        ..AccentState = state
+        ..AccentFlags = 2
+        ..GradientColor = gradientColor
+        ..AnimationId = 0;
 
-      compData.ref.Attrib = WCA_ACCENT_POLICY;
-      compData.ref.pvData = accent.cast();
-      compData.ref.cbData = sizeOf<ACCENT_POLICY>();
+      compData.ref
+        ..Attrib = WCA_ACCENT_POLICY
+        ..pvData = accent.cast()
+        ..cbData = sizeOf<ACCENT_POLICY>();
       SetWindowCompositionAttribute(h, compData);
     } finally {
       free(accent);
       free(compData);
     }
+  }
 
-    // DWM Frame Margins:
-    // - System effects require -1 margins across the entire window.
-    // - Solid / None restores standard {0, 0, 1, 0} margins.
+  void _setFrameMargins(HWND h, {required bool extendFullFrame}) {
     final margins = calloc<MARGINS>()
-      ..ref.cxLeftWidth = isWindowsWindowStyle ? -1 : 0
-      ..ref.cxRightWidth = isWindowsWindowStyle ? -1 : 0
-      ..ref.cyTopHeight = isWindowsWindowStyle ? -1 : 1
-      ..ref.cyBottomHeight = isWindowsWindowStyle ? -1 : 0;
+      ..ref.cxLeftWidth = extendFullFrame ? -1 : 0
+      ..ref.cxRightWidth = extendFullFrame ? -1 : 0
+      ..ref.cyTopHeight = extendFullFrame ? -1 : 1
+      ..ref.cyBottomHeight = extendFullFrame ? -1 : 0;
     try {
       DwmExtendFrameIntoClientArea(h, margins);
     } finally {
       free(margins);
     }
+  }
 
-    // Titlebar caption fill (0xFFFFFFFF = DWMWA_COLOR_DEFAULT) / (0xFFFFFFFE = DWMWA_COLOR_NONE)
-    final captionColor = calloc<DWORD>()..value = isWindowsWindowStyle ? 0xFFFFFFFE : 0xFFFFFFFF;
+  /// Set `null` for solid.
+  @override
+  void setWindowPlatformStyle(PlatformStyle? platformStyle) {
+    if (platformStyle is! WindowsWindowStyle && platformStyle != null) return;
+    final h = hwnd;
+    if (h.address == 0) return;
+
+    if (!_supportsSystemBackdrop) {
+      _hasSystemBackdrop = false;
+      // Windows 10 / Windows 11 21H2 fallback: DWMWA_SYSTEMBACKDROP_TYPE is unavailable.
+      if (platformStyle == WindowsWindowStyle.acrylic) {
+        _setFrameMargins(h, extendFullFrame: true);
+        _setAccentPolicy(h, state: ACCENT_ENABLE_ACRYLICBLURBEHIND, gradientColor: 0x01000000);
+      } else {
+        _setAccentPolicy(h, state: ACCENT_DISABLED);
+        _setFrameMargins(h, extendFullFrame: false);
+      }
+
+      SetWindowPos(
+        h,
+        HWND(nullptr),
+        0,
+        0,
+        0,
+        0,
+        SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE,
+      );
+      return;
+    }
+
+    final isWindowsWindowStyle = platformStyle != null;
+    _hasSystemBackdrop = isWindowsWindowStyle;
+
+    // Reset any legacy composition accent policy
+    _setAccentPolicy(h, state: ACCENT_DISABLED);
+
+    // DWM Frame Margins:
+    // - System effects require -1 margins across the entire window.
+    // - Solid / None restores standard {0, 0, 1, 0} margins.
+    _setFrameMargins(h, extendFullFrame: isWindowsWindowStyle);
+
+    // Titlebar caption fill: DWMWA_COLOR_NONE (0xFFFFFFFE) for system backdrops,
+    // otherwise the active theme surface COLORREF (or DWMWA_COLOR_DEFAULT 0xFFFFFFFF).
+    final captionColor = calloc<DWORD>()
+      ..value = isWindowsWindowStyle ? 0xFFFFFFFE : (_lastCaptionColorRef ?? 0xFFFFFFFF);
     try {
       DwmSetWindowAttribute(h, DWMWA_CAPTION_COLOR, captionColor, sizeOf<DWORD>());
     } finally {
@@ -216,14 +279,41 @@ class Win32Window extends NativeWindow {
     );
   }
 
-  /// Saves the current theme surface color and dark-mode flag to Windows Registry
-  /// under HKCU\Software\Nordplayer so the native Win32 window and DWM caption bar match
-  /// the active theme from the very first frame of application launch.
+  /// Updates live DWM dark-mode styling and saves the current theme surface color and
+  /// dark-mode flag to Windows Registry under HKCU\Software\Nordplayer so the native
+  /// Win32 window and DWM caption bar match the active theme from the very first frame.
   @override
-  void saveThemeColorForStartup({required dynamic color, required bool isDark}) {
+  void saveThemeColorForStartup({required Color color, required bool isDark}) {
     if (!Platform.isWindows) return;
 
-    final subKey = 'Software\\Nordplayer'.toPcwstr();
+    final r = (color.r * 255).round() & 0xFF;
+    final g = (color.g * 255).round() & 0xFF;
+    final b = (color.b * 255).round() & 0xFF;
+    final colorValue = (r << 16) | (g << 8) | b; // 0x00RRGGBB for Registry
+    final colorRef = (b << 16) | (g << 8) | r; // 0x00BBGGRR (Win32 COLORREF)
+    _lastCaptionColorRef = colorRef;
+
+    // Immediately update live DWM dark-mode attribute (and solid caption color when applicable).
+    final h = hwnd;
+    if (h.address != 0) {
+      final darkModeData = calloc<DWORD>()..value = isDark ? 1 : 0;
+      try {
+        DwmSetWindowAttribute(h, DWMWA_USE_IMMERSIVE_DARK_MODE, darkModeData, sizeOf<DWORD>());
+      } finally {
+        free(darkModeData);
+      }
+
+      if (!_hasSystemBackdrop) {
+        final captionData = calloc<DWORD>()..value = colorRef;
+        try {
+          DwmSetWindowAttribute(h, DWMWA_CAPTION_COLOR, captionData, sizeOf<DWORD>());
+        } finally {
+          free(captionData);
+        }
+      }
+    }
+
+    final subKey = r'Software\Nordplayer'.toPcwstr();
     final themeColorName = 'ThemeColor'.toPcwstr();
     final isDarkName = 'IsDarkMode'.toPcwstr();
     final phkResult = calloc<Pointer>();
@@ -234,12 +324,6 @@ class Win32Window extends NativeWindow {
       if (createStatus == ERROR_SUCCESS) {
         final key = HKEY(phkResult.value);
         try {
-          // Extract 0x00RRGGBB
-          final r = ((color.r as num) * 255).round() & 0xFF;
-          final g = ((color.g as num) * 255).round() & 0xFF;
-          final b = ((color.b as num) * 255).round() & 0xFF;
-          final colorValue = (r << 16) | (g << 8) | b;
-
           final colorData = calloc<DWORD>()..value = colorValue;
           final isDarkData = calloc<DWORD>()..value = isDark ? 1 : 0;
 

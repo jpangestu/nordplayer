@@ -25,11 +25,7 @@ enum PlayerBarSize {
   standard(height: 84.0, albumArtSize: 56.0, showAlbum: true),
   spacious(height: 100.0, albumArtSize: 72.0, showAlbum: true);
 
-  const PlayerBarSize({
-    required this.height,
-    required this.albumArtSize,
-    required this.showAlbum,
-  });
+  const PlayerBarSize({required this.height, required this.albumArtSize, required this.showAlbum});
 
   final double height;
   final double albumArtSize;

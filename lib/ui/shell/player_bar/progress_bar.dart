@@ -910,7 +910,12 @@ class _RenderProgressBar extends RenderBox {
     _drawBar(canvas, localSize, 1.0, _paintStyle.baseBarColor);
     _drawBar(canvas, localSize, _proportionOfTotal(_buffered), _paintStyle.bufferedBarColor);
     if (hoverProportion != null) {
-      _drawBar(canvas, localSize, hoverProportion, _paintStyle.progressBarColor.withValues(alpha: 0.35));
+      _drawBar(
+        canvas,
+        localSize,
+        hoverProportion,
+        _paintStyle.progressBarColor.withValues(alpha: 0.35),
+      );
     }
     _drawBar(canvas, localSize, _proportionOfTotal(_progress), _paintStyle.progressBarColor);
     _drawThumb(canvas, localSize);

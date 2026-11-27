@@ -20,7 +20,11 @@ namespace {
 #define DWMWA_CAPTION_COLOR 35
 #endif
 
-constexpr const wchar_t kWindowClassName[] = L"FLUTTER_RUNNER_WIN32_WINDOW";
+#ifndef DWMWA_SYSTEMBACKDROP_TYPE
+#define DWMWA_SYSTEMBACKDROP_TYPE 38
+#endif
+
+constexpr const wchar_t kWindowClassName[] = L"NORDPLAYER_WIN32_WINDOW";
 
 /// Registry key for Windows OS theme preference.
 ///
@@ -111,6 +115,7 @@ class WindowClassRegistrar {
   static WindowClassRegistrar* instance_;
 
   bool class_registered_ = false;
+  HBRUSH background_brush_ = nullptr;
 };
 
 WindowClassRegistrar* WindowClassRegistrar::instance_ = nullptr;
@@ -129,7 +134,8 @@ const wchar_t* WindowClassRegistrar::GetWindowClass() {
 
     // Dynamic background brush based on last active theme
     COLORREF theme_color = GetSavedThemeColor();
-    window_class.hbrBackground = CreateSolidBrush(theme_color);
+    background_brush_ = CreateSolidBrush(theme_color);
+    window_class.hbrBackground = background_brush_;
 
     window_class.lpszMenuName = nullptr;
     window_class.lpfnWndProc = Win32Window::WndProc;
@@ -141,6 +147,10 @@ const wchar_t* WindowClassRegistrar::GetWindowClass() {
 
 void WindowClassRegistrar::UnregisterWindowClass() {
   UnregisterClass(kWindowClassName, nullptr);
+  if (background_brush_ != nullptr) {
+    DeleteObject(background_brush_);
+    background_brush_ = nullptr;
+  }
   class_registered_ = false;
 }
 
@@ -259,7 +269,7 @@ Win32Window::MessageHandler(HWND hwnd,
     }
 
     case WM_ACTIVATE:
-      if (child_content_ != nullptr) {
+      if (LOWORD(wparam) != WA_INACTIVE && child_content_ != nullptr) {
         SetFocus(child_content_);
       }
       return 0;
@@ -346,8 +356,15 @@ void Win32Window::UpdateTheme(HWND const window) {
   DwmSetWindowAttribute(window, DWMWA_USE_IMMERSIVE_DARK_MODE,
                         &enable_dark_mode, sizeof(enable_dark_mode));
 
-  // Set the DWM caption bar color to match the saved theme color
-  COLORREF caption_color = GetSavedThemeColor();
-  DwmSetWindowAttribute(window, DWMWA_CAPTION_COLOR,
-                        &caption_color, sizeof(caption_color));
+  // Only set a solid DWM caption bar color when no system backdrop (Mica/Acrylic)
+  // is active, so WM_DWMCOLORIZATIONCOLORCHANGED does not clobber DWMWA_COLOR_NONE.
+  DWORD backdrop_type = 0;
+  HRESULT hr = DwmGetWindowAttribute(window, DWMWA_SYSTEMBACKDROP_TYPE,
+                                     &backdrop_type, sizeof(backdrop_type));
+  bool has_system_backdrop = SUCCEEDED(hr) && backdrop_type > 1;
+  if (!has_system_backdrop) {
+    COLORREF caption_color = GetSavedThemeColor();
+    DwmSetWindowAttribute(window, DWMWA_CAPTION_COLOR,
+                          &caption_color, sizeof(caption_color));
+  }
 }

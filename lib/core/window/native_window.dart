@@ -26,17 +26,7 @@ import 'package:nordplayer/core/window/win32_window.dart';
 //    - Window widgets (TitleBar, Windows11WindowControl, DragToMoveArea).
 //    - Consumes [nativeWindowProvider] for commands and watches providers for reactive styling.
 
-enum WindowResizeEdge {
-  left,
-  right,
-  top,
-  topCenter,
-  bottom,
-  topLeft,
-  topRight,
-  bottomLeft,
-  bottomRight,
-}
+enum WindowResizeEdge { left, right, top, bottom, topLeft, topRight, bottomLeft, bottomRight }
 
 sealed class PlatformStyle {}
 
@@ -84,18 +74,18 @@ abstract class NativeWindow with WidgetsBindingObserver {
     }
   }
 
-  void setWindowPlatformStyle(PlatformStyle? pllatformStyle) {}
+  void setWindowPlatformStyle(PlatformStyle? platformStyle) {}
 
-  /// Saves the current theme surface color and dark-mode flag
-  /// so native window creation matches the theme on startup.
+  /// Updates live native dark-mode decoration and saves the current theme surface
+  /// color and dark-mode flag so native window creation matches the theme on startup.
   void saveThemeColorForStartup({required Color color, required bool isDark}) {}
 
   // ==============================================================================================
   // State observation & listener management
   // ==============================================================================================
 
-  bool _lastMaximizedState = false;
-  bool _lastFocusedState = true;
+  bool? _lastMaximizedState;
+  bool? _lastFocusedState;
   final List<VoidCallback> _listeners = [];
 
   void addListener(VoidCallback listener) => _listeners.add(listener);

@@ -25,12 +25,6 @@ void main() async {
     schemaVersion: currentSchemaVersion,
   );
 
-  if (appConfig.windowBackdrop.type.value == WindowBackdropType.platformStyle) {
-    NativeWindow.instance.setWindowPlatformStyle(
-      appConfig.windowBackdrop.platformStyle.windows.value,
-    );
-  }
-
   runApp(
     ProviderScope(
       overrides: [
@@ -51,12 +45,13 @@ class NordplayerApp extends ConsumerStatefulWidget {
   ConsumerState<NordplayerApp> createState() => _NordplayerAppState();
 }
 
-class _NordplayerAppState extends ConsumerState<NordplayerApp> {
+class _NordplayerAppState extends ConsumerState<NordplayerApp> with WidgetsBindingObserver {
   late final AppLifecycleListener _lifecycleListener;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     _lifecycleListener = AppLifecycleListener(
       onExitRequested: () async {
@@ -65,10 +60,26 @@ class _NordplayerAppState extends ConsumerState<NordplayerApp> {
         return AppExitResponse.exit;
       },
     );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final appConfig = ref.read(appConfigProvider);
+      _saveThemeColorForStartup(ref.read(appThemeProvider), appConfig.themeMode.value);
+    });
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    if (!mounted) return;
+    final appConfig = ref.read(appConfigProvider);
+    if (appConfig.themeMode.value == ThemeMode.system) {
+      _saveThemeColorForStartup(ref.read(appThemeProvider), ThemeMode.system);
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _lifecycleListener.dispose();
     super.dispose();
   }

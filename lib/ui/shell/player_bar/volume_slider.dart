@@ -105,7 +105,9 @@ class _VolumeTooltipShape extends SliderComponentShape {
     double? textScaleFactor,
   }) {
     if (labelPainter == null) return Size.zero;
-    final scaledFontSize = labelPainter.textScaler.scale(labelPainter.text?.style?.fontSize ?? 11.0);
+    final scaledFontSize = labelPainter.textScaler.scale(
+      labelPainter.text?.style?.fontSize ?? 11.0,
+    );
     final capHeight = scaledFontSize * 0.72;
     return Size(
       labelPainter.width + _horizontalPadding * 2,
@@ -136,7 +138,9 @@ class _VolumeTooltipShape extends SliderComponentShape {
         (sliderTheme.thumbShape?.getPreferredSize(true, isDiscrete).shortestSide ?? 12.0) / 2;
 
     final baseline = labelPainter.computeDistanceToActualBaseline(TextBaseline.alphabetic);
-    final scaledFontSize = labelPainter.textScaler.scale(labelPainter.text?.style?.fontSize ?? 11.0);
+    final scaledFontSize = labelPainter.textScaler.scale(
+      labelPainter.text?.style?.fontSize ?? 11.0,
+    );
     final capHeight = scaledFontSize * 0.72;
 
     final bubbleWidth = labelPainter.width + _horizontalPadding * 2;
