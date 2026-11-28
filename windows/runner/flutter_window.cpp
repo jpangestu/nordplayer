@@ -1,13 +1,52 @@
 #include "flutter_window.h"
 
+#include <commctrl.h>
 #include <dwmapi.h>
 #include <flutter_windows.h>
 #include <shellapi.h>
 #include <optional>
+#include <string>
+#include <unordered_map>
 
 #include "flutter/generated_plugin_registrant.h"
+#include "resource.h"
 
 namespace {
+
+constexpr UINT_PTR kFlutterViewCursorSubclassId = 1;
+
+HCURSOR ResolveStandardSystemCursor(const std::string& kind) {
+  static const std::unordered_map<std::string, LPCWSTR> kCursors = {
+      {"basic", IDC_ARROW},
+      {"click", IDC_HAND},
+      {"forbidden", IDC_NO},
+      {"noDrop", IDC_NO},
+      {"wait", IDC_WAIT},
+      {"progress", IDC_APPSTARTING},
+      {"help", IDC_HELP},
+      {"text", IDC_IBEAM},
+      {"precise", IDC_CROSS},
+      {"move", IDC_SIZEALL},
+      {"allScroll", IDC_SIZEALL},
+      {"resizeLeft", IDC_SIZEWE},
+      {"resizeRight", IDC_SIZEWE},
+      {"resizeLeftRight", IDC_SIZEWE},
+      {"resizeColumn", IDC_SIZEWE},
+      {"resizeUp", IDC_SIZENS},
+      {"resizeDown", IDC_SIZENS},
+      {"resizeUpDown", IDC_SIZENS},
+      {"resizeRow", IDC_SIZENS},
+      {"resizeUpLeft", IDC_SIZENWSE},
+      {"resizeDownRight", IDC_SIZENWSE},
+      {"resizeUpLeftDownRight", IDC_SIZENWSE},
+      {"resizeUpRight", IDC_SIZENESW},
+      {"resizeDownLeft", IDC_SIZENESW},
+      {"resizeUpRightDownLeft", IDC_SIZENESW},
+  };
+  const auto it = kCursors.find(kind);
+  const LPCWSTR resource = (it != kCursors.end()) ? it->second : IDC_ARROW;
+  return ::LoadCursorW(nullptr, resource);
+}
 
 // Insets the maximized work area by 1px on any edge that has an auto-hide
 // taskbar docked on the given monitor so the taskbar can still reveal on hover.
@@ -72,7 +111,23 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
-  SetChildContent(flutter_controller_->view()->GetNativeWindow());
+  flutter_view_hwnd_ = flutter_controller_->view()->GetNativeWindow();
+  SetChildContent(flutter_view_hwnd_);
+
+  HINSTANCE instance = ::GetModuleHandleW(nullptr);
+  grab_cursor_ = static_cast<HCURSOR>(::LoadImageW(
+      instance, MAKEINTRESOURCEW(IDC_CURSOR_GRAB), IMAGE_CURSOR, 0, 0,
+      LR_DEFAULTSIZE | LR_SHARED));
+  grabbing_cursor_ = static_cast<HCURSOR>(::LoadImageW(
+      instance, MAKEINTRESOURCEW(IDC_CURSOR_GRABBING), IMAGE_CURSOR, 0, 0,
+      LR_DEFAULTSIZE | LR_SHARED));
+
+  if (flutter_view_hwnd_) {
+    ::SetWindowSubclass(flutter_view_hwnd_, FlutterViewSubclassProc,
+                        kFlutterViewCursorSubclassId,
+                        reinterpret_cast<DWORD_PTR>(this));
+  }
+  SetupMouseCursorChannel();
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     this->Show();
@@ -86,7 +141,95 @@ bool FlutterWindow::OnCreate() {
   return true;
 }
 
+void FlutterWindow::SetupMouseCursorChannel() {
+  cursor_channel_ =
+      std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+          flutter_controller_->engine()->messenger(), "flutter/mousecursor",
+          &flutter::StandardMethodCodec::GetInstance());
+
+  cursor_channel_->SetMethodCallHandler(
+      [this](const flutter::MethodCall<flutter::EncodableValue>& call,
+             std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>
+                 result) {
+        if (call.method_name() != "activateSystemCursor") {
+          result->NotImplemented();
+          return;
+        }
+
+        const auto* args =
+            std::get_if<flutter::EncodableMap>(call.arguments());
+        if (!args) {
+          result->Error("InvalidArguments",
+                        "Expected map arguments for activateSystemCursor.");
+          return;
+        }
+
+        const auto kind_it = args->find(flutter::EncodableValue("kind"));
+        if (kind_it == args->end()) {
+          result->Error("InvalidArguments", "Missing cursor 'kind'.");
+          return;
+        }
+
+        const auto* kind = std::get_if<std::string>(&kind_it->second);
+        if (!kind) {
+          result->Error("InvalidArguments", "Cursor 'kind' must be a string.");
+          return;
+        }
+
+        if (*kind == "none") {
+          cursor_hidden_ = true;
+          current_cursor_ = nullptr;
+          ::SetCursor(nullptr);
+        } else {
+          HCURSOR cursor = nullptr;
+          if (*kind == "grab" && grab_cursor_) {
+            cursor = grab_cursor_;
+          } else if (*kind == "grabbing" && grabbing_cursor_) {
+            cursor = grabbing_cursor_;
+          } else {
+            cursor = ResolveStandardSystemCursor(*kind);
+          }
+          cursor_hidden_ = false;
+          current_cursor_ = cursor;
+          ::SetCursor(cursor);
+        }
+
+        result->Success();
+      });
+}
+
+LRESULT CALLBACK FlutterWindow::FlutterViewSubclassProc(
+    HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam,
+    UINT_PTR uIdSubclass, DWORD_PTR dwRefData) {
+  auto* window = reinterpret_cast<FlutterWindow*>(dwRefData);
+
+  if (message == WM_SETCURSOR && LOWORD(lparam) == HTCLIENT && window) {
+    if (window->cursor_hidden_) {
+      ::SetCursor(nullptr);
+      return TRUE;
+    }
+    if (window->current_cursor_) {
+      ::SetCursor(window->current_cursor_);
+      return TRUE;
+    }
+  } else if (message == WM_NCDESTROY) {
+    if (window && window->flutter_view_hwnd_ == hwnd) {
+      window->flutter_view_hwnd_ = nullptr;
+    }
+    ::RemoveWindowSubclass(hwnd, FlutterViewSubclassProc, uIdSubclass);
+  }
+
+  return ::DefSubclassProc(hwnd, message, wparam, lparam);
+}
+
 void FlutterWindow::OnDestroy() {
+  if (flutter_view_hwnd_) {
+    ::RemoveWindowSubclass(flutter_view_hwnd_, FlutterViewSubclassProc,
+                           kFlutterViewCursorSubclassId);
+    flutter_view_hwnd_ = nullptr;
+  }
+  cursor_channel_.reset();
+
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
   }

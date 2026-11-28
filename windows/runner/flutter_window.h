@@ -3,6 +3,8 @@
 
 #include <flutter/dart_project.h>
 #include <flutter/flutter_view_controller.h>
+#include <flutter/method_channel.h>
+#include <flutter/standard_method_codec.h>
 
 #include <memory>
 
@@ -23,11 +25,26 @@ class FlutterWindow : public Win32Window {
                          LPARAM const lparam) noexcept override;
 
  private:
+  void SetupMouseCursorChannel();
+  static LRESULT CALLBACK FlutterViewSubclassProc(
+      HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam,
+      UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
+
   // The project to run.
   flutter::DartProject project_;
 
   // The Flutter instance hosted by this window.
   std::unique_ptr<flutter::FlutterViewController> flutter_controller_;
+
+  // Custom mouse cursor channel + FLUTTERVIEW subclass state to provide
+  // native Windows grab/grabbing cursors for SystemMouseCursors.
+  std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>>
+      cursor_channel_;
+  HWND flutter_view_hwnd_ = nullptr;
+  HCURSOR grab_cursor_ = nullptr;
+  HCURSOR grabbing_cursor_ = nullptr;
+  HCURSOR current_cursor_ = nullptr;
+  bool cursor_hidden_ = false;
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_
